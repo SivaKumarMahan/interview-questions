@@ -1,0 +1,31 @@
+1. How do you attach and detach a file system in Linux?
+“In Linux, we attach a file system by mounting it with the mount command — for example, mount /dev/sdb1 /mnt/data. To detach it, we use umount /mnt/data. For persistent mounting, we configure it in /etc/fstab. I also check usage with df -h and handle busy mounts using lsof or fuser.”
+
+When you “attach” a file system in Linux, you’re mounting it — linking the file system (from a device, partition, or volume) into your system’s directory tree.
+# 1. Create a directory (mount point)
+sudo mkdir /mnt/mydata
+
+# 2. Identify your storage device
+sudo fdisk -l    # lists available disks and partitions
+# Example device: /dev/sdb1
+
+# 3. Mount it to the directory
+sudo mount /dev/sdb1 /mnt/mydata
+
+# 4. Verify
+df -h | grep mydata
+
+Now your file system is attached — you can access files under /mnt/mydata.
+
+When you “detach” a file system, you’re unmounting it — safely removing access to that device.
+sudo umount /mnt/mydata
+
+If the file system is busy (e.g., some process is using it), you’ll get an error like:
+umount: /mnt/mydata: target is busy
+
+You can check which process is using it:
+sudo lsof +f -- /mnt/mydata
+# or
+sudo fuser -vm /mnt/mydata
+Then stop/kill the process and try again.
+
