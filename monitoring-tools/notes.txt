@@ -1,0 +1,17 @@
+Q: How do you configure a Grafana dashboard?
+To configure a Grafana dashboard, follow these steps:
+1. Install Grafana: If you haven't already, install Grafana on your server or use a hosted version.
+2. Access Grafana: Open your web browser and navigate to http://<your-grafana-server-ip>:3000. Log in with the default credentials (username: admin, password: admin) and change the password when prompted.
+3. Add a Data Source:
+   - Click on the gear icon (Configuration) in the left sidebar.
+   - Select "Data Sources" and then click on "Add data source."
+   - Choose the type of data source you want to add (e.g., Prometheus, InfluxDB, etc.).
+   - Fill in the required connection details and click "Save & Test" to verify the connection.
+4. Create a Dashboard:
+   - Click on the "+" icon in the left sidebar and select "Dashboard."
+   - Click on "Add new panel" to create a new panel for your dashboard.
+5. Configure Panels:
+   - In the panel editor, select the data source you added earlier.
+   - Write a query to fetch the data you want to visualize.
+   - Choose the visualization type (e.g., graph, gauge, table) from the options on the right.
+   - Customize the panel settings, such as titles, axes, and thresholds.

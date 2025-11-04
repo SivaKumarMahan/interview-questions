@@ -1,0 +1,107 @@
+Q: If Docker containers are consuming too much disk space, how do you fix it?
+Check disk usage by Docker
+docker system df
+
+This shows how much space is used by:
+Images
+Containers
+Local volumes
+Build cache
+
+Remove stopped containers
+docker container prune
+
+Remove unused images,volumes,networks
+docker image prune
+docker volume prune
+docker network prune
+
+This deletes all unused containers, images, volumes, and networks.
+docker system prune -a --volumes
+
+Check container log size
+sudo du -sh /var/lib/docker/containers/*/*-json.log | sort -hr | head
+
+Truncate large logs safely:
+sudo truncate -s 0 /var/lib/docker/containers/<container-id>/<container-id>-json.log
+
+Q: What’s the difference between docker system prune and docker system prune -a?
+docker system prune → removes unused objects
+docker system prune -a → also removes all unused images, not just dangling ones.
+
+Q: How do you prevent Docker from filling the disk again?
+Regularly prune unused images
+Use logging limits
+Store Docker data on a dedicated volume or partition
+
+-----
+Q: What is the difference between EXPOSE in a Dockerfile and -p in docker run?
+EXPOSE 80 --> “This container app expects traffic on port 80.”
+The container listens on port 80 internally, but it’s not accessible from outside yet.
+
+docker build -t mynginx .
+docker run mynginx
+The container runs.But the port is not accessible from your host machine because you didn’t publish it.
+docker run -p 8080:80 mynginx --> “Map my host’s port 8080 → container’s port 80 so I can access it externally.”
+Access from browser: http://localhost:8080 Works!
+
+Think of it like this:
+EXPOSE = “The restaurant has a door.”
+-p = “You unlocked the door so customers can enter.”
+
+-----
+Q: What is the base image in docker and which base image would you use for python or nodejs
+A base image is the starting point or foundation layer for your Docker image.
+It’s the first layer in your image on top of which you install your app, dependencies and configurations.
+It defines the runtime environment — such as the operating system and libraries — your app needs.
+
+Using a Python base image:
+FROM python:3.10-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "app.py"]
+
+Using a Node.js base image:
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "start"]
+
+For Python, use python:3.x-slim or python:3.x-alpine.
+For Node.js, use node:18-slim or node:18-alpine.
+
+-----
+Q: How do you run NGINX on a Linux server using Docker?
+docker pull nginx:latest --> This downloads the latest official NGINX image from Docker Hub.
+docker run -d -p 80:80 --name mynginx nginx
+-d → Runs the container in detached mode (in the background).
+-p 80:80 → Maps port 80 of the container to port 80 on the host.
+--name mynginx → Assigns a name to your container for easy reference.
+nginx → The image name to run.
+Now if you open a browser and go to http://<your-server-public-ip>, you’ll see the NGINX welcome
+
+docker run -d -p 8080:80 --name web \
+  -v /home/ubuntu/website:/usr/share/nginx/html \
+  nginx
+
+The NGINX container starts and listens on port 80 inside the container.Docker maps that to port 8080 on your Linux host.
+Mounts your local folder (with website files) to NGINX’s default HTML directory inside the container
+
+http://<your-server-ip>:8080 -->You’ll see your website’s homepage 
+
+-----
+Q: How to rollback a failed deployment in Docker and Kubernetes ?
+If a deployment using a new Docker image fails, you can rollback by running a container using a previously working image version.
+Run the previous working version
+docker run -d -p 8080:80 <image_name>:<previous_tag>
+docker tag <image_name>:<previous_tag> <image_name>:stable --> tag a stable version(Always version your images (e.g., myapp:v1, myapp:v2) so you can easily revert.)
+
+Rollback in Kubernetes
+kubectl rollout history deployment <deployment_name> --> Check rollout history
+kubectl rollout undo deployment <deployment_name> --> Rollback to the previous revision
+kubectl rollout undo deployment <deployment_name> --to-revision=2 --> Rollback to a specific revision
+kubectl rollout status deployment <deployment_name>
+kubectl get pods -o wide

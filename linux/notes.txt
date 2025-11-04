@@ -1,4 +1,4 @@
-1. How do you attach and detach a file system in Linux?
+Q: How do you attach and detach a file system in Linux?
 “In Linux, we attach a file system by mounting it with the mount command — for example, mount /dev/sdb1 /mnt/data. To detach it, we use umount /mnt/data. For persistent mounting, we configure it in /etc/fstab. I also check usage with df -h and handle busy mounts using lsof or fuser.”
 
 When you “attach” a file system in Linux, you’re mounting it — linking the file system (from a device, partition, or volume) into your system’s directory tree.
@@ -29,3 +29,50 @@ sudo lsof +f -- /mnt/mydata
 sudo fuser -vm /mnt/mydata
 Then stop/kill the process and try again.
 
+-----
+Q: How do you print the last 15 lines of a file in Linux?
+Using the tail command
+The tail command prints the last part of a file.
+tail -n <number_of_lines> <filename>
+tail -n 15 /var/log/syslog
+
+Continuously monitor file updates (live view)
+tail -f filename.txt
+
+If you want to view the last 15 lines of a command’s output:
+dmesg | tail -n 15
+
+-----
+Q: How would you view the last few lines of a huge log file that’s continuously updated?
+“I’d use tail -f logfile.log to stream the last lines in real-time.”
+
+-----
+Q: How do you enable passwordless SSH authentication between two Linux servers?
+Allow Server A to SSH into Server B without entering a password.
+
+On Server A (the client): Generate SSH key pair
+ssh-keygen -t rsa
+This generates:
+id_rsa → private key (keep secure)
+id_rsa.pub → public key (to share)
+
+Copy the public key to Server B
+Set correct permissions on Server B
+Test passwordless login
+From Server A: ssh user@serverB --> It should log in without asking for a password.
+
+How It Works
+SSH uses public-key cryptography.
+When you SSH from A → B:
+Server B checks if your public key is in its ~/.ssh/authorized_keys.
+If yes, it verifies using your private key from A — no password needed.
+
+-----
+Q: What if SSH key authentication still prompts for a password?
+Check: Permissions of .ssh folder and files
+/etc/ssh/sshd_config has:
+PubkeyAuthentication yes
+PasswordAuthentication no
+
+Then restart SSH service:
+sudo systemctl restart sshd
