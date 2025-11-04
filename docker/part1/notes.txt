@@ -105,3 +105,33 @@ kubectl rollout undo deployment <deployment_name> --> Rollback to the previous r
 kubectl rollout undo deployment <deployment_name> --to-revision=2 --> Rollback to a specific revision
 kubectl rollout status deployment <deployment_name>
 kubectl get pods -o wide
+
+-----
+Q: How do you pass environment varaiables during docker build commands? what services do you use for storing docker images?
+Passing Environment Variables during Docker Build:
+You can pass environment variables during the Docker build process using the --build-arg flag with the docker build command.
+Here’s an example:
+Dockerfile:
+```Dockerfile
+FROM alpine:latest
+ARG APP_ENV
+ENV APP_ENV=${APP_ENV}
+RUN echo "Building for environment: $APP_ENV"
+CMD ["sh", "-c", "echo Running in environment: $APP_ENV"]
+```
+Build Command:
+```bash
+docker build --build-arg APP_ENV=production -t myapp:latest .
+```
+In this example, the APP_ENV variable is passed during the build process and set as an environment variable inside the container.
+Storing Docker Images:
+You can store Docker images in various container registries. Some popular options include:
+1. Docker Hub: A widely used public container registry that allows you to store and share Docker images.
+2. Amazon Elastic Container Registry (ECR): A fully managed Docker container registry provided by AWS.
+3. Google Container Registry (GCR): A private container registry for storing Docker images on Google Cloud Platform.
+4. Azure Container Registry (ACR): A private Docker registry service provided by Microsoft Azure.
+5. Harbor: An open-source container image registry that provides security, identity, and management features.
+6. JFrog Artifactory: A universal artifact repository manager that supports Docker images along with other package types.
+Choose a registry based on your project requirements, such as integration with your cloud provider, security features, and scalability needs.
+
+-----
