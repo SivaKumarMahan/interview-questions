@@ -1,0 +1,8 @@
+Q: What is the difference between a Saas application and an enterprise application?
+A: A SaaS (Software as a Service) application is a cloud-based software solution that is hosted and managed by a third-party provider, allowing users to access it over the internet without needing to install or maintain it on their own infrastructure. Examples include Microsoft 365, Google Workspace, and Salesforce.
+An enterprise application, on the other hand, is a software solution designed to meet the specific needs of an organization. These applications are often more complex and may be hosted on-premises or in the cloud. They are typically used for business processes such as ERP (Enterprise Resource Planning), CRM (Customer Relationship Management), and supply chain management. Examples include SAP, Oracle E-Business Suite, and Microsoft Dynamics.
+
+A SaaS application is cloud-hosted and managed by a third-party provider — users simply subscribe and access it through a browser.
+In contrast, an enterprise application is developed or managed internally by a company, often hosted on its own infrastructure, and tailored for its business processes.
+SaaS focuses on ease of use and scalability, while enterprise applications focus on deep customization and integration with internal systems.
+-----

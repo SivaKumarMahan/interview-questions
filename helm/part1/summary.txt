@@ -1,0 +1,318 @@
+Helm: The Package Manager That Simplifies Kubernetes
+
+As organizations continue adopting Kubernetes, teams often face a common challenge: managing complex application deployments. Writing long YAML files, maintaining multiple configurations, and ensuring consistent deployments across environments can quickly become overwhelming. That’s where Helm steps in.
+
+Helm is often called “the package manager for Kubernetes”, and that description fits perfectly. Just like apt or yum simplify installing software on Linux, Helm simplifies installing and managing applications inside Kubernetes clusters.
+
+At the heart of Helm are Charts—pre-configured templates that define an application, its configuration, and dependencies. Instead of manually creating multiple YAML files, a Helm Chart allows teams to deploy everything with a single command:
+
+helm install myapp chartname
+
+
+This means faster, repeatable, and error-free deployments.
+
+Another major advantage of Helm is version control. When you upgrade or roll back an application, Helm keeps track of historical revisions. If something breaks, rolling back is simple and safe. This reliability makes Helm a favorite tool in DevOps pipelines.
+
+Helm also supports customization using values.yaml. Teams can deploy the same application in development, testing, or production with different resources, database settings, or scaling configurations—without changing the core templates.
+
+🔹Charts: Define how your app is deployed.
+🔹Releases: Each deployment is a release - isolated and reusable.
+🔹Versions: Track updates, fixes, and new features easily.
+
+With Helm, you can:
+✅ Deploy apps in a single command
+✅ Roll back instantly when needed
+✅ Reuse templates across teams
+✅ Pull charts locally or from repositories
+
+As Kubernetes adoption grows, Helm has become a critical tool for DevOps engineers, SREs, and cloud architects. Whether you're automating CI/CD, deploying microservices, or managing enterprise workloads, Helm helps reduce complexity and boost speed.
+
+-----
+🚀 Helm: Managing Different Resource Needs Across Microservices
+In many Kubernetes setups, teams deploy multiple microservices using a shared Helm chart for consistency.
+If you define CPU and memory in deployment.yaml, the same configuration applies to all services. What if one microservice needs more resources? Increasing them globally affects every service
+Here’s a clean fix 👇
+
+✅ Solution
+Create a resource-config.yaml file that defines CPU and memory per microservice, plus a default fallback.
+Then, make your deployment.yaml pick the right config dynamically based on a variable like serviceSelector.
+Finally, pass the service name during deployment using the --set flag in Helm.
+helm upgrade $RELEASE_NAME ./chart -i \
+--set serviceSelector=$SERVICE_NAME -f resource-config.yaml
+
+💡 Result:
+One reusable Helm chart for all microservices
+Per-service CPU/memory control
+No duplication, clean and scalable deployments
+
+-----
+𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
+
+💡 𝗗𝗲𝘃 ➝ 𝗦𝘁𝗮𝗴𝗶𝗻𝗴 ➝ 𝗣𝗿𝗼𝗱 𝘄𝗶𝘁𝗵 𝗛𝗲𝗹𝗺 + 𝗔𝘇𝘂𝗿𝗲 𝗗𝗲𝘃𝗢𝗽𝘀 𝗖𝗜/𝗖𝗗
+
+In fast-paced IT production environments, managing deployments across Dev, Staging, and Prod can easily spiral into chaos without proper automation.
+
+🔍 𝗧𝗵𝗲 𝗣𝗿𝗼𝗯𝗹𝗲𝗺 𝗜 𝗙𝗮𝗰𝗲𝗱:
+Initially, I deployed Helm charts manually for each environment. It worked... until it didn’t.
+𝗛𝗲𝗿𝗲’𝘀 𝘄𝗵𝗮𝘁 𝘄𝗲𝗻𝘁 𝘄𝗿𝗼𝗻𝗴:
+❌ Inconsistent releases between environments
+❌ Environment-specific values were overwritten or missed
+❌ No traceability, no rollback
+❌ Slower releases, especially during critical production changes
+❌ Manual errors causing misconfigurations in Prod 😣
+
+🏗️ 𝗧𝗵𝗲 𝗥𝗲𝗮𝗹-𝗪𝗼𝗿𝗹𝗱 𝗦𝗼𝗹𝘂𝘁𝗶𝗼𝗻:
+I integrated Helm chart deployment into our Azure DevOps pipeline, built with automation in mind. Now, each environment gets:
+✔️ Its own values-dev.yaml, values-staging.yaml, values-prod.yaml
+✔️ Controlled and versioned Helm releases
+✔️ Seamless promotion from Dev ➝ Staging ➝ Prod
+✔️ Quick rollback if needed
+✔️ Full visibility into every deployment
+
+🎥 Check out the video demo — I walk through the actual pipeline in action and show how this change brought structure, speed, and safety to our deployments.
+
+🔐 𝗥𝗲𝘀𝘂𝗹𝘁:
+🔸 Reduced human error
+🔸 Faster and safer production releases
+🔸 Dev and Ops teams now deploy with confidence 💪
+🔸 We're finally DevOps-ready across environments
+
+----
+Managing production workloads in Kubernetes requires both simplified deployments and strong observability practices.
+🔹 Helm Charts streamline complex application deployments by packaging all necessary Kubernetes objects into reusable charts.
+🔹For monitoring, Prometheus collects real-time metrics, while Grafana visualizes them with custom dashboards.
+🔹Centralized logging with the ELK Stack makes troubleshooting easier by aggregating logs across services.
+🔹Jaeger and OpenTelemetry enable distributed tracing, helping teams identify performance bottlenecks across microservices.
+
+Together, these tools provide an efficient way to manage and monitor Kubernetes environments, ensuring optimized performance and fast issue resolution.
+
+-----
+𝗠𝗮𝘀𝘁𝗲𝗿 𝗛𝗲𝗹𝗺: 𝗦𝗶𝗺𝗽𝗹𝗶𝗳𝘆 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁𝘀! 🚀
+
+Kubernetes applications can get complex, but Helm, often called the "package manager for Kubernetes", is here to make it easier. 
+
+🎯 𝗪𝗵𝘆 𝗛𝗲𝗹𝗺?
+𝗦𝗶𝗺𝗽𝗹𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻: No more manually managing hundreds of YAML files.
+𝗥𝗲𝘂𝘀𝗮𝗯𝗶𝗹𝗶𝘁𝘆: Create pre-packaged charts and use them across environments.
+𝗩𝗲𝗿𝘀𝗶𝗼𝗻 𝗖𝗼𝗻𝘁𝗿𝗼𝗹: Seamlessly roll back to previous states when needed.
+
+🔑 Key Concepts:
+𝗖𝗵𝗮𝗿𝘁𝘀: Bundles of Kubernetes application configurations.
+𝗩𝗮𝗹𝘂𝗲𝘀: Default configurations you can easily customize.
+𝗥𝗲𝗹𝗲𝗮𝘀𝗲s: Deployed instances of Helm charts.
+
+🛠️ 𝗚𝗲𝘁𝘁𝗶𝗻𝗴 𝗦𝘁𝗮𝗿𝘁𝗲𝗱 𝘄𝗶𝘁𝗵 𝗛𝗲𝗹𝗺:
+𝗦𝗲𝘁 𝗨𝗽 𝗛𝗲𝗹𝗺:
+𝗜𝗻𝘀𝘁𝗮𝗹𝗹 𝗛𝗲𝗹𝗺: 
+𝘤𝘶𝘳𝘭 𝘩𝘵𝘵𝘱𝘴://𝘳𝘢𝘸.𝘨𝘪𝘵𝘩𝘶𝘣𝘶𝘴𝘦𝘳𝘤𝘰𝘯𝘵𝘦𝘯𝘵.𝘤𝘰𝘮/𝘩𝘦𝘭𝘮/𝘩𝘦𝘭𝘮/𝘮𝘢𝘪𝘯/𝘴𝘤𝘳𝘪𝘱𝘵𝘴/𝘨𝘦𝘵-𝘩𝘦𝘭𝘮-3 | 𝘣𝘢𝘴𝘩
+
+𝗔𝗱𝗱 𝗿𝗲𝗽𝗼𝘀𝗶𝘁𝗼𝗿𝗶𝗲𝘀 𝗹𝗶𝗸𝗲 𝗕𝗶𝘁𝗻𝗮𝗺𝗶: 𝘩𝘦𝘭𝘮 𝘳𝘦𝘱𝘰 𝘢𝘥𝘥 𝘣𝘪𝘵𝘯𝘢𝘮𝘪 𝘩𝘵𝘵𝘱𝘴://𝘤𝘩𝘢𝘳𝘵𝘴.𝘣𝘪𝘵𝘯𝘢𝘮𝘪.𝘤𝘰𝘮/𝘣𝘪𝘵𝘯𝘢𝘮𝘪
+
+𝗖𝗿𝗲𝗮𝘁𝗲 𝗬𝗼𝘂𝗿 𝗙𝗶𝗿𝘀𝘁 𝗖𝗵𝗮𝗿𝘁:
+Use helm create my-first-chart to scaffold your application.
+Customize configurations in values.yaml and templates.
+
+𝗗𝗲𝗽𝗹𝗼𝘆 𝗬𝗼𝘂𝗿 𝗔𝗽𝗽𝗹𝗶𝗰𝗮𝘁𝗶𝗼𝗻:
+Example command: 𝘩𝘦𝘭𝘮 𝘪𝘯𝘴𝘵𝘢𝘭𝘭 𝘮𝘺-𝘯𝘨𝘪𝘯𝘹 ./𝘮𝘺-𝘧𝘪𝘳𝘴𝘵-𝘤𝘩𝘢𝘳𝘵
+Scale and tweak deployments dynamically: 𝘩𝘦𝘭𝘮 𝘪𝘯𝘴𝘵𝘢𝘭𝘭 𝘮𝘺-𝘢𝘱𝘱 ./𝘮𝘺-𝘤𝘩𝘢𝘳𝘵 --𝘴𝘦𝘵 𝘳𝘦𝘱𝘭𝘪𝘤𝘢𝘊𝘰𝘶𝘯𝘵=5
+
+⚡ 𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗛𝗲𝗹𝗺 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀:
+𝗟𝗶𝗳𝗲𝗰𝘆𝗰𝗹𝗲 𝗛𝗼𝗼𝗸𝘀: Run pre- or post-deployment tasks.
+𝗦𝘂𝗯𝗰𝗵𝗮𝗿𝘁𝘀 & 𝗗𝗲𝗽𝗲𝗻𝗱𝗲𝗻𝗰𝗶𝗲𝘀: Integrate with services like Redis or MySQL.
+𝗖𝗜/𝗖𝗗 𝗜𝗻𝘁𝗲𝗴𝗿𝗮𝘁𝗶𝗼𝗻: Automate Helm deployments using GitHub Actions or other tools.
+Monitoring: Use Helm to deploy Prometheus and Grafana for real-time metrics.
+
+🛡️ 𝗕𝗲𝘀𝘁 𝗣𝗿𝗮𝗰𝘁𝗶𝗰𝗲𝘀:
+Maintain consistent chart versioning.
+Secure configurations with tools like Helm Secrets.
+Automate deployments for efficiency and accuracy.
+
+-----
+𝐇𝐨𝐰 𝐇𝐞𝐥𝐦 𝐖𝐨𝐫𝐤𝐬 𝐢𝐧 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 🤔
+
+Helm is like a 𝐩𝐚𝐜𝐤𝐚𝐠𝐞 𝐦𝐚𝐧𝐚𝐠𝐞𝐫 𝐟𝐨𝐫 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬
+Instead of writing and applying lots of YAML files one by one, Helm puts them together into a single 𝐜𝐡𝐚𝐫𝐭 you can reuse
+
+Here’s how it works 👇
+
+1️⃣ 𝐂𝐫𝐞𝐚𝐭𝐞 𝐂𝐡𝐚𝐫𝐭 ✍️ – A developer writes a Helm chart (YAML + values.yaml for settings)
+2️⃣ 𝐏𝐮𝐬𝐡 𝐭𝐨 𝐑𝐞𝐩𝐨 📂 – The chart is stored in Git for version control
+3️⃣ 𝐔𝐬𝐞 𝐇𝐞𝐥𝐦 𝐂𝐋𝐈 💻 – The admin uses Helm commands to install or manage charts
+4️⃣ 𝐈𝐧𝐬𝐭𝐚𝐥𝐥 𝐂𝐡𝐚𝐫𝐭 ⚙️ – Helm processes the templates, adds configs, and applies them to Kubernetes
+5️⃣ 𝐃𝐞𝐩𝐥𝐨𝐲 𝐀𝐧𝐲𝐰𝐡𝐞𝐫𝐞 🌍 – The same chart can be used in 𝐓𝐞𝐬𝐭, 𝐒𝐭𝐚𝐠𝐢𝐧𝐠, 𝐚𝐧𝐝 𝐏𝐫𝐨𝐝𝐮𝐜𝐭𝐢𝐨𝐧 with different settings
+
+✨ 𝐖𝐡𝐲 𝐮𝐬𝐞 𝐇𝐞𝐥𝐦?
+✅ Same chart works everywhere
+📌 Easy version control with Git
+⚡ Fast deployment to many clusters
+🤖 Less manual YAML, more automation 🚀
+
+👉 Helm = 𝐒𝐢𝐦𝐩𝐥𝐞 𝐃𝐞𝐩𝐥𝐨𝐲𝐦𝐞𝐧𝐭𝐬, 𝐌𝐨𝐫𝐞 𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧
+
+-----
+𝐒𝐢𝐦𝐩𝐥𝐢𝐟𝐲𝐢𝐧𝐠 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 𝐃𝐞𝐩𝐥𝐨𝐲𝐦𝐞𝐧𝐭𝐬 𝐰𝐢𝐭𝐡 𝐇𝐞𝐥𝐦: 𝐀 𝐒𝐭𝐞𝐩-𝐛𝐲-𝐒𝐭𝐞𝐩 𝐆𝐮𝐢𝐝𝐞
+
+Managing Kubernetes manifests for different environments can be challenging, especially as your application scales. Helm, the Kubernetes package manager, is here to make your life easier! In this post, I'll walk you through creating, managing, and deploying Helm charts for your applications.
+
+1️⃣ Create a Helm Chart Directory Structure
+Run: 𝒉𝒆𝒍𝒎 𝒄𝒓𝒆𝒂𝒕𝒆 <𝒄𝒉𝒂𝒓𝒕-𝒏𝒂𝒎𝒆>
+
+2️⃣ Organize Your Manifests
+Move your existing Kubernetes manifest files (e.g., Deployment, Service, Ingress, etc.) into the templates/ directory of your Helm chart.
+
+3️⃣ Update Chart.yaml
+Add a description and version for better clarity about your application
+
+4️⃣ Parameterize Your Manifests
+In your manifest files, templatize arguments that vary across environments. For example:
+𝒓𝒆𝒑𝒍𝒊𝒄𝒂𝒔: {{ .𝑽𝒂𝒍𝒖𝒆𝒔.𝒓𝒆𝒑𝒍𝒊𝒄𝒂𝑪𝒐𝒖𝒏𝒕 }} 
+𝒊𝒎𝒂𝒈𝒆: "{{ .𝑽𝒂𝒍𝒖𝒆𝒔.𝒊𝒎𝒂𝒈𝒆.𝒓𝒆𝒑𝒐𝒔𝒊𝒕𝒐𝒓𝒚 }}:{{ .𝑽𝒂𝒍𝒖𝒆𝒔.𝒊𝒎𝒂𝒈𝒆.𝒕𝒂𝒈 }}" 
+𝒔𝒆𝒓𝒗𝒊𝒄𝒆: 
+ 𝒕𝒚𝒑𝒆: {{ .𝑽𝒂𝒍𝒖𝒆𝒔.𝒔𝒆𝒓𝒗𝒊𝒄𝒆.𝒕𝒚𝒑𝒆 }}
+
+5️⃣ Create Environment-Specific Values Files
+Define separate values.yaml files for each environment
+dev-values.yaml / stage-values.yaml / prod-values.yaml
+Example values.yaml:
+
+𝒓𝒆𝒑𝒍𝒊𝒄𝒂𝑪𝒐𝒖𝒏𝒕: 2 
+𝒊𝒎𝒂𝒈𝒆: 
+ 𝒓𝒆𝒑𝒐𝒔𝒊𝒕𝒐𝒓𝒚: 𝒏𝒈𝒊𝒏𝒙 
+ 𝒕𝒂𝒈: 𝒍𝒂𝒕𝒆𝒔𝒕 
+𝒔𝒆𝒓𝒗𝒊𝒄𝒆: 
+ 𝒕𝒚𝒑𝒆: 𝑪𝒍𝒖𝒔𝒕𝒆𝒓𝑰𝑷
+
+6️⃣ Validate Your Chart
+Use 𝒉𝒆𝒍𝒎 𝒍𝒊𝒏𝒕 to validate the chart for syntax or structural issues
+
+7️⃣ Preview the Rendered Templates
+Dry-run your Helm templates with specific values:
+Run: 𝒉𝒆𝒍𝒎 𝒕𝒆𝒎𝒑𝒍𝒂𝒕𝒆 <𝒄𝒉𝒂𝒓𝒕-𝒏𝒂𝒎𝒆> -𝒇 <𝒗𝒂𝒍𝒖𝒆𝒔-𝒇𝒊𝒍𝒆>
+
+8️⃣ Deploy the Application
+Install the Helm chart into your Kubernetes cluster
+Run: 𝒉𝒆𝒍𝒎 𝒊𝒏𝒔𝒕𝒂𝒍𝒍 <𝒓𝒆𝒍𝒆𝒂𝒔𝒆-𝒏𝒂𝒎𝒆> <𝒄𝒉𝒂𝒓𝒕-𝒅𝒊𝒓𝒆𝒄𝒕𝒐𝒓𝒚> -𝒇 <𝒗𝒂𝒍𝒖𝒆𝒔-𝒇𝒊𝒍𝒆>
+
+10️⃣ Package the Helm Chart
+Package your Helm chart for sharing or storing in a centralized repo like S3 or GitHub:
+Run: 𝒉𝒆𝒍𝒎 𝒑𝒂𝒄𝒌𝒂𝒈𝒆 <𝒄𝒉𝒂𝒓𝒕-𝒅𝒊𝒓𝒆𝒄𝒕𝒐𝒓𝒚>
+
+11️⃣ Upgrade Your Chart
+Deploy updated configurations or new versions of your application:
+Run: 𝒉𝒆𝒍𝒎 𝒖𝒑𝒈𝒓𝒂𝒅𝒆 <𝒓𝒆𝒍𝒆𝒂𝒔𝒆-𝒏𝒂𝒎𝒆> <𝒄𝒉𝒂𝒓𝒕-𝒅𝒊𝒓𝒆𝒄𝒕𝒐𝒓𝒚> -𝒇 <𝒗𝒂𝒍𝒖𝒆𝒔-𝒇𝒊𝒍𝒆>
+
+12️⃣ Rollback to a Previous Version
+Unhappy with a deployment? Roll back to a previous release
+Run: 𝒉𝒆𝒍𝒎 𝒓𝒐𝒍𝒍𝒃𝒂𝒄𝒌 <𝒓𝒆𝒍𝒆𝒂𝒔𝒆-𝒏𝒂𝒎𝒆> <𝒓𝒆𝒗𝒊𝒔𝒊𝒐𝒏-𝒏𝒖𝒎𝒃𝒆𝒓>
+
+13️⃣ Uninstall Your Chart
+Clean up all resources created by the chart
+Run: 𝒉𝒆𝒍𝒎 𝒖𝒏𝒊𝒏𝒔𝒕𝒂𝒍𝒍 <𝒓𝒆𝒍𝒆𝒂𝒔𝒆-𝒏𝒂𝒎𝒆>
+
+-----
+Kubernetes Deployments with Umbrella Helm Charts: A Scalable Approach for Microservices
+As Kubernetes adoption grows across enterprises, so does the complexity of managing microservices and their dependencies. If you're deploying multiple interconnected services (like a frontend, backend, database, and monitoring tools), managing each chart individually can quickly become unscalable.
+
+This is where Umbrella Helm Charts come to the rescue.
+
+## 🌂 What is an Umbrella Helm Chart?
+
+An umbrella chart is a parent Helm chart that groups together multiple child charts as dependencies. It acts as a single entry point for deploying an entire application stack.
+
+Project Structure Example:
+my-app/
+├── Chart.yaml
+├── values.yaml
+└── charts/
+├── frontend/
+├── backend/
+└── database/
+
+Each subchart is versioned, configurable, and can be independently maintained; however, all are deployed as a single unit within the umbrella chart.
+
+---
+
+## ✅ Benefits of Umbrella Charts
+
+- Single Point of Control: One helm install to deploy everything.
+
+- Versioned Deployments: Lock versions of child charts for consistent environments.
+
+- Modular Architecture: Child charts are reusable across different umbrella charts.
+
+- Centralized Configuration: Customize all services from the top-level values.yaml.
+
+## 🛠️ Example: Umbrella Chart with Frontend, Backend, and DB
+
+### Chart.yaml (Umbrella)
+apiVersion: v2
+name: my-app
+description: An umbrella chart for microservice-based application
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: frontend
+    version: 1.0.0
+    repository: file://charts/frontend
+  - name: backend
+    version: 1.0.0
+    repository: file://charts/backend
+  - name: database
+    version: 1.0.0
+    repository: file://charts/database 
+
+ values.yaml (Umbrella)
+ frontend:
+  replicaCount: 2
+  image:
+    repository: myregistry/frontend
+    tag: "v1.2.3"
+
+backend:
+  replicaCount: 2
+  image:
+    repository: myregistry/backend
+    tag: "v1.2.3"
+  env:
+    DATABASE_URL: postgresql://db:5432/mydb
+
+database:
+  postgresql:
+    username: user
+    password: pass
+    database: mydb 
+
+🚀 Installing the Entire Stack
+helm install my-app ./my-app
+
+This command deploys all three components — frontend, backend, and the database — with a single command.
+
+🔧 Best Practices
+
+✅ Use an alias in Chart.yaml to customize subchart naming.
+
+✅ Use conditions or tags in values.yaml to toggle charts dynamically.
+
+✅ Store secrets inan external secrets manager or sealed-secrets, not in values.yaml.
+
+✅ Validate and test subcharts individually before composing the umbrella chart.
+
+✅ Integrate with GitOps tools (Flux, Argo CD) for consistent multi-env deployment.
+
+💬 Final Thoughts
+
+Umbrella Helm Charts are a powerful abstraction for simplifying complex Kubernetes deployments. They enhance modularity, maintainability, and scalability, especially when managing multiple microservices.
+
+By using umbrella charts, teams can reduce deployment complexity, increase team autonomy, and align infrastructure-as-code with modern CI/CD practices.
+
+----
+Setting up AppDynamics Monitoring using Helm charts!
+Over the past few days, I deployed and configured AppDynamics agents through Helm on a Kubernetes cluster to enable full-stack observability.
+🔍 A few highlights from the monitoring setup and dashboards I worked with:
+ ✅ Application Monitoring – Tracked API transactions, health rules, and performance metrics to quickly identify bottlenecks.
+ ✅ Database Monitoring – Monitored MySQL execution times, load, and query insights to ensure database efficiency.
+ ✅ Infrastructure Monitoring – Observed Kubernetes cluster performance, including CPU, memory usage, and pod-level insights.
+ ✅ Unified Observability – Combined application, database, and cluster insights into a single pane of glass.
+⚙️ The deployment via Helm chart made the setup faster, scalable, and easy to manage for Kubernetes workloads.
+This experience gave valuable insights into how end-to-end observability helps maintain system health, troubleshoot faster, and optimize performance.

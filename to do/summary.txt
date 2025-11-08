@@ -1,0 +1,28 @@
+Pull vs Push Deployment Models
+
+↳  𝗪𝗵𝗮𝘁 𝗶𝘀 𝗣𝘂𝘀𝗵 𝗕𝗮𝘀𝗲𝗱 𝗠𝗼𝗱𝗲𝗹? 
+ In push based model CI-CD pipeline pushes the changes into K8s cluster.
+
+𝗣𝗿𝗼𝘀 -->
+• Secret management is easier
+• Deploying Helm Charts can be done easier
+• Version updates can be injected by build pipeline
+𝗖𝗼𝗻𝘀 -->
+• Cluster config are embedded inside the Cl system
+• Cl system has Read-Write access to the Cluster
+• Deployment approach coupled to the CD system
+
+
+↳ 𝗪𝗵𝗮𝘁 𝗶𝘀 𝗣𝘂𝗹𝗹 𝗕𝗮𝘀𝗲𝗱 𝗠𝗼𝗱𝗲𝗹?
+In Pull based model the GitOps operator which is running in one cluster will pull the changes for multiple cluster.
+𝗣𝗿𝗼𝘀 -->
+• Secrets in Git Repo via HashiCorp Vault
+• Scan Container Register for new versions
+• GitOps operators support multi-tenant model
+• Deployment approach is not coupled to CD pipelines
+• No external user/client has the right to modify the cluster
+𝗖𝗼𝗻𝘀 -->
+•  Managing secrets of Helm Chart deployments is harder
+•  Generic Secret management is complex
+
+----

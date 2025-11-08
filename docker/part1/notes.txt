@@ -135,3 +135,77 @@ You can store Docker images in various container registries. Some popular option
 Choose a registry based on your project requirements, such as integration with your cloud provider, security features, and scalability needs.
 
 -----
+Q: Are you aware of security scanning tools? How do you scan docker images- both during build and at the registry level ?
+I implement vulnerability scanning at two stages — during image build and in the registry.
+During build, I use Trivy integrated into CI/CD pipelines to scan Docker images for OS and dependency-level vulnerabilities. This ensures we catch issues before deployment.
+After pushing to Azure Container Registry, I rely on Microsoft Defender for Containers, which automatically scans all images and surfaces CVEs in the Azure Security Center.
+For enforcement, builds fail automatically if Trivy finds any High or Critical severity vulnerabilities.
+
+Trivy Scan during Build:
+1. Install Trivy in your CI/CD environment.
+2. Add a scan step in your pipeline after building the Docker image:
+# Install Trivy
+sudo apt install trivy -y
+
+# Scan Docker image after build
+docker build -t myapp:latest .
+trivy image myapp:latest
+
+Output Example:
+myapp:latest (ubuntu 22.04)
+============================
+Total: 8 (CRITICAL: 2, HIGH: 3, MEDIUM: 3)
+
+Integrate this step in:
+- Jenkins pipeline (stage('Security Scan'))
+- Azure DevOps YAML (bash: trivy image $(imageName))
+- GitHub Actions workflow
+
+Fail the build automatically if severity ≥ High:
+trivy image --exit-code 1 --severity HIGH,CRITICAL myapp:latest
+
+Docker Native Scan (Powered by Snyk):
+1. Use Docker's built-in scanning feature if available in your environment.
+2. Run the scan command:
+docker scan myapp:latest 
+
+Integrates natively with Docker Desktop and Docker Hub.
+
+Registry-Level Scanning:
+Azure Container Registry (ACR)
+Use Microsoft Defender for Containers to automatically scan images after push.
+It identifies CVEs and integrates with Azure Security Center.
+Enable scanning:
+Go to ACR → Settings → Defender for Cloud
+Enable Vulnerability Assessment
+Run on-demand scan:
+az acr run --cmd "acr scan show --name <registry>" --registry <acrName>
+View results under Security → Vulnerabilities
+
+-----
+Q: What are Docker multi-stage builds, and how do they help optimize Docker images?
+Docker multi-stage builds let us separate the build environment from the runtime environment.
+In the first stage, we compile or package our app using all necessary tools, and in the final stage, we copy only the build output into a lightweight image like Alpine.
+This significantly reduces image size, improves security, and speeds up deployments.
+For example, I’ve reduced a 900MB Go build image to under 50MB using multi-stage builds.
+
+Here’s an example Dockerfile using multi-stage builds for a Go application:
+```Dockerfile
+# Stage 1: Build the application
+FROM golang:1.20 AS builder
+WORKDIR /app
+COPY . .
+RUN go build -o myapp . # Compiles your Go app into a single executable binary called myapp.
+
+# Stage 2: Create a lightweight runtime image
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/myapp . # Copies only the compiled binary from the first stage.
+CMD ["./myapp"]
+```
+In this example:
+The first stage uses the golang image to compile the Go application.
+The second stage uses the lightweight Alpine image and copies only the compiled binary from the builder stage.
+This results in a much smaller final image that contains only what’s necessary to run the application.
+
+-----

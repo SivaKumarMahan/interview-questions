@@ -1,0 +1,1 @@
+Q: Terraform plan shows destroy + recreate for a critical DB — how to prevent downtime?

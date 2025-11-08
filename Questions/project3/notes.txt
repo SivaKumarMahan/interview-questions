@@ -1,0 +1,267 @@
+61. How do you ensure disaster recovery in cloud (GCP/Azure)? 
+Answer: Multi-zone deployments → Backup to remote regions → Use Terraform to rebuild infra quickly → DR drills regularly. 
+62. How do you optimize Docker build speed in Jenkins pipelines? 
+Answer: Use caching layers → Multi-stage builds → Use local/private registry for faster pulls. 
+63. How do you handle Kubernetes pod networking issues? 
+Answer: Check CNI plugin logs → Validate IP assignment → Restart kube-proxy or CNI → Apply Network Policies correctly. 
+64. How do you scale Jenkins dynamically? 
+Answer: Integrate Jenkins with Kubernetes cloud plugin → Auto-create agents as pods → Terminate when idle. 
+65. How do you secure Terraform state file?
+Answer: Store in remote backend with encryption (GCS/Azure Blob) → Enable versioning → Limit IAM access to state bucket. 
+66. How do you roll back a failed Terraform deployment automatically? 
+Answer: Keep previous .tf code version in Git → Run terraform apply with last known good version → Restore state from versioned backend. 
+67. How do you troubleshoot “Node Not Ready” in Kubernetes? 
+Answer: Run kubectl describe node → Check kubelet logs → Verify Docker/container runtime → Restart node services → Replace unhealthy node if needed. 
+68. How do you enable monitoring for Terraform deployments? 
+Answer: Use terraform apply -json output → Forward to monitoring tools → Integrate with Jenkins pipeline to notify Slack/Teams. 
+69. How do you manage GCP IAM or Azure RBAC permissions in Terraform? 
+Answer: Use Terraform IAM roles/policies modules → Assign least privilege roles → Store policies in version control → Review via code reviews. 
+70. How do you implement Service Mesh in Kubernetes? 
+Answer: Deploy Istio/Linkerd → Enable traffic routing, retries, and observability → Use for canary/blue-green deployments. 
+
+----
+51. How do you troubleshoot a Jenkins pipeline stuck in the queue? 
+Answer: Check if Jenkins agents are available → Validate node labels → Check executor limits → Scale up agents if using Kubernetes/VMs. 
+52. How do you handle Terraform drift when another team member changes infrastructure manually in the cloud console? 
+Answer: Run terraform plan to detect drift → Update .tf code to match real infra → Apply changes → Educate team to avoid manual changes. 
+53. How do you implement Infrastructure Cost Optimization in Terraform? 
+Answer: Use variables for instance sizes → Add auto-scaling groups → Apply resource tags → Use lifecycle policies to delete unused resources. 
+54. What if Kubernetes cluster nodes are running out of resources? 
+Answer: Check node metrics → Add more nodes (cluster autoscaler) → Tune resource requests/limits → Reschedule pods across nodes. 
+55. How do you enforce security scans in CI/CD? 
+Answer: Add SAST (code scan with SonarQube) and DAST (OWASP ZAP) → Container image scans (Trivy/Anchore) → IaC scans (Checkov, tfsec). 
+56. How do you handle configuration drift in Kubernetes? 
+Answer: Use GitOps tools like ArgoCD/Flux → Ensure cluster config matches Git repo → Auto-revert manual changes. 
+57. How do you troubleshoot a failed GCP Cloud Build or Azure DevOps pipeline? 
+Answer: Check build logs → Validate service account permissions → Verify YAML pipeline definition → Retry with verbose logs. 
+58. How do you implement High Availability (HA) Jenkins? 
+Answer: Run Jenkins on Kubernetes with persistent volume → Use multiple replicas with HA proxy → Backup Jenkins home regularly. 
+59. How do you migrate workloads from GCP to Azure using Terraform? 
+Answer: Write separate Terraform provider configs for GCP and Azure → Export state from GCP → Import resources in Azure → Test in lower env before prod. 
+60. How do you manage blue-green deployment for databases? 
+Answer: Use DB replication or shadow DB → Apply schema changes in green DB → Switch app traffic → Validate before retiring blue DB.
+
+----
+41. How do you handle secret rotation in cloud (GCP/Azure)? 
+Answer: Use GCP Secret Manager / Azure Key Vault → Enable automatic key rotation → Update CI/CD pipelines to fetch secrets dynamically instead of hardcoding. 
+42. How do you troubleshoot network issues in Kubernetes? 
+Answer: • Check kubectl get svc for service mapping. 
+• Validate Network Policies. 
+• Run kubectl exec to test connectivity (ping, curl). 
+• Use kubectl describe svc to verify correct target pods. 
+43. How do you set up centralized logging in a multi-cluster Kubernetes environment? 
+Answer: Use Fluentd/Fluent Bit to forward logs → Store in Elasticsearch/Cloud Logging → Visualize in Kibana/Grafana → Configure alerts. 
+44. How do you ensure compliance & governance in DevOps pipelines? 
+Answer: • Enforce policy as code with tools like OPA/Conftest. 
+• Restrict Terraform modules for compliance. 
+• Enable audit logging in GCP/Azure. 
+• Add mandatory approval gates in Jenkins/Azure DevOps. 
+45. How do you debug a failing Terraform apply due to API rate limits? 
+Answer: Use -parallelism flag to reduce parallel requests → Add retry logic → Use provider-specific rate limit settings (e.g., GCP/Azure provider config). 
+46. How do you handle expired SSL/TLS certificates in production? 
+Answer: • Use Let’s Encrypt + Cert Manager in Kubernetes for auto-renewal. 
+• Monitor expiry with alerts. 
+• Rotate certificates via CI/CD pipeline before expiration. 
+47. How do you reduce Docker image size for faster deployments? 
+Answer: • Use smaller base images (alpine). 
+• Multi-stage builds. 
+• Remove unused packages and cache. 
+• Push to private registry for caching. 
+48. How do you perform incident response in DevOps? 
+Answer: • Detect via monitoring/alerts. 
+• Run root cause analysis (logs, metrics, events). 
+• Mitigate by rollback/scaling. 
+• Document incident & create automation to prevent recurrence. 
+49. How do you secure Terraform code in GitHub? 
+Answer: • Enable branch protection & PR reviews. 
+• Run security scans (Checkov, tfsec). 
+• Store sensitive variables in secret managers. 
+• Use GitHub Actions with least-privilege credentials. 
+50. How do you handle database credential rotation in CI/CD pipelines? 
+Answer: • Store DB credentials in Secret Manager / Key Vault. 
+• Fetch secrets at runtime in pipelines. 
+• Use Kubernetes secrets/ConfigMaps. 
+• Automate credential rotation and ensure apps re-read from secret storage.
+
+----
+31. How do you secure Kubernetes cluster? 
+Answer: 
+• Use RBAC for access control. 
+• Enable Network Policies. 
+• Regularly patch cluster. 
+• Restrict container privileges (no root user). 
+• Use Secrets API for sensitive data. 
+32. What if Terraform shows “drift” in infrastructure? 
+Answer: Run terraform plan to identify drift → Apply changes to sync with config → Or update .tf files to reflect actual infra. 
+33. How do you handle high latency issues in GCP/Azure services? 
+Answer: • Check network logs. 
+• Use Cloud Monitoring (Stackdriver/Azure Monitor). 
+• Scale infra (VMs, AKS nodes). 
+• Optimize load balancer & caching. 
+34. How do you perform blue-green deployment using Jenkins + Kubernetes? 
+Answer: Jenkins pipeline deploys Green → Run tests → Switch traffic to Green (via service or ingress) → Keep Blue as rollback option. 
+35. What if Jenkins master crashes? 
+Answer: • Use backup plugin to restore jobs. 
+• Store Jenkins home in persistent storage. 
+• Run Jenkins in HA mode with Kubernetes. 
+36. How do you integrate monitoring into DevOps pipelines? 
+Answer: Add monitoring setup steps in pipeline (Prometheus config, log forwarding, alerts) → Validate health after each deployment. 
+37. How do you optimize Terraform execution time? 
+Answer: • Use smaller state files (split projects). 
+• Run in parallel with -parallelism. 
+• Use modules to reduce duplication. 
+38. How do you troubleshoot high pod restart counts in Kubernetes?
+Answer: • Check pod logs for crash reason. 
+• Validate resource limits. 
+• Verify liveness/readiness probes. 
+• Fix config/secret errors. 
+39. How do you ensure auditability in DevOps? 
+Answer: • Store IaC in Git for versioning. 
+• Enable Cloud Audit Logs (GCP/Azure). 
+• Use Jenkins pipeline logs. 
+• Implement approval stages for production. 
+40. What if your GCP/Azure costs suddenly spike? 
+Answer: • Check billing reports. 
+• Identify unused resources (VMs, disks, load balancers). 
+• Set budgets & alerts. 
+• Use autoscaling + reserved instances.
+
+----
+16. What if a Terraform apply fails halfway?
+Answer: Terraform creates a partial state → Fix the error → Run terraform plan again → Apply → Or use terraform refresh to sync state.
+
+
+17. How do you manage multi-cloud deployments (GCP + Azure)?
+Answer: Use Terraform with multiple providers → Create modules for each cloud → Keep separate state files for GCP and Azure.
+
+
+18. How do you handle a disk full issue in Linux?
+Answer: Run df -h to check usage → Clear logs from /var/log → Remove unused Docker images/containers → Expand disk if required.
+
+
+19. How do you implement rollback in Terraform?
+Answer: Use version control to revert .tf files → Run terraform apply again → Restore previous infra state from remote backend version.
+
+
+20. How do you ensure security in DevOps pipelines?
+Answer:
+Scan code with SonarQube
+Scan images with Trivy/Anchore
+Use IAM least privilege in GCP/Azure
+Store secrets in Secret Manager/Key Vault
+Enable audit logging
+21. How do you manage Terraform modules for reusability?
+Answer: Create modules for common components (VPC, VM, AKS/GKE, IAM) → Store them in Git → Call modules in different projects with version control.
+
+
+22. What if two team members run Terraform apply at the same time?
+Answer: Use remote backend with state locking (like Azure Blob with locking or GCS with locking) → This prevents conflicts.
+
+
+23. How do you perform Canary Deployment in Kubernetes?
+Answer: Deploy a new version to a small % of users → Use Istio/NGINX Ingress for traffic routing → Gradually increase traffic → Rollback if errors.
+
+
+24. How do you troubleshoot “ImagePullBackOff” in Kubernetes?
+Answer:
+Check if image exists in registry.
+Validate credentials/secret for private registry.
+Verify image tag.
+Fix and redeploy.
+
+
+25. How do you integrate Jenkins with GitHub?
+Answer: Configure GitHub webhook → Connect Jenkins job to repo → Trigger builds automatically on code push/PR.
+
+
+26. How do you perform zero-downtime DB migration in CI/CD?
+Answer: Use Liquibase/Flyway migration scripts → Apply backward-compatible schema changes → Deploy app → Apply destructive changes only later.
+
+
+27. What if a Jenkins agent node goes offline?
+Answer: Check agent logs → Restart service → Verify connectivity with master → Add auto-scaling slaves (Kubernetes or cloud VMs).
+
+
+28. How do you set resource limits in Kubernetes?
+Answer: Define requests & limits in pod spec → Ensures fair resource allocation and prevents pod from consuming all CPU/memory.
+
+
+29. How do you implement CI/CD for Terraform?
+Answer:
+Use Jenkins/GitHub Actions → terraform fmt, terraform validate, terraform plan, approval stage, then terraform apply.
+Store state in backend.
+
+
+30. How do you monitor logs in Kubernetes?
+Answer: Use kubectl logs for quick debugging → For centralized logging, use EFK (Elasticsearch + Fluentd + Kibana) or Loki + Grafana.
+
+-----
+1. What will you do if a Jenkins pipeline fails?
+Answer: Check Jenkins logs → Identify stage of failure → Fix configuration/code issue → Re-run the pipeline. If infra-related, verify Terraform or Kubernetes changes before redeploying.
+2. How do you handle a failed deployment in Kubernetes?
+Answer: Use kubectl describe pod and kubectl logs to check errors → If critical, rollback with kubectl rollout undo deployment <name> → Fix and redeploy.
+3. How do you manage Terraform state in a team?
+Answer: Store state in remote backend (Azure Blob, GCS bucket, Terraform Cloud) → Enable state locking to prevent conflicts → Use versioning for recovery.
+4. You changed a Terraform variable and want to see the impact before applying. What do you do?
+Answer: Run terraform plan to preview changes before applying.
+5. How do you ensure zero downtime deployment in Kubernetes?
+Answer: Use RollingUpdate strategy in deployments, configure readiness probes, and keep replicas running until new pods are healthy.
+6. How do you roll back in Jenkins if a deployment causes issues?
+Answer: Keep artifact versioning → Redeploy the last stable build from Jenkins → Or trigger rollback pipeline.
+7. What if Terraform state file gets corrupted or deleted?
+Answer: Restore from remote backend version history (e.g., GCS versioning, Azure Blob snapshots) → If not available, use terraform import to rebuild state.
+8. How do you secure secrets in pipelines?
+Answer: Use Jenkins credentials manager, Vault, or cloud secret managers (GCP Secret Manager, Azure Key Vault) instead of storing secrets in code.
+9. How do you monitor Kubernetes clusters?
+Answer: Use Prometheus + Grafana for metrics, ELK/EFK stack for logs, and Kubernetes liveness/readiness probes for pod health.
+10. What will you do if a pod is stuck in CrashLoopBackOff?
+Answer: Run kubectl describe pod and kubectl logs → Check startup script, image, or config issue → Fix error → Redeploy.
+11. How do you manage infrastructure across multiple environments (Dev/QA/Prod) using Terraform?
+Answer: Use workspaces or separate state files with environment-specific variables.
+12. How do you optimize CI/CD pipelines in Jenkins?
+Answer: Use parallel stages, caching (e.g., Docker layers, Maven cache), and parameterized builds to save time.
+13. How do you perform blue-green deployment in Kubernetes?
+Answer: Run two environments (Blue = current, Green = new) → Route traffic to Green only after successful validation → Rollback to Blue if issues occur.
+14. How do you troubleshoot high CPU usage on a Linux server?
+Answer: Use top, htop, vmstat, and iostat → Identify process → Kill/fix process → Scale infra if required.
+15. How do you automate infrastructure scaling in cloud?
+Answer: Configure Auto Scaling Groups in GCP (Instance Groups) or Azure (VM Scale Sets) → Integrate with Terraform for automation.
+
+-----
+Q1. What happens if two engineers run terraform apply at the same time?
+Answer: Without state locking, race conditions occur → infra may break. That’s why we use remote state + locking (e.g., DynamoDB lock in AWS, GCS bucket lock in GCP).
+
+Q2. Can you edit state file manually?
+Answer: Yes, but not recommended. Only in emergency situations (like orphaned resources). Safer option → use terraform state commands.
+
+Q3. How to recover from a deleted state file?
+Answer: Re-run terraform import to re-map real resources into a new state file.
+Use backups (if remote state backend is enabled).
+
+-----
+Q: What is Terraform Enterprise?
+👉 Terraform Enterprise is the paid, self-hosted version of Terraform Cloud that organizations use for managing infrastructure at scale. It provides features like role-based access control (RBAC), private module registry, policy enforcement with Sentinel, audit logging, and team collaboration.
+
+In short, it’s Terraform designed for large enterprises where multiple teams, security, compliance, and collaboration are critical.
+
+
+Q: Explain Terraform Enterprise Architecture.
+👉 Imagine Terraform Enterprise as a factory for infrastructure:
+--> Developers bring their “blueprints” (Terraform code).
+--> These blueprints are sent to the Terraform Enterprise application layer (runs on VMs or Kubernetes).
+The Application Layer has different modules:
+1. UI/API → where users and CI/CD pipelines connect.
+2. Workers/Agents → actually run the Terraform plans and applies.
+3. Vault/Secrets Storage → keeps sensitive data like cloud keys safe.
+4. Database (Postgres) → stores states, configs, history.
+5. Object Storage (like S3, GCS, or MinIO) → keeps Terraform state files and logs.
+Finally, it interacts with the cloud providers (AWS, GCP, Azure, etc.) to provision infrastructure.
+So, the flow looks like:
+ User → Terraform Enterprise (UI/API) → Worker Agents → Database/Storage → Cloud Providers
+✅ Best Interview Tip:
+ Keep it 3-part answer:
+1. What it is → A self-hosted, enterprise-ready version of Terraform Cloud.
+2. Why it exists → For collaboration, security, compliance, and scalability.
+3. How it works (Architecture) → Users → App Layer (UI, Workers, Policies) → Database/Storage → Cloud.
+
+---

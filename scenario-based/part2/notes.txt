@@ -1,0 +1,91 @@
+Q: Automating Docker Installation & Configuration using Ansible?
+
+1. This playbook:
+a. Installs Docker and dependencies.
+b. Adds the official Docker repository.
+c. Starts and enables the Docker service.
+d. Verifies installation with a simple check.
+
+```yaml
+---
+- name: Install and Configure Docker
+  hosts: all
+  become: yes
+
+    tasks:
+        - name: Install required packages
+        apt:
+            name:
+            - apt-transport-https
+            - ca-certificates
+            - curl
+            - gnupg
+            - software-properties-common
+            - lsb-release
+            state: present
+            update_cache: yes
+    
+        - name: Add Docker GPG key
+        apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+    
+        - name: Add Docker repository
+        apt_repository:
+            repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+            state: present
+    
+        - name: Install Docker Engine
+        apt:
+            name: docker-ce
+            state: latest
+            update_cache: yes
+    
+        - name: Start and enable Docker service
+        systemd:
+            name: docker
+            state: started
+            enabled: yes
+    
+        - name: Verify Docker installation
+        command: docker --version
+        register: docker_version
+    
+        - name: Display Docker version
+        debug:
+            msg: "Docker installed successfully: {{ docker_version.stdout }}"
+``` 
+
+## Save the playbook as docker_install.yml
+This playbook can be executed on any Ubuntu-based system to automate the installation and configuration of Docker. Make sure to run it with appropriate privileges (e.g., using `ansible-playbook -K` to prompt for the sudo password).
+
+2. Update your inventory file: hosts.ini
+```ini
+[all]
+server1 ansible_host=192.168.1.10 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+server2 ansible_host=192.168.1.11 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+server3 ansible_host=192.168.1.12 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+
+# Note: Replace the IP addresses and user details with your actual server information.
+
+#Optinally define groups if you want to target specific servers
+[webservers]
+server1
+server2
+[dbservers]
+server3
+``` 
+
+3. Run the playbook:
+```bash
+ansible-playbook -i hosts.ini docker_install.yml
+```
+
+-----
+Q: If you want to learn new tool or technology, how do you approach it?
+When I need to learn a new tool or technology, I start by understanding its purpose and use cases — what problems it solves.
+Then I do hands-on labs or small projects to gain practical experience.
+Once comfortable, I explore advanced features and best practices, and finally, I document and share my learning with the team.
+I’ve followed this method for tools like Terraform, Jenkins, and AKS, which helped me adopt them quickly and effectively in real projects.
+
+-----

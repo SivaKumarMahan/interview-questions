@@ -1,0 +1,293 @@
+26. What are liveness and readiness probes? How do they impact pod behavior?
+
+27. How do you perform rolling updates and rollbacks in Kubernetes?
+
+28. What’s the use of a PodDisruptionBudget?
+
+29. How can you achieve blue/green deployments in Kubernetes?
+
+30. What metrics do you monitor for ensuring Kubernetes cluster health?
+
+CI/CD & Observability
+
+31. How do you integrate Kubernetes with a CI/CD pipeline?
+
+32. What are your preferred logging solutions for Kubernetes?
+
+33. How would you monitor a Kubernetes cluster?
+
+34. Explain how you would debug a sudden increase in latency across services in Kubernetes.
+
+35. What is the difference between a Job and a CronJob in Kubernetes?
+
+36. What is Helm and how does it help in Kubernetes application management?
+
+37. How do you manage secrets in Helm charts?
+
+38. How do you roll back a Helm release?
+
+39. What are Helm hooks and how are they used?
+
+40. How do you handle multi-environment Helm chart deployments?
+
+121. How do you implement CI/CD approval workflows in Jenkins? 
+Answer: Use Jenkins “input step” for manual approval → Or integrate with Jira/ServiceNow for change approvals before deploying to prod. 
+122. How do you troubleshoot Kubernetes nodes showing “NotReady”? 
+Answer: Run kubectl describe node → Check kubelet, docker/containerd logs → Verify network plugins → Restart node or replace if unhealthy. 
+123. How do you manage multiple Terraform workspaces across environments? 
+Answer: Use terraform workspace new/select → Or create separate state files with backend configs → Automate via pipelines. 
+124. How do you handle Jenkins job failures due to long build times? 
+Answer: Break into smaller jobs → Run in parallel stages → Use distributed builds with agents → Cache dependencies. 
+125. How do you ensure data encryption in GCP/Azure storage? 
+Answer: Enable default encryption (KMS-managed keys) → For extra security, use customer-managed encryption keys (CMEK). 
+126. How do you troubleshoot Helm chart deployment failures? 
+Answer: Run helm status & helm get manifest → Validate YAML → Check Kubernetes events/logs → Rollback using helm rollback. 
+127. How do you prevent accidental deletion of critical Terraform resources? 
+Answer: Use prevent_destroy = true in resource block → Enable approval workflows before apply. 
+128. How do you implement Continuous Monitoring in DevOps? 
+Answer: Integrate Prometheus + Grafana for infra/app → Use ELK/EFK for logs → Configure alerts (PagerDuty, Slack). 
+129. How do you handle GCP IAM service account key leaks? 
+Answer: Immediately disable/rotate compromised key → Audit access logs → Re-deploy workloads with new key → Enforce least privilege. 
+130. How do you secure Kubernetes Ingress traffic? 
+Answer: Use TLS certificates (Cert-Manager) → Enable WAF/firewall rules → Restrict IP access → Use Istio/NGINX for advanced security.
+
+241. How do you troubleshoot slow image pulls in Kubernetes? 
+Answer: Check registry health, use image caching on nodes, enable parallel pulls, reduce image size, and use local/private mirrors. 
+Mini-case: Our pods were delayed by 2 mins due to 3GB images; slimming base images + enabling node cache cut startup time to <20s. 
+
+242. How do you manage hybrid CI/CD runners (on-prem + cloud)? 
+Answer: Use self-hosted runners for sensitive/on-prem workloads, cloud runners for elastic builds, and route jobs based on labels/tags. 
+Mini-case: Database migrations ran on on-prem runners, while builds/tests ran on GCP runners — ensuring both compliance and speed. 
+
+243. How do you handle Terraform state when migrating infra across clouds? 
+Answer: Import existing resources into Terraform, migrate state files step by step, update backend config, and validate before applying. 
+Mini-case: We migrated from GCP to Azure; using terraform import preserved resources without downtime. 
+
+244. How do you debug CI/CD pipeline flakiness? 
+Answer: Identify non-deterministic tests, add retries with backoff, isolate shared resources, and monitor job history trends. 
+Mini-case: A flaky integration test broke builds 1/10 times — containerizing the test DB eliminated shared state issues. 
+
+245. How do you handle Kubernetes API server overload? 
+Answer: Scale API servers horizontally, add rate limiting, optimize controller workloads, and increase etcd performance. 
+Mini-case: Cluster had 50 controllers hammering the API; tuning cache sizes + scaling API server replicas fixed latency.
+
+236. How do you monitor API performance in Apigee/Azure API Management? 
+Answer: Enable API metrics (latency, error rate), log requests, set SLO dashboards, and configure rate limiting & alerts. Mini-case: Apigee showed a 30% latency spike on one backend API; scaling backend pods f ixed response times. 
+
+237. How do you manage Kubernetes upgrades across 50+ clusters? 
+Answer: Automate upgrades with tools like Rancher/Anthos, test in staging first, roll out gradually, and monitor workloads post-upgrade. Mini-case: Anthos automated rolling upgrades; a failed upgrade in staging paused rollout and prevented production outages. 
+
+238. How do you implement compliance checks in Jenkins? 
+Answer: Add compliance scan stage (e.g., Checkov, OPA), fail builds on violations, and generate compliance reports automatically. Mini-case: A Jenkins job blocked deployment because S3 buckets were public — policy-as code ensured compliance. 
+
+239. How do you debug Terraform remote backend locking issues? 
+Answer: Check lock status in backend (e.g., DynamoDB/GCS), remove stale lock after validation, and avoid concurrent applies. Mini-case: A crashed pipeline left a lock in GCS; after manual removal, we added timeouts to auto-release stale locks. 
+
+240. How do you handle Kubernetes certificate expiration? 
+Answer: Monitor cert expiry, automate renewals with cert-manager, rotate cluster certs regularly, and alert on failures. Mini-case: Cert-manager auto-renewed TLS certs before expiry; a Grafana alert ensured we never missed rotation deadlines.
+
+231. How do you prevent drift between Terraform code and manually modified resources? 
+Answer: Run regular drift detection (terraform plan), enforce GitOps (disallow manual changes), and monitor audit logs for manual edits. Mini-case: A manual firewall rule was added; next pipeline run flagged drift and auto corrected it to match code. 
+
+232. How do you handle log explosion in microservices architectures? 
+Answer: Use centralized logging with filters, sampling, retention tiers, and structured logs; archive old logs to cold storage. Mini-case: A sudden surge in debug logs spiked storage; retention policies auto-trimmed logs after 7 days and shipped summaries to BigQuery. 
+
+233. How do you implement cross-region failover for Kubernetes control planes? 
+Answer: Run HA clusters with regional control planes, replicate etcd across zones, set up DNS failover, and test regularly. Mini-case: A zone failure in us-central caused automatic API server failover to backup region; developers continued kubectl operations without noticing. 
+
+234. How do you optimize CI/CD pipelines for monorepos? 
+Answer: Use change detection to run jobs only for affected paths, parallelize builds, cache dependencies, and modularize pipelines. Mini-case: Instead of rebuilding all services, we ran jobs only for changed directories; build t imes dropped from 1 hour to 12 minutes. 
+
+235. How do you design least-privilege IAM for CI/CD agents? 
+Answer: Assign one service account per pipeline with minimum roles, rotate keys, use workload identity (GCP/Azure managed identities), and avoid shared accounts. Mini-case: Each Jenkins job used a dedicated service account scoped only to its resource group — preventing privilege escalation.
+
+226. How do you design a DevOps platform for 100+ microservices? 
+Answer: Provide standardized CI/CD templates, centralized logging/monitoring, shared Helm charts, self-service infrastructure modules, and enforce guardrails via GitOps. Mini-case: Our platform team built a Jenkins shared library; all 100 services onboarded with consistent pipelines and compliance checks. 
+
+227. How do you handle Kubernetes etcd datastore corruption? 
+Answer: Restore from snapshot, rebuild control plane if required, ensure regular backups, and test restore procedure. Mini-case: When an upgrade corrupted etcd, Velero backups allowed full cluster restore in 30 minutes, saving production downtime. 
+
+228. How do you integrate vulnerability scanning in CI/CD pipelines? 
+Answer: Run static scans (Snyk, Trivy) during build, fail builds with critical CVEs, and automatically create tickets for remediation. Mini-case: Trivy caught a base image CVE; pipeline failed and developers patched the image before deployment. 
+
+229. How do you debug Kubernetes DNS issues? 
+Answer: Check CoreDNS logs, verify configmaps, run kubectl exec with nslookup/dig, and ensure network policies allow DNS traffic. Mini-case: Pods couldn’t resolve services due to a misconfigured CoreDNS stubDomain — f ixing the configmap restored DNS resolution. 
+
+230. How do you migrate workloads from GCP to Azure with minimal downtime? 
+Answer: Use containerization, abstract with Terraform modules, set up dual cloud deployments temporarily, sync data continuously, and cut traffic gradually. Mini-case: We ran dual GCP+Azure clusters for a week; once data sync stabilized, DNS cutover moved traffic fully to Azure.
+
+221. How do you enforce zero-trust security in a Kubernetes cluster? 
+Answer: Disable default network connectivity, apply strict NetworkPolicies, enforce PodSecurityAdmission, use mTLS with a service mesh, and verify identity per request. Mini-case: We deployed Istio with strict mTLS and namespace isolation; even if an attacker gained pod access, they couldn’t reach other services without valid identity. 
+222. How do you implement policy-based routing in multi-cloud CI/CD? 
+Answer: Use traffic managers (Azure Traffic Manager, GCP Load Balancing), enforce routing rules per region, monitor latency, and shift traffic automatically on failures. Mini-case: Our hybrid GCP-Azure app used geo-routing; during an Azure region outage, traffic auto-shifted to GCP with <2 min downtime. 
+223. How do you reduce toil in on-call DevOps support? 
+Answer: Automate frequent runbooks, add self-healing for common incidents, rotate on-call duties, and add rich alerts (logs, graphs). Mini-case: We automated disk cleanup for build agents; instead of 3 night-time alerts per week, the script fixed it automatically. 
+224. How do you detect and stop crypto-mining workloads in Kubernetes? 
+Answer: Enable anomaly detection (Falco/Azure Defender), restrict containers from running privileged mode, enforce quotas, and monitor unusual CPU spikes. Mini-case: A compromised pod started crypto-mining; Falco detected suspicious syscalls and Kubernetes killed the pod within seconds. 
+225. How do you implement secrets encryption in Terraform state files? 
+Answer: Use remote backends with encryption (GCS/Azure Storage with SSE), enable KMS managed keys, avoid storing plaintext vars in state, and restrict state access. Mini-case: We migrated Terraform state from local to GCS with CMEK; security audits passed since secrets were no longer in plaintext.
+
+Question 3: Kubernetes Scaling, Rollout, and Self-Healing
+👉 Can you explain how Kubernetes handles scaling, rolling updates, and self-healing of applications?
+ Also — how would you scale your deployment manually and automatically?
+
+Answer: In Kubernetes, the cluster handles scaling, rolling updates, and self-healing automatically using Deployments.
+
+1️⃣ Scaling:
+--> Manual Scaling: You can scale a Deployment by changing the replicas field in the deployment.yaml file or using kubectl scale.
+ Example:
+
+kubectl scale deployment myapp --replicas=5
+
+This increases or decreases the number of pods running for the application.
+--> Automatic Scaling (Horizontal Pod Autoscaler - HPA):
+ Kubernetes can automatically scale pods based on CPU, memory, or custom metrics.
+ Example:
+
+kubectl autoscale deployment myapp --cpu-percent=50 --min=2 --max=10
+
+This keeps the application responsive under varying load.
+
+2️⃣ Rolling Updates:
+--> Kubernetes allows updating applications without downtime.
+--> When you update the image version in your Deployment (image: myapp:v2), Kubernetes gradually replaces old pods with new ones.
+You can monitor rollout:
+
+kubectl rollout status deployment/myapp
+
+If something goes wrong, you can rollback:
+
+kubectl rollout undo deployment/myapp
+
+3️⃣ Self-Healing:
+--> Kubernetes automatically restarts failed pods and replaces them if a node goes down.
+--> This ensures the desired number of replicas is always running, improving reliability.
+
+💡 Interview Tip
+If asked:
+“How does Kubernetes ensure zero downtime during updates?”
+You can answer:
+“Kubernetes performs rolling updates, gradually replacing old pods with new ones while keeping the required number of pods available, ensuring zero downtime. If an update fails, it can automatically rollback to the previous stable version.”
+
+Question: How Jenkins automates deployment to Kubernetes?
+Answer: Automatically deploy your application to Kubernetes whenever new code is pushed to GitHub.
+
+🧩 Step-by-Step Process:
+Step 1: Developer pushes code to GitHub
+Developer commits new code.
+The push triggers a Jenkins Pipeline via webhook.
+🔹 Example:
+ You configure a GitHub → Jenkins webhook (under repo settings → webhooks).
+
+Step 2: Jenkins pipeline starts (Jenkinsfile)
+The Jenkinsfile defines all stages for CI/CD:
+Clone Code
+Build Docker Image
+Push to Artifact Registry (GCP, ECR, or Docker Hub)
+Deploy to Kubernetes Cluster
+
+Step 3: Jenkins builds the Docker image
+
+stage('Build Docker Image') {
+ steps {
+ script {
+ sh 'docker build -t https://lnkd.in/ghadMb5B .'
+ }
+ }
+}
+
+Step 4: Push the Docker image to registry
+
+stage('Push Image to Registry') {
+ steps {
+ script {
+ sh 'docker push https://lnkd.in/ghadMb5B'
+ }
+ }
+}
+🔐 Jenkins uses credentials plugin to securely store Docker Hub or GCP service account credentials.
+
+Step 5: Deploy to Kubernetes
+You can either:
+Use kubectl directly from Jenkins, or
+Use Helm for production-grade deployment.
+Example (kubectl):
+
+stage('Deploy to Kubernetes') {
+ steps {
+ script {
+ sh 'kubectl set image deployment/myapp myapp=https://lnkd.in/ghadMb5B --record'
+ }
+ }
+}
+This command updates your Kubernetes deployment with the new image version.
+
+Step 6: Verify and monitor deployment
+Jenkins can also run health checks:
+
+stage('Verify Deployment') {
+ steps {
+ sh 'kubectl rollout status deployment/myapp'
+ }
+}
+If deployment fails, Jenkins can roll back or alert you via email/Slack.
+
+✅ Summary of CI/CD Flow
+1. Code pushed → GitHub triggers Jenkins.
+2. Jenkins builds → Docker image.
+3. Image pushed → to registry (Docker Hub / GCP Artifact Registry).
+4. Deployment applied → automatically to Kubernetes cluster.
+5. Monitoring & notifications → using Jenkins plugins or tools like Dynatrace/Prometheus.
+
+216. How do you apply chaos engineering safely in production? 
+Answer: Start with small blast radius experiments, run in non-critical namespaces, use circuit-breakers and feature flags, schedule experiments during low-traffic windows, and roll back automatically on metric degradation. Mini-case: A controlled pod-kill experiment in staging validated autoscaler and retry logic; applying the same in production with narrow scope improved system resilience with no user impact. 
+
+217. How do you monitor and enforce container image provenance across environments? 
+Answer: Enforce signed images and immutable tags, require SBOMs (software bill of materials) on each image, and gate deployments based on SBOM and vulnerability thresholds. Mini-case: A new release’s SBOM showed a vulnerable dependency; gate logic prevented deployment until the image was rebuilt with patched dependency. 
+
+218. How do you handle stateful service failover in Kubernetes across zones/regions? 
+Answer: Use StatefulSets with appropriate storage classes, enable cross-zone replication for the datastore (e.g., multi-zone DB clusters), design DNS failover and leader election, and test failover procedures. Mini-case: We configured a multi-zone PostgreSQL cluster with synchronous replicas; during a zone outage, automated leader election and DNS failover restored write availability within minutes. 
+
+219. How do you scale observability storage and retention cost-effectively? 
+Answer: Use metric aggregations and downsampling for older data (Prometheus remote write to Thanos/Cortex), tiered log retention (hot/warm/cold), and set retention policies aligned to compliance requirements. Mini-case: We moved 30-day granular metrics to Thanos with 90-day downsampled retention, cutting monitoring costs by 60% while keeping required fidelity for alerts. 
+
+220. How do you implement fine-grained service-to-service authentication in microservices? 
+Answer: Use mTLS with service mesh (Istio/Linkerd) or SPIFFE/SPIRE for issuing short-lived identities; enforce policy and RBAC at sidecar/proxy layer. Mini-case: Introducing SPIRE for workloads provided automatic short-lived certificates; even if a pod was compromised, its certs expired quickly and lateral movement was limited.
+
+211. How do you set up cost-aware CI/CD pipelines to prevent runaway spend? 
+Answer: Integrate cost estimation in pipelines (estimate infra cost for new changes), set budget checks and alerts, enforce autoscaling and spot instances where appropriate, and gate merges if estimated cost exceeds threshold. Mini-case: A pipeline reported a proposed infra change would increase monthly cost by 3x; it required a manager approval step, preventing accidental large spend. 
+212. How do you design observability for serverless components in multi-cloud setups? 
+Answer: Standardize telemetry (OpenTelemetry), export traces/metrics/logs to centralized backends or federated stores, instrument functions with distributed tracing and structured logs, and ensure unified dashboards/alerts. Mini-case: We instrumented Cloud Functions and Azure Functions with OpenTelemetry; a centralized Grafana dashboard correlated latency spikes across platforms leading to a quick f ix in upstream DB queries. 
+213. How do you secure CI/CD runner/agent environments? 
+Answer: Use ephemeral agents (containerized) that run jobs then destroy; limit agent permissions, sandbox builds, run static & dynamic scans before publishing artifacts, and isolate sensitive pipelines into dedicated, locked-down agents. Mini-case: Switching to Kubernetes-based ephemeral agents eliminated persistent credential theft vectors — each job had only the minimal IAM role for its runtime. 
+214. How do you manage secrets scanning and prevention of accidental commits? 
+Answer: Use pre-commit hooks (git-secrets), CI scanning for secrets, and push-blocking hooks in company repos; rotate any found secrets and enforce developer training. Mini-case: A developer accidentally committed an API key; pre-commit hook blocked the push locally and the CI scan caught a subsequent attempt and auto-rotated the leaked key. 
+215. How do you implement cross-team incident playbooks and runbooks? 
+Answer: Maintain versioned runbooks in a shared repo, automate diagnostic steps (scripts) available from alerts, assign run roles, and run regular incident drills to validate playbooks. Integrate runbooks with PagerDuty/alerting. Mini-case: During an outage, the runbook guided the responder to check autoscaler logs and execute an automated remediation script — recovery time dropped from 45m to 12m.
+
+206. How do you secure cross-cloud network connectivity (GCP ↔ Azure)? 
+Answer: Use encrypted VPN tunnels or cloud interconnects, enforce firewall/security groups on both sides, use mutually authenticated service endpoints, and centralize monitoring/audit of cross-cloud flows. Use least-privilege network access and private endpoints. Mini-case: We connected GCP and Azure via IPsec tunnels; route filtering and firewall rules allowed only required service ports, preventing lateral movement in case of compromise. 
+207. How do you implement automatic remediation for common infra issues? 
+Answer: Hook alerts to runbooks/automation (Cloud Functions/Lambdas/Runbooks) that perform safe remediation (restart service, scale up) with a manual approval fallback for risky actions; log all automated steps. Mini-case: A CPU spike alert triggered an automated scale-up script that added nodes and notified the team; the script recorded actions to audit logs and created a follow-up ticket. 
+208. How do you manage secret rotation across CI/CD, Kubernetes, and apps? 
+Answer: Centralize secrets in Vault/Key Vault/Secret Manager, use dynamic short-lived credentials where possible, automate rotation with scripts/events, update pipeline/runtime fetch logic to fetch latest secrets at runtime, and test rotation in staging. Mini-case: We used Azure Key Vault with rotation policy; CI fetched secrets at job runtime and apps used managed identities to request short-lived tokens, removing the need for static credentials. 
+209. How do you debug cross-cluster service communication failures? 
+Answer: Verify DNS resolution, network routes, firewall rules, service mesh mTLS settings, and mutual TLS cert validity; trace requests with distributed tracing (Jaeger) to identify where traffic is dropped. Mini-case: Tracing showed requests stopping at the ingress of cluster B; firewall rules were blocking healthcheck IP ranges — after opening the range, inter-cluster calls recovered. 
+210. How do you enforce policy-as-code for Terraform and Kubernetes? 
+Answer: Use OPA/Gatekeeper or Kyverno for cluster policy enforcement and Conftest/Sentinel/Checkov for IaC scans in CI; fail PRs on policy violations and provide actionable policy reports. Mini-case: A PR attempted to create public-facing storage; Checkov prevented merge and Gatekeeper admission controller blocked any direct apply in the cluster, ensuring compliance.
+
+201. How do you implement end-to-end supply-chain security for container images? 
+Answer: Sign and verify images (Cosign), scan images during build (Trivy/Anchore), use reproducible builds, enforce image provenance in registries, and block unsigned or vulnerable images in the pipeline. Mini-case: In a pipeline, I added a build step that runs Trivy, then Cosign signs the image on success. The registry policy rejects any image without a valid signature — preventing a compromised build from reaching prod. 
+
+202. How do you design Terraform workflows for an enterprise with multiple teams and modules? 
+Answer: Create a registry of versioned modules, enforce module reviews, split infra by logical boundaries (network, platform, apps) with separate state backends, use CI to run plan and require approvals for apply, and use automation tools like Atlantis/Spacelift for PR driven workflows. Mini-case: We created a private module registry and an Atlantis server; dev teams open PRs, Atlantis runs terraform plan and posts the diff, and platform owners approve and merge — bringing consistency and safety. 
+
+203. How do you implement GitOps for both apps and infra while preventing config drift? 
+Answer: Keep declarative manifests and Helm charts in Git; use ArgoCD/Flux to auto-sync clusters; set automated drift detection and auto-revert policies; require PRs for changes and enforce branch protections. Mini-case: After a manual hotfix caused drift in prod, ArgoCD alerted and auto-reverted to Git state; we then applied the change via PR so the fix was auditable. 
+
+204. How do you architect multi-tenant Kubernetes clusters securely? 
+Answer: Use namespaces + strict RBAC per tenant, network policies to isolate traffic, resource quotas & limit ranges, PodSecurity admission controls, encrypt secrets, and audit logging per namespace. Consider separate clusters for high-security tenants. Mini-case: We separated dev/test tenants into namespaces with network policies; when a noisy tenant consumed CPU, quotas throttled them preventing cross-tenant impact. 
+
+205. How do you implement SLO-driven deployments in CI/CD? 
+Answer: Define SLOs and error budgets; add pipeline gates that query recent SLO metrics after canary/blue-green rollouts; block full rollout or trigger rollback if error budget exceeded; notify SRE team. Mini-case: During a canary, pipeline queried Prometheus for 5m error rate; error rate crossed threshold so the pipeline halted and rolled back to the previous version automatically.
+
