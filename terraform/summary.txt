@@ -120,3 +120,33 @@ module "app_server" {
 Now, whenever you need another VM, just call the module again with different variables — no rewriting needed.
 
 ----
+🚀 Essential Commands
+
+terraform init – Set up your working directory and download providers.
+terraform validate – Check your configuration for syntax or logic errors.
+terraform plan – Preview what Terraform will do before you apply changes.
+terraform apply – Apply changes to reach the desired infrastructure state.
+terraform destroy – Remove all managed resources (use with care).
+
+🧰 Helpful Utilities
+
+terraform fmt – Automatically format your configuration files.
+terraform refresh – Update the state file to reflect real infrastructure.
+terraform output – Display outputs defined in your configuration.
+terraform show – Inspect the current state or saved plans.
+terraform get – Installs/upgrades modules.
+
+
+⚙️ Advanced Operations
+
+terraform state – Interact directly with the state file.
+terraform import – Bring existing infrastructure under Terraform management.
+terraform workspace – Manage multiple environments (e.g. dev, staging, prod).
+terraform taint – Mark a resource to be recreated on the next apply.
+
+🔐 Authentication & Providers
+
+terraform login – Authenticate with Terraform Cloud.
+terraform providers – List all required providers for your configuration.
+
+-----

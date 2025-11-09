@@ -161,3 +161,80 @@ Steps:
 This observability stack ensures comprehensive monitoring and helps track key performance indicators across distributed systems, enabling proactive incident management and performance optimization. 📊🔧
 
 -----
+Successfully Automated Azure File Share Backup using Bicep + Azure CLI! 🔧☁️
+
+I’m excited to kick off my Automation Series with Episode 1, where I’ve completed the end-to-end automation of Azure File Share backup configuration using Bicep templates and Azure CLI! 🎯
+
+ 🔹 Created a Recovery Services Vault
+ 🔹 Deployed Azure File Share
+ 🔹 Registered the storage account with Vault
+ 🔹 Configured backup protection
+ 🔹 Verified successful configuration via the Azure Portal ✅
+
+This automation significantly reduces manual effort while ensuring consistency, reliability, and repeatability — a key requirement for enterprise-scale environments.
+
+💡 The power of Infrastructure as Code (IaC) with Bicep is real — declarative, clean, modular, and production-ready.
+
+🔧 Tools Used:
+ ✅ Bicep
+ ✅ Azure CLI
+ ✅ Azure Recovery Services Vault
+ ✅ Azure Storage (File Share)
+
+📜Sample Bicep Script to Create a Recovery Services Vault (main.bicep) :
+
+param location string = 'southindia'
+resource vault 'Microsoft.RecoveryServices/vaults@2021-12-01' = {
+ name: 'vaultname'
+ location: location
+ sku: {
+ name: 'RS0' // RS0 is the valid SKU name currently available for Recovery Services Vaults.
+ tier: 'Standard'
+ }
+ properties: {}
+}
+
+📜Deploy using Azure CLI:
+
+az deployment group create \
+ --resource-group <YourResourceGroupName> \
+ --template-file main.bicep
+
+ ------
+ DevOps automation project that demonstrates a full end-to-end CI/CD setup — from provisioning infrastructure to deploying and monitoring a "hello world" Node.js web app on Kubernetes. 
+
+Overview:
+ The goal was to automate the deployment of a simple Node.js “Hello World” web application using modern DevOps tools and practices — covering IaC, containerization, orchestration, automation, and observability.
+
+Here’s what I implemented 👇
+🔹 Infrastructure as Code (IaC) — Terraform
+Built everything using modular Terraform structure for better reusability and clarity.
+--> Provisioned a complete AWS EKS Cluster with all networking components (VPC, subnets, routes, IAM roles).
+--> Used S3 backend for storing Terraform remote state.
+--> Also tried running the Terraform code via Terraform Cloud (https://lnkd.in/gcNxzhUK) to test remote runs.
+
+Containerization — Docker
+Created a Dockerfile for the Node.js app, optimized for smaller image size.
+Used Docker Hub to push and store the built images.
+
+Orchestration — K8s 
+--> Wrote Kubernetes manifests and managed them using Kustomize for clean environment overlays.
+--> Configured an Ingress Controller for external access and routing inside the cluster.
+--> Used a LoadBalancer service and ingress rules for public accessibility.
+
+CI/CD Pipeline — GitHub Actions
+--> Automated the full pipeline: build → push → deploy.
+--> The pipeline triggers on every commit to the main branch.
+--> It builds the Docker image, pushes to Docker Hub, and applies the updated manifests to the EKS cluster automatically using kubectl.
+--> Integrated Lint for code analysis and Trivy for image vulnerability scanning — ensuring security before every deployment.
+Observability — Monitoring Setup
+--> Installed Prometheus and Grafana using official Helm charts for cluster monitoring.
+--> Accessed them through NodePort services via worker node IPs.
+
+Result:
+ A completely automated and reproducible DevOps workflow — from code push → image build → deployment → monitoring — all managed through Infrastructure as Code and CI/CD automation.
+
+📘 Tech Stack:
+ Terraform | AWS EKS | AWS IAM | Docker | Kubernetes | Kustomize | GitHub Actions | Helm | Prometheus | Grafana | Trivy
+
+-----

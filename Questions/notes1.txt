@@ -1,312 +1,123 @@
-191. How do you implement GitOps rollback? 
-Answer: Revert commit in Git → ArgoCD/Flux auto-syncs cluster back → Ensures declarative rollback. 
-192. How do you optimize Terraform state locking performance? 
-Answer: Use DynamoDB (AWS), CosmosDB (Azure), or GCS with locking → Reduce contention by splitting states. 
-193. How do you troubleshoot Kubernetes CrashLoopBackOff with ConfigMap errors? 
-Answer: Check mounted config → Validate YAML → Fix key-value mismatches → Restart pod. 
-194. How do you scale monitoring in multi-cluster environments? 
-Answer: Use Thanos/Cortex for Prometheus federation → Centralized Grafana dashboards. 
-195. How do you secure CI/CD artifact storage? 
-Answer: Store in Nexus/Artifactory → Enable RBAC → Use signed artifacts → Encrypt storage. 
-196. How do you ensure Terraform doesn’t accidentally replace resources? 
-Answer: Use lifecycle { ignore_changes = [...] } → Carefully review terraform plan. 
-197. How do you troubleshoot Azure DevOps “401 Unauthorized” errors? 
-Answer: Check service connection → Rotate PAT/SPN credentials → Validate RBAC. 
-198. How do you implement rolling updates with minimum downtime? 
-Answer: Configure Kubernetes deployment strategy → Set maxUnavailable=0, maxSurge=1. 
-199. How do you integrate CI/CD with observability? 
-Answer: Add monitoring checks post-deploy → Validate error rates/latency → Auto rollback if SLOs violated. 
-200. How do you prepare for disaster recovery in Kubernetes? 
-Answer: Backup cluster state with Velero → Store manifests in Git → Automate redeployment in DR cluster.
+Basic Linux Administration
 
------
-181. How do you secure Jenkins pipeline logs containing secrets? 
-Answer: Mask credentials with Jenkins plugins → Store secrets in vaults → Disable console echo for sensitive vars. 
-182. How do you troubleshoot Kubernetes pods not pulling images from private registry? 
-Answer: Create imagePullSecret → Attach to service account → Validate registry credentials. 
-183. How do you ensure Terraform changes are peer-reviewed before apply? 
-Answer: Use Git PR workflows → Automate terraform plan in CI → Require approval before merge. 
-184. How do you implement chaos engineering in Kubernetes? 
-Answer: Use Chaos Mesh/LitmusChaos → Inject pod/node failures → Test resilience → Monitor recovery. 
-185. How do you handle Jenkins master node becoming a single point of failure? 
-Answer: Run Jenkins in HA (Kubernetes) → Backup Jenkins home → Scale horizontally with agents. 
-186. How do you implement Infrastructure Drift Detection automatically? 
-Answer: Schedule terraform plan in CI → Compare with state → Alert if differences found. 
-187. How do you secure container-to-container communication in Kubernetes? 
-Answer: Use NetworkPolicies → Enable mutual TLS with Istio → Encrypt traffic. 
-188. How do you troubleshoot Terraform dependency cycle error? 
-Answer: Identify cyclic references → Break into modules → Use depends_on explicitly. 
-189. How do you manage CI/CD for hybrid cloud (on-prem + cloud)? 
-Answer: Use Jenkins/Azure DevOps self-hosted agents → Connect VPN to on-prem → Manage infra via Terraform/Ansible. 
-190. How do you ensure Docker container security at runtime? 
-Answer: Use Falco/AquaSec → Restrict root access → Apply AppArmor/SELinux profiles.
+1. User Management: A user complains they cannot log in. How will you troubleshoot?
 
-----
-🔹 Docker
-How do you handle multi-cloud Docker deployments with compliance restrictions?
-You need live-patching of Docker host kernel without downtime. How do you achieve it?
-How do you troubleshoot container DNS resolution failures?
-How do you enforce policy-as-code for Docker security?
+2. File Permissions: A script is executable by one user but not another. How do you resolve this?
 
-🔹 Kubernetes (K8s)
-Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?
-An entire Kubernetes region goes down. How do you failover workloads?
-All pods in one namespace suddenly fail readiness checks. What’s your step to troubleshoot?
-Your cluster is hit by a massive traffic surge, and HPA cannot scale pods fast enough. How do you handle it?
-A node hosting critical workloads crashes permanently. How do you ensure workloads recover automatically?
-A Pod is stuck in ImagePullBackOff. How do you troubleshoot?
+3. Process Management: A service is consuming 100% CPU. How will you find and fix it?
 
-🔹 Terraform
-Your Terraform apply succeeded, but some resources are not behaving as expected. How do you debug?
-How do you run Terraform safely in CI/CD pipelines?
-Your Terraform state file is getting too large. How do you manage it?
-A team needs to provision infra in 10 AWS regions simultaneously. How do you structure it?
-You want faster Terraform runs in large projects. What optimizations would you apply?
-A production deployment failed halfway, leaving some resources created and others not. How do you recover?
+4. SSH Issues: You cannot SSH into a remote machine. How do you debug?
 
-🔹 Prometheus & Grafana
-How do you implement Kubernetes cluster-level monitoring using Prometheus?
-How can you integrate Prometheus with Alertmanager and Slack for real-time notifications?
+5. Disk Space Full: / partition is full. How do you find and delete large files safely?
 
------
-171. How do you secure CI/CD pipelines running in Kubernetes? 
-Answer: Run pipelines as non-root → Restrict namespaces → Use PodSecurityPolicies/OPA → Isolate sensitive workloads. 
-172. How do you troubleshoot Kubernetes pod scheduling due to taints? 
-Answer: Run kubectl describe node → Check taints → Add tolerations in pod spec → Or remove taints if not needed. 
-173. How do you prevent drift in multi-cloud Terraform deployments? 
-Answer: Enforce GitOps → Run terraform plan regularly → Enable drift detection tools (Atlantis/Spacelift). 
-174. How do you manage Jenkins pipelines as code? 
-Answer: Use Jenkinsfile (declarative pipeline) → Store in Git → Version control changes → Reuse shared libraries. 
-175. How do you secure Docker registry in production? 
-Answer: Enable HTTPS & authentication → Use signed images (Cosign) → Restrict access via IAM. 
-176. How do you debug Kubernetes ingress not routing traffic? 
-Answer: Check ingress controller logs → Validate annotations/paths → Check DNS → Verify backend service health. 
-177. How do you handle Terraform destroy in production by mistake? 
-Answer: Use prevent_destroy → Require approval gates → Enable remote backend version restore → Rollback via Git revert. 
-178. How do you integrate monitoring alerts into Slack/Teams? 
-Answer: Configure Prometheus Alertmanager → Or Azure Monitor/GCP Cloud Monitoring → Send webhook notifications to Slack/Teams. 
-179. How do you troubleshoot Jenkins plugin failures? 
-Answer: Check Jenkins logs → Verify plugin compatibility → Downgrade/upgrade plugin → Test in staging Jenkins. 
-180. How do you implement SRE practices in DevOps pipelines? 
-Answer: Define SLOs & error budgets → Add monitoring checks in pipelines → Block deployments if error budget exceeded.
+6. File Corruption: A log file is showing junk characters. How will you check and recover it?
 
-----
-161. How do you troubleshoot Jenkins jobs failing due to missing dependencies? 
-Answer: Check agent environment → Install required tools via Docker image or Ansible → Use containerized build agents for consistency. 
-162. How do you enforce security in Terraform pipelines? 
-Answer: Integrate tfsec/Checkov scans in CI/CD → Fail build on violations → Use Sentinel/OPA for policy enforcement. 
-163. How do you handle Kubernetes pods stuck in Terminating state? 
-Answer: Run kubectl delete pod --force --grace-period=0 → Check finalizers → Investigate volumes/network issues. 
-164. How do you integrate cost monitoring into DevOps pipelines? 
-Answer: Use GCP Billing API/Azure Cost Management → Add cost checks in pipelines → Alert if estimated cost exceeds budget. 
-165. How do you manage blue-green deployments for APIs? 
-Answer: Run two versions behind load balancer → Route traffic gradually → Use Apigee/Azure API Gateway for traffic splitting. 
-166. How do you optimize Terraform for large state files? 
-Answer: Split infra into multiple state files → Use modules → Enable parallelism → Store state in remote backend. 
-167. How do you troubleshoot Azure DevOps pipeline stuck at “queued”? 
-Answer: No available agents → Check agent pool → Scale agents → Verify concurrency limits. 
-168. How do you manage Kubernetes CronJobs efficiently? 
-Answer: Set concurrency policy → Use resource limits → Monitor with Prometheus alerts → Clean up old jobs. 
-169. How do you rotate API keys securely in CI/CD? 
-Answer: Store in Secret Manager/Key Vault → Rotate via automation → Update pipeline secrets → Invalidate old keys. 
-170. How do you troubleshoot slow Terraform plan execution? 
-Answer: Optimize provider API calls → Reduce data sources → Cache modules locally → Split infra into smaller units.
+7. Crontab Not Running: A scheduled job is not executing. How do you debug?
 
----
-151. How do you design CI/CD pipelines for microservices? 
-Answer: Separate pipelines per service → Build & push Docker images → Deploy via Helm → Use shared monitoring/logging. 
-152. How do you troubleshoot high disk usage in Linux servers used for CI/CD? 
-Answer: Run du -sh /* → Clear /var/log → Remove old Docker images → Archive old build artifacts. 
-153. How do you handle GCP IAM role sprawl? 
-Answer: Audit IAM bindings → Merge duplicate roles → Use custom roles → Apply principle of least privilege. 
-154. How do you test Terraform code before deploying? 
-Answer: Run terraform validate, terraform fmt, terraform plan → Use Terratest for infra tests → Dry-run in non-prod environment. 
-155. How do you manage secrets in Kubernetes? 
-Answer: Store in Kubernetes Secrets (base64 encoded) → Encrypt at rest → Integrate with Vault/Key Vault for rotation. 
-156. How do you integrate Jenkins with monitoring? 
-Answer: Use Jenkins Prometheus plugin → Send metrics to Grafana → Alert on pipeline failures/slow builds. 
-157. How do you troubleshoot Azure VM not starting? 
-Answer: Check Azure Activity Logs → Verify quota limits → Validate boot diagnostics → Recreate VM if corrupted. 
-158. How do you ensure Terraform code reusability across projects? 
-Answer: Create reusable modules → Store in Git → Version control modules → Reference modules in different environments. 
-159. How do you protect Kubernetes against DDoS attacks? 
-Answer: Use cloud-native DDoS protection (Cloud Armor/Azure DDoS Protection) → Apply rate limiting → Enable WAF on ingress. 
-160. How do you rollback failed database migrations in CI/CD? 
-Answer: Use version-controlled migration tools (Liquibase/Flyway) → Write rollback scripts → Trigger rollback step in pipeline.
+8. Package Installation Failing: yum or apt is failing. How will you resolve it?
 
-----
-141. How do you ensure CI/CD pipelines are auditable for compliance? 
-Answer: Store pipeline definitions in Git → Enable logging for all jobs → Require approvals for prod → Retain build artifacts & logs. 
-142. How do you troubleshoot Kubernetes pods stuck in “Pending”? 
-Answer: Run kubectl describe pod → Check node resource availability → Verify PVC binding → Ensure taints/tolerations are configured. 
-143. How do you scale Terraform for large teams? 
-Answer: Use remote backend with locking → Split infra into modules/workspaces → Enforce PR-based workflows → Run via CI/CD. 
-144. How do you secure CI/CD pipelines from supply chain attacks? 
-Answer: Pin dependencies → Verify container/image signatures (Cosign) → Scan dependencies → Restrict external plugin usage. 
-145. How do you manage multi-cloud Kubernetes deployments? 
-Answer: Use Rancher, Anthos (GCP), or Azure Arc → Standardize with Helm/ArgoCD → Centralized monitoring/logging. 
-146. How do you troubleshoot Jenkins jobs failing randomly? 
-Answer: Check build logs → Verify network stability → Look for race conditions → Add retry logic. 
-147. How do you enforce least privilege access in GCP/Azure pipelines? 
-Answer: Use service accounts with minimum roles → Rotate keys regularly → Audit pipeline IAM policies. 
-148. How do you manage Kubernetes cluster upgrades with zero downtime? 
-Answer: Upgrade control plane first → Drain nodes one by one → Use pod disruption budgets → Monitor workloads. 
-149. How do you automate Terraform plan reviews? 
-Answer: Use CI/CD pipelines to generate terraform plan → Post results in PR comments → Require peer review before apply. 
-150. How do you detect & fix Kubernetes resource leaks? 
-Answer: Monitor unused PVCs, ConfigMaps, Secrets → Use cleanup jobs → Apply resource quotas.
+9. User Cannot Sudo: A user was added to sudoers, but sudo still doesn't work. What could be wrong?
 
-----
-131. How do you troubleshoot slow Terraform apply? 
-Answer: Reduce resource count per state → Use -parallelism flag → Split infra into modules → Optimize provider API calls. 
-132. How do you ensure Docker image immutability? 
-Answer: Tag images with version/commit hash → Push immutable tags to registry → Prevent latest usage in pipelines. 
-133. How do you troubleshoot Azure Kubernetes Service (AKS) scaling issues? 
-Answer: Check cluster autoscaler logs → Verify VM quotas in Azure → Ensure correct resource requests/limits. 
-134. How do you handle Jenkins credentials securely? 
-Answer: Store in Jenkins Credentials Manager → Inject at runtime → Rotate periodically → Integrate with Vault/Key Vault. 
-135. How do you manage stateful applications in Kubernetes? 
-Answer: Use StatefulSets → PersistentVolumeClaims → Ensure proper storage class → Backup with Velero. 
-136. How do you monitor CI/CD pipeline performance? 
-Answer: Enable Jenkins Prometheus plugin → Visualize in Grafana → Track build duration, failure rate, queue time. 
-137. How do you troubleshoot GCP Cloud Build quota exceeded error? 
-Answer: Check quotas in GCP console → Optimize build concurrency → Request quota increase → Split builds. 
-138. How do you enforce policy-as-code in Terraform? 
-Answer: Use Sentinel (Terraform Cloud) or OPA/Conftest → Define rules (naming, tags, security) → Enforce in pipeline. 
-139. How do you handle Kubernetes secret exposure in logs? 
-Answer: Prevent kubectl describe from showing → Use kubectl get secret -o jsonpath securely → Audit RBAC → Enable encryption at rest. 
-140. How do you implement CI/CD rollbacks automatically? 
-Answer: Pipeline detects failure → Triggers kubectl rollout undo or redeploys last known good artifact → Notifies team.
+10. Kernel Panic: How do you troubleshoot and recover from a kernel panic?
 
-----
-121. How do you implement CI/CD approval workflows in Jenkins? 
-Answer: Use Jenkins “input step” for manual approval → Or integrate with Jira/ServiceNow for change approvals before deploying to prod. 
-122. How do you troubleshoot Kubernetes nodes showing “NotReady”? 
-Answer: Run kubectl describe node → Check kubelet, docker/containerd logs → Verify network plugins → Restart node or replace if unhealthy. 
-123. How do you manage multiple Terraform workspaces across environments? 
-Answer: Use terraform workspace new/select → Or create separate state files with backend configs → Automate via pipelines. 
-124. How do you handle Jenkins job failures due to long build times? 
-Answer: Break into smaller jobs → Run in parallel stages → Use distributed builds with agents → Cache dependencies. 
-125. How do you ensure data encryption in GCP/Azure storage? 
-Answer: Enable default encryption (KMS-managed keys) → For extra security, use customer-managed encryption keys (CMEK). 
-126. How do you troubleshoot Helm chart deployment failures? 
-Answer: Run helm status & helm get manifest → Validate YAML → Check Kubernetes events/logs → Rollback using helm rollback. 
-127. How do you prevent accidental deletion of critical Terraform resources? 
-Answer: Use prevent_destroy = true in resource block → Enable approval workflows before apply. 
-128. How do you implement Continuous Monitoring in DevOps? 
-Answer: Integrate Prometheus + Grafana for infra/app → Use ELK/EFK for logs → Configure alerts (PagerDuty, Slack). 
-129. How do you handle GCP IAM service account key leaks? 
-Answer: Immediately disable/rotate compromised key → Audit access logs → Re-deploy workloads with new key → Enforce least privilege. 
-130. How do you secure Kubernetes Ingress traffic? 
-Answer: Use TLS certificates (Cert-Manager) → Enable WAF/firewall rules → Restrict IP access → Use Istio/NGINX for advanced security.
+11. Zombie Processes: How do you identify and remove zombie processes?
 
------
-111. How do you optimize Jenkins job execution time? 
-Answer: Use pipeline libraries, parallelization, caching layers, and containerized builds with lightweight agents. 
-112. How do you configure GCP IAM for least privilege in Terraform? 
-Answer: Assign roles only needed for resources → Avoid primitive roles (Owner/Editor) → Use custom roles with minimal permissions. 
-113. How do you troubleshoot a Kubernetes service not reachable externally? 
-Answer: Check service type (ClusterIP vs LoadBalancer) → Validate Ingress rules → Ensure firewall/load balancer rules are correct. 
-114. How do you ensure consistency between environments (Dev, QA, Prod)? 
-Answer: Use Terraform workspaces or separate variable files → Use Helm values for Kubernetes → Keep infra-as-code in Git. 
-115. How do you implement CI/CD notifications? 
-Answer: Integrate Jenkins/Azure DevOps with Slack, Teams, or email → Send success/failure alerts with logs. 
-116. How do you debug Terraform provider authentication issues? 
-Answer: Check cloud credentials (GCP service account, Azure SPN) → Validate environment variables → Use terraform providers for debugging. 
-117. How do you enforce compliance in Kubernetes clusters? 
-Answer: Use OPA/Gatekeeper or Kyverno for policy enforcement → Restrict images, namespaces, resource limits. 
-118. How do you handle pod eviction in Kubernetes? 
-Answer: Check node pressure (CPU/memory/disk) → Reschedule pods to healthy nodes → Use PodDisruptionBudgets to protect critical pods. 
-119. How do you handle multi-tenant CI/CD pipelines? 
-Answer: Isolate jobs by namespaces/projects → Use separate credentials → Apply RBAC per team. 
-120. How do you design disaster recovery for Jenkins? 
-Answer: Backup Jenkins home + configs to cloud storage → Use Infrastructure as Code to recreate Jenkins → Run Jenkins on Kubernetes with persistent storage.
+12. Too Many Open Files Error: How do you fix "Too many open files" in Linux?
 
------
-101. How do you troubleshoot Jenkins “Out of Memory” errors? 
-Answer: Increase JVM heap size (-Xmx), clean old builds, archive artifacts to external storage, add monitoring for Jenkins memory usage. 
-102. How do you implement rollback in Azure Kubernetes Service (AKS)? 
-Answer: Use kubectl rollout undo for deployments, or Helm rollback (helm rollback release name ). 
-103. How do you ensure security in Terraform modules used by multiple teams? 
-Answer: Store modules in private registry, enforce security policies (Checkov/tfsec), and code review before release. 
-104. How do you troubleshoot a failing GCP Cloud Function deployment in CI/CD? 
-Answer: Check logs in Cloud Build → Validate IAM permissions → Ensure environment variables are configured → Rebuild with correct runtime. 
-105. How do you implement centralized secrets management in multi-cloud (GCP + Azure)? 
-Answer: Use HashiCorp Vault, or integrate GCP Secret Manager + Azure Key Vault with CI/CD → Fetch secrets at runtime. 
-106. How do you monitor Terraform changes in production? 
-Answer: Store terraform plan -out as artifact → Send diff to Slack/email → Require approval before terraform apply. 
-107. How do you debug failed persistent volume (PV) mounts in Kubernetes? 
-Answer: Check PVC status (kubectl describe pvc) → Validate storage class → Check node permissions → Fix provisioner issues. 
-108. How do you secure Docker containers in CI/CD pipelines? 
-Answer: Run image scans (Trivy/Anchore) → Use non-root users → Apply resource limits → Keep images updated. 
-109. How do you troubleshoot Azure DevOps pipeline agent errors? 
-Answer: Check agent logs → Verify network connectivity → Restart agent service → Re register agent if required. 
-110. How do you implement immutable infrastructure with Terraform? 
-Answer: Replace resources instead of modifying → Use create_before_destroy lifecycle rule → Store infra definitions in Git.
+13. Finding and Killing Processes: A process is causing high memory usage. How do you locate and stop it?
 
-----
-91. How do you implement CI/CD for microservices? 
-Answer: Use separate pipelines per microservice → Containerize each → Deploy to Kubernetes via Helm/ArgoCD → Centralized monitoring. 
-92. How do you troubleshoot GCP IAM permission denied errors? 
-Answer: Check service account roles → Use gcloud projects get-iam-policy → Grant least privilege role needed → Retry operation. 
-93. How do you handle Kubernetes pod scheduling failures? 
-Answer: Run kubectl describe pod → Check taints/tolerations → Check node resources → Add tolerations or scale nodes. 
-94. How do you automate backups in DevOps workflows? 
-Answer: Schedule backups with Velero for Kubernetes → Automate DB backups with scripts in pipelines → Store backups in GCS/Azure Blob. 
-95. How do you debug a Jenkins job stuck on “Waiting for Executor”? 
-Answer: No free agents → Increase executors → Add agent nodes → Use Kubernetes dynamic agents. 
-96. How do you implement canary release in Azure DevOps? 
-Answer: Use Azure Traffic Manager/App Gateway → Route small % of traffic to new version → Gradually increase if stable. 
-97. How do you troubleshoot failed Docker image push to registry? 
-Answer: Check registry credentials → Validate image name/tag → Ensure repository exists → Retry with correct login. 
-98. How do you enforce least privilege in Kubernetes? 
-Answer: Use RBAC roles → Bind only necessary permissions → Restrict cluster admin → Enable PodSecurityPolicies/OPA. 
-99. How do you implement auto-scaling for Jenkins agents? 
-Answer: Integrate Jenkins with Kubernetes plugin → Agents spin up as pods on demand → Auto-terminate after job completion. 
-100. How do you ensure end-to-end observability in DevOps? 
-Answer: Combine logs (EFK/Loki), metrics (Prometheus/Grafana), and tracing (Jaeger/Zipkin) → Add alerts → Correlate across CI/CD + infra + app.
+14. Home Directory Missing: A user's home directory is missing. How will you restore it?
 
-----
-81. How do you rotate service account keys in GCP/Azure? 
-Answer: Automate with GCP IAM key rotation or Azure Key Vault rotation policies → Update CI/CD pipelines to use new keys. 
-82. How do you troubleshoot DNS issues in Kubernetes? 
-Answer: Run kubectl exec into pod → Test DNS resolution → Check CoreDNS logs → Restart CoreDNS pods → Fix network policies if blocking. 
-83. How do you monitor CI/CD pipelines? 
-Answer: Export Jenkins/Azure DevOps metrics → Send to Prometheus/Grafana → Add alerts for failed pipelines and long-running jobs. 
-84. How do you handle Terraform destroying critical resources accidentally? 
-Answer: Use prevent_destroy in Terraform resource → Enable approval stages in pipelines → Use terraform plan before apply. 
-85. How do you implement blue-green deployment in Azure DevOps? 
-Answer: Use deployment slots (App Service) → Route traffic between slots → Rollback to blue if green fails. 
-86. How do you investigate high API latency in GCP/Azure APIs? 
-Answer: Check Cloud Trace / Application Insights → Identify slow endpoints → Scale backend pods → Add caching/CDN. 
-87. How do you implement GitOps in DevOps workflows? 
-Answer: Use ArgoCD/Flux → Keep infra/app configs in Git → Sync automatically with Kubernetes → Rollback by reverting Git commit. 
-88. How do you debug slow Docker container startup? • Answer: Check image size → Optimize Dockerfile → Preload dependencies → Monitor entrypoint logs. 
-89. How do you manage multiple Kubernetes clusters securely? 
-Answer: Use Rancher, Anthos, or Azure Arc → Apply consistent RBAC & policies → Centralized monitoring/logging. 
-90. How do you handle failed Terraform import of resources? 
-Answer: Verify resource ID → Check provider version → Import manually using terraform import → Update .tf code.
+15. Time Sync Issues: The server time is incorrect. How do you fix NTP sync?
 
-----
-71. How do you enforce code quality checks before merging in CI/CD?
-Answer: Add mandatory linting, unit tests, SonarQube scans in Jenkins/GitHub Actions → Fail build if checks don’t pass → Protect main branch with approval rules. 
-72. How do you optimize Kubernetes cluster costs? 
-Answer: Use Cluster Autoscaler, rightsizing pods with requests/limits, spot/preemptible nodes, and scale workloads by time of day. 
-73. How do you troubleshoot a slow Jenkins pipeline? 
-Answer: Identify bottleneck stage → Enable parallel execution → Cache dependencies → Scale Jenkins agents horizontally. 
-74. How do you implement multi-region deployments in Kubernetes? 
-Answer: Use multiple clusters across regions → Manage via Anthos (GCP) or Azure Arc → Route traffic with global load balancer. 
-75. How do you handle Terraform provider version conflicts? 
-Answer: Define provider version in required_providers block → Use .terraform.lock.hcl → Run terraform init -upgrade only when upgrading. 
-76. How do you implement auto-healing in Kubernetes? 
-Answer: Use liveness probes → If container fails health check, kubelet restarts it → Integrate with Horizontal Pod Autoscaler for scaling. 
-77. How do you secure Jenkins from unauthorized access? 
-Answer: Enable RBAC → Integrate with LDAP/SSO → Restrict anonymous access → Enable audit logs → Run Jenkins behind reverse proxy (NGINX). 
-78. How do you troubleshoot “OOMKilled” pods in Kubernetes? 
-Answer: Pod exceeded memory → Check logs/events → Increase memory limit → Optimize app memory usage → Use HPA to spread load. 
-79. How do you implement release approvals in CI/CD? 
-Answer: Use Jenkins input step / Azure DevOps approval gates → Require manager/lead approval before deploying to production. 
-80. How do you manage database schema in CI/CD pipelines? 
-Answer: Use Liquibase or Flyway migration scripts → Run as pipeline step → Ensure backward compatibility.
+16. Finding Recently Changed Files: How do you find all files modified in the last 10 minutes?
 
-----
+17. Deleting Large Files But Space Not Freeing Up: What could be the reason?
+
+18. Checking System Load: How do you analyze high system load issues?
+
+19. NFS Mount Issues: How do you troubleshoot an NFS mount not working?
+
+20. Hostname Resolution Issues: ping is working, but ssh is failing by hostname. Why?
+
+File System & Storage
+
+21. How do you extend a partition without unmounting it?
+
+22. What steps are needed to add a new disk to a Linux server?
+
+23. How to check which processes are writing to a file in real time?
+
+24. How to recover a deleted file in Linux?
+
+25. How to check disk I/O performance in Linux?
+
+26. A directory is taking too much space. How do you analyze it?
+
+27. How do you remount a filesystem in read-write mode without rebooting?
+
+28. What happens when a file is deleted but is still in use by a process?
+
+29. How do you create and mount a swap file?
+
+30. How do you find large unused files across multiple partitions?
+
+31. How do you fix a corrupted file system using fsck?
+
+32. What is inode exhaustion, and how do you resolve it?
+
+33. You need to copy a huge file across servers. What's the fastest way?
+
+34. Your df -h and dush show different disk usage. Why?
+
+35. How do you find out which directory is consuming the most in /var?
+
+1. You are tasked with securing a Linux server that hosts a web application. The server is currently exposed to the internet and has a weak root password. Describe the steps you would take to secure the server.
+2. One of your team members accidentally ran a command that corrupted the file system on a critical Linux server. The server is no longer booting, and you need to recover the data. Walk me through the steps you would take to recover the file system.
+3. Your team uses a backup script to download the latest backup file from a remote server. However, the script is currently not working due to changes in the remote server's configuration. Write a script that downloads the latest backup file from the remote server using SSH.
+4. You are using Terraform to manage your infrastructure, and you notice that one of your resources is not being updated correctly. Describe how you would use Terraform's taint and untaint commands to resolve the issue. Additionally, explain the difference between stateful and stateless resources in Terraform.
+5. Your team is using Jenkins for continuous integration and continuous deployment (CI/CD). Describe the master-slave architecture of Jenkins and how it enables distributed builds and deployments.
+6. You are tasked with implementing a CI/CD pipeline from scratch for a web application. Describe the steps you would take to implement the pipeline, including how you would ensure zero downtime deployments and implement rollbacks.
+7.Explain the concept of shift-left in DevOps and how it enables teams to detect and fix issues earlier in the development cycle.
+8.What is the difference between the ADD and COPY instructions in a Dockerfile?
+9.You accidentally committed sensitive information to a Git repository. Describe the steps you would take to remove the sensitive information from the repository's history.
+10.One of your team members accidentally deleted a critical branch in a Git repository. Describe the steps you would take to recover the deleted branch.
+11. Explain the difference between the origin and upstream remotes in a Git repository.
+12. Describe the lifecycle of a Docker container, including how it is created, started, stopped, and deleted.
+13. Explain the concept of a ReplicaSet in Kubernetes and how it ensures that a specified number of replicas of a pod are running at any given time
+14. Describe how to configure a NAT gateway in AWS to enable outbound internet access for instances in a private subnet.
+15. What happens when you delete the /var/lib/docker/overlay directory on a Docker host
+16. Is it possible to run a virtual machine (VM) in AWS without creating an EC2 instance? If so, how
+17. Explain the difference between stopping and terminating an EC2 instance. Additionally, describe the concept of EC2 hibernation and how it enables instances to be restarted from a saved state.
+
+26. What are liveness and readiness probes? How do they impact pod behavior?
+
+27. How do you perform rolling updates and rollbacks in Kubernetes?
+
+28. What’s the use of a PodDisruptionBudget?
+
+29. How can you achieve blue/green deployments in Kubernetes?
+
+30. What metrics do you monitor for ensuring Kubernetes cluster health?
+
+CI/CD & Observability
+
+31. How do you integrate Kubernetes with a CI/CD pipeline?
+
+32. What are your preferred logging solutions for Kubernetes?
+
+33. How would you monitor a Kubernetes cluster?
+
+34. Explain how you would debug a sudden increase in latency across services in Kubernetes.
+
+35. What is the difference between a Job and a CronJob in Kubernetes?
+
+36. What is Helm and how does it help in Kubernetes application management?
+
+37. How do you manage secrets in Helm charts?
+
+38. How do you roll back a Helm release?
+
+39. What are Helm hooks and how are they used?
+
+40. How do you handle multi-environment Helm chart deployments?
