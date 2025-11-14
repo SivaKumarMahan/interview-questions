@@ -1,0 +1,76 @@
+Question : “You are fetching Azure Key Vault secrets via Terraform and creating Kubernetes secrets in AKS. Secrets rotate every 3 months — how will you automate updating these secrets into AKS"
+
+My Approach:
+
+I explained that there are multiple automation options depending on architecture:
+
+Best Practice:
+Use Azure Key Vault CSI Secret Store Driver
+➡️ Secrets are not stored in Kubernetes at all
+➡️ Pod mounts secrets directly from Key Vault
+➡️ Automatic refresh — no pipeline or Terraform needed
+➡️ Most secure & event-driven
+
+
+---
+
+✅ If Kubernetes Secrets must be updated Use Azure Function + Event Grid
+➡️ Key Vault triggers event on secret version change
+➡️ Azure Function applies update (Terraform or kubectl)
+➡️ Automatically restarts pods if necessary
+
+Architecture:
+
+Key Vault → Event Grid → Function App → AKS Rollout Restart
+
+Why not ArgoCD here?
+🔸 ArgoCD relies on Git changes
+🔸 Secret rotation in KV doesn’t modify Git
+➡️ Not the right fit for autonomous secret refresh
+
+
+---
+
+✅ Simple Time-Based Automation 📌 GitHub Actions or Azure DevOps Scheduler
+Runs Terraform every 3 months:
+
+on:
+ schedule:
+ - cron: "0 0 1 */3 *" # Every 3 months
+
+➡️ Cost-effective
+➡️ Easy to maintain
+
+----
+𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
+
+💡 𝗗𝗲𝘃 ➝ 𝗦𝘁𝗮𝗴𝗶𝗻𝗴 ➝ 𝗣𝗿𝗼𝗱 𝘄𝗶𝘁𝗵 𝗛𝗲𝗹𝗺 + 𝗔𝘇𝘂𝗿𝗲 𝗗𝗲𝘃𝗢𝗽𝘀 𝗖𝗜/𝗖𝗗
+
+In fast-paced IT production environments, managing deployments across Dev, Staging, and Prod can easily spiral into chaos without proper automation.
+
+🔍 𝗧𝗵𝗲 𝗣𝗿𝗼𝗯𝗹𝗲𝗺 𝗜 𝗙𝗮𝗰𝗲𝗱:
+Initially, I deployed Helm charts manually for each environment. It worked... until it didn’t.
+𝗛𝗲𝗿𝗲’𝘀 𝘄𝗵𝗮𝘁 𝘄𝗲𝗻𝘁 𝘄𝗿𝗼𝗻𝗴:
+❌ Inconsistent releases between environments
+❌ Environment-specific values were overwritten or missed
+❌ No traceability, no rollback
+❌ Slower releases, especially during critical production changes
+❌ Manual errors causing misconfigurations in Prod 😣
+
+🏗️ 𝗧𝗵𝗲 𝗥𝗲𝗮𝗹-𝗪𝗼𝗿𝗹𝗱 𝗦𝗼𝗹𝘂𝘁𝗶𝗼𝗻:
+I integrated Helm chart deployment into our Azure DevOps pipeline, built with automation in mind. Now, each environment gets:
+✔️ Its own values-dev.yaml, values-staging.yaml, values-prod.yaml
+✔️ Controlled and versioned Helm releases
+✔️ Seamless promotion from Dev ➝ Staging ➝ Prod
+✔️ Quick rollback if needed
+✔️ Full visibility into every deployment
+
+🎥 Check out the video demo — I walk through the actual pipeline in action and show how this change brought structure, speed, and safety to our deployments.
+
+🔐 𝗥𝗲𝘀𝘂𝗹𝘁:
+🔸 Reduced human error
+🔸 Faster and safer production releases
+🔸 Dev and Ops teams now deploy with confidence 💪
+🔸 We're finally DevOps-ready across environments
+
+------
