@@ -1,0 +1,154 @@
+User & Access Management
+
+A user complains they cannot log in. How will you troubleshoot?
+
+A user was added to sudoers, but sudo still doesn't work. What could be wrong?
+
+A user's home directory is missing. How will you restore it?
+
+Permissions & File Operations
+
+A script is executable by one user but not another. How do you resolve this?
+
+How do you find all files modified in the last 10 minutes?
+
+A log file is showing junk characters. How do you check and recover it?
+
+Process & System Performance
+
+A service is consuming 100% CPU. How will you find and fix it?
+
+A process is causing high memory usage. How do you locate and stop it?
+
+What are zombie processes and how do you remove them?
+
+How do you fix "Too many open files" in Linux?
+
+How do you analyze high system load?
+
+How do you debug a kernel panic?
+
+SSH & Networking
+
+You cannot SSH into a remote machine. How do you debug?
+
+ping works, but ssh fails using hostname. Why?
+
+How do you fix NTP time sync issues?
+
+Crontab & Services
+
+A scheduled job is not executing. How do you debug?
+
+How do you identify which process is writing to a file in real-time?
+
+Disk & Storage Issues
+
+/ partition is full. How do you find and delete large files safely?
+
+Deleted large files but disk space not freeing up — why?
+
+What happens when a file is deleted but still open by a process?
+
+Package Management
+
+yum/apt installation is failing. How do you troubleshoot?
+
+Disk Management
+
+How do you extend a partition without unmounting it?
+
+What steps are needed to add a new disk to a Linux server?
+
+What is inode exhaustion and how do you resolve it?
+
+How do you analyze which directory is using the most space in /var?
+
+File System Repair & Recovery
+
+How do you fix a corrupted file system using fsck?
+
+How to recover a deleted file in Linux?
+
+A Linux server is not booting due to file system corruption — how do you recover it? (merged with similar case study)
+
+Storage Performance
+
+How do you check disk I/O performance?
+
+df -h and du -sh show different usage. Why?
+
+How to find large unused files across multiple partitions?
+
+Swap & Mounts
+
+How do you create and mount a swap file?
+
+How do you remount a filesystem read-write without rebooting?
+
+How do you troubleshoot an NFS mount issue?
+
+File Transfer
+
+Fastest way to copy huge files across servers?
+
+Linux Security Case Study
+You need to secure a Linux server exposed to the internet with a weak root password. What steps do you take?
+Basics & Commands
+
+Do you have hands-on in Linux? Which platform?
+
+Common Linux commands.
+
+How to check a running process?
+
+How to list running processes?
+
+How to kill a process in one command?
+
+How to check disk usage?
+
+How to find free memory?
+
+How to archive/compress a directory?
+
+SSH & Networking
+
+How to connect to an EC2 instance? Exact command.
+
+Do you need a password or key for SSH?
+
+How do you list all SSH users?
+
+Permissions
+
+What does chmod 755 mean?
+
+What is chown?
+
+Logs
+
+Apache log path?
+
+What logs appear under /var/log?
+
+Purpose of grep?
+
+Which grep flag shows lines not containing a keyword?
+
+System Issues
+
+What happens when / is 100% full?
+
+How do you check running processes in Linux? 
+How to schedule a cron job every 15 mins?
+Difference between Hard vs Soft links/find vs locate.
+How to find processes using the most CPU & memory?
+What is log rotation, inode, runlevels?
+What does chmod 755 mean?
+How to set default file & directory permissions?
+How to check if a port is open/listening?
+How to Configuring a static IP address
+How to do Mounting & unmounting in linux.
+How to check disk partitions & usage
+what is Sticky bit, setuid, setgid

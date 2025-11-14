@@ -1,0 +1,126 @@
+Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?
+An entire Kubernetes region goes down. How do you failover workloads?
+All pods in one namespace suddenly fail readiness checks. What’s your step to troubleshoot?
+Your cluster is hit by a massive traffic surge, and HPA cannot scale pods fast enough. How do you handle it?
+A node hosting critical workloads crashes permanently. How do you ensure workloads recover automatically?
+A Pod is stuck in ImagePullBackOff. How do you troubleshoot?
+
+11) How does Kubernetes handle self-healing at pod and node level?
+12) Difference between ReplicaSet, Deployment, StatefulSet, and DaemonSet?
+13) How do you troubleshoot CrashLoopBackOff or ImagePullBackOff errors?
+14) How do you implement PodDisruptionBudgets and why are they critical?
+15) What’s the role of etcd in Kubernetes, and how do you back it up?
+16) How do you secure a Kubernetes cluster (RBAC, PSP, NetworkPolicy)?
+
+Explain K8s architecture
+Role of Kubelet, Kube-apiserver, Kube-proxy in EKS
+StatefulSet vs Deployment – when to use each?
+Troubleshooting 503 errors from LoadBalancer
+Case 1: Pod not accessible internally
+Case 2: Pod internally accessible but LB fails
+How do you securely manage secrets & certificates in EKS.
+How do you restrict communication between two Pods in the same namespace?
+StatefulSet Pods connecting to same volume – what’s wrong?
+How to fix OOMKilled Pods?
+Liveness, Readiness, Startup probes
+How do you safely update cluster version?
+What if master node & worker node firewall breaks?
+Centralized logging & monitoring for audit trails (which stack did you use?)
+
+Q. What is the difference between a Deployment and a StatefulSet in Kubernetes?
+Q. When should you use a StatefulSet instead of a Deployment?
+Q. Can you attach a volume to a Deployment? If yes, how is it different from a StatefulSet?
+Q. What could cause a StatefulSet pod to fail when rescheduled to a different availability zone?
+Q. How do PV/PVC behave across zones in EKS or Kubernetes in general?
+Q. What is a DaemonSet and when would you use it?
+Q. If you want two pods per node (instead of one), what alternatives to DaemonSet can you use?
+Q. What is a Pod Disruption Budget (PDB) and how is it useful?
+Q. How do you handle certificate rotation in on-prem Kubernetes clusters?
+Q. What are the challenges with scheduling pods in a multi-node, multi-AZ setup?
+Q. How does the Kubernetes scheduler decide where to place pods?
+Q. What happens when a StatefulSet pod cannot mount its volume after moving to another node?
+
+1. Your pod keeps getting stuck in CrashLoopBackOff, but logs show no errors. How would you approach debugging and resolution?
+
+2. You have a StatefulSet deployed with persistent volumes, and one of the pods is not recreating properly after deletion. What could be the reasons, and how do you fix it without data loss?
+
+3. Your cluster autoscaler is not scaling up even though pods are in Pending state. What would you investigate?
+
+4. A network policy is blocking traffic between services in different namespaces. How would you design and debug the policy to allow only specific communication paths?
+
+5. One of your microservices has to connect to an external database via a VPN inside the cluster. How would you architect this in Kubernetes with HA and security in mind?
+
+6. You're running a multi-tenant platform on a single EKS cluster. How do you isolate workloads and ensure security, quotas, and observability for each tenant?
+
+7. You notice the kubelet is constantly restarting on a particular node. What steps would you take to isolate the issue and ensure node stability?
+
+8. A critical pod in production gets evicted due to node pressure. How would you prevent this from happening again, and how do QoS classes play a role?
+
+9. You need to deploy a service that requires TCP and UDP on the same port. How would you configure this in Kubernetes using Services and Ingress?
+
+10. An application upgrade caused downtime even though you had rolling updates configured. What advanced strategies would you apply to ensure zero-downtime deployments next time?
+
+11. Your service mesh sidecar (e.g., Istio Envoy) is consuming more resources than the app itself. How do you analyze and optimize this setup?
+
+12. You need to create a Kubernetes operator to automate complex application lifecycle events. How do you design the CRD and controller loop logic?
+
+13. Multiple nodes are showing high disk IO usage due to container logs. What Kubernetes features or practices can you apply to avoid this scenario?
+
+14. Your Kubernetes cluster's etcd performance is degrading. What are the root causes and how do you ensure etcd high availability and tuning?
+
+15. You want to enforce that all images used in the cluster must come from a trusted internal registry. How do you implement this at the policy level?
+
+16. You're managing multi-region deployments using a single Kubernetes control plane. What architectural considerations must you address to avoid cross-region latency and single points of failure?
+
+17. During peak traffic, your ingress controller fails to route requests efficiently. How would you diagnose and scale ingress resources effectively under heavy load?
+
+What is a ReplicaSet and how does it ensure desired pod count?
+
+What are liveness and readiness probes and how do they affect pod behavior?
+
+How do you perform rolling updates and rollbacks in Kubernetes?
+
+What’s the use of a PodDisruptionBudget?
+
+How to achieve blue/green deployments in Kubernetes?
+
+What metrics are monitored to ensure cluster health?
+How do you integrate Kubernetes into a CI/CD pipeline?
+
+What logging solutions do you recommend for Kubernetes?
+
+How do you monitor a Kubernetes cluster?
+
+How would you debug a sudden spike in latency across services?
+
+Difference between Kubernetes Job and CronJob.
+
+Core Concepts
+
+What are Pods, Deployments, Services?
+
+What’s a ConfigMap and a Secret?
+
+How do resource limits and requests work?
+
+Application Deployment
+
+How do you deploy an application on a Kubernetes cluster?
+
+How do you perform a rolling update using YAML?
+
+Do you update only images or also replicas/storage/CPU?
+
+Troubleshooting
+
+How do you troubleshoot a pod stuck in CrashLoopBackOff?
+
+How do you debug DNS failures inside Kubernetes?
+
+Pod-to-pod networking issues — how do you troubleshoot?
+
+Cluster Operations
+
+Have you upgraded any Kubernetes clusters?
+
+How do you connect Jenkins to a Kubernetes cluster?

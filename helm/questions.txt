@@ -1,0 +1,9 @@
+What is Helm and how does it simplify Kubernetes deployments?
+
+How do you manage secrets in Helm charts?
+
+How do you roll back a Helm release?
+
+What are Helm hooks and how are they used?
+
+How do you handle multi-environment deployments using Helm?

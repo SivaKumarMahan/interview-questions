@@ -1,0 +1,9 @@
+Architecture
+
+Explain Jenkins master–slave architecture and how it enables distributed builds.
+
+Pipeline Design
+
+Build a CI/CD pipeline from scratch ensuring zero downtime and rollbacks.
+
+Explain shift-left in DevOps.

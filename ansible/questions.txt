@@ -1,0 +1,5 @@
+How have you used Ansible? Give a real example.
+
+How do you configure an Ansible agent?
+
+How do you manage secrets securely in Ansible?

@@ -1,0 +1,12 @@
+Difference between origin and upstream remotes.
+
+You committed sensitive info to Git — how do you remove it from history?
+
+A team member deleted a critical Git branch — how do you recover it?
+Explain Git pull vs Git fetch.
+
+How to resolve merge conflicts?
+
+How to generate GitHub token?
+
+Explain Gitflow branching strategy.

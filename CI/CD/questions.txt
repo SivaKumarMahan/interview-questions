@@ -1,0 +1,29 @@
+Design, Tools & Usage
+
+Explain your CI/CD pipeline design. Why did you choose those tools?
+
+What CI/CD tools have you used? (GitHub Actions, ADO, Jenkins)
+
+How do you build a Jenkins pipeline for multi-environment deployment?
+
+What happens when a pipeline fails? Give a real example.
+
+Code Quality & Security
+
+How do you integrate code quality tools like SonarQube?
+
+What security tools/scans did you use (SAST, DAST, container scanning)?
+
+How do you manage code vulnerabilities?
+
+Pipeline Optimization
+
+How do you prevent shared runners from blocking pipelines?
+
+Using matrix builds, caching, concurrency limits.
+
+CD Processes
+
+Explain your complete CD process.
+
+How do you rollback a faulty deployment?

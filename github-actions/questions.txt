@@ -1,0 +1,5 @@
+Q. What CI/CD tools have you used in your current role?
+Q. How are you integrating tools like SonarQube, Docker, and Trivy in your pipelines?
+Q. How do you trigger a GitHub Actions workflow in another repository?
+Q. What is the purpose of repository_dispatch in GitHub Actions?
+Q. How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?

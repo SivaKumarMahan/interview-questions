@@ -1,0 +1,15 @@
+Tools
+
+Have you worked with Prometheus, Grafana, ELK?
+
+Configuration file of Prometheus?
+
+Alerts: In Prometheus or Grafana?
+
+How to configure an alert for disk usage >80%?
+
+How do you monitor Kubernetes clusters?
+
+Troubleshooting
+
+How do you troubleshoot high latency on a load balancer?

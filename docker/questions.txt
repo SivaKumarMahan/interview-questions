@@ -1,0 +1,35 @@
+Difference between ADD vs COPY in Dockerfile.
+
+Lifecycle of a Docker container (create, start, stop, delete).
+
+What happens if you delete /var/lib/docker/overlay on a Docker host?
+Have you built Docker containers? For what use case?
+
+How do you write a production-ready Dockerfile?
+
+Difference between CMD and ENTRYPOINT?
+
+What is Docker Compose?
+
+How do you copy a file from container to host?
+
+What happens when you write COPY . in Dockerfile?
+
+How do you create a custom Docker image?
+
+How do you handle multi-cloud Docker deployments with compliance restrictions?
+You need live-patching of Docker host kernel without downtime. How do you achieve it?
+How do you troubleshoot container DNS resolution failures?
+How do you enforce policy-as-code for Docker security?
+
+6) How do you optimize a Dockerfile for performance and security?
+7) How do you handle secrets inside containers?
+8) Explain image layering in Docker—how can it cause cache busting?
+9) What strategies do you use for debugging container networking issues?10) How do you run multi-container apps in production without Compose?
+
+Difference between CMD, ENTRYPOINT, and RUN
+Volumes vs Bind Mounts – when to use each?
+What are Cgroups and dangling objects?
+Techniques to cache Docker layers in pipelines
+How to delete all Docker resources in one command?
+Difference between ADD and COPY

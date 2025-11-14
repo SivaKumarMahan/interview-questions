@@ -1,0 +1,15 @@
+Write a script to download the latest backup file from a remote server using SSH.
+
+Example of a complex automation script you've written.
+
+How do you debug automation scripts?
+
+PowerShell for cost optimization?
+
+Was PowerShell part of CI or CD?
+
+Assignments
+
+Bash script: add two numbers.
+
+Bash script: find biggest file in a folder.
