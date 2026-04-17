@@ -1,5 +1,3 @@
-Tools
-
 Have you worked with Prometheus, Grafana, ELK?
 
 Configuration file of Prometheus?
