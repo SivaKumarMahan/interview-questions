@@ -1,0 +1,35 @@
+1. How is Python useful for DevOps?
+Answer: Python is useful for automation, API integration, cloud scripting, log parsing, report generation, infrastructure tooling, and operational runbooks. It is often used when shell scripting becomes too complex.
+
+2. How do you call a REST API in Python?
+Answer: Use the `requests` library, pass headers and parameters, check status codes, parse JSON, and handle timeouts and retries.
+
+3. How do you handle errors in Python scripts?
+Answer: Use `try/except`, validate inputs, log exceptions, return meaningful exit codes, and avoid hiding failures. For automation, fail fast when a required step cannot continue safely.
+
+4. How do you read and write JSON in Python?
+Answer: Use the built-in `json` module. `json.load()` reads JSON from a file, `json.loads()` parses a string, `json.dump()` writes to a file, and `json.dumps()` converts objects to a JSON string.
+
+5. How do you parse YAML in Python?
+Answer: Use PyYAML or `ruamel.yaml`. For infrastructure files, preserve formatting carefully if modifying YAML because indentation and comments may matter.
+
+6. How do you execute shell commands from Python?
+Answer: Use `subprocess.run()` with a list of arguments, `check=True`, and captured output when needed. Avoid `shell=True` unless absolutely required.
+
+7. How do you manage secrets in Python automation?
+Answer: Read secrets from environment variables, secret managers, managed identity, or CI/CD secret stores. Never hardcode secrets or print them in logs.
+
+8. How do you create a Python virtual environment?
+Answer: Run `python -m venv .venv`, activate it, and install dependencies with `pip install -r requirements.txt`. This keeps project dependencies isolated.
+
+9. How do you process large log files in Python?
+Answer: Stream the file line by line instead of loading it fully into memory. Use generators, regex carefully, and write summarized output incrementally.
+
+10. How do you make a Python script production-ready?
+Answer: Add argument parsing, logging, input validation, error handling, timeouts, tests, dependency pinning, configuration management, and clear exit codes.
+
+11. What is the difference between a list, tuple, set, and dictionary?
+Answer: A list is ordered and mutable, a tuple is ordered and immutable, a set stores unique unordered values, and a dictionary stores key-value pairs.
+
+12. How do you schedule Python automation?
+Answer: Use cron, systemd timers, Azure Automation, GitHub Actions, Azure Pipelines, Kubernetes CronJobs, or a workflow orchestrator depending on the environment.

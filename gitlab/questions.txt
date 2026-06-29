@@ -1,0 +1,23 @@
+1. What is GitLab?
+Answer: GitLab is a DevSecOps platform that includes Git repository hosting, merge requests, CI/CD, package/container registry, security scanning, issue tracking, and release management.
+
+2. What is a merge request in GitLab?
+Answer: A merge request is GitLab's code review workflow. It proposes changes from one branch into another and can require approvals, pipeline success, discussions to be resolved, and security checks before merge.
+
+3. How do you protect branches in GitLab?
+Answer: Configure protected branches to control who can push, merge, or force-push. Combine them with required approvals and pipeline checks for important branches.
+
+4. How do GitLab groups and projects help access management?
+Answer: Groups organize projects and allow permissions, runners, variables, and settings to be managed centrally. Users can have roles such as Guest, Reporter, Developer, Maintainer, or Owner.
+
+5. How do you manage GitLab repository secrets?
+Answer: Use CI/CD variables with masked and protected settings, environment scope, external secrets integrations, and protected branches. Do not commit secrets to repositories.
+
+6. What are GitLab tags and releases used for?
+Answer: Tags mark specific commits, often for versions. Releases add metadata, release notes, and assets around tags for deployment or distribution.
+
+7. How do you handle code review quality in GitLab?
+Answer: Use approval rules, CODEOWNERS, merge request templates, required pipelines, security scanning, discussion resolution, and protected target branches.
+
+8. How do you migrate a repository to GitLab?
+Answer: Import or push the Git repository, recreate branch protections, variables, CI/CD configuration, webhooks, deploy keys, and access permissions. Validate pipelines after migration.

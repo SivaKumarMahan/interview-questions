@@ -1,0 +1,68 @@
+1. What are Azure Virtual Machines?
+Answer: Azure Virtual Machines provide infrastructure-as-a-service compute where you manage the operating system, patching, disks, networking, and installed applications. They are used when you need OS-level control or legacy workload support.
+
+2. How do you secure Azure Virtual Machines?
+Answer: Use NSGs, private IPs, Bastion or VPN instead of public RDP/SSH, disk encryption, managed identity, patching, Defender for Cloud, least-privilege RBAC, and monitoring through Azure Monitor.
+
+3. What is Azure Virtual Network?
+Answer: Azure Virtual Network is the private network boundary for Azure resources. It includes address spaces, subnets, route tables, NSGs, peering, private endpoints, and connectivity to on-prem networks.
+
+4. What is Azure Application Gateway?
+Answer: Application Gateway is a layer 7 load balancer with HTTP routing, TLS termination, path-based routing, host-based routing, WAF integration, and backend health probes.
+
+5. What is Azure DNS?
+Answer: Azure DNS hosts DNS zones and records for domains. It can manage public DNS zones and private DNS zones for internal name resolution across VNets.
+
+6. What is an Azure Storage Account?
+Answer: A Storage Account is the top-level Azure storage resource that can host Blob, File, Queue, and Table storage. It controls redundancy, networking, encryption, access keys, and lifecycle settings.
+
+7. What is Azure Blob Storage?
+Answer: Blob Storage is object storage for unstructured data such as logs, images, backups, static website files, and data lake workloads. It supports hot, cool, cold, and archive tiers.
+
+8. How do you secure Azure Storage?
+Answer: Disable public access where possible, use private endpoints, restrict networks, require HTTPS, use RBAC or managed identity, rotate keys/SAS, enable encryption, and monitor with Defender for Storage.
+
+9. What is Azure Key Vault?
+Answer: Key Vault stores and manages secrets, keys, and certificates. Applications can access it securely using managed identity and RBAC or access policies.
+
+10. What is Azure Managed Identity?
+Answer: Managed Identity gives Azure resources an identity in Microsoft Entra ID so they can access other Azure services without storing credentials in code or configuration.
+
+11. What is Microsoft Entra ID?
+Answer: Microsoft Entra ID, formerly Azure Active Directory, is Microsoft's cloud identity platform for users, groups, applications, service principals, SSO, conditional access, and identity governance.
+
+12. What is Azure Container Registry?
+Answer: Azure Container Registry is a private registry for Docker and OCI images. It integrates with AKS, Azure Pipelines, managed identity, image scanning workflows, and geo-replication.
+
+13. What is Azure App Service?
+Answer: Azure App Service is a platform-as-a-service offering for hosting web apps, APIs, and background jobs without managing servers. It supports scaling, deployment slots, TLS, custom domains, and CI/CD.
+
+14. What are Azure Functions?
+Answer: Azure Functions is a serverless compute service that runs code in response to events such as HTTP requests, timers, queues, blobs, Event Grid, or Service Bus messages.
+
+15. What is Azure SQL Database?
+Answer: Azure SQL Database is a managed relational database service based on SQL Server. Azure manages backups, patching, high availability, scaling options, and security integrations.
+
+16. What is Azure Service Bus?
+Answer: Azure Service Bus is an enterprise messaging service for queues and topics. It supports reliable messaging, competing consumers, dead-letter queues, sessions, duplicate detection, and publish-subscribe patterns.
+
+17. What is Azure Event Grid?
+Answer: Event Grid is an event routing service for reactive architectures. It routes events from Azure services or custom sources to handlers such as Functions, Logic Apps, webhooks, or Service Bus.
+
+18. What is Azure Policy?
+Answer: Azure Policy enforces or audits governance rules across resources. It can deny non-compliant deployments, append settings, audit drift, or deploy required configurations.
+
+19. What is the difference between Service Bus and Event Grid?
+Answer: Service Bus is for reliable enterprise messaging where consumers process messages from queues or topics. Event Grid is for lightweight event notification and routing when something happens.
+
+20. What is the difference between App Service and Azure Functions?
+Answer: App Service is better for always-on web apps and APIs. Azure Functions is better for event-driven, small units of code that scale based on triggers and consumption.
+
+21. How do you use Key Vault with App Service or Functions?
+Answer: Enable managed identity on the app, grant Key Vault permissions, and reference secrets through Key Vault references or SDK calls. This avoids storing secrets in app settings directly.
+
+22. How do you connect Azure services privately?
+Answer: Use VNets, private endpoints, private DNS zones, service endpoints where appropriate, VNet integration for App Service, and firewall rules that deny public network access.
+
+23. How do you monitor Azure services?
+Answer: Use Azure Monitor metrics, Log Analytics queries, Application Insights for application telemetry, diagnostic settings, alerts, dashboards, and action groups.

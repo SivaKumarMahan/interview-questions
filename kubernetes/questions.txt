@@ -1,126 +1,218 @@
-Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?
-An entire Kubernetes region goes down. How do you failover workloads?
-All pods in one namespace suddenly fail readiness checks. What’s your step to troubleshoot?
-Your cluster is hit by a massive traffic surge, and HPA cannot scale pods fast enough. How do you handle it?
-A node hosting critical workloads crashes permanently. How do you ensure workloads recover automatically?
-A Pod is stuck in ImagePullBackOff. How do you troubleshoot?
+1. Explain Kubernetes architecture.
+Answer: Kubernetes has a control plane and worker nodes. The control plane includes the API server, etcd, scheduler, controller manager, and often cloud-controller-manager. Worker nodes run kubelet, kube-proxy or an eBPF replacement, container runtime, and Pods. Users submit desired state to the API server, Kubernetes stores it in etcd, and controllers continuously reconcile the cluster to that desired state.
 
-11) How does Kubernetes handle self-healing at pod and node level?
-12) Difference between ReplicaSet, Deployment, StatefulSet, and DaemonSet?
-13) How do you troubleshoot CrashLoopBackOff or ImagePullBackOff errors?
-14) How do you implement PodDisruptionBudgets and why are they critical?
-15) What’s the role of etcd in Kubernetes, and how do you back it up?
-16) How do you secure a Kubernetes cluster (RBAC, PSP, NetworkPolicy)?
+2. What are the roles of kubelet, kube-apiserver, and kube-proxy in EKS?
+Answer: The kube-apiserver is the front door for all Kubernetes API requests and is managed by AWS in EKS. Kubelet runs on each worker node and ensures Pods are started and healthy. Kube-proxy manages Service networking rules on nodes, unless replaced by another dataplane such as eBPF.
 
-Explain K8s architecture
-Role of Kubelet, Kube-apiserver, Kube-proxy in EKS
-StatefulSet vs Deployment – when to use each?
-Troubleshooting 503 errors from LoadBalancer
-Case 1: Pod not accessible internally
-Case 2: Pod internally accessible but LB fails
-How do you securely manage secrets & certificates in EKS.
-How do you restrict communication between two Pods in the same namespace?
-StatefulSet Pods connecting to same volume – what’s wrong?
-How to fix OOMKilled Pods?
-Liveness, Readiness, Startup probes
-How do you safely update cluster version?
-What if master node & worker node firewall breaks?
-Centralized logging & monitoring for audit trails (which stack did you use?)
+3. What are Pods, Deployments, and Services?
+Answer: A Pod is the smallest deployable unit and runs one or more containers. A Deployment manages stateless Pods through ReplicaSets and supports rolling updates and rollbacks. A Service provides stable networking and load balancing for dynamic Pod IPs.
 
-Q. What is the difference between a Deployment and a StatefulSet in Kubernetes?
-Q. When should you use a StatefulSet instead of a Deployment?
-Q. Can you attach a volume to a Deployment? If yes, how is it different from a StatefulSet?
-Q. What could cause a StatefulSet pod to fail when rescheduled to a different availability zone?
-Q. How do PV/PVC behave across zones in EKS or Kubernetes in general?
-Q. What is a DaemonSet and when would you use it?
-Q. If you want two pods per node (instead of one), what alternatives to DaemonSet can you use?
-Q. What is a Pod Disruption Budget (PDB) and how is it useful?
-Q. How do you handle certificate rotation in on-prem Kubernetes clusters?
-Q. What are the challenges with scheduling pods in a multi-node, multi-AZ setup?
-Q. How does the Kubernetes scheduler decide where to place pods?
-Q. What happens when a StatefulSet pod cannot mount its volume after moving to another node?
+4. What is a ConfigMap and what is a Secret?
+Answer: A ConfigMap stores non-sensitive configuration such as environment variables or config files. A Secret stores sensitive data such as passwords, tokens, and certificates. Secrets should still be protected with RBAC, encryption at rest, and external secret management where possible.
 
-1. Your pod keeps getting stuck in CrashLoopBackOff, but logs show no errors. How would you approach debugging and resolution?
+5. What is a ReplicaSet and how does it ensure the desired Pod count?
+Answer: A ReplicaSet keeps a specified number of matching Pods running. If a Pod is deleted or fails, the ReplicaSet creates a replacement. In normal application deployments, ReplicaSets are managed by Deployments.
 
-2. You have a StatefulSet deployed with persistent volumes, and one of the pods is not recreating properly after deletion. What could be the reasons, and how do you fix it without data loss?
+6. What is the difference between ReplicaSet, Deployment, StatefulSet, and DaemonSet?
+Answer: A ReplicaSet maintains replica count. A Deployment manages stateless application rollout and rollback. A StatefulSet manages stateful workloads with stable Pod names, stable network identity, and persistent volume claims. A DaemonSet runs one Pod per selected node, commonly for agents like logging, monitoring, or networking.
 
-3. Your cluster autoscaler is not scaling up even though pods are in Pending state. What would you investigate?
+7. What is the difference between a Deployment and a StatefulSet?
+Answer: A Deployment is best for stateless apps where Pods are interchangeable. A StatefulSet is best for apps that need stable identity, ordered rollout, stable storage, or predictable network names, such as databases, queues, and clustered systems.
 
-4. A network policy is blocking traffic between services in different namespaces. How would you design and debug the policy to allow only specific communication paths?
+8. When should you use a StatefulSet instead of a Deployment?
+Answer: Use a StatefulSet when each replica needs its own identity or storage, when startup/shutdown order matters, or when the application depends on stable DNS names like `app-0`, `app-1`, and `app-2`.
 
-5. One of your microservices has to connect to an external database via a VPN inside the cluster. How would you architect this in Kubernetes with HA and security in mind?
+9. Can you attach a volume to a Deployment? How is it different from a StatefulSet?
+Answer: Yes, a Deployment can use volumes and PVCs. The difference is that Deployment Pods are interchangeable and can accidentally share or compete for the same PVC if designed poorly. StatefulSets create stable per-Pod PVCs with `volumeClaimTemplates`.
 
-6. You're running a multi-tenant platform on a single EKS cluster. How do you isolate workloads and ensure security, quotas, and observability for each tenant?
+10. What could cause a StatefulSet Pod to fail when rescheduled to a different availability zone?
+Answer: The persistent volume may be zone-bound and unavailable in the new zone. In cloud platforms, block storage is usually tied to one zone. Fix this with correct topology-aware scheduling, StorageClass settings, node affinity, or storage that supports multi-zone access.
 
-7. You notice the kubelet is constantly restarting on a particular node. What steps would you take to isolate the issue and ensure node stability?
+11. How do PV and PVC behave across zones in EKS or Kubernetes in general?
+Answer: A PVC binds to a PV, and the PV may have node or zone affinity depending on the storage backend. With EBS in EKS, volumes are zonal, so the Pod must run in the same availability zone as the volume. Use `WaitForFirstConsumer` to delay volume binding until scheduling decisions are known.
 
-8. A critical pod in production gets evicted due to node pressure. How would you prevent this from happening again, and how do QoS classes play a role?
+12. What happens when a StatefulSet Pod cannot mount its volume after moving to another node?
+Answer: The Pod remains Pending or stuck in ContainerCreating with volume attach or mount errors. Check `kubectl describe pod`, PV node affinity, volume attachment objects, CSI driver logs, and whether the target node is in the same zone.
 
-9. You need to deploy a service that requires TCP and UDP on the same port. How would you configure this in Kubernetes using Services and Ingress?
+13. What is a DaemonSet and when would you use it?
+Answer: A DaemonSet ensures one Pod runs on each selected node. It is used for node-level agents such as log collectors, monitoring agents, CNI components, storage daemons, and security agents.
 
-10. An application upgrade caused downtime even though you had rolling updates configured. What advanced strategies would you apply to ensure zero-downtime deployments next time?
+14. If you want two Pods per node instead of one, what alternatives to DaemonSet can you use?
+Answer: Use a Deployment with topology spread constraints, pod anti-affinity, and replica count equal to twice the node count, or run two DaemonSets with different labels. DaemonSet itself is designed for one Pod per node per DaemonSet.
 
-11. Your service mesh sidecar (e.g., Istio Envoy) is consuming more resources than the app itself. How do you analyze and optimize this setup?
+15. What is the difference between a Kubernetes Job and CronJob?
+Answer: A Job runs Pods until a task completes successfully. A CronJob creates Jobs on a schedule, similar to Linux cron, and is used for backups, reports, cleanup tasks, or scheduled batch processing.
 
-12. You need to create a Kubernetes operator to automate complex application lifecycle events. How do you design the CRD and controller loop logic?
+16. What are liveness, readiness, and startup probes?
+Answer: A liveness probe detects when a container should be restarted. A readiness probe decides whether a Pod should receive traffic. A startup probe protects slow-starting apps by delaying liveness checks until startup completes.
 
-13. Multiple nodes are showing high disk IO usage due to container logs. What Kubernetes features or practices can you apply to avoid this scenario?
+17. How do resource requests and limits work?
+Answer: Requests are used by the scheduler to place Pods and represent guaranteed resources. Limits cap resource usage. CPU above limit is throttled, while memory above limit can cause the container to be OOMKilled.
 
-14. Your Kubernetes cluster's etcd performance is degrading. What are the root causes and how do you ensure etcd high availability and tuning?
+18. How do you fix OOMKilled Pods?
+Answer: Check container memory usage, logs, limits, requests, and recent traffic or code changes. Increase memory only if justified, fix memory leaks, tune JVM/runtime settings, set realistic requests and limits, and use monitoring to confirm the new baseline.
 
-15. You want to enforce that all images used in the cluster must come from a trusted internal registry. How do you implement this at the policy level?
+19. What is a PodDisruptionBudget and why is it useful?
+Answer: A PodDisruptionBudget limits voluntary disruptions by requiring a minimum number of Pods to stay available or a maximum number to be unavailable. It protects applications during node drains, upgrades, and autoscaler actions.
 
-16. You're managing multi-region deployments using a single Kubernetes control plane. What architectural considerations must you address to avoid cross-region latency and single points of failure?
+20. How does Kubernetes handle self-healing at Pod and node level?
+Answer: Kubelet restarts failed containers based on restart policy. ReplicaSets and Deployments recreate missing Pods. If a node fails, the control plane marks it NotReady and reschedules managed Pods to healthy nodes after eviction timing and tolerations allow.
 
-17. During peak traffic, your ingress controller fails to route requests efficiently. How would you diagnose and scale ingress resources effectively under heavy load?
+21. How does the Kubernetes scheduler decide where to place Pods?
+Answer: The scheduler filters nodes using resource requests, taints/tolerations, node selectors, affinity, topology, volumes, and policies. It then scores feasible nodes and chooses the best fit.
 
-What is a ReplicaSet and how does it ensure desired pod count?
+22. What are common scheduling challenges in a multi-node, multi-AZ setup?
+Answer: Common challenges include zonal storage, uneven Pod distribution, insufficient capacity in one AZ, strict anti-affinity, topology spread constraints, subnet IP exhaustion, node taints, and cross-zone latency or data transfer costs.
 
-What are liveness and readiness probes and how do they affect pod behavior?
+23. A Pod is stuck in ImagePullBackOff. How do you troubleshoot?
+Answer: Run `kubectl describe pod` and check events. Verify image name, tag, registry URL, imagePullSecrets, registry credentials, network access, rate limits, and whether the image exists. Fix the manifest or registry access and let kubelet retry.
 
-How do you perform rolling updates and rollbacks in Kubernetes?
+24. How do you troubleshoot CrashLoopBackOff?
+Answer: Check `kubectl logs <pod> --previous`, `kubectl describe pod`, exit codes, probes, config, secrets, dependencies, resource limits, and recent releases. Temporarily disable aggressive liveness probes if they hide the real startup failure.
 
-What’s the use of a PodDisruptionBudget?
+25. A Pod is stuck in CrashLoopBackOff, but logs show no errors. How do you debug?
+Answer: Check previous logs, container exit code, events, probes, command/args, mounted configs, missing files, permissions, OOMKilled status, and application stdout/stderr behavior. If needed, run the image locally or start a debug Pod with the same image and command override.
 
-How to achieve blue/green deployments in Kubernetes?
+26. All Pods in one namespace suddenly fail readiness checks. What is your troubleshooting approach?
+Answer: Check namespace events, recent deployments, ConfigMaps/Secrets, service dependencies, network policies, DNS, resource quota, node health, and ingress/service changes. Compare one failing Pod's readiness endpoint from inside the cluster using `kubectl exec` or a debug Pod.
 
-What metrics are monitored to ensure cluster health?
-How do you integrate Kubernetes into a CI/CD pipeline?
+27. A critical Pod gets evicted due to node pressure. How do you prevent it from happening again?
+Answer: Set accurate requests and limits, use appropriate QoS class, add priority classes for critical workloads, fix node disk/memory pressure, scale nodes, tune eviction thresholds carefully, and use PDBs for voluntary disruptions.
 
-What logging solutions do you recommend for Kubernetes?
+28. Your cluster autoscaler is not scaling up even though Pods are Pending. What do you investigate?
+Answer: Check Pending Pod events, node group max size, cloud quotas, subnet IP availability, taints, affinity rules, topology constraints, unsupported instance types, PDBs, and Cluster Autoscaler logs. Pending Pods must be schedulable on a possible new node shape.
 
-How do you monitor a Kubernetes cluster?
+29. HPA cannot scale Pods fast enough during a massive traffic surge. How do you handle it?
+Answer: Use higher minimum replicas, tune HPA behavior and stabilization windows, use predictive or scheduled scaling, scale on external metrics such as queue depth, optimize startup time, use KEDA where appropriate, and ensure Cluster Autoscaler or Karpenter can add nodes quickly.
 
-How would you debug a sudden spike in latency across services?
+30. What do you do when a node hosting critical workloads crashes permanently?
+Answer: Make sure workloads are managed by Deployments, StatefulSets, or controllers, have multiple replicas, use PDBs, and use storage that can reattach safely. Cordon/delete the failed node object if needed, replace the node, and verify Pods reschedule on healthy nodes.
 
-Difference between Kubernetes Job and CronJob.
+31. An entire Kubernetes region goes down. How do you fail over workloads?
+Answer: Use a multi-region design before the outage: separate clusters per region, replicated data, global DNS or traffic manager, tested backups, GitOps or CI/CD redeploy, and clear RTO/RPO targets. During failover, shift traffic to the healthy region and validate application and data health.
 
-Core Concepts
+32. Why is a single Kubernetes control plane for multi-region deployments risky?
+Answer: A single control plane across regions can suffer from latency, network partitions, and a large failure domain. A better design is usually one cluster per region with GitOps, global traffic management, and replicated data.
 
-What are Pods, Deployments, Services?
+33. Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?
+Answer: Check controller logs, CPU/memory, worker connections, config reload rate, upstream errors, and node pressure. Increase replicas, set requests/limits, use HPA, tune ingress controller settings, reduce expensive rules, shard traffic if needed, and validate the cloud load balancer.
 
-What’s a ConfigMap and a Secret?
+34. During peak traffic, Ingress fails to route requests efficiently. How do you diagnose and scale it?
+Answer: Inspect ingress controller metrics, 4xx/5xx rates, upstream latency, connection counts, reloads, pod readiness, node saturation, and load balancer health. Scale controller replicas, tune timeouts/buffers, use autoscaling, and distribute traffic across zones.
 
-How do resource limits and requests work?
+35. How do you troubleshoot 503 errors from a LoadBalancer?
+Answer: Confirm the LoadBalancer has healthy backends, Service selectors match ready Pods, endpoints exist, readiness probes pass, target ports are correct, security groups/firewalls allow traffic, and ingress/controller logs show the upstream reason.
 
-Application Deployment
+36. Case: Pod is not accessible internally. How do you troubleshoot?
+Answer: Check Pod status, container port, Service selector, Endpoints/EndpointSlices, DNS resolution, NetworkPolicy, kube-proxy/CNI health, and test from another Pod with `curl`, `nc`, or `dig`.
 
-How do you deploy an application on a Kubernetes cluster?
+37. Case: Pod is internally accessible but LoadBalancer fails. What do you check?
+Answer: Check Service type and ports, cloud load balancer provisioning events, target group/backend health, node security groups, health check path/port, externalTrafficPolicy, ingress annotations, and firewall rules.
 
-How do you perform a rolling update using YAML?
+38. How do you debug DNS failures inside Kubernetes?
+Answer: Test with `nslookup` or `dig` from a debug Pod, check `/etc/resolv.conf`, CoreDNS Pods, CoreDNS logs, kube-dns Service, NetworkPolicies, node DNS configuration, and upstream resolver reachability.
 
-Do you update only images or also replicas/storage/CPU?
+39. How do you troubleshoot Pod-to-Pod networking issues?
+Answer: Verify Pod IPs, routes, CNI plugin status, NetworkPolicies, security groups for Pods if used, kube-proxy or eBPF dataplane, DNS, service endpoints, and node firewall rules. Test direct Pod IP and Service DNS separately.
 
-Troubleshooting
+40. How do you design and debug NetworkPolicies between namespaces?
+Answer: Start with a default deny policy, then allow only required ingress and egress using namespace selectors, pod selectors, and ports. Test with temporary debug Pods and confirm the CNI plugin supports NetworkPolicy enforcement.
 
-How do you troubleshoot a pod stuck in CrashLoopBackOff?
+41. How do you restrict communication between two Pods in the same namespace?
+Answer: Apply NetworkPolicies that select the target Pods and allow traffic only from approved source Pods or labels. If a default allow exists, create a default deny first and then add explicit allow rules.
 
-How do you debug DNS failures inside Kubernetes?
+42. How would you connect a Kubernetes microservice to an external database through a VPN with high availability and security?
+Answer: Use private networking through VPN or ExpressRoute/Direct Connect, private DNS, NetworkPolicies, TLS, secret management, connection pooling, and multiple VPN tunnels. Deploy workloads across zones and monitor latency, connection failures, and failover.
 
-Pod-to-pod networking issues — how do you troubleshoot?
+43. How do you securely manage secrets and certificates in EKS?
+Answer: Use AWS Secrets Manager or SSM Parameter Store with External Secrets Operator or Secrets Store CSI Driver, enable Kubernetes secret encryption with KMS, restrict RBAC, rotate secrets, use IRSA for workload identity, and automate certificate issuance with cert-manager where appropriate.
 
-Cluster Operations
+44. How do you handle certificate rotation in on-prem Kubernetes clusters?
+Answer: Track certificate expiry, rotate kubeadm or control-plane certificates before expiry, restart affected components, validate kubelet client certificates, and use cert-manager for application certificates. Keep backups and test rotation in non-production.
 
-Have you upgraded any Kubernetes clusters?
+45. How do you secure a Kubernetes cluster?
+Answer: Use least-privilege RBAC, Pod Security Admission or policy engines like Kyverno/OPA, NetworkPolicies, private API endpoints, encrypted secrets, image scanning, trusted registries, admission controls, audit logs, regular upgrades, and restricted node access.
 
-How do you connect Jenkins to a Kubernetes cluster?
+46. How do you enforce that all images come from a trusted internal registry?
+Answer: Use an admission controller such as Kyverno, OPA Gatekeeper, or a built-in policy engine to reject images that do not match approved registry patterns. Combine it with image signing, scanning, and RBAC restrictions.
+
+47. How do you isolate workloads in a multi-tenant EKS cluster?
+Answer: Use namespaces, RBAC, resource quotas, limit ranges, NetworkPolicies, Pod Security Admission, separate node groups with taints/tolerations, per-tenant logging/metrics labels, and strict IAM separation through IRSA.
+
+48. Kubelet is constantly restarting on one node. How do you isolate the issue?
+Answer: Check `systemctl status kubelet`, `journalctl -u kubelet`, disk/memory pressure, container runtime health, node certificates, kubelet config, CNI errors, recent node changes, and API server connectivity. Cordon the node if workloads are at risk.
+
+49. You need TCP and UDP on the same port. How do you configure it?
+Answer: Kubernetes Services support multiple ports with the same port number if each port has a unique name and protocol. Ingress is usually HTTP/HTTPS-focused, so for raw TCP/UDP use a LoadBalancer Service, controller-specific TCP/UDP config, or a gateway/load balancer that supports both protocols.
+
+50. An application upgrade caused downtime even with rolling updates. How do you prevent it next time?
+Answer: Use readiness probes, `maxUnavailable: 0`, proper `maxSurge`, preStop hooks, graceful shutdown, backward-compatible database changes, smoke tests, canary or blue-green deployment, and monitor error rate during rollout.
+
+51. How do you perform rolling updates and rollbacks in Kubernetes?
+Answer: Update the Deployment image or manifest and apply it. Monitor with `kubectl rollout status deployment/<name>`. Roll back with `kubectl rollout undo deployment/<name>` or deploy a previous manifest/Helm revision.
+
+52. How do you achieve blue-green deployments in Kubernetes?
+Answer: Run two separate versions, blue and green, behind Services. Validate the new version, then switch traffic by changing Service selectors, ingress routing, or a service mesh route. Keep the old version ready for quick rollback.
+
+53. How do you safely update a Kubernetes cluster version?
+Answer: Read release notes, check API deprecations, upgrade in non-production first, back up etcd for self-managed clusters, upgrade control plane before nodes, drain nodes gradually, validate add-ons, and monitor workloads after each step.
+
+54. What happens if the firewall between control plane and worker nodes breaks?
+Answer: Kubelets may stop reporting status, Pods may continue running temporarily, logs/exec/port-forward may fail, new scheduling to affected nodes may stop, and nodes may become NotReady. Restore required API server, kubelet, CNI, DNS, and cloud-provider connectivity.
+
+55. What is the role of etcd and how do you back it up?
+Answer: etcd is the strongly consistent key-value store for Kubernetes cluster state. For self-managed clusters, take regular `etcdctl snapshot save` backups, store them securely, test restores, and monitor etcd latency, disk I/O, and quorum health.
+
+56. Kubernetes etcd performance is degrading. What are root causes and fixes?
+Answer: Causes include slow disk I/O, large object counts, excessive events, network latency between members, insufficient resources, fragmentation, or unhealthy quorum. Use SSDs, compact/defragment, reduce noisy controllers/events, monitor metrics, and maintain an odd-numbered HA etcd cluster.
+
+57. Multiple nodes show high disk I/O due to container logs. What do you do?
+Answer: Configure log rotation, reduce noisy application logs, ship logs with Fluent Bit/Filebeat, set retention limits, move logs off nodes quickly, monitor disk pressure, and ensure `/var/log` or container runtime storage has enough capacity.
+
+58. Your service mesh sidecar consumes more resources than the app. How do you analyze and optimize it?
+Answer: Check Envoy metrics, request volume, mTLS overhead, retries, access logs, tracing sample rate, and sidecar resource requests. Tune logging/tracing, limit sidecar injection to needed namespaces, optimize mesh policies, and right-size resources.
+
+59. How do you design a Kubernetes operator?
+Answer: Define a CRD that models the desired state, then implement a controller reconciliation loop that watches resources, compares actual state to desired state, updates dependent objects, handles status, retries safely, and is idempotent.
+
+60. What metrics are monitored to ensure cluster health?
+Answer: Monitor node CPU/memory/disk/network, Pod restarts, Pending Pods, API server latency/errors, etcd health, CoreDNS errors, ingress latency, HPA status, certificate expiry, storage errors, and application golden signals: latency, traffic, errors, and saturation.
+
+61. What logging and monitoring solutions do you recommend for Kubernetes?
+Answer: A common stack is Prometheus, Grafana, Alertmanager, kube-state-metrics, node exporter, Loki or ELK/OpenSearch for logs, and Jaeger/OpenTelemetry for tracing. Cloud-native options like CloudWatch, Azure Monitor, or Google Cloud Operations can also be used.
+
+62. How would you debug a sudden spike in latency across services?
+Answer: Check ingress metrics, service dashboards, traces, dependency latency, DNS, network errors, node pressure, recent deployments, autoscaling events, and database/cache health. Use distributed tracing to locate the slow hop.
+
+63. How do you integrate Kubernetes into a CI/CD pipeline?
+Answer: Build and scan the image, push it to a registry, update manifests or Helm values, run policy checks, deploy through Helm/kubectl or GitOps, wait for rollout status, run smoke tests, and keep rollback available.
+
+64. How do you connect Jenkins to a Kubernetes cluster?
+Answer: Use a kubeconfig or service account token with least-privilege RBAC, store it in Jenkins credentials, and run `kubectl`, Helm, or Kubernetes plugin steps from the pipeline. For EKS, prefer IAM-based access with tightly scoped roles.
+
+65. Have you upgraded Kubernetes clusters?
+Answer: A good answer is: "Yes, I planned upgrades by checking version skew, deprecated APIs, add-on compatibility, backups, and maintenance windows. I upgraded lower environments first, then production control plane and node groups gradually while monitoring workload health."
+
+66. Do you update only images or also replicas, storage, and CPU?
+Answer: Image updates are most common, but Kubernetes deployments may also change replicas, resource requests/limits, environment variables, probes, volumes, storage classes, and annotations. Storage changes need extra care because some PVC fields are immutable.
+
+67. How do you stop a Pod in Kubernetes?
+Answer: If the Pod is managed by a Deployment, scale the Deployment down or update the controller. Deleting an individual managed Pod with `kubectl delete pod <pod>` only causes the controller to recreate it.
+
+68. How do you replicate a Pod?
+Answer: Use a Deployment, ReplicaSet, or StatefulSet and set the `replicas` count. Do not manually copy standalone Pods for production workloads.
+
+69. What command gets logs from a Pod?
+Answer: Use `kubectl logs <pod-name>`. For a previous crashed container, use `kubectl logs <pod-name> --previous`. For multi-container Pods, add `-c <container-name>`.
+
+70. What do you do if a Pod is not responding?
+Answer: Check Pod status, logs, events, readiness/liveness probes, resource usage, service endpoints, network policies, and dependency health. If the issue is release-related, roll back quickly and then investigate root cause.
+
+71. What do you do if a Pod is getting heavy load and must remain healthy?
+Answer: Scale replicas, configure HPA, verify resource requests and limits, tune readiness probes, add caching or queueing, and confirm the cluster has enough node capacity.
+
+72. What happens if kubelet is not running?
+Answer: The node becomes NotReady, new Pods cannot be started on that node, image pulls and container lifecycle operations stop, and the control plane may eventually reschedule managed Pods elsewhere.
+
+73. How do you troubleshoot high Pod restart counts?
+Answer: Check `kubectl describe pod`, current and previous logs, exit codes, OOMKilled events, probe failures, ConfigMap/Secret mounts, dependency failures, and recent deployments.

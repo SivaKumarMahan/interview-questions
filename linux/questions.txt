@@ -1,154 +1,211 @@
-User & Access Management
+1. Do you have hands-on Linux experience? Which platform?
+Answer: A good answer is: "Yes, I have worked on Linux servers such as Ubuntu, CentOS, RHEL, or Amazon Linux for deployments, troubleshooting, user management, networking, disk management, logs, cron, systemd services, and performance analysis."
 
-A user complains they cannot log in. How will you troubleshoot?
+2. What are common Linux commands you use?
+Answer: Common commands include `ls`, `cd`, `pwd`, `cp`, `mv`, `rm`, `cat`, `less`, `grep`, `find`, `chmod`, `chown`, `ps`, `top`, `df`, `du`, `free`, `ss`, `ip`, `systemctl`, `journalctl`, `tar`, and `scp`.
 
-A user was added to sudoers, but sudo still doesn't work. What could be wrong?
+3. How do you check running processes?
+Answer: Use `ps aux`, `top`, `htop`, or `pgrep`. For a specific service, use `systemctl status <service>` and `journalctl -u <service>`.
 
-A user's home directory is missing. How will you restore it?
+4. How do you kill a process in one command?
+Answer: Use `kill <pid>` for graceful termination, `kill -9 <pid>` only when needed, or `pkill <process-name>` to kill by name.
 
-Permissions & File Operations
+5. How do you check disk usage?
+Answer: Use `df -h` for filesystem usage and `du -sh <path>` for directory usage. To find large directories, use `du -xh /var | sort -h | tail`.
 
-A script is executable by one user but not another. How do you resolve this?
+6. How do you find free memory?
+Answer: Use `free -h`, `top`, `vmstat`, or `cat /proc/meminfo`. Focus on available memory, swap usage, and whether the system is under memory pressure.
 
-How do you find all files modified in the last 10 minutes?
+7. How do you archive or compress a directory?
+Answer: Use `tar -czf archive.tar.gz /path/to/dir` to create a gzip-compressed archive and `tar -xzf archive.tar.gz` to extract it.
 
-A log file is showing junk characters. How do you check and recover it?
+8. How do you connect to an EC2 instance?
+Answer: Use SSH with the private key and username for the AMI, for example `ssh -i key.pem ec2-user@<public-ip>` for Amazon Linux or `ssh -i key.pem ubuntu@<public-ip>` for Ubuntu.
 
-Process & System Performance
+9. Do you need a password or key for SSH?
+Answer: Cloud servers usually use SSH key-based authentication. Password SSH is often disabled for security. The private key stays with the user and the public key is placed in `~/.ssh/authorized_keys` on the server.
 
-A service is consuming 100% CPU. How will you find and fix it?
+10. How do you list all SSH users?
+Answer: SSH users are normal Linux users who have shell access and valid SSH configuration. Check `/etc/passwd`, group membership, and `~/.ssh/authorized_keys`. Also review `/etc/ssh/sshd_config` for `AllowUsers`, `DenyUsers`, or group restrictions.
 
-A process is causing high memory usage. How do you locate and stop it?
+11. A user cannot log in. How will you troubleshoot?
+Answer: Check whether the account exists, password/key status, shell, home directory, permissions on `.ssh`, account lock/expiry, PAM rules, SSH config, security groups/firewall, and logs in `/var/log/auth.log` or `/var/log/secure`.
 
-What are zombie processes and how do you remove them?
+12. A user was added to sudoers, but sudo still does not work. What could be wrong?
+Answer: Possible causes include wrong sudoers syntax, user not in the expected group, stale session, missing `NOPASSWD` expectation, command restrictions, or syntax errors in `/etc/sudoers`. Always edit with `visudo`.
 
-How do you fix "Too many open files" in Linux?
+13. A user's home directory is missing. How will you restore it?
+Answer: Recreate the directory, set ownership and permissions, copy default files from `/etc/skel` if needed, restore user data from backup, and confirm `/etc/passwd` points to the correct home path.
 
-How do you analyze high system load?
+14. What does `chmod 755` mean?
+Answer: `755` means owner has read, write, and execute permissions; group has read and execute; others have read and execute. It is commonly used for directories and executable scripts.
 
-How do you debug a kernel panic?
+15. What is `chown`?
+Answer: `chown` changes file or directory ownership. Example: `chown appuser:appgroup /opt/app`. Use `-R` carefully for recursive ownership changes.
 
-SSH & Networking
+16. A script is executable by one user but not another. How do you resolve this?
+Answer: Check file permissions, ownership, group membership, directory execute permissions on every parent directory, interpreter path, SELinux/AppArmor restrictions, and whether the filesystem is mounted with `noexec`.
 
-You cannot SSH into a remote machine. How do you debug?
+17. How do you set default file and directory permissions?
+Answer: Use `umask`. For example, `umask 022` makes new files typically `644` and directories `755`. For shared directories, use default ACLs with `setfacl`.
 
-ping works, but ssh fails using hostname. Why?
+18. What are sticky bit, setuid, and setgid?
+Answer: The sticky bit on a directory allows only file owners or root to delete files, common on `/tmp`. setuid runs an executable with the file owner's privileges. setgid runs with group privileges or makes new files inherit the directory group.
 
-How do you fix NTP time sync issues?
+19. What is the purpose of `grep`?
+Answer: `grep` searches text using patterns. It is used to filter logs, command output, and files. Example: `grep "ERROR" app.log`.
 
-Crontab & Services
+20. Which `grep` flag shows lines not containing a keyword?
+Answer: Use `grep -v <keyword> <file>`.
 
-A scheduled job is not executing. How do you debug?
+21. How do you find all files modified in the last 10 minutes?
+Answer: Use `find /path -type f -mmin -10`. Add `-ls` to print details or `-exec` to run a command on matches.
 
-How do you identify which process is writing to a file in real-time?
+22. How do you find large unused files across multiple partitions?
+Answer: Use `find` with size and modification filters, for example `find / -xdev -type f -size +1G -mtime +30`. Run per mount point to avoid crossing filesystems unexpectedly.
 
-Disk & Storage Issues
+23. How do you identify which process is writing to a file in real time?
+Answer: Use `lsof <file>`, `fuser <file>`, or `inotifywait` for filesystem events. For logs, `tail -f` shows writes but not the writer.
 
-/ partition is full. How do you find and delete large files safely?
+24. A log file shows junk characters. How do you check and recover it?
+Answer: Check file type with `file`, encoding with `iconv`, binary content with `xxd`, and whether compression or rotation corrupted the file. Restore from backup if corrupted, or extract readable strings with `strings` as a last resort.
 
-Deleted large files but disk space not freeing up — why?
+25. Where are Apache logs usually located?
+Answer: On Ubuntu/Debian, Apache logs are commonly under `/var/log/apache2/`. On RHEL/CentOS/Amazon Linux, they are commonly under `/var/log/httpd/`.
 
-What happens when a file is deleted but still open by a process?
+26. What logs appear under `/var/log`?
+Answer: Common logs include system logs, authentication logs, kernel logs, package manager logs, application logs, service logs, audit logs, and rotated/compressed old logs.
 
-Package Management
+27. What is log rotation?
+Answer: Log rotation archives, compresses, deletes, or recreates logs on a schedule or size threshold. Linux commonly uses `logrotate` with configs under `/etc/logrotate.conf` and `/etc/logrotate.d/`.
 
-yum/apt installation is failing. How do you troubleshoot?
+28. A service is consuming 100% CPU. How will you find and fix it?
+Answer: Use `top` or `pidstat` to identify the process, inspect logs, check recent deployments, capture thread dumps if applicable, and restart only if needed. Fix the root cause, such as bad code, traffic spike, infinite loop, or dependency timeout.
 
-Disk Management
+29. A process is causing high memory usage. How do you locate and stop it?
+Answer: Use `top`, `ps aux --sort=-%mem`, `smem`, or `pmap`. Confirm the process, review logs, and stop it gracefully with `systemctl stop <service>` or `kill <pid>`.
 
-How do you extend a partition without unmounting it?
+30. What are zombie processes and how do you remove them?
+Answer: Zombie processes are completed child processes whose parent has not collected their exit status. They do not consume CPU but keep a process table entry. Fix the parent process or restart it; killing the zombie directly does not work.
 
-What steps are needed to add a new disk to a Linux server?
+31. How do you fix "Too many open files" in Linux?
+Answer: Check limits with `ulimit -n` and open files with `lsof`. Increase limits in `/etc/security/limits.conf`, systemd unit settings such as `LimitNOFILE`, or application config. Also fix file descriptor leaks in the application.
 
-What is inode exhaustion and how do you resolve it?
+32. How do you analyze high system load?
+Answer: Use `uptime`, `top`, `vmstat`, `iostat`, `mpstat`, `pidstat`, and `sar`. Determine whether load is from CPU, disk I/O, memory pressure, blocked processes, or too many runnable tasks.
 
-How do you analyze which directory is using the most space in /var?
+33. How do you debug a kernel panic?
+Answer: Collect console output, `kdump` crash dumps, `/var/crash`, kernel logs, recent changes, hardware events, and driver updates. Analyze with `crash` tools if available and check vendor/kernel bug reports.
 
-File System Repair & Recovery
+34. How do you check if a port is open or listening?
+Answer: Use `ss -tulpen`, `netstat -tulpen`, or `lsof -i :<port>`. From another host, test with `nc -vz <host> <port>` or `telnet <host> <port>`.
 
-How do you fix a corrupted file system using fsck?
+35. You cannot SSH into a remote machine. How do you debug?
+Answer: Check network reachability, DNS, security groups/firewall, route tables, SSH daemon status, port 22 listening, user/key permissions, `/var/log/auth.log` or `/var/log/secure`, and verbose client output with `ssh -vvv`.
 
-How to recover a deleted file in Linux?
+36. Ping works, but SSH fails using hostname. Why?
+Answer: Possible causes include SSH service down, firewall blocking port 22, DNS resolving to a different IP for SSH, security group rules, reverse DNS issues, user/key failure, or SSH configured on a non-standard port.
 
-A Linux server is not booting due to file system corruption — how do you recover it? (merged with similar case study)
+37. How do you check and configure a static IP address?
+Answer: Check current settings with `ip addr`, `ip route`, and `nmcli`. Configure static IP using Netplan on Ubuntu, NetworkManager with `nmcli`, or distro-specific network scripts, then restart networking carefully.
 
-Storage Performance
+38. How do you fix NTP time sync issues?
+Answer: Check `timedatectl`, `chronyc sources`, `systemctl status chronyd` or `systemd-timesyncd`, firewall access to NTP, DNS, and time source reachability. Restart the time sync service after correcting configuration.
 
-How do you check disk I/O performance?
+39. A scheduled cron job is not executing. How do you debug?
+Answer: Check crontab syntax, user context, PATH, executable permissions, script shebang, environment variables, mail output, cron logs, and whether the cron daemon is running.
 
-df -h and du -sh show different usage. Why?
+40. How do you schedule a cron job every 15 minutes?
+Answer: Use `*/15 * * * * /path/to/script.sh`. Ensure the script is executable and uses absolute paths.
 
-How to find large unused files across multiple partitions?
+41. What happens when `/` is 100% full?
+Answer: Services may fail to write logs, create temp files, accept uploads, or start processes. Package installs and authentication can fail. Free space safely, rotate logs, remove old files, or expand the filesystem.
 
-Swap & Mounts
+42. The `/` partition is full. How do you find and delete large files safely?
+Answer: Use `df -h`, then `du -xh / | sort -h | tail` to identify large paths. Prefer rotating/truncating logs, deleting known temporary files, or moving archived data. Avoid deleting system files blindly.
 
-How do you create and mount a swap file?
+43. Deleted large files but disk space is not freeing up. Why?
+Answer: A process may still have the deleted file open. Check with `lsof | grep deleted`, then restart or signal the process so the file handle is released.
 
-How do you remount a filesystem read-write without rebooting?
+44. What happens when a file is deleted but still open by a process?
+Answer: The directory entry disappears, but disk blocks remain allocated until the process closes the file descriptor. That is why disk usage may not drop immediately.
 
-How do you troubleshoot an NFS mount issue?
+45. What is inode exhaustion and how do you resolve it?
+Answer: Inode exhaustion means the filesystem has too many files even if space remains. Check with `df -i`, find directories with many small files, delete or archive them, and consider a filesystem layout with more inodes.
 
-File Transfer
+46. Why do `df -h` and `du -sh` show different usage?
+Answer: `df` reports filesystem block usage, while `du` sums visible directory contents. Differences can come from deleted open files, reserved blocks, mount points, permissions, sparse files, or hidden files under mounted directories.
 
-Fastest way to copy huge files across servers?
+47. How do you check disk partitions and usage?
+Answer: Use `lsblk`, `blkid`, `fdisk -l`, `parted -l`, `df -h`, and `mount`. For LVM, use `pvs`, `vgs`, and `lvs`.
 
-Linux Security Case Study
-You need to secure a Linux server exposed to the internet with a weak root password. What steps do you take?
-Basics & Commands
+48. How do you extend a partition without unmounting it?
+Answer: If the filesystem supports online growth, extend the disk or LVM volume, grow the partition if needed, then run `resize2fs` for ext filesystems or `xfs_growfs` for XFS. Always back up important data first.
 
-Do you have hands-on in Linux? Which platform?
+49. What steps are needed to add a new disk to a Linux server?
+Answer: Attach the disk, rescan if required, partition it, create a filesystem, create a mount point, mount it, add an `/etc/fstab` entry using UUID, and verify with `df -h`.
 
-Common Linux commands.
+50. How do you mount and unmount filesystems in Linux?
+Answer: Use `mount <device> <mount-point>` and `umount <mount-point>`. Persistent mounts go in `/etc/fstab`. If unmount fails, check busy processes with `lsof` or `fuser`.
 
-How to check a running process?
+51. How do you create and mount a swap file?
+Answer: Create a file, secure permissions, format it as swap, enable it, and add it to `/etc/fstab`.
 
-How to list running processes?
+Example:
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
 
-How to kill a process in one command?
+52. How do you remount a filesystem read-write without rebooting?
+Answer: Use `mount -o remount,rw <mount-point>`. If the filesystem is read-only due to errors, check logs and repair the filesystem before forcing writes.
 
-How to check disk usage?
+53. How do you troubleshoot an NFS mount issue?
+Answer: Check network connectivity, DNS, export rules, client mount options, firewall ports, NFS service status, permissions, UID/GID mapping, and logs on both client and server.
 
-How to find free memory?
+54. How do you fix a corrupted filesystem using `fsck`?
+Answer: Unmount the filesystem or boot into rescue mode, then run `fsck -f <device>`. Do not run `fsck` on a mounted writable filesystem. Back up data first if possible.
 
-How to archive/compress a directory?
+55. How do you recover a deleted file in Linux?
+Answer: First stop writing to the filesystem. Check backups, snapshots, application recycle features, or open file handles with `lsof`. Filesystem recovery tools may help, but backups are the reliable recovery method.
 
-SSH & Networking
+56. A Linux server is not booting due to filesystem corruption. How do you recover it?
+Answer: Boot into rescue mode or from a live ISO, identify the affected filesystem, run `fsck`, repair `/etc/fstab` if needed, check bootloader configuration, and restore from backup if corruption is severe.
 
-How to connect to an EC2 instance? Exact command.
+57. How do you check disk I/O performance?
+Answer: Use `iostat -xz`, `iotop`, `pidstat -d`, `vmstat`, and cloud disk metrics. Look for high utilization, await time, queue depth, and processes causing heavy reads/writes.
 
-Do you need a password or key for SSH?
+58. What is the fastest way to copy huge files across servers?
+Answer: Use `rsync -avz --progress` for resumable copies, `scp` for simple copies, or `bbcp`/parallel transfer tools for very large datasets. Inside the same cloud, snapshots or object storage transfers are often faster.
 
-How do you list all SSH users?
+59. What are hard links and soft links?
+Answer: A hard link points to the same inode and works only within the same filesystem. A soft link, or symlink, points to a path and can cross filesystems, but breaks if the target path is removed.
 
-Permissions
+60. What is the difference between `find` and `locate`?
+Answer: `find` searches the filesystem in real time and supports rich filters. `locate` searches a prebuilt database, so it is faster but may be stale until the database is updated.
 
-What does chmod 755 mean?
+61. What are runlevels or systemd targets?
+Answer: Traditional runlevels define operating modes such as single-user or multi-user. In systemd, targets replace runlevels, such as `multi-user.target`, `graphical.target`, and `rescue.target`.
 
-What is chown?
+62. You need to secure a Linux server exposed to the internet with a weak root password. What steps do you take?
+Answer: Immediately rotate credentials, disable direct root SSH, enforce SSH key login, update packages, configure firewall rules, install fail2ban or equivalent, review users and sudoers, check auth logs for compromise, rotate any exposed secrets, and enable monitoring and backups.
 
-Logs
+63. `yum` or `apt` installation is failing. How do you troubleshoot?
+Answer: Check network and DNS, repository configuration, package locks, disk space, GPG keys, proxy settings, dependency conflicts, and package manager logs. Clean metadata cache and retry after fixing the root cause.
 
-Apache log path?
+64. How do you find the top 5 CPU-consuming and memory-consuming processes?
+Answer: Use `ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head -n 6` for CPU and change the sort to `--sort=-%mem` for memory. For live analysis, use `top`, `htop`, `pidstat`, or `atop`.
 
-What logs appear under /var/log?
+65. How do you check logs from the last 7 days?
+Answer: Use `journalctl --since "7 days ago"` for systemd logs. For files under `/var/log`, use `find /var/log -type f -mtime -7`, and use `zgrep` or `zcat` for compressed rotated logs.
 
-Purpose of grep?
+66. What command generates an SSH key?
+Answer: Use `ssh-keygen -t ed25519 -C "user@example.com"`. If Ed25519 is not supported, use `ssh-keygen -t rsa -b 4096`.
 
-Which grep flag shows lines not containing a keyword?
+67. What do you do if a user loses an SSH private key?
+Answer: Remove the old public key from `authorized_keys`, generate a new key pair, add the new public key, and verify access. Treat the old key as compromised if its location is unknown.
 
-System Issues
-
-What happens when / is 100% full?
-
-How do you check running processes in Linux? 
-How to schedule a cron job every 15 mins?
-Difference between Hard vs Soft links/find vs locate.
-How to find processes using the most CPU & memory?
-What is log rotation, inode, runlevels?
-What does chmod 755 mean?
-How to set default file & directory permissions?
-How to check if a port is open/listening?
-How to Configuring a static IP address
-How to do Mounting & unmounting in linux.
-How to check disk partitions & usage
-what is Sticky bit, setuid, setgid
+68. How will you change user access or privileges?
+Answer: Use group membership, sudoers rules, file permissions, ACLs, or RBAC depending on the system. For sudo access, prefer adding the user to an approved admin group or editing sudoers safely with `visudo`.

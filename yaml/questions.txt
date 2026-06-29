@@ -1,0 +1,29 @@
+1. What is YAML?
+Answer: YAML is a human-readable data serialization format used for configuration files. It is common in Kubernetes manifests, CI/CD pipelines, Ansible playbooks, Helm values, and cloud configuration.
+
+2. Why is indentation important in YAML?
+Answer: YAML uses indentation to define structure. Incorrect spaces can change the meaning of the file or make it invalid. Use spaces, not tabs.
+
+3. What is the difference between a YAML list and map?
+Answer: A list uses `-` items, while a map uses key-value pairs. Example list: `- dev`; example map: `env: dev`.
+
+4. How do strings work in YAML?
+Answer: Strings can be unquoted, single-quoted, double-quoted, or block-style. Quote values that look like booleans, numbers, or special characters to avoid accidental type conversion.
+
+5. What are YAML anchors and aliases?
+Answer: Anchors define reusable YAML blocks, and aliases reference them. They reduce duplication but can make files harder to read if overused.
+
+6. How is YAML used in Kubernetes?
+Answer: Kubernetes YAML defines desired state for resources such as Pods, Deployments, Services, ConfigMaps, Secrets, Ingress, and RBAC objects.
+
+7. How is YAML used in CI/CD?
+Answer: CI/CD YAML defines pipeline triggers, stages, jobs, steps, variables, artifacts, environments, and deployment rules.
+
+8. How do you validate YAML files?
+Answer: Use linters and tool-specific validators such as `yamllint`, `kubectl apply --dry-run=server`, `helm lint`, Azure Pipeline validation, or GitLab/GitHub workflow validation.
+
+9. What are common YAML mistakes?
+Answer: Common mistakes include tabs, wrong indentation, missing colons, unquoted special values, duplicate keys, incorrect list nesting, and mixing strings with typed values unexpectedly.
+
+10. How do you manage environment-specific YAML?
+Answer: Use templates, Helm values files, Kustomize overlays, pipeline variables, or separate environment files. Avoid copy-pasting entire manifests when only a few values differ.

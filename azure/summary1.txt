@@ -1,4 +1,4 @@
-💡 𝗔𝘇𝘂𝗿𝗲 𝗧𝗶𝗽: 𝗨𝗻𝗱𝗲𝗿𝘀𝘁𝗮𝗻𝗱𝗶𝗻𝗴 𝘁𝗵𝗲 𝗗𝗶𝗳𝗳𝗲𝗿𝗲𝗻𝗰𝗲 𝗕𝗲𝘁𝘄𝗲𝗲𝗻 𝗮𝗻 𝗜𝗻𝗱𝗶𝘃𝗶𝗱𝘂𝗮𝗹 𝗣𝘂𝗯𝗹𝗶𝗰 𝗜𝗣 𝗮𝗻𝗱 𝗮 𝗣𝘂𝗯𝗹𝗶𝗰 𝗜𝗣 𝗔𝗱𝗱𝗿𝗲𝘀𝘀 𝗣𝗿𝗲𝗳𝗶𝘅 🌐
+1. 💡 𝗔𝘇𝘂𝗿𝗲 𝗧𝗶𝗽: 𝗨𝗻𝗱𝗲𝗿𝘀𝘁𝗮𝗻𝗱𝗶𝗻𝗴 𝘁𝗵𝗲 𝗗𝗶𝗳𝗳𝗲𝗿𝗲𝗻𝗰𝗲 𝗕𝗲𝘁𝘄𝗲𝗲𝗻 𝗮𝗻 𝗜𝗻𝗱𝗶𝘃𝗶𝗱𝘂𝗮𝗹 𝗣𝘂𝗯𝗹𝗶𝗰 𝗜𝗣 𝗮𝗻𝗱 𝗮 𝗣𝘂𝗯𝗹𝗶𝗰 𝗜𝗣 𝗔𝗱𝗱𝗿𝗲𝘀𝘀 𝗣𝗿𝗲𝗳𝗶𝘅 🌐
 
 When working with Azure networking, efficiently managing public IP addresses is crucial—especially as your infrastructure scales. 
 Here’s a quick breakdown of two important concepts that are often a source of confusion.👇
@@ -51,7 +51,7 @@ A Public IP Address Prefix is a contiguous range (block) of public IP addresses 
 𝗜𝗺𝗮𝗴𝗲 𝟮: 𝗣𝘂𝗯𝗹𝗶𝗰 𝗜𝗣 𝗣𝗿𝗲𝗳𝗶𝘅 𝗰𝗿𝗲𝗮𝘁𝗶𝗼𝗻
 
 ------
-𝗔𝘇𝘂𝗿𝗲 𝗞𝗲𝘆 𝗩𝗮𝘂𝗹𝘁: 𝗪𝗵𝘆 𝗦𝘂𝗯𝘀𝗰𝗿𝗶𝗽𝘁𝗶𝗼𝗻 𝗢𝘄𝗻𝗲𝗿𝘀 𝗖𝗮𝗻’𝘁 𝗖𝗿𝗲𝗮𝘁𝗲 𝗞𝗲𝘆𝘀, 𝗦𝗲𝗰𝗿𝗲𝘁𝘀, 𝗼𝗿 𝗖𝗲𝗿𝘁𝗶𝗳𝗶𝗰𝗮𝘁𝗲𝘀 𝗯𝘆 𝗗𝗲𝗳𝗮𝘂𝗹𝘁
+2. 𝗔𝘇𝘂𝗿𝗲 𝗞𝗲𝘆 𝗩𝗮𝘂𝗹𝘁: 𝗪𝗵𝘆 𝗦𝘂𝗯𝘀𝗰𝗿𝗶𝗽𝘁𝗶𝗼𝗻 𝗢𝘄𝗻𝗲𝗿𝘀 𝗖𝗮𝗻’𝘁 𝗖𝗿𝗲𝗮𝘁𝗲 𝗞𝗲𝘆𝘀, 𝗦𝗲𝗰𝗿𝗲𝘁𝘀, 𝗼𝗿 𝗖𝗲𝗿𝘁𝗶𝗳𝗶𝗰𝗮𝘁𝗲𝘀 𝗯𝘆 𝗗𝗲𝗳𝗮𝘂𝗹𝘁
 
 Many Azure admins assume that being a 𝗦𝘂𝗯𝘀𝗰𝗿𝗶𝗽𝘁𝗶𝗼𝗻 𝗢𝘄𝗻𝗲𝗿 𝗮𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗰𝗮𝗹𝗹𝘆 𝗴𝗿𝗮𝗻𝘁𝘀 𝗳𝘂𝗹𝗹 𝗮𝗰𝗰𝗲𝘀𝘀 𝘁𝗼 𝗲𝘃𝗲𝗿𝘆𝘁𝗵𝗶𝗻𝗴 𝗯𝘂𝘁 𝘁𝗵𝗮𝘁’𝘀 𝗻𝗼𝘁 𝗾𝘂𝗶𝘁𝗲 𝘁𝗿𝘂𝗲 𝘄𝗵𝗲𝗻 𝗶𝘁 𝗰𝗼𝗺𝗲𝘀 𝘁𝗼 𝗔𝘇𝘂𝗿𝗲 𝗞𝗲𝘆 𝗩𝗮𝘂𝗹𝘁.
 
@@ -94,7 +94,7 @@ Key Vault → Settings → Access configuration
 “𝗩𝗮𝘂𝗹𝘁 𝗮𝗰𝗰𝗲𝘀𝘀 𝗽𝗼𝗹𝗶𝗰𝘆” → uses the classic access policy model
 
 ------
- 𝗘𝗻𝗵𝗮𝗻𝗰𝗶𝗻𝗴 𝗠𝘆 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗦𝘁𝗮𝘁𝗶𝗰 𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗣𝗲𝗿𝗳𝗼𝗿𝗺𝗮𝗻𝗰𝗲 𝗨𝘀𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗙𝗿𝗼𝗻𝘁 𝗗𝗼𝗼𝗿
+3. 𝗘𝗻𝗵𝗮𝗻𝗰𝗶𝗻𝗴 𝗠𝘆 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗦𝘁𝗮𝘁𝗶𝗰 𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗣𝗲𝗿𝗳𝗼𝗿𝗺𝗮𝗻𝗰𝗲 𝗨𝘀𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗙𝗿𝗼𝗻𝘁 𝗗𝗼𝗼𝗿
 
 I had explored how to accelerate and globally distribute a static website hosted in Azure Storage by integrating it with Azure Front Door.
 The results were impressive, improved global performance, reduced latency, and added reliability 🌍⚡
@@ -147,7 +147,7 @@ NOTE: Azure has now integrated Azure CDN capabilities directly into Azure Front 
 👉 𝗘𝘃𝗲𝗻 𝘁𝗵𝗼𝘂𝗴𝗵 𝗺𝘆 𝘀𝘁𝗮𝘁𝗶𝗰 𝘀𝗶𝘁𝗲 𝗶𝘀 𝗵𝗼𝘀𝘁𝗲𝗱 𝗶𝗻 𝗖𝗲𝗻𝘁𝗿𝗮𝗹 𝗜𝗻𝗱𝗶𝗮 𝘀𝗮𝗺𝗲 𝗮𝘀 𝗺𝘆 𝗹𝗼𝗰𝗮𝘁𝗶𝗼𝗻. 𝗔𝘇𝘂𝗿𝗲 𝗙𝗗 𝘀𝘁𝗶𝗹𝗹 𝗽𝗿𝗼𝘃𝗶𝗱𝗲𝗱 𝗮 𝘀𝗹𝗶𝗴𝗵𝘁𝗹𝘆 𝗯𝗲𝘁𝘁𝗲𝗿 𝗿𝗲𝘀𝗽𝗼𝗻𝘀𝗲 𝘁𝗶𝗺𝗲 𝗯𝗲𝗰𝗮𝘂𝘀𝗲 𝗶𝘁 𝗿𝗼𝘂𝘁𝗲𝘀 𝘁𝗿𝗮𝗳𝗳𝗶𝗰 𝘁𝗵𝗿𝗼𝘂𝗴𝗵 𝘁𝗵𝗲 𝗰𝗹𝗼𝘀𝗲𝘀𝘁 𝗠𝗶𝗰𝗿𝗼𝘀𝗼𝗳𝘁 𝗲𝗱𝗴𝗲 𝗽𝗼𝗶𝗻𝘁 𝗼𝗳 𝗽𝗿𝗲𝘀𝗲𝗻𝗰𝗲 (𝗣𝗢𝗣).
 
 ------
-𝗗𝗲𝗽𝗹𝗼𝘆𝗶𝗻𝗴 𝗮 𝗦𝘁𝗮𝘁𝗶𝗰 𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗨𝘀𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗔𝗰𝗰𝗼𝘂𝗻𝘁
+4. 𝗗𝗲𝗽𝗹𝗼𝘆𝗶𝗻𝗴 𝗮 𝗦𝘁𝗮𝘁𝗶𝗰 𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗨𝘀𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗔𝗰𝗰𝗼𝘂𝗻𝘁
 
 Today I experimented with hosting a static website using an Azure Storage Account, and it worked beautifully! 💙
 
@@ -213,7 +213,7 @@ Visited a random URL (e.g., /index1.html). Azure correctly showed my error.html 
 "𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗮𝘁𝗶𝗰 𝗪𝗲𝗯𝘀𝗶𝘁𝗲𝘀 𝗰𝗮𝗻 𝗯𝗲 𝗰𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗲𝗱 𝘄𝗶𝘁𝗵 𝗔𝘇𝘂𝗿𝗲 𝗙𝗿𝗼𝗻𝘁 𝗗𝗼𝗼𝗿 𝗮𝗻𝗱 𝗖𝗗𝗡 𝗳𝗼𝗿 𝗴𝗹𝗼𝗯𝗮𝗹 𝗽𝗲𝗿𝗳𝗼𝗿𝗺𝗮𝗻𝗰𝗲/𝗮𝗰𝗰𝗲𝘀𝘀 
 
 -----
-𝗦𝘁𝗿𝗲𝗻𝗴𝘁𝗵𝗲𝗻𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗦𝗲𝗰𝘂𝗿𝗶𝘁𝘆 𝘄𝗶𝘁𝗵 𝗥𝗲𝗮𝗹 𝗨𝘀𝗲 𝗖𝗮𝘀𝗲𝘀
+5. 𝗦𝘁𝗿𝗲𝗻𝗴𝘁𝗵𝗲𝗻𝗶𝗻𝗴 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗦𝗲𝗰𝘂𝗿𝗶𝘁𝘆 𝘄𝗶𝘁𝗵 𝗥𝗲𝗮𝗹 𝗨𝘀𝗲 𝗖𝗮𝘀𝗲𝘀
 
 Securing your 𝗔𝘇𝘂𝗿𝗲 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 is vital to protect sensitive business data and maintain compliance.
 Here are the top configurations to 𝗿𝗲𝘀𝘁𝗿𝗶𝗰𝘁 𝗰𝗼𝗻𝗻𝗲𝗰𝘁𝗶𝘃𝗶𝘁𝘆 𝗮𝗻𝗱 𝗲𝗻𝗵𝗮𝗻𝗰𝗲 𝘀𝗲𝗰𝘂𝗿𝗶𝘁𝘆, along with 𝗿𝗲𝗮𝗹-𝘄𝗼𝗿𝗹𝗱 𝗲𝘅𝗮𝗺𝗽𝗹𝗲𝘀 👇
@@ -262,7 +262,7 @@ Monitors access patterns and detects potential threats or data exfiltration.
 By applying these configurations, you can ensure your Azure Storage Accounts are secure, compliant, and resilient.
 
 ------
-𝟱 𝗣𝗶𝗹𝗹𝗮𝗿𝘀 𝗼𝗳 𝘁𝗵𝗲 𝗠𝗶𝗰𝗿𝗼𝘀𝗼𝗳𝘁 𝗔𝘇𝘂𝗿𝗲 𝗪𝗲𝗹𝗹-𝗔𝗿𝗰𝗵𝗶𝘁𝗲𝗰𝘁𝗲𝗱 𝗙𝗿𝗮𝗺𝗲𝘄𝗼𝗿𝗸 
+6. 𝟱 𝗣𝗶𝗹𝗹𝗮𝗿𝘀 𝗼𝗳 𝘁𝗵𝗲 𝗠𝗶𝗰𝗿𝗼𝘀𝗼𝗳𝘁 𝗔𝘇𝘂𝗿𝗲 𝗪𝗲𝗹𝗹-𝗔𝗿𝗰𝗵𝗶𝘁𝗲𝗰𝘁𝗲𝗱 𝗙𝗿𝗮𝗺𝗲𝘄𝗼𝗿𝗸 
 𝗗𝗲𝘀𝗶𝗴𝗻𝗶𝗻𝗴 𝘀𝗰𝗮𝗹𝗮𝗯𝗹𝗲, 𝘀𝗲𝗰𝘂𝗿𝗲, 𝗮𝗻𝗱 𝗰𝗼𝘀𝘁-𝗲𝗳𝗳𝗲𝗰𝘁𝗶𝘃𝗲 𝘀𝗼𝗹𝘂𝘁𝗶𝗼𝗻𝘀 𝗶𝗻 𝗔𝘇𝘂𝗿𝗲? 𝗧𝗵𝗲 𝗔𝘇𝘂𝗿𝗲 𝗪𝗔𝗙 𝗽𝗿𝗼𝘃𝗶𝗱𝗲𝘀 𝗳𝗶𝘃𝗲 𝗰𝗼𝗿𝗲 𝗽𝗶𝗹𝗹𝗮𝗿𝘀 𝘁𝗼 𝗴𝘂𝗶𝗱𝗲 𝘆𝗼𝘂𝗿 𝗮𝗿𝗰𝗵𝗶𝘁𝗲𝗰𝘁𝘂𝗿𝗲 𝗱𝗲𝗰𝗶𝘀𝗶𝗼𝗻𝘀 𝗮𝗻𝗱 𝗲𝗻𝘀𝘂𝗿𝗲 𝗹𝗼𝗻𝗴-𝘁𝗲𝗿𝗺 𝘀𝘂𝗰𝗰𝗲𝘀𝘀.
 
 🔄 𝙀𝙖𝙘𝙝 𝙥𝙞𝙡𝙡𝙖𝙧 𝙞𝙨 𝙚𝙦𝙪𝙖𝙡𝙡𝙮 𝙞𝙢𝙥𝙤𝙧𝙩𝙖𝙣𝙩 — 𝙤𝙫𝙚𝙧𝙚𝙢𝙥𝙝𝙖𝙨𝙞𝙯𝙞𝙣𝙜 𝙤𝙣𝙚 𝙬𝙝𝙞𝙡𝙚 𝙣𝙚𝙜𝙡𝙚𝙘𝙩𝙞𝙣𝙜 𝙤𝙩𝙝𝙚𝙧𝙨 𝙘𝙖𝙣 𝙡𝙚𝙖𝙙 𝙩𝙤 𝙞𝙢𝙗𝙖𝙡𝙖𝙣𝙘𝙚𝙙 𝙖𝙧𝙘𝙝𝙞𝙩𝙚𝙘𝙩𝙪𝙧𝙚𝙨. 𝘼 𝙬𝙚𝙡𝙡-𝙖𝙧𝙘𝙝𝙞𝙩𝙚𝙘𝙩𝙚𝙙 𝙨𝙤𝙡𝙪𝙩𝙞𝙤𝙣 𝙖𝙘𝙝𝙞𝙚𝙫𝙚𝙨 𝙩𝙝𝙚 𝙧𝙞𝙜𝙝𝙩 𝙗𝙖𝙡𝙖𝙣𝙘𝙚 𝙖𝙘𝙧𝙤𝙨𝙨 𝙖𝙡𝙡 𝙛𝙞𝙫𝙚.

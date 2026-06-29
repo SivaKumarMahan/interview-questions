@@ -1,4 +1,4 @@
-𝗠𝗮𝘀𝘁𝗲𝗿 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝘄𝗶𝘁𝗵 𝗧𝗵𝗲𝘀𝗲 𝟱 𝗣𝗼𝘄𝗲𝗿𝗳𝘂𝗹 𝗣𝗿𝗼𝗷𝗲𝗰𝘁𝘀 🔥
+1. 𝗠𝗮𝘀𝘁𝗲𝗿 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝘄𝗶𝘁𝗵 𝗧𝗵𝗲𝘀𝗲 𝟱 𝗣𝗼𝘄𝗲𝗿𝗳𝘂𝗹 𝗣𝗿𝗼𝗷𝗲𝗰𝘁𝘀 🔥
 
 Kubernetes is revolutionizing the way we deploy, scale, and secure applications in the cloud. But are you leveraging its full potential? 💡
 
@@ -18,7 +18,7 @@ Here are 5 cutting-edge Kubernetes projects that can elevate your cloud-native j
 ✅ Effortless Helm Management – Reduce manual effort, focus on innovation.
 
 -----
-Code to Cloud: Deploying Zomato on AWS EKS
+2. Code to Cloud: Deploying Zomato on AWS EKS
 I spent a weekend working to deploy a Zomato-like app on AWS and learned a lot about cloud DevOps. The goal was to run a full-stack app on Kubernetes, making sure it’s easy to scale and monitor.
 🔧 Tech Stack:
 Infrastructure: AWS EKS, EC2, Load Balancers
@@ -34,7 +34,7 @@ The steps I followed:
 5️⃣ Learned how to fix chart issues, set up auto-scaling, and keep secrets safe. DevOps is a process—lots of small improvements!
 
 -----
-Deploying Applications on Kubernetes with FluxCD and Helm Charts 🚀
+3. Deploying Applications on Kubernetes with FluxCD and Helm Charts 🚀
 Kubernetes deployments can be complex, but with FluxCD and Helm charts, the process becomes seamless, scalable, and fully automated! Recently, I deployed an application using this powerful combo, leveraging the GitOps model to ensure continuous delivery. Here's how it went:
 
 Key Steps in the Process:
@@ -54,7 +54,7 @@ This approach not only streamlines the deployment process but also empowers team
 If you're looking to simplify your Kubernetes operations or are curious about GitOps, I highly recommend exploring FluxCD and Helm.
 
 -----
-Advanced Kubernetes – Quick Notes 📝
+4. Advanced Kubernetes – Quick Notes 📝
 
 --> StatefulSets vs Deployments: StatefulSets = stateful apps (stable Pod ID + storage); Deployments = stateless apps.
 
@@ -77,7 +77,7 @@ Advanced Kubernetes – Quick Notes 📝
 --> Operators: Automate app lifecycle (deploy, scale, backup) using CRDs + controllers.
 
 ----
---> Kubernetes → Open-source container orchestration platform for automating deployment, scaling, and management of containerized apps.
+5. --> Kubernetes → Open-source container orchestration platform for automating deployment, scaling, and management of containerized apps.
 
 --> Pod → Smallest deployable unit in Kubernetes, a wrapper around one or more containers sharing network and storage.
 
@@ -100,7 +100,7 @@ Advanced Kubernetes – Quick Notes 📝
 --> PV & PVC → PV = actual storage resource, PVC = user’s request for storage; used to persist data beyond Pod lifecycle.
 
 -----
-■ What are Persistent Volumes (PVs) and Persistent Volume Claims (PVCs)? 
+6. ■ What are Persistent Volumes (PVs) and Persistent Volume Claims (PVCs)? 
 --> PV = storage resource, 
 --> PVC = request for storage. 
 --> Decouples storage from Pods, ensures data persistence. 
@@ -131,7 +131,7 @@ exceeding memory kills Pod, CPU just throttles.
 --> Uses ReplicaSets, PodDisruptionBudgets, and rescheduling on healthy nodes for HA.
 
 ----
-Inside a Pod, all containers share:
+7. Inside a Pod, all containers share:
 
 1. Network → Same IP, same localhost.
 2. Storage → Shared volumes for data exchange.
@@ -157,7 +157,7 @@ Roommates can also signal each other (like knocking or passing notes).
 👉 So, containers in the same Pod = roommates in one house, sharing Wi-Fi, storage, and rules, but each still does their own job.
 
 ---
-Question 2: Kubernetes Troubleshooting
+8. Question 2: Kubernetes Troubleshooting
 Your team deployed a Spring Boot microservice on GKE, but the pod is stuck in CrashLoopBackOff.
 As a DevOps engineer,
 How would you troubleshoot this issue?
@@ -216,7 +216,7 @@ kubectl describe node <node-name>
 “I first check pod status with kubectl describe pod and review logs with kubectl logs --previous. Then I verify configuration, secrets, and health probes. If necessary, I test the image locally and restart or roll back. I also check node resource usage with kubectl top. This structured approach helps isolate whether the issue is application-level, configuration, or resource-related.”
 
 -----
-Question: What is Kubernetes Manifests?
+9. Question: What is Kubernetes Manifests?
 Answer: A Kubernetes manifest is a YAML file that defines the desired state of your application or infrastructure in a Kubernetes cluster.
  It tells Kubernetes:
 “I want 3 replicas of this app running, with these environment variables, secrets, and resource limits.”

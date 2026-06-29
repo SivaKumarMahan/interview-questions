@@ -1,12 +1,41 @@
-Difference between origin and upstream remotes.
+1. What is the difference between origin and upstream remotes?
+Answer: `origin` is usually the remote repository you cloned from or push your work to. `upstream` usually points to the original source repository when your repo is a fork. In a fork workflow, you fetch changes from `upstream` and push your branch to `origin`.
 
-You committed sensitive info to Git — how do you remove it from history?
+2. What is the difference between `git fetch` and `git pull`?
+Answer: `git fetch` downloads remote commits, branches, and tags without changing your working branch. `git pull` does a fetch and then integrates the remote changes into your current branch using merge or rebase.
 
-A team member deleted a critical Git branch — how do you recover it?
-Explain Git pull vs Git fetch.
+3. How do you resolve merge conflicts?
+Answer: First identify conflicted files with `git status`. Open each file, choose the correct final content, remove conflict markers, run tests if available, then stage and commit the resolved files. For complex conflicts, compare both sides with `git diff`, `git checkout --ours`, or `git checkout --theirs` carefully.
 
-How to resolve merge conflicts?
+4. You committed sensitive information to Git. How do you remove it from history?
+Answer: Immediately rotate the exposed secret because history cleanup does not make the old secret safe. Remove the secret from the code, then rewrite history with `git filter-repo` or BFG Repo-Cleaner, force-push the cleaned branches, and ask all contributors to re-clone or reset. Also check tags, forks, CI logs, and package artifacts.
 
-How to generate GitHub token?
+5. A team member deleted a critical Git branch. How do you recover it?
+Answer: If someone still has the branch locally, push it again. Otherwise, find the last commit using `git reflog`, remote reflogs if available, pull request history, CI logs, or `git fsck --lost-found`, then recreate the branch with `git branch <branch-name> <commit-sha>` and push it.
 
-Explain Gitflow branching strategy.
+6. How do you generate a GitHub token?
+Answer: In GitHub, go to Settings -> Developer settings -> Personal access tokens. Prefer fine-grained tokens, choose the target repository, grant only required permissions, set an expiry date, create the token, and store it securely in a secrets manager or CI secret store.
+
+7. Explain the Gitflow branching strategy.
+Answer: Gitflow uses long-lived `main` and `develop` branches plus short-lived `feature`, `release`, and `hotfix` branches. Features merge into `develop`, releases are prepared from `develop`, production code lives in `main`, and urgent fixes branch from `main` and are merged back into both `main` and `develop`.
+
+8. What is the difference between GitHub, Azure Repos, and GitLab?
+Answer: All three can host Git repositories. GitHub is widely used for open-source and GitHub-native automation. Azure Repos is part of Azure DevOps and integrates tightly with Boards and Azure Pipelines. GitLab provides an integrated DevSecOps platform with Git, CI/CD, registry, and security scanning.
+
+9. What is a pull request or merge request?
+Answer: It is a code review workflow where changes from one branch are proposed for merge into another branch. Reviewers can comment, request changes, require pipeline checks, and approve before merge.
+
+10. How do you protect the main branch?
+Answer: Use branch protection or branch policies requiring pull requests, approvals, successful CI checks, no direct pushes, no force pushes, signed commits if needed, and CODEOWNERS or required reviewers.
+
+11. What is the difference between merge, squash, and rebase?
+Answer: Merge preserves branch history with a merge commit. Squash combines all branch commits into one commit. Rebase replays commits on top of another base to create a linear history.
+
+12. How do you handle release tags?
+Answer: Create annotated tags for release versions, push tags to remote, tie them to release notes or artifacts, and avoid moving published tags unless there is a documented incident process.
+
+13. How do you find merge conflicts?
+Answer: Git reports conflicts during merge, rebase, or pull. Use `git status` to list conflicted files and search for conflict markers like `<<<<<<<`, `=======`, and `>>>>>>>`.
+
+14. What branching strategy would you recommend for a team of 20+ developers?
+Answer: Use trunk-based development with short-lived feature branches for fast-moving teams, or Gitflow if the release process requires long-lived release branches. Protect main branches and require pull requests and CI checks.

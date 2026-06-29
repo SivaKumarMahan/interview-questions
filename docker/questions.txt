@@ -1,35 +1,71 @@
-Difference between ADD vs COPY in Dockerfile.
+1. Have you built Docker containers? For what use case?
+Answer: A good real-world answer is: "Yes, I containerized applications such as Java, Node.js, Python, or Nginx services so they could run consistently across developer laptops, CI, and Kubernetes. I wrote Dockerfiles, optimized image layers, pushed images to a registry, and deployed them through CI/CD."
 
-Lifecycle of a Docker container (create, start, stop, delete).
+2. What is the lifecycle of a Docker container?
+Answer: The common lifecycle is create, start, run, pause/unpause if needed, stop, restart, and remove. Images are built first, containers are created from images, and stopped containers can be inspected or removed.
 
-What happens if you delete /var/lib/docker/overlay on a Docker host?
-Have you built Docker containers? For what use case?
+3. How do you create a custom Docker image?
+Answer: Write a Dockerfile with a base image, dependencies, application files, environment variables, exposed ports, and a startup command. Then run `docker build -t app:version .` and push it to a registry if needed.
 
-How do you write a production-ready Dockerfile?
+4. How do you write a production-ready Dockerfile?
+Answer: Use a small trusted base image, pin versions, use multi-stage builds, run as a non-root user, copy only required files, keep layers cache-friendly, avoid secrets in the image, add health checks where useful, and scan the final image.
 
-Difference between CMD and ENTRYPOINT?
+5. What is the difference between ADD and COPY in a Dockerfile?
+Answer: `COPY` copies local files or directories into the image and is preferred for normal file copying. `ADD` can also extract local tar archives and fetch remote URLs, so it has extra behavior that can be surprising. Use `COPY` unless you specifically need `ADD`.
 
-What is Docker Compose?
+6. What is the difference between RUN, CMD, and ENTRYPOINT?
+Answer: `RUN` executes during image build and creates a new image layer. `CMD` provides the default command for a container and can be overridden. `ENTRYPOINT` defines the main executable and is useful when the container should always run a specific program.
 
-How do you copy a file from container to host?
+7. What is the difference between CMD and ENTRYPOINT?
+Answer: `CMD` is the default argument or command and is easy to override. `ENTRYPOINT` is the fixed executable for the container. They are often combined, with `ENTRYPOINT` as the binary and `CMD` as default arguments.
 
-What happens when you write COPY . in Dockerfile?
+8. What happens when you write `COPY .` in a Dockerfile?
+Answer: Docker copies the entire build context into the image except files excluded by `.dockerignore`. This can accidentally include secrets, local build output, `.git`, or large files, so always maintain a good `.dockerignore`.
 
-How do you create a custom Docker image?
+9. How do you optimize a Dockerfile for performance and security?
+Answer: Put rarely changing dependency steps before application code for better cache use, use multi-stage builds, minimize packages, remove temporary files, run as non-root, pin base images, sign or verify images where possible, and scan images before release.
 
-How do you handle multi-cloud Docker deployments with compliance restrictions?
-You need live-patching of Docker host kernel without downtime. How do you achieve it?
-How do you troubleshoot container DNS resolution failures?
-How do you enforce policy-as-code for Docker security?
+10. Explain Docker image layering and how it can cause cache busting.
+Answer: Each Dockerfile instruction creates a layer. Docker reuses cached layers until an instruction or copied file changes. If you copy all source files before installing dependencies, every source change can bust the dependency cache. Copy dependency manifests first, install dependencies, then copy application code.
 
-6) How do you optimize a Dockerfile for performance and security?
-7) How do you handle secrets inside containers?
-8) Explain image layering in Docker—how can it cause cache busting?
-9) What strategies do you use for debugging container networking issues?10) How do you run multi-container apps in production without Compose?
+11. What are Docker volumes and bind mounts, and when would you use each?
+Answer: Volumes are managed by Docker and are preferred for persistent container data. Bind mounts map a specific host path into the container and are useful for local development, config injection, or host integration. In production, volumes are usually safer and more portable.
 
-Difference between CMD, ENTRYPOINT, and RUN
-Volumes vs Bind Mounts – when to use each?
-What are Cgroups and dangling objects?
-Techniques to cache Docker layers in pipelines
-How to delete all Docker resources in one command?
-Difference between ADD and COPY
+12. What is Docker Compose?
+Answer: Docker Compose defines and runs multi-container applications using a YAML file. It is useful for local development and simple environments where services like app, database, cache, and queue need to start together.
+
+13. How do you run multi-container applications in production without Compose?
+Answer: Use an orchestrator such as Kubernetes, ECS, Nomad, or Docker Swarm. In Kubernetes, define Deployments, Services, ConfigMaps, Secrets, Ingress, autoscaling, and persistent storage instead of relying on Compose.
+
+14. How do you copy a file from a container to the host?
+Answer: Use `docker cp <container>:/path/in/container /host/path`. To copy from host to container, reverse the source and destination.
+
+15. What are cgroups?
+Answer: Control groups, or cgroups, are a Linux kernel feature used to limit and account for CPU, memory, disk I/O, and other resources. Docker uses cgroups to enforce container resource limits.
+
+16. What are dangling Docker objects?
+Answer: Dangling objects are unused image layers, images, volumes, networks, or build cache entries that are no longer referenced. They can consume disk space and can be reviewed with `docker system df` and cleaned with prune commands.
+
+17. How do you delete all Docker resources in one command?
+Answer: For cleanup on a non-production machine, use `docker system prune -a --volumes`. Be careful because it removes unused images, stopped containers, networks, build cache, and volumes.
+
+18. How do you handle secrets inside containers?
+Answer: Do not bake secrets into images or Dockerfiles. Inject secrets at runtime using orchestrator secrets, environment variables from a secure store, mounted secret files, or external secret managers. Restrict access and avoid logging secret values.
+
+19. How do you troubleshoot container DNS resolution failures?
+Answer: Check `/etc/resolv.conf` inside the container, test with `nslookup` or `dig`, verify Docker network settings, DNS server reachability, host firewall rules, and whether the application uses the expected network. In Kubernetes, also check CoreDNS, Services, and NetworkPolicies.
+
+20. What strategies do you use for debugging container networking issues?
+Answer: Inspect the container network, verify port bindings, test connectivity from inside the container, check DNS, confirm the app is listening on `0.0.0.0`, review firewall/security groups, inspect logs, and use temporary debug containers when needed.
+
+21. How do you enforce policy-as-code for Docker security?
+Answer: Use tools such as OPA/Conftest, Docker Scout, Trivy, Checkov, or admission policies in Kubernetes. Enforce rules for base images, non-root users, no privileged containers, approved registries, required labels, and vulnerability thresholds.
+
+22. How do you handle multi-cloud Docker deployments with compliance restrictions?
+Answer: Standardize images, scan and sign them, store them in approved registries per cloud or region, use IaC for repeatable deployment, enforce runtime policies, control secrets through each cloud's secret manager, and keep audit logs for image promotion and deployment.
+
+23. You need live patching of a Docker host kernel without downtime. How do you achieve it?
+Answer: Use the operating system's live patching service, such as Canonical Livepatch, kpatch, ksplice, or cloud-provider patching features. For high availability, also design workloads to run across multiple hosts so nodes can still be drained and rebooted when a full kernel restart is required.
+
+24. What happens if you delete `/var/lib/docker/overlay` on a Docker host?
+Answer: That directory contains Docker overlay filesystem data. Deleting it can corrupt containers and images, break running workloads, and require Docker cleanup or full image/container recreation. Never delete it manually; use Docker prune commands and proper maintenance procedures.

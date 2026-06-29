@@ -1,4 +1,4 @@
-Azure Function vs Logic App — When to use what?
+1. Azure Function vs Logic App — When to use what?
 
 I often see teams confused about which one to pick.
 Both are serverless and event-driven, but they serve different purposes 👇
@@ -49,7 +49,7 @@ Workflow Integration --> Logic App 🔄
 Orchestration + Code --> Both 🤝
 
 -----
-Exploring Azure Storage Queues
+2. Exploring Azure Storage Queues
 It’s a great solution when you need lightweight, reliable message queuing between application components.
 
 Why use Azure Queue Storage?
@@ -68,7 +68,7 @@ This pattern is especially helpful in microservices, serverless workloads, and e
 If you’re designing cloud architectures, consider using Queue Storage where you need reliability without the complexity of a full messaging platform like Service Bus.
 
 -----
-Serverless Magic in Azure — Azure Function in Action! ⚙️
+3. Serverless Magic in Azure — Azure Function in Action! ⚙️
 Ever wondered how automation happens without any servers running 24/7?
  That’s where Azure Functions come in! 💡
 🧠 What is Azure Function?
@@ -87,7 +87,7 @@ All this happens automatically, thanks to event-driven architecture in Azure �
  ✅ To make systems more scalable & efficient
 
 -----
-Calling APIs with Azure Function Apps and Azure Data Factory – A Real-World Scenario
+4. Calling APIs with Azure Function Apps and Azure Data Factory – A Real-World Scenario
 Imagine you’re building a data pipeline that collects daily data from an external API, transforms it, and loads it into your Azure Data Lake for analytics. The API has complex authentication and requires some preprocessing before storage.
 This is where Azure Function Apps and Azure Data Factory (ADF) work perfectly together.
 Here’s how the flow works:
@@ -108,7 +108,7 @@ In short:
  Azure Data Factory handles orchestration, while Azure Function Apps handle the API logic and flexibility. Together, they create a reliable, scalable, and maintainable way to integrate API data into your Azure ecosystem.
 
 ----
-Mastering Azure Function Triggers — Real-Time Examples for Developers
+5. Mastering Azure Function Triggers — Real-Time Examples for Developers
 
 If you’ve ever wondered when and why to use different Azure Function triggers, here’s a simple breakdown 👇
 
@@ -142,7 +142,7 @@ Employee Onboarding System 1️⃣ HR adds a new employee → HTTP Trigger fires
 Each trigger has its perfect use case — and together, they power scalable, automated systems.
 
 -----
-Today, let’s look at another interesting integration: connecting Azure Functions with PowerApps and Power Automate.
+6. Today, let’s look at another interesting integration: connecting Azure Functions with PowerApps and Power Automate.
 This combination is extremely powerful when you need to extend low-code applications with custom logic.
 Here’s how it works:
 You create an HTTP-triggered Azure Function that contains your custom logic. It could perform data validation, call an external API, or process business rules that PowerApps alone cannot handle.
@@ -153,7 +153,7 @@ This integration allows you to keep your business apps simple while still embedd
 In short, Azure Functions act as the “custom code engine” behind Power Platform solutions, making it possible to go beyond what’s available out of the box.
 
 -----
-Thinking of diving into app development with Azure Cloud?
+7. Thinking of diving into app development with Azure Cloud?
 
 You must understand these 3 key types of Cloud Computing first! 👇
 
@@ -175,7 +175,7 @@ Examples 🧩: App Service, Azure Functions (Serverless), Azure SQL Database.
 Examples ✅: Azure DevOps, Azure Advisor, Azure Cost Management.
 
 -----
-Ever wondered why serverless backends are getting so popular? 🤔
+8. Ever wondered why serverless backends are getting so popular? 🤔
 
 Here’s why developers love it:
 -> Scales automatically — no need to manage infrastructure
@@ -192,7 +192,7 @@ Like every tool, serverless isn’t a silver bullet — it’s about using it wh
 If you’re building small APIs, event-driven systems, or MVPs — it’s a game changer. For complex, high-performance apps? Maybe not so much.
 
 -----
-AWS vs Azure - Common services comparison
+9. AWS vs Azure - Common services comparison
 
 Compute:
 - EC2 → Azure VMs (virtual servers)
@@ -225,7 +225,7 @@ DevOps:
 - CodePipeline → Azure DevOps (CI/CD)
 
 -----
-When to Use an Azure Blob Triggered Function
+10. When to Use an Azure Blob Triggered Function
 
 Ever wondered when a Blob-triggered Azure Function really shines? 🚀
 
@@ -247,7 +247,7 @@ In short, Blob triggers = instant automation ⚡
 No manual intervention, just clean, serverless, event-driven workflows.
 
 -----
-ogic Apps vs Function Apps — A Real-World Comparison
+11. ogic Apps vs Function Apps — A Real-World Comparison
 
 Imagine you’re automating an order-to-invoice process.
 
@@ -266,7 +266,7 @@ Both are serverless, scalable, and complementary.
 Use Logic Apps to connect systems, and Function Apps to handle intelligence within those connections.
 
 ----
-Azure Web Apps 🌐💻
+12. Azure Web Apps 🌐💻
 
 Azure Web Apps is a cloud platform that lets you build, deploy, and scale web applications quickly and easily! 🚀
 

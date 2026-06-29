@@ -1,66 +1,151 @@
-Q. What are common challenges faced while working with Terraform?
-Q. How do you handle state file management in Terraform?
-Q. How do you detect and resolve drift in Terraform-managed infrastructure?
-Q. How do you manage secrets securely in Terraform?
-Q. Why should you use a remote backend for Terraform?
-Terraform resource is not updating properly. How do taint and untaint help?
-Explain stateful vs stateless resources in Terraform.
-Terraform Basics & Usage
+1. How have you used Terraform? Give an example of what you built.
+Answer: A strong answer is: "I used Terraform to provision cloud infrastructure such as VPC/VNet, subnets, security groups, load balancers, compute, databases, IAM, and Kubernetes clusters. The code was stored in Git, reviewed through pull requests, planned in CI, and applied after approval."
 
-How have you used Terraform? Give an example of what you built.
+2. How would you use Terraform to create cloud resources?
+Answer: Configure the provider, define resources in `.tf` files, run `terraform init`, format and validate the code, run `terraform plan`, review the changes, and run `terraform apply`. Store state remotely for team usage.
 
-How did you reuse the same Terraform code for different environments?
+3. What happens during `terraform init`, `plan`, and `apply`?
+Answer: `init` downloads providers, initializes modules, and configures the backend. `plan` compares configuration, state, and real infrastructure to show proposed changes. `apply` executes the approved plan and updates the state file.
 
-How would you use Terraform to create cloud resources?
+4. What is a Terraform backend?
+Answer: A backend controls where Terraform stores state and how operations are executed. Common remote backends include S3 with DynamoDB locking, Azure Storage, GCS, and Terraform Cloud/Enterprise.
 
-What is the use of a Terraform backend?
+5. Why should you use a remote backend?
+Answer: A remote backend enables shared state, locking, safer collaboration, auditability, and state backup. It prevents multiple engineers from accidentally applying conflicting changes from local state files.
 
-What is taint and untaint in Terraform?
+6. How do you securely store the Terraform state file?
+Answer: Store state in a remote backend with encryption at rest, access control, versioning, locking, private network access where possible, and audit logs. Restrict who can read state because it may contain sensitive values.
 
-How do you manage unmanaged AWS resources in Terraform?
+7. How do you manage secrets securely in Terraform or Terragrunt?
+Answer: Avoid hardcoding secrets in `.tfvars` or committing them to Git. Use secret managers, CI/CD secret variables, environment variables, or data sources that read secrets at runtime. Mark outputs as `sensitive`, but remember sensitive values may still exist in state.
 
-How do you pass arguments to a VPC while using terraform import?
+8. What are common challenges faced while working with Terraform?
+Answer: Common challenges include state conflicts, drift, large state files, module versioning, provider bugs, secret handling, dependency ordering, slow plans, unsafe deletes, and coordinating changes across multiple teams or environments.
 
-What are the prerequisites before importing a VPC in Terraform?
+9. What is infrastructure drift and how do you detect it?
+Answer: Drift happens when real infrastructure changes outside Terraform. Detect it with `terraform plan`, scheduled drift detection, cloud config tools, or Terraform Cloud drift detection. The plan will show differences between state, code, and actual resources.
 
-How do you handle Terraform drift?
+10. How do you resolve drift in Terraform-managed infrastructure?
+Answer: Decide whether the manual change should be kept or reverted. If it should be kept, update Terraform code and apply. If it should be removed, run apply to return infrastructure to the declared state. For unmanaged resources, import them first.
 
-If Terraform created an S3 bucket and someone manually added a policy, how do you fix this with IaC?
+11. If Terraform created an S3 bucket and someone manually added a policy, how do you fix this with IaC?
+Answer: Add the desired bucket policy to Terraform code using `aws_s3_bucket_policy`, import existing policy state if needed, run `terraform plan`, and apply. This brings the manual change under version control.
 
-Terraform State & Drift
+12. How do you manage unmanaged AWS resources in Terraform?
+Answer: Write matching Terraform configuration, run `terraform import <address> <resource-id>`, inspect state, run `terraform plan`, and adjust the code until Terraform shows no unexpected changes.
 
-Explain IaC drift. How do you detect and fix it?
+13. What are the prerequisites before importing a VPC in Terraform?
+Answer: Know the VPC ID, region, provider configuration, resource address, required related resources, and current settings. Write the resource block first, back up state, import the VPC, then run plan to align code with real configuration.
 
-What happens when infra is modified manually?
+14. How do you pass arguments to a VPC while using `terraform import`?
+Answer: `terraform import` only maps an existing resource ID into state; it does not pass configuration arguments. Define arguments in the `.tf` resource block, import the VPC, then run `terraform plan` and update the code until it matches.
 
-Terraform Modules & IAM
+15. What is the difference between `count` and `for_each`?
+Answer: `count` creates multiple instances by numeric index, which can cause resource replacement when list ordering changes. `for_each` creates instances by stable keys from a map or set and is safer when each object has a meaningful name.
 
-How do you create IAM roles in Terraform? Did you use modules or templates?
+16. What are lifecycle blocks and real-world use cases?
+Answer: Lifecycle blocks customize resource behavior. `prevent_destroy` protects critical resources, `ignore_changes` avoids changes for fields managed externally, `create_before_destroy` reduces downtime during replacement, and `replace_triggered_by` forces replacement when a dependency changes.
 
-How do you create auto-scaling groups using Terraform?
+17. How can you restrict resource deletion but allow init, plan, and apply?
+Answer: Use `lifecycle { prevent_destroy = true }` for critical resources and enforce cloud IAM or policy-as-code rules that deny delete actions. Terraform itself cannot allow apply but globally block every possible delete without either lifecycle rules or external policy controls.
 
-Terraform Deployments
+18. What is `terraform taint` and `untaint`?
+Answer: `terraform taint` marks a resource for recreation during the next apply. `terraform untaint` removes that mark. In newer workflows, prefer `terraform apply -replace=<resource-address>` because it is explicit and easier to review.
 
-How did you set up Terraform reviews and deployments in GitHub Actions/Azure DevOps/Jenkins?
+19. A Terraform resource is not updating properly. How do taint and untaint help?
+Answer: If a resource is unhealthy or its provider cannot update it in place, tainting or using `-replace` forces Terraform to destroy and recreate it. If the mark was added by mistake, `untaint` prevents unnecessary recreation.
 
-How do you manage Terraform deployments for multiple environments?
+20. Explain stateful vs stateless resources in Terraform.
+Answer: Terraform itself tracks all managed resources in state. From an infrastructure perspective, stateful resources hold important data, such as databases, disks, and buckets, and need careful lifecycle protection. Stateless resources, such as compute instances behind an autoscaling group, can usually be replaced more easily.
 
-Terraform Networking & AWS Resources
+21. How did you reuse the same Terraform code for different environments?
+Answer: Use modules with variables and separate environment configuration through `.tfvars`, Terragrunt, workspaces, or separate folders. Keep environment-specific values outside reusable modules and pin module versions for stable promotion.
 
-How do you dynamically retrieve VPC details to create EC2 using Terraform? (Write the code)
+22. What is a Terraform module and why use one?
+Answer: A module is a reusable collection of Terraform files. Modules reduce duplication, enforce standards, simplify environment creation, and allow teams to share common infrastructure patterns such as VPCs, AKS/EKS clusters, IAM roles, or databases.
 
-Dependencies for an IP?
+23. How do you create IAM roles in Terraform? Do you use modules or templates?
+Answer: Define trust policies with `aws_iam_policy_document`, create `aws_iam_role`, attach policies with `aws_iam_role_policy_attachment`, and use modules for repeated role patterns. Templates or policy documents keep JSON readable and parameterized.
 
-Your Terraform apply succeeded, but some resources are not behaving as expected. How do you debug?
-How do you run Terraform safely in CI/CD pipelines?
-Your Terraform state file is getting too large. How do you manage it?
-A team needs to provision infra in 10 AWS regions simultaneously. How do you structure it?
-You want faster Terraform runs in large projects. What optimizations would you apply?
-A production deployment failed halfway, leaving some resources created and others not. How do you recover?
+24. How do you create autoscaling groups using Terraform?
+Answer: Define a launch template, autoscaling group, target group attachment if behind a load balancer, scaling policies, health checks, and tags. Use variables for min, max, desired capacity, instance type, AMI, and subnets.
 
-How do you securely store the state file?
-How do you avoid storing secrets in Terraform/Terragrunt?
-How to restrict resource deletion but allow init/plan/apply? 
-Difference between count and for_each
-Lifecycle blocks – real-world use cases
-What happens during terraform init, plan, apply?
+25. How do you dynamically retrieve VPC details to create an EC2 instance? Write the code.
+Answer:
+```hcl
+data "aws_vpc" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["prod-vpc"]
+  }
+}
+
+data "aws_subnets" "private" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.selected.id]
+  }
+
+  filter {
+    name   = "tag:Tier"
+    values = ["private"]
+  }
+}
+
+resource "aws_instance" "app" {
+  ami           = var.ami_id
+  instance_type = "t3.micro"
+  subnet_id     = data.aws_subnets.private.ids[0]
+}
+```
+
+26. What dependencies are needed for an IP address or networking resource?
+Answer: It depends on the resource. For example, an EC2 public IP needs a subnet route to an internet gateway, security group rules, and possibly an Elastic IP association. In Terraform, dependencies are usually inferred from references, but `depends_on` can be used for hidden dependencies.
+
+27. How did you set up Terraform reviews and deployments in GitHub Actions, Azure DevOps, or Jenkins?
+Answer: Run `terraform fmt -check`, `terraform validate`, security scans, and `terraform plan` on pull requests. Store the plan as an artifact or comment, require approval, and run `terraform apply` only from protected branches or manually approved deployment stages.
+
+28. How do you run Terraform safely in CI/CD pipelines?
+Answer: Use remote state locking, least-privilege credentials, protected environments, manual approval for production, plan artifacts, pinned provider versions, separate state per environment, policy checks, and clear rollback/recovery procedures.
+
+29. How do you manage Terraform deployments for multiple environments?
+Answer: Use separate state files and credentials per environment. Keep reusable modules common, but isolate dev, staging, and production variables and backends. Promote tested module versions instead of copying code manually.
+
+30. A team needs to provision infrastructure in 10 AWS regions simultaneously. How do you structure it?
+Answer: Use provider aliases or a reusable regional module called once per region. Keep state split by region or environment to reduce blast radius. For large setups, use Terragrunt, Terraform Cloud workspaces, or pipeline matrix jobs.
+
+31. Your Terraform state file is getting too large. How do you manage it?
+Answer: Split infrastructure into smaller states by domain, environment, region, or lifecycle. Use data sources or remote state outputs for cross-stack references. Avoid putting too many unrelated resources into one root module.
+
+32. You want faster Terraform runs in large projects. What optimizations would you apply?
+Answer: Split state, reduce broad data sources, use targeted plans only for emergencies, avoid unnecessary dependencies, cache providers in CI, run independent stacks in parallel, and keep modules focused.
+
+33. Your Terraform apply succeeded, but some resources are not behaving as expected. How do you debug?
+Answer: Check Terraform outputs, state, provider logs with `TF_LOG`, cloud activity logs, resource health, and actual cloud configuration. Compare the intended code with real resource settings and verify dependencies such as IAM, networking, and policies.
+
+34. A production deployment failed halfway, leaving some resources created and others not. How do you recover?
+Answer: Stop further applies, inspect state and cloud resources, fix the root cause, import any created-but-untracked resources if needed, and rerun plan. Avoid manually deleting state unless you fully understand the impact.
+
+35. How do you handle state file management in Terraform?
+Answer: Use a remote backend, enable locking and versioning, restrict access, separate state by environment or component, back up state, and avoid manual state edits. Use `terraform state` commands carefully when refactoring.
+
+36. How do you detect and resolve provider or module version issues?
+Answer: Pin provider and module versions, review `.terraform.lock.hcl`, run upgrade testing in lower environments, read provider changelogs, and avoid automatic major version upgrades in production pipelines.
+
+37. What happens if two engineers run `terraform apply` at the same time?
+Answer: Without state locking, both runs can modify the same infrastructure and state at the same time, causing race conditions and state corruption. Use a remote backend with locking, such as Azure Storage, S3 with DynamoDB, GCS, or Terraform Cloud.
+
+38. Can you edit a Terraform state file manually?
+Answer: It is technically possible, but it is risky and should be avoided. Prefer `terraform state` commands such as `state mv`, `state rm`, and `import`. Edit state directly only in a controlled emergency with backups.
+
+39. How do you recover from a deleted Terraform state file?
+Answer: Restore the state from remote backend versioning or backups. If no backup exists, recreate state by writing matching Terraform configuration and importing real resources with `terraform import`.
+
+40. What is Terraform Enterprise?
+Answer: Terraform Enterprise is the self-hosted enterprise version of Terraform Cloud. It provides remote execution, state management, RBAC, private module registry, Sentinel policy enforcement, audit logs, and team collaboration features.
+
+41. Explain Terraform Enterprise architecture.
+Answer: Terraform Enterprise has a UI/API layer for users and pipelines, worker agents that run plans and applies, a database for metadata, object storage for state/logs, and integrations with VCS and cloud providers. The flow is user or CI request -> TFE -> worker -> provider APIs -> state update.
+
+42. How do you gather requirements before writing Terraform code?
+Answer: Clarify the application architecture, environments, networking, security rules, compliance needs, naming/tagging standards, scaling requirements, backup needs, and ownership. Then convert those requirements into reusable modules and reviewed variables.

@@ -1,4 +1,4 @@
-Question : “You are fetching Azure Key Vault secrets via Terraform and creating Kubernetes secrets in AKS. Secrets rotate every 3 months — how will you automate updating these secrets into AKS"
+1. Question : “You are fetching Azure Key Vault secrets via Terraform and creating Kubernetes secrets in AKS. Secrets rotate every 3 months — how will you automate updating these secrets into AKS"
 
 My Approach:
 
@@ -14,7 +14,7 @@ Use Azure Key Vault CSI Secret Store Driver
 
 ---
 
-✅ If Kubernetes Secrets must be updated Use Azure Function + Event Grid
+2. ✅ If Kubernetes Secrets must be updated Use Azure Function + Event Grid
 ➡️ Key Vault triggers event on secret version change
 ➡️ Azure Function applies update (Terraform or kubectl)
 ➡️ Automatically restarts pods if necessary
@@ -31,7 +31,7 @@ Why not ArgoCD here?
 
 ---
 
-✅ Simple Time-Based Automation 📌 GitHub Actions or Azure DevOps Scheduler
+3. ✅ Simple Time-Based Automation 📌 GitHub Actions or Azure DevOps Scheduler
 Runs Terraform every 3 months:
 
 on:
@@ -42,7 +42,7 @@ on:
 ➡️ Easy to maintain
 
 ----
-𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
+4. 𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
 
 💡 𝗗𝗲𝘃 ➝ 𝗦𝘁𝗮𝗴𝗶𝗻𝗴 ➝ 𝗣𝗿𝗼𝗱 𝘄𝗶𝘁𝗵 𝗛𝗲𝗹𝗺 + 𝗔𝘇𝘂𝗿𝗲 𝗗𝗲𝘃𝗢𝗽𝘀 𝗖𝗜/𝗖𝗗
 

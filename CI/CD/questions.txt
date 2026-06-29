@@ -1,29 +1,56 @@
-Design, Tools & Usage
+1. Explain your CI/CD pipeline design. Why did you choose those tools?
+Answer: A strong pipeline starts from source control and includes build, tests, code quality checks, security scans, artifact/image publishing, deployment, smoke tests, and rollback. Tool choice depends on the ecosystem: GitHub Actions for GitHub-native workflows, Azure DevOps for Azure-heavy teams, Jenkins for highly customized or legacy workflows, and Argo CD or Flux for GitOps.
 
-Explain your CI/CD pipeline design. Why did you choose those tools?
+2. What CI/CD tools have you used?
+Answer: Common tools include Jenkins, GitHub Actions, Azure DevOps, GitLab CI, Argo CD, Flux, Maven/Gradle/npm, Docker, Trivy, SonarQube, Terraform, Helm, and Kubernetes. In interviews, explain where each tool sat in the pipeline and what problem it solved.
 
-What CI/CD tools have you used? (GitHub Actions, ADO, Jenkins)
+3. How do you build a Jenkins pipeline for multi-environment deployment?
+Answer: Use stages for checkout, build, test, scan, package, publish, and deploy. Parameterize the target environment, use environment-specific credentials and values files, require approval for production, and deploy with Helm, Terraform, or scripts. Keep deployment logic versioned and make rollback a first-class stage.
 
-How do you build a Jenkins pipeline for multi-environment deployment?
+4. What happens when a pipeline fails? Give a real example.
+Answer: The pipeline should stop at the failed stage, publish logs/artifacts, notify the team, and prevent promotion. For example, if a container scan finds a critical vulnerability, the image should not be pushed to production. The fix is to update the dependency/base image, rerun the scan, and then continue deployment.
 
-What happens when a pipeline fails? Give a real example.
+5. How do you integrate code quality tools like SonarQube?
+Answer: Add a SonarQube scan stage after build/test, send coverage reports, and configure a quality gate. Fail the pipeline if coverage, bugs, vulnerabilities, or code smells exceed the agreed threshold.
 
-Code Quality & Security
+6. What security tools and scans do you use in pipelines?
+Answer: Use SAST for source code, dependency scanning for libraries, secret scanning, IaC scanning for Terraform/Kubernetes, container image scanning with tools like Trivy, and DAST for running applications. Production deployments should require high and critical findings to be fixed or formally waived.
 
-How do you integrate code quality tools like SonarQube?
+7. How do you manage code vulnerabilities?
+Answer: Detect them through automated scanning, prioritize by severity and exploitability, patch dependencies or base images, verify with a new scan, and track exceptions with expiry dates. For runtime risk, combine scanning with least privilege, network controls, and monitoring.
 
-What security tools/scans did you use (SAST, DAST, container scanning)?
+8. How do you prevent shared runners from blocking pipelines?
+Answer: Use autoscaling runners, labels, workload separation, caching, concurrency controls, job timeouts, and dedicated runners for heavy workloads. Also split long jobs and avoid running unnecessary stages on every commit.
 
-How do you manage code vulnerabilities?
+9. How do matrix builds, caching, and concurrency limits help pipelines?
+Answer: Matrix builds test multiple versions or platforms in parallel. Caching speeds up dependency downloads and builds. Concurrency limits prevent duplicate deployments or resource contention, especially for the same branch or environment.
 
-Pipeline Optimization
+10. Explain a complete CD process.
+Answer: CD starts from a versioned artifact or image, deploys it to a lower environment, runs smoke and integration checks, promotes the same artifact to higher environments, applies approvals where needed, verifies production health, and keeps rollback ready.
 
-How do you prevent shared runners from blocking pipelines?
+11. How do you roll back a faulty deployment?
+Answer: Roll back to the last known good artifact or release. In Kubernetes, use Helm rollback, `kubectl rollout undo`, blue-green traffic switchback, or Argo CD sync to a previous Git commit. Always confirm health checks and user-facing metrics after rollback.
 
-Using matrix builds, caching, concurrency limits.
+12. How do you securely store secrets in CI/CD pipelines?
+Answer: Use the CI/CD tool's secret store, cloud secret managers, Vault, or Key Vault. Inject secrets only at runtime, mask logs, avoid storing secrets in YAML or Git, and rotate credentials regularly.
 
-CD Processes
+13. How do you migrate pipelines from one CI/CD tool to another?
+Answer: Inventory current triggers, variables, secrets, artifacts, approvals, runners, and deployment steps. Recreate the pipeline as code in the new tool, migrate secrets securely, run both pipelines in parallel for validation, and cut over gradually.
 
-Explain your complete CD process.
+14. How do you secure pipelines against supply chain attacks?
+Answer: Pin dependencies and actions, scan source/dependencies/images/IaC, use signed artifacts and images, restrict runner permissions, protect branches, review pipeline changes, and use least-privilege credentials.
 
-How do you rollback a faulty deployment?
+15. How do you manage parallel builds and artifacts?
+Answer: Split jobs by service or test group, use matrix builds, cache dependencies, publish versioned artifacts, and pass only required artifacts to downstream stages.
+
+16. How do you implement zero-downtime deployments in Jenkins or GitHub Actions?
+Answer: Use rolling, blue-green, or canary strategies with readiness probes, smoke tests, traffic shifting, health gates, and automated rollback when SLOs or error rates fail.
+
+17. What SAST and DAST tools do you prefer?
+Answer: For SAST, common tools include SonarQube, CodeQL, Snyk, and Checkmarx. For DAST, common tools include OWASP ZAP and Burp Suite Enterprise. Combine them with dependency, container, and IaC scanning.
+
+18. How do you manage a ServiceNow task assigned to you?
+Answer: Prioritize by impact, urgency, SLA, and dependencies. Confirm requirements, communicate status, document actions, attach evidence, and close the task only after validation.
+
+19. How do you make CI/CD pipelines auditable for compliance?
+Answer: Store pipeline definitions in Git, require approvals for production, retain logs and artifacts, record deployment versions, use traceable change tickets, and restrict who can modify pipeline configuration.

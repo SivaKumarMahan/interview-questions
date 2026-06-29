@@ -1,9 +1,14 @@
-What is Helm and how does it simplify Kubernetes deployments?
+1. What is Helm and how does it simplify Kubernetes deployments?
+Answer: Helm is a package manager for Kubernetes. It packages manifests into reusable charts, supports templating through `values.yaml`, tracks releases, and makes install, upgrade, rollback, and uninstall operations repeatable across environments.
 
-How do you manage secrets in Helm charts?
+2. How do you manage secrets in Helm charts?
+Answer: Avoid storing plain secrets in `values.yaml`. Use external secret managers such as Azure Key Vault, AWS Secrets Manager, HashiCorp Vault, External Secrets Operator, Sealed Secrets, or SOPS/helm-secrets. In CI/CD, inject secret references securely and restrict who can view rendered manifests.
 
-How do you roll back a Helm release?
+3. How do you roll back a Helm release?
+Answer: Check release history with `helm history <release>`, then run `helm rollback <release> <revision>`. Use `helm upgrade --atomic` for safer upgrades because Helm automatically rolls back when the upgrade fails.
 
-What are Helm hooks and how are they used?
+4. What are Helm hooks and how are they used?
+Answer: Helm hooks are annotated Kubernetes resources that run at specific release lifecycle points, such as `pre-install`, `post-install`, `pre-upgrade`, or `pre-delete`. They are commonly used for database migrations, validation jobs, backup jobs, and cleanup tasks.
 
-How do you handle multi-environment deployments using Helm?
+5. How do you handle multi-environment deployments using Helm?
+Answer: Keep one reusable chart and separate environment-specific values files such as `values-dev.yaml`, `values-stage.yaml`, and `values-prod.yaml`. Deploy with `helm upgrade --install <release> <chart> -f values-prod.yaml`, and manage promotion through CI/CD or GitOps.

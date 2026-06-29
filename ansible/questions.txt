@@ -1,5 +1,8 @@
-How have you used Ansible? Give a real example.
+1. How have you used Ansible? Give a real example.
+Answer: Ansible is commonly used for server configuration, package installation, service management, patching, user setup, file templating, and application deployment. A real example is installing Nginx, copying a templated config, opening firewall rules, and restarting the service across multiple Linux servers from one playbook.
 
-How do you configure an Ansible agent?
+2. How do you configure an Ansible agent?
+Answer: Ansible is agentless, so no agent is installed on managed Linux nodes. You configure SSH access, Python availability, inventory, credentials or SSH keys, privilege escalation with `become`, and then run playbooks from the control node.
 
-How do you manage secrets securely in Ansible?
+3. How do you manage secrets securely in Ansible?
+Answer: Use Ansible Vault for encrypted variables, restrict vault password access, avoid printing secrets with `no_log: true`, integrate with external secret managers when possible, and keep secrets out of plain inventory files and Git history.

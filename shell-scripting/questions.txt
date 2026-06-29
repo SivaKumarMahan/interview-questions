@@ -1,15 +1,49 @@
-Write a script to download the latest backup file from a remote server using SSH.
+1. How would you write a script to download the latest backup file from a remote server using SSH?
+Answer: Use SSH to list backups by modification time, select the newest file, and copy it with `scp` or `rsync`.
 
-Example of a complex automation script you've written.
+Example:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-How do you debug automation scripts?
+REMOTE_USER="backup"
+REMOTE_HOST="10.0.0.10"
+REMOTE_DIR="/backups"
+LOCAL_DIR="/restore"
 
-PowerShell for cost optimization?
+latest_file=$(ssh "${REMOTE_USER}@${REMOTE_HOST}" "ls -1t ${REMOTE_DIR}/*.tar.gz | head -n 1")
+rsync -avz "${REMOTE_USER}@${REMOTE_HOST}:${latest_file}" "${LOCAL_DIR}/"
+```
 
-Was PowerShell part of CI or CD?
+2. What is an example of a complex automation script you have written?
+Answer: A good example is a deployment helper that validates input, checks service health, takes a backup, deploys a new artifact, runs smoke tests, and rolls back automatically if validation fails. In interviews, explain the business problem, error handling, logging, and how the script was scheduled or integrated into CI/CD.
 
-Assignments
+3. How do you debug automation scripts?
+Answer: Use `set -x` for command tracing, `set -euo pipefail` for safer failures, log important variables, validate input early, check exit codes, run shellcheck, and test each function with sample data. For production scripts, write logs to a known path and avoid printing secrets.
 
-Bash script: add two numbers.
+4. How can PowerShell help with cost optimization?
+Answer: PowerShell can automate cost tasks such as stopping non-production VMs after business hours, finding unattached disks, removing old snapshots, tagging resources, exporting cost reports, and enforcing policies through Azure modules or scheduled runbooks.
 
-Bash script: find biggest file in a folder.
+5. Was PowerShell part of CI or CD?
+Answer: It can be part of both. In CI, PowerShell can run validation, tests, packaging, and static checks. In CD, it can provision resources, update configuration, deploy artifacts, restart services, and run post-deployment verification.
+
+6. Write a Bash script to add two numbers.
+Answer:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+read -r -p "Enter first number: " a
+read -r -p "Enter second number: " b
+echo "Sum: $((a + b))"
+```
+
+7. Write a Bash script to find the biggest file in a folder.
+Answer:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+dir="${1:-.}"
+find "$dir" -type f -printf "%s %p\n" | sort -nr | head -n 1
+```

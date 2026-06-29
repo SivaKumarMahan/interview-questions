@@ -1,4 +1,4 @@
-As Kubernetes adoption grows, Helm has become a must-have tool for DevOps teams managing complex applications. Often called the “package manager for Kubernetes,” Helm simplifies deployment, versioning, and rollback of applications running on Kubernetes clusters.
+1. As Kubernetes adoption grows, Helm has become a must-have tool for DevOps teams managing complex applications. Often called the “package manager for Kubernetes,” Helm simplifies deployment, versioning, and rollback of applications running on Kubernetes clusters.
 
 Why Helm is Essential for DevOps in 2025
 
@@ -16,7 +16,7 @@ Helm in a DevOps Workflow
 4️⃣ SREs & Ops Teams manage Helm releases for stability and scalability.
 
 -----
-Automating Kubernetes Deployments: REST-API on AWS EKS with Terraform & Helm Chart 🚀 
+2. Automating Kubernetes Deployments: REST-API on AWS EKS with Terraform & Helm Chart 🚀 
 
 Managing deployments in Kubernetes can be challenging, but automation simplifies the process!
 In my latest blog, I walk through how to deploy a Flask-based REST API on AWS EKS using Terraform to provision the infrastructure and Helm to deploy the application seamlessly.
@@ -41,7 +41,7 @@ In my latest blog, I walk through how to deploy a Flask-based REST API on AWS EK
 ✅ Production-Ready Setup: A scalable and flexible API deployment strategy for AWS.
 
 -----
-🛠 𝐒𝐚𝐦𝐩𝐥𝐞 𝐇𝐞𝐥𝐦 𝐖𝐨𝐫𝐤𝐟𝐥𝐨𝐰:
+3. 🛠 𝐒𝐚𝐦𝐩𝐥𝐞 𝐇𝐞𝐥𝐦 𝐖𝐨𝐫𝐤𝐟𝐥𝐨𝐰:
 
 helm repo add bitnami https://lnkd.in/grznX_CH
 
@@ -64,7 +64,7 @@ helm uninstall nginxv1
 • Version control your charts and values via Git
 
 ------
- Helm vs. Operator: Which One is Better for Kubernetes Deployment?
+4. Helm vs. Operator: Which One is Better for Kubernetes Deployment?
 
 Kubernetes makes deploying applications easy, but managing them efficiently requires the right tools. Two popular choices are Helm and Operators—but which one is right for you? Let’s break it down:
 
@@ -85,7 +85,7 @@ Kubernetes makes deploying applications easy, but managing them efficiently requ
 ✔ Want the best of both worlds? → Use Helm to deploy an Operator
 
 -----
-Chart Management
+5. Chart Management
 
 helm create <name> 
 helm package <chart-path> 
@@ -166,7 +166,7 @@ helm plugin update <plugin>
 helm plugin uninstall <plugin> 
 
 ----
-Worked with these key Helm commands:
+6. Worked with these key Helm commands:
 ✅ helm create <chart-name>
 ✅ helm lint (Validate chart)
 ✅ helm install <release-name> ./<chart-folder>
@@ -177,7 +177,7 @@ Worked with these key Helm commands:
 ✅ helm dependency update
 
 ------
-End-to-End DevOps Project: E-Commerce App on EKS
+7. End-to-End DevOps Project: E-Commerce App on EKS
 
 Project Repo link and Youtube video link in the comment section.
 

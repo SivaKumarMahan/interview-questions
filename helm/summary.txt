@@ -1,4 +1,4 @@
-Helm: The Package Manager That Simplifies Kubernetes
+1. Helm: The Package Manager That Simplifies Kubernetes
 
 As organizations continue adopting Kubernetes, teams often face a common challenge: managing complex application deployments. Writing long YAML files, maintaining multiple configurations, and ensuring consistent deployments across environments can quickly become overwhelming. That’s where Helm steps in.
 
@@ -28,7 +28,7 @@ With Helm, you can:
 As Kubernetes adoption grows, Helm has become a critical tool for DevOps engineers, SREs, and cloud architects. Whether you're automating CI/CD, deploying microservices, or managing enterprise workloads, Helm helps reduce complexity and boost speed.
 
 -----
-🚀 Helm: Managing Different Resource Needs Across Microservices
+2. 🚀 Helm: Managing Different Resource Needs Across Microservices
 In many Kubernetes setups, teams deploy multiple microservices using a shared Helm chart for consistency.
 If you define CPU and memory in deployment.yaml, the same configuration applies to all services. What if one microservice needs more resources? Increasing them globally affects every service
 Here’s a clean fix 👇
@@ -46,7 +46,7 @@ Per-service CPU/memory control
 No duplication, clean and scalable deployments
 
 -----
-𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
+3. 𝗦𝗼𝗹𝘃𝗶𝗻𝗴 𝗠𝘂𝗹𝘁𝗶-𝗘𝗻𝘃𝗶𝗿𝗼𝗻𝗺𝗲𝗻𝘁 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁 𝗖𝗵𝗮𝗼𝘀 ⚙️
 
 💡 𝗗𝗲𝘃 ➝ 𝗦𝘁𝗮𝗴𝗶𝗻𝗴 ➝ 𝗣𝗿𝗼𝗱 𝘄𝗶𝘁𝗵 𝗛𝗲𝗹𝗺 + 𝗔𝘇𝘂𝗿𝗲 𝗗𝗲𝘃𝗢𝗽𝘀 𝗖𝗜/𝗖𝗗
 
@@ -78,7 +78,7 @@ I integrated Helm chart deployment into our Azure DevOps pipeline, built with au
 🔸 We're finally DevOps-ready across environments
 
 ----
-Managing production workloads in Kubernetes requires both simplified deployments and strong observability practices.
+4. Managing production workloads in Kubernetes requires both simplified deployments and strong observability practices.
 🔹 Helm Charts streamline complex application deployments by packaging all necessary Kubernetes objects into reusable charts.
 🔹For monitoring, Prometheus collects real-time metrics, while Grafana visualizes them with custom dashboards.
 🔹Centralized logging with the ELK Stack makes troubleshooting easier by aggregating logs across services.
@@ -87,7 +87,7 @@ Managing production workloads in Kubernetes requires both simplified deployments
 Together, these tools provide an efficient way to manage and monitor Kubernetes environments, ensuring optimized performance and fast issue resolution.
 
 -----
-𝗠𝗮𝘀𝘁𝗲𝗿 𝗛𝗲𝗹𝗺: 𝗦𝗶𝗺𝗽𝗹𝗶𝗳𝘆 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁𝘀! 🚀
+5. 𝗠𝗮𝘀𝘁𝗲𝗿 𝗛𝗲𝗹𝗺: 𝗦𝗶𝗺𝗽𝗹𝗶𝗳𝘆 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝗗𝗲𝗽𝗹𝗼𝘆𝗺𝗲𝗻𝘁𝘀! 🚀
 
 Kubernetes applications can get complex, but Helm, often called the "package manager for Kubernetes", is here to make it easier. 
 
@@ -128,7 +128,7 @@ Secure configurations with tools like Helm Secrets.
 Automate deployments for efficiency and accuracy.
 
 -----
-𝐇𝐨𝐰 𝐇𝐞𝐥𝐦 𝐖𝐨𝐫𝐤𝐬 𝐢𝐧 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 🤔
+6. 𝐇𝐨𝐰 𝐇𝐞𝐥𝐦 𝐖𝐨𝐫𝐤𝐬 𝐢𝐧 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 🤔
 
 Helm is like a 𝐩𝐚𝐜𝐤𝐚𝐠𝐞 𝐦𝐚𝐧𝐚𝐠𝐞𝐫 𝐟𝐨𝐫 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬
 Instead of writing and applying lots of YAML files one by one, Helm puts them together into a single 𝐜𝐡𝐚𝐫𝐭 you can reuse
@@ -150,7 +150,7 @@ Here’s how it works 👇
 👉 Helm = 𝐒𝐢𝐦𝐩𝐥𝐞 𝐃𝐞𝐩𝐥𝐨𝐲𝐦𝐞𝐧𝐭𝐬, 𝐌𝐨𝐫𝐞 𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧
 
 -----
-𝐒𝐢𝐦𝐩𝐥𝐢𝐟𝐲𝐢𝐧𝐠 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 𝐃𝐞𝐩𝐥𝐨𝐲𝐦𝐞𝐧𝐭𝐬 𝐰𝐢𝐭𝐡 𝐇𝐞𝐥𝐦: 𝐀 𝐒𝐭𝐞𝐩-𝐛𝐲-𝐒𝐭𝐞𝐩 𝐆𝐮𝐢𝐝𝐞
+7. 𝐒𝐢𝐦𝐩𝐥𝐢𝐟𝐲𝐢𝐧𝐠 𝐊𝐮𝐛𝐞𝐫𝐧𝐞𝐭𝐞𝐬 𝐃𝐞𝐩𝐥𝐨𝐲𝐦𝐞𝐧𝐭𝐬 𝐰𝐢𝐭𝐡 𝐇𝐞𝐥𝐦: 𝐀 𝐒𝐭𝐞𝐩-𝐛𝐲-𝐒𝐭𝐞𝐩 𝐆𝐮𝐢𝐝𝐞
 
 Managing Kubernetes manifests for different environments can be challenging, especially as your application scales. Helm, the Kubernetes package manager, is here to make your life easier! In this post, I'll walk you through creating, managing, and deploying Helm charts for your applications.
 
@@ -210,7 +210,7 @@ Clean up all resources created by the chart
 Run: 𝒉𝒆𝒍𝒎 𝒖𝒏𝒊𝒏𝒔𝒕𝒂𝒍𝒍 <𝒓𝒆𝒍𝒆𝒂𝒔𝒆-𝒏𝒂𝒎𝒆>
 
 -----
-Kubernetes Deployments with Umbrella Helm Charts: A Scalable Approach for Microservices
+8. Kubernetes Deployments with Umbrella Helm Charts: A Scalable Approach for Microservices
 As Kubernetes adoption grows across enterprises, so does the complexity of managing microservices and their dependencies. If you're deploying multiple interconnected services (like a frontend, backend, database, and monitoring tools), managing each chart individually can quickly become unscalable.
 
 This is where Umbrella Helm Charts come to the rescue.
@@ -232,7 +232,7 @@ Each subchart is versioned, configurable, and can be independently maintained; h
 
 ---
 
-## ✅ Benefits of Umbrella Charts
+9. ## ✅ Benefits of Umbrella Charts
 
 - Single Point of Control: One helm install to deploy everything.
 
@@ -307,7 +307,7 @@ Umbrella Helm Charts are a powerful abstraction for simplifying complex Kubernet
 By using umbrella charts, teams can reduce deployment complexity, increase team autonomy, and align infrastructure-as-code with modern CI/CD practices.
 
 ----
-Setting up AppDynamics Monitoring using Helm charts!
+10. Setting up AppDynamics Monitoring using Helm charts!
 Over the past few days, I deployed and configured AppDynamics agents through Helm on a Kubernetes cluster to enable full-stack observability.
 🔍 A few highlights from the monitoring setup and dashboards I worked with:
  ✅ Application Monitoring – Tracked API transactions, health rules, and performance metrics to quickly identify bottlenecks.

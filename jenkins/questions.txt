@@ -1,9 +1,23 @@
-Architecture
+1. Explain Jenkins controller-agent architecture and how it enables distributed builds.
+Answer: The Jenkins controller manages configuration, pipelines, credentials, scheduling, and the UI. Agents run the actual build jobs on separate machines or containers. This enables distributed builds because workloads can run on different operating systems, labels, regions, or ephemeral Kubernetes agents without overloading the controller.
 
-Explain Jenkins master–slave architecture and how it enables distributed builds.
+2. How would you build a CI/CD pipeline from scratch with zero downtime and rollback support?
+Answer: Start with source control triggers, build, unit tests, static analysis, artifact creation, security scans, and image publishing. For deployment, use rolling, blue-green, or canary releases with readiness checks, health gates, and automated smoke tests. Keep previous versions available so rollback can be done with `kubectl rollout undo`, Helm rollback, or traffic switchback.
 
-Pipeline Design
+3. What does shift-left mean in DevOps?
+Answer: Shift-left means moving quality, security, and reliability checks earlier in the software delivery lifecycle. Examples include unit tests, SAST, dependency scanning, container scanning, policy checks, and infrastructure validation during pull requests instead of waiting until production deployment.
 
-Build a CI/CD pipeline from scratch ensuring zero downtime and rollbacks.
+4. How do you integrate SonarQube, Trivy, and Slack in a Jenkins quality pipeline?
+Answer: Add stages for checkout, build, SonarQube scan, Docker image build, Trivy image scan, quality gate validation, and Slack notification. Store tokens and webhooks in Jenkins credentials, fail the build on quality gate or critical vulnerability failures, and send success/failure status to the team channel.
 
-Explain shift-left in DevOps.
+5. How do you implement CI/CD approval workflows in Jenkins?
+Answer: Use the Jenkins `input` step before production deployment, restrict who can approve, and integrate with Jira, ServiceNow, or change-management workflows when required. Keep the approval step after automated tests and scans.
+
+6. What if a Jenkins controller crashes?
+Answer: Restore from Jenkins home backups, recover jobs and credentials, validate plugin versions, and restart agents. For resilience, run Jenkins with persistent storage, externalized configuration, regular backups, and ephemeral agents.
+
+7. What if a Jenkins agent node goes offline?
+Answer: Check agent logs, network connectivity, labels, disk space, Java version, and controller reachability. Restart the agent service or recreate the ephemeral agent. For scale, use Kubernetes or cloud agents that auto-replace failed workers.
+
+8. How do you manage Jenkins pipelines as code?
+Answer: Store `Jenkinsfile` in Git, use declarative pipeline syntax, review pipeline changes through pull requests, and move shared logic to Jenkins shared libraries.

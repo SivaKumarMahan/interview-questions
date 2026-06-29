@@ -1,4 +1,4 @@
-Question 1: InitContainer Failures with Never Restart Policy
+1. Question 1: InitContainer Failures with Never Restart Policy
 Question: If you have a Pod with initContainers that fail, but the main container has restartPolicy: Never, what happens to the Pod status?
 
 Answer: When an initContainer fails and the Pod has restartPolicy: Never, the Pod will remain in the Init:Error or Init:CrashLoopBackOff state permanently. The main container will never start because initContainers must complete successfully before the main containers can begin.
@@ -20,7 +20,7 @@ spec:
   containers:
   - name: main-container
     image: nginx  # This will never start
-Question 2: StatefulSet Pod Deletion and Renaming
+2. Question 2: StatefulSet Pod Deletion and Renaming
 Question: When using a StatefulSet with 3 replicas and you delete replica-1, will replica-2 and replica-3 be renamed to maintain sequential ordering?
 
 Answer: No, Kubernetes does not rename existing StatefulSet Pods. If you delete myapp-1, only that specific Pod gets recreated with the same name. myapp-2 and myapp-3 retain their original names.
@@ -33,7 +33,7 @@ Existing Pods are never renamed to fill gaps
 This maintains stable network identities and persistent storage associations
 This is crucial for applications requiring stable network identities like databases or distributed systems.
 
-Question 3: DaemonSet Scheduling on Tainted Master Nodes
+3. Question 3: DaemonSet Scheduling on Tainted Master Nodes
 Question: Can a DaemonSet Pod be scheduled on a master node that has NoSchedule taint without explicitly adding tolerations?
 
 Answer: No, DaemonSet Pods cannot be scheduled on nodes with NoSchedule taints unless they have matching tolerations. However, there’s an important exception:
@@ -55,7 +55,7 @@ spec:
       - key: node-role.kubernetes.io/master
         operator: Exists
         effect: NoSchedule
-Question 4: Deployment Updates During Rolling Updates
+4. Question 4: Deployment Updates During Rolling Updates
 Question: If you update a Deployment’s image while a rolling update is in progress, will Kubernetes wait for the current rollout to complete or start a new one immediately?
 
 Answer: Kubernetes immediately starts a new rollout, canceling the current one. This behavior is called “rollout interruption.”
@@ -72,7 +72,7 @@ kubectl rollout status deployment/myapp
 kubectl rollout history deployment/myapp
 This can lead to more Pods than expected during the transition period, so monitor resource usage carefully.
 
-Question 5: Pod Eviction Timing and Control
+5. Question 5: Pod Eviction Timing and Control
 Question: When a node becomes NotReady, how long does it take for Pods to be evicted, and can this be controlled per Pod?
 
 Answer: By default, Pods are evicted after 5 minutes (300 seconds) when a node becomes NotReady. This is controlled by the --pod-eviction-timeout flag on the kube-controller-manager.
@@ -89,7 +89,7 @@ tolerations:
   operator: "Exists"
   effect: "NoExecute"
   tolerationSeconds: 60  # Evict after 60 seconds instead of 300
-Question 6: Multiple Containers Sharing Localhost Ports
+6. Question 6: Multiple Containers Sharing Localhost Ports
 Question: Is it possible for a Pod to have multiple containers sharing the same port on localhost, and what happens if they try to bind simultaneously?
 
 Answer: No, multiple containers in the same Pod cannot bind to the same port on localhost simultaneously. Since containers in a Pod share the same network namespace, they share the same IP address and port space.
@@ -112,7 +112,7 @@ containers:
 - name: app2
   ports:
   - containerPort: 8080  # Conflict!
-Question 7: ReadWriteOnce PVC Multi-Pod Access
+7. Question 7: ReadWriteOnce PVC Multi-Pod Access
 Question: If you create a PVC with ReadWriteOnce access mode, can multiple Pods on the same node access it simultaneously?
 
 Answer: This depends on the storage provider and how it implements ReadWriteOnce (RWO).
@@ -130,7 +130,7 @@ Test your specific storage provider’s behavior
 # Safer approach for multi-Pod access
 accessModes:
 - ReadWriteMany  # Instead of ReadWriteOnce
-Question 8: HPA Behavior with Unavailable Metrics Server
+8. Question 8: HPA Behavior with Unavailable Metrics Server
 Question: When using Horizontal Pod Autoscaler with custom metrics, what happens if the metrics server becomes unavailable during high load?
 
 Answer: When the metrics server becomes unavailable, HPA enters a degraded state:
@@ -155,7 +155,7 @@ Best practices:
 Monitor metrics server health
 Set up alerts for HPA failures
 Consider backup scaling strategies (manual intervention procedures)
-Question 9: Port-Forward to CrashLoopBackOff Pods
+9. Question 9: Port-Forward to CrashLoopBackOff Pods
 Question: Can you run kubectl port-forward to a Pod that’s in CrashLoopBackOff state, and will it work?
 
 Answer: It depends on the timing and Pod restart behavior:
@@ -176,7 +176,7 @@ For debugging CrashLoopBackOff:
 Use kubectl logs pod-name --previous to see crash logs
 Check container startup probes and resource limits
 Consider temporarily removing liveness probes for debugging
-Question 10: ServiceAccount Deletion Impact
+10. Question 10: ServiceAccount Deletion Impact
 Question: If a ServiceAccount is deleted while Pods using it are still running, what happens to the mounted tokens and API access?
 
 Answer: Existing Pods continue to function with their mounted tokens, but with important limitations:
@@ -198,7 +198,7 @@ kubectl create serviceaccount myapp-sa
 
 # Restart Pods to get new tokens
 kubectl rollout restart deployment/myapp
-Question 11: Anti-Affinity Scheduling Deadlocks
+11. Question 11: Anti-Affinity Scheduling Deadlocks
 Question: When using anti-affinity rules, is it possible to create a “deadlock” where no new Pods can be scheduled?
 
 Answer: Yes, overly restrictive anti-affinity rules can create scheduling deadlocks:
@@ -223,7 +223,7 @@ Solutions:
 Use preferredDuringSchedulingIgnoredDuringExecution instead of required
 Ensure adequate node diversity
 Monitor Pod scheduling events
-Question 12: Job Failure Handling with Parallelism
+12. Question 12: Job Failure Handling with Parallelism
 Question: If you have a Job with parallelism: 3 and one Pod fails with restartPolicy: Never, will the Job create a replacement Pod?
 
 Answer: Yes, the Job controller will create a replacement Pod to maintain the desired parallelism level.
@@ -246,7 +246,7 @@ spec:
         image: busybox
 The Job will continue creating new Pods until it reaches the completion count or hits the backoff limit.
 
-Question 13: Resource Requests vs. Limits During OOM
+13. Question 13: Resource Requests vs. Limits During OOM
 Question: Can a Pod’s resource requests be modified after creation, and what’s the difference between requests and limits during OOM scenarios?
 
 Answer: Resource modification: Resource requests and limits cannot be modified after Pod creation. You must recreate the Pod or use VPA (Vertical Pod Autoscaler) for automatic adjustments.
@@ -267,7 +267,7 @@ resources:
   limits:
     memory: "128Mi"    # Maximum allowed
     cpu: "500m"
-Question 14: Network Policy Default Egress Behavior
+14. Question 14: Network Policy Default Egress Behavior
 Question: When using network policies, if you don’t specify egress rules, are outbound connections blocked by default?
 
 Answer: Yes, when you create a NetworkPolicy that selects Pods but doesn’t include egress rules, all outbound traffic from those Pods is blocked by default.
@@ -291,7 +291,7 @@ spec:
   policyTypes:
   - Egress
   # No egress rules = deny all egress
-Question 15: PV Corruption Cross-Namespace Impact
+15. Question 15: PV Corruption Cross-Namespace Impact
 Question: If a Persistent Volume gets corrupted, can multiple PVCs bound to it cause cascading failures across different namespaces?
 
 Answer: Yes, if multiple PVCs from different namespaces are bound to the same corrupted PV, it can cause cascading failures.

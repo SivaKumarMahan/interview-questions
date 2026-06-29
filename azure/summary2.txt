@@ -1,4 +1,4 @@
-𝑨𝒛𝒖𝒓𝒆 𝑵𝒆𝒕𝒘𝒐𝒓𝒌 𝑾𝒂𝒕𝒄𝒉𝒆𝒓 𝑬𝒙𝒕𝒆𝒏𝒔𝒊𝒐𝒏 – 𝑨𝒖𝒕𝒐 𝑰𝒏𝒔𝒕𝒂𝒍𝒍𝒂𝒕𝒊𝒐𝒏 𝑰𝒏𝒔𝒊𝒈𝒉𝒕
+1. 𝑨𝒛𝒖𝒓𝒆 𝑵𝒆𝒕𝒘𝒐𝒓𝒌 𝑾𝒂𝒕𝒄𝒉𝒆𝒓 𝑬𝒙𝒕𝒆𝒏𝒔𝒊𝒐𝒏 – 𝑨𝒖𝒕𝒐 𝑰𝒏𝒔𝒕𝒂𝒍𝒍𝒂𝒕𝒊𝒐𝒏 𝑰𝒏𝒔𝒊𝒈𝒉𝒕
 
 Azure Network Watcher is a network performance monitoring, diagnostic, and analytics service that monitors Azure networks. The Network Watcher Agent virtual machine (VM) extension is a requirement for capturing network traffic on demand and using other advanced functionality on Azure VMs. It's used by connection monitor, connection troubleshoot, and packet capture.
 
@@ -33,7 +33,7 @@ This approach gives you full control over extension versions — especially usef
 az vm extension image list --name 'NetworkWatcherAgentWindows' --publisher 'Microsoft.Azure.NetworkWatcher' --latest --location 'centralindia'
 
 -----
-𝐀𝐳𝐮𝐫𝐞 𝐏𝐨𝐥𝐢𝐜𝐲 – 𝐄𝐧𝐟𝐨𝐫𝐜𝐢𝐧𝐠 𝐒𝐧𝐚𝐩𝐬𝐡𝐨𝐭 𝐒𝐊𝐔𝐬 𝐢𝐧 𝐂𝐞𝐧𝐭𝐫𝐚𝐥 𝐈𝐧𝐝𝐢𝐚
+2. 𝐀𝐳𝐮𝐫𝐞 𝐏𝐨𝐥𝐢𝐜𝐲 – 𝐄𝐧𝐟𝐨𝐫𝐜𝐢𝐧𝐠 𝐒𝐧𝐚𝐩𝐬𝐡𝐨𝐭 𝐒𝐊𝐔𝐬 𝐢𝐧 𝐂𝐞𝐧𝐭𝐫𝐚𝐥 𝐈𝐧𝐝𝐢𝐚
 
 🔍 𝐆𝐨𝐚𝐥:
 Ensure that only snapshots with 𝐒𝐭𝐚𝐧𝐝𝐚𝐫𝐝_𝐋𝐑𝐒 are allowed to be created in CI. Any other storage redundancy types like 𝐙𝐑𝐒 𝐨𝐫 𝐆𝐑𝐒 𝐬𝐡𝐨𝐮𝐥𝐝 𝐛𝐞 𝐫𝐞𝐬𝐭𝐫𝐢𝐜𝐭𝐞𝐝 𝐨𝐫 𝐚𝐮𝐝𝐢𝐭𝐞𝐝.
@@ -119,7 +119,7 @@ Uses audit to log non-compliant snapshot creations for monitoring.
 𝟰𝘁𝗵 𝗜𝗺𝗮𝗴𝗲: 𝗜𝘁 𝗶𝘀 𝗿𝗲𝗽𝗼𝗿𝘁𝗲𝗱 𝗶𝗻 𝗡𝗼𝗻-𝗖𝗼𝗺𝗽𝗹𝗶𝗮𝗻𝘁 𝗿𝗲𝘀𝗼𝘂𝗿𝗰𝗲 𝗹𝗶𝘀𝘁
 
 ------
-Moving Azure Resources Smoothly Between Resource Groups
+3. Moving Azure Resources Smoothly Between Resource Groups
 
 Moving Azure Resources Smoothly Between Resource Groups
 I recently moved several Azure resources between resource groups and wanted to share a key insight for anyone planning a similar operation. 

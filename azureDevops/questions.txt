@@ -1,0 +1,35 @@
+1. What is Azure DevOps?
+Answer: Azure DevOps is a Microsoft DevOps platform that provides Azure Repos, Azure Pipelines, Azure Boards, Azure Artifacts, and Test Plans. It supports source control, CI/CD, package management, work tracking, and release governance.
+
+2. What is the difference between Azure Pipelines classic release and YAML pipelines?
+Answer: Classic release pipelines are configured mostly through the UI and are often used for older release workflows. YAML pipelines are stored as code in the repository, support pull request reviews, templates, versioning, and easier reuse across projects.
+
+3. How do you design a multi-stage Azure Pipeline?
+Answer: Create stages such as build, test, scan, publish, deploy-dev, deploy-stage, and deploy-prod. Use environments, approvals, variables, templates, artifacts, and service connections. Keep production deployment protected by approvals and health checks.
+
+4. What are service connections in Azure DevOps?
+Answer: Service connections securely connect Azure DevOps to external systems such as Azure subscriptions, Kubernetes clusters, container registries, GitHub, or Docker registries. Use least privilege and prefer workload identity federation or managed identity where possible.
+
+5. How do you use variables and variable groups in Azure Pipelines?
+Answer: Variables store reusable values. Variable groups centralize values across pipelines and can link to Azure Key Vault for secrets. Use normal variables for non-sensitive configuration and secret variables for credentials or tokens.
+
+6. How do you publish and consume artifacts in Azure DevOps?
+Answer: Build stages publish artifacts such as binaries, packages, manifests, or Helm charts. Deployment stages download those artifacts and deploy the exact build output. Azure Artifacts can also host package feeds for NuGet, npm, Maven, Python, or universal packages.
+
+7. How do you handle large artifacts efficiently in Azure Pipelines?
+Answer: Store packages in Azure Artifacts or an external repository, compress artifacts, use pipeline caching, split very large outputs, set retention policies, and avoid publishing files that are not needed for deployment.
+
+8. How do approvals and environments work in Azure Pipelines?
+Answer: Environments represent deployment targets such as dev, stage, and prod. Approvals, checks, business-hour windows, branch controls, and gates can be attached to environments to control when deployments proceed.
+
+9. How do you deploy to AKS from Azure Pipelines?
+Answer: Build and push the image to ACR, authenticate through a service connection or workload identity, deploy with Helm or Kubernetes manifests, wait for rollout status, and run smoke tests. Secrets should come from Key Vault or the cluster secret mechanism.
+
+10. How do you secure Azure Pipelines?
+Answer: Use protected branches, environment approvals, least-privilege service connections, secret variables or Key Vault, restricted pipeline permissions, pinned task versions, code reviews for YAML changes, and scanning for secrets and vulnerabilities.
+
+11. What is a pipeline template in Azure DevOps?
+Answer: A template is reusable YAML for common jobs, steps, stages, or variables. Templates reduce duplication and enforce consistent build, scan, and deployment standards across repositories.
+
+12. How do you troubleshoot a failed Azure Pipeline?
+Answer: Identify the failed stage and task, review logs, check variables, service connection permissions, agent capabilities, path issues, artifact availability, and recent YAML changes. Re-run only the failed stage if the pipeline design supports it.

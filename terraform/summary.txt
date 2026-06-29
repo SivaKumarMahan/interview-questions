@@ -1,4 +1,4 @@
-Terraform Enterprise in easy way:
+1. Terraform Enterprise in easy way:
 
 🌱 Step 1: Imagine a Real-Life Example
 
@@ -60,7 +60,7 @@ Terraform Enterprise fixes this:
 👉 Terraform Enterprise is HashiCorp’s commercial version of Terraform that helps teams work together on infrastructure safely. It provides remote execution, secure state management, version control integration, role-based access, and policy enforcement.
 
 ----
-Q: In Terraform, what is the difference between a resource and a data source?
+2. Q: In Terraform, what is the difference between a resource and a data source?
 Can you also give a real-world example of when you would use each one?
 
 Ans: 1. Resource
@@ -91,7 +91,7 @@ If you want to create a VM with the latest Ubuntu OS:
 2. Use a resource to create the VM with that image.
 
 -----
-Q: What is a Terraform Module, and why would you use one?
+3. Q: What is a Terraform Module, and why would you use one?
 Can you also give a real-world example of a module in a project?
 
 Ans: Terraform Module (Easy Explanation)
@@ -120,7 +120,7 @@ module "app_server" {
 Now, whenever you need another VM, just call the module again with different variables — no rewriting needed.
 
 ----
-🚀 Essential Commands
+4. 🚀 Essential Commands
 
 terraform init – Set up your working directory and download providers.
 terraform validate – Check your configuration for syntax or logic errors.

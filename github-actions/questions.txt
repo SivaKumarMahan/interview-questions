@@ -1,5 +1,23 @@
-Q. What CI/CD tools have you used in your current role?
-Q. How are you integrating tools like SonarQube, Docker, and Trivy in your pipelines?
-Q. How do you trigger a GitHub Actions workflow in another repository?
-Q. What is the purpose of repository_dispatch in GitHub Actions?
-Q. How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?
+1. What CI/CD tools have you used in your current role?
+Answer: A typical answer can include GitHub Actions, Jenkins, Azure DevOps, Argo CD, Docker, Helm, Terraform, SonarQube, Trivy, and Kubernetes. Explain what each tool did, such as CI, artifact creation, security scanning, infrastructure provisioning, or deployment.
+
+2. How are SonarQube, Docker, and Trivy integrated in pipelines?
+Answer: SonarQube runs after build/test to check code quality and security. Docker builds the application image and pushes it to a registry. Trivy scans the image, dependencies, or IaC files and can fail the workflow if critical vulnerabilities are found.
+
+3. How do you trigger a GitHub Actions workflow in another repository?
+Answer: Use `repository_dispatch`, `workflow_dispatch` through the GitHub API, or a reusable workflow if it is within the right access boundary. For cross-repository automation, a token with permission to the target repository is required.
+
+4. What is the purpose of `repository_dispatch` in GitHub Actions?
+Answer: `repository_dispatch` is a custom webhook event that lets one repository or external system trigger a workflow in another repository. It can pass a custom event type and JSON payload to control what the target workflow does.
+
+5. How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?
+Answer: In Repo B, add a workflow that calls the GitHub API to send a `repository_dispatch` event to Repo A. In Repo A, configure a workflow with `on: repository_dispatch` and check the event type or payload before running the deployment or tests.
+
+6. What are GitHub Actions?
+Answer: GitHub Actions is GitHub's CI/CD and automation platform. Workflows are defined in YAML and can run on GitHub-hosted or self-hosted runners in response to events such as push, pull request, schedule, or manual dispatch.
+
+7. How do you create a GitHub Actions workflow?
+Answer: Create a YAML file under `.github/workflows/`, define the trigger under `on`, add jobs, choose runners, and add steps for checkout, build, test, scan, and deploy.
+
+8. Why is GitHub Actions popular?
+Answer: It is built into GitHub, easy to start with, has a large marketplace of actions, supports reusable workflows, integrates well with pull requests, and can run on both hosted and self-hosted runners.

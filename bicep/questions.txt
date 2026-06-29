@@ -1,0 +1,35 @@
+1. What is Azure Bicep?
+Answer: Bicep is a domain-specific language for deploying Azure resources declaratively. It is a cleaner abstraction over ARM templates and compiles to ARM JSON.
+
+2. Why use Bicep instead of raw ARM templates?
+Answer: Bicep is easier to read and maintain, has less boilerplate, supports modules, has strong tooling in VS Code, and still deploys through the ARM deployment engine.
+
+3. What is the basic structure of a Bicep file?
+Answer: A Bicep file commonly contains parameters, variables, resources, modules, and outputs. Resources define the Azure objects to create or update.
+
+4. What are Bicep modules?
+Answer: Modules are reusable Bicep files called from another Bicep file. They help standardize infrastructure such as VNets, storage accounts, Key Vaults, and App Services across environments.
+
+5. How do you pass values between Bicep modules?
+Answer: Use module parameters for input and module outputs for values needed by other resources or modules. Outputs can pass IDs, names, connection endpoints, or generated values.
+
+6. How do you deploy a Bicep file?
+Answer: Use Azure CLI or PowerShell. Example: `az deployment group create --resource-group rg-demo --template-file main.bicep --parameters env=dev`.
+
+7. How do you handle different environments in Bicep?
+Answer: Use parameter files, environment-specific variable values, naming conventions, modules, and separate deployment scopes. Keep common resource logic reusable and environment values outside the main template.
+
+8. How do you secure secrets in Bicep deployments?
+Answer: Mark parameters as secure, avoid hardcoding secrets, store secrets in Key Vault, use managed identities, and restrict deployment access. Do not output secret values.
+
+9. What is the difference between `existing` resources and new resources in Bicep?
+Answer: `existing` references a resource that already exists so the deployment can use its properties or ID without creating it. A normal resource declaration creates or updates that resource.
+
+10. What deployment scopes does Bicep support?
+Answer: Bicep supports resource group, subscription, management group, and tenant scopes. Choose the scope based on where the target resources or policy assignments live.
+
+11. How do you validate a Bicep deployment before applying it?
+Answer: Use `az bicep build`, `az deployment group validate`, and `what-if`. `what-if` previews expected changes before deployment.
+
+12. How do you troubleshoot Bicep deployment failures?
+Answer: Check deployment operations in the Azure portal or CLI, review error messages, validate resource API versions, permissions, names, locations, dependencies, and policy restrictions.

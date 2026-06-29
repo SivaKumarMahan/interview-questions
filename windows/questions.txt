@@ -1,0 +1,35 @@
+1. What Windows Server tasks have you handled?
+Answer: Common tasks include user and group management, service troubleshooting, event log review, IIS support, scheduled tasks, patching, firewall rules, disk management, RDP access, and PowerShell automation.
+
+2. How do you check Windows service status?
+Answer: Use Services MMC, Task Manager, PowerShell `Get-Service`, or `sc query`. For details, check Event Viewer and the service-specific logs.
+
+3. How do you restart a Windows service with PowerShell?
+Answer: Use `Restart-Service -Name <service-name>`. For remote servers, use PowerShell remoting with `Invoke-Command` if enabled and permitted.
+
+4. Where do you check Windows logs?
+Answer: Use Event Viewer. Common logs are Application, System, Security, Setup, and service-specific logs under Applications and Services Logs.
+
+5. How do you troubleshoot high CPU on Windows?
+Answer: Use Task Manager, Resource Monitor, Performance Monitor, and PowerShell `Get-Process`. Identify the process, check recent changes, review logs, and capture dumps if needed.
+
+6. How do you troubleshoot disk full issues on Windows?
+Answer: Check drive usage, clean temp files, rotate logs, remove old installers, review IIS logs, use Disk Cleanup or Storage Sense, and expand the disk if required.
+
+7. How do you check listening ports on Windows?
+Answer: Use `netstat -ano`, `Get-NetTCPConnection`, or Resource Monitor. Map PID to process with Task Manager or `Get-Process -Id <pid>`.
+
+8. How do you manage Windows Firewall rules?
+Answer: Use Windows Defender Firewall UI, `wf.msc`, or PowerShell cmdlets such as `New-NetFirewallRule`, `Get-NetFirewallRule`, and `Remove-NetFirewallRule`.
+
+9. What is PowerShell remoting?
+Answer: PowerShell remoting lets you run commands on remote Windows machines using WinRM. It is useful for administration and automation across many servers.
+
+10. How do you troubleshoot RDP connection issues?
+Answer: Check network reachability, NSG/firewall rules, RDP service status, user permissions, NLA settings, port 3389, server load, and event logs.
+
+11. How do you schedule tasks in Windows?
+Answer: Use Task Scheduler or PowerShell `Register-ScheduledTask`. Configure trigger, action, user account, permissions, and logging.
+
+12. How do you patch Windows servers safely?
+Answer: Use maintenance windows, backups or snapshots, update rings, WSUS/Azure Update Manager, pre-checks, reboot coordination, and post-patch validation.

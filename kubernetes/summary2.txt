@@ -1,4 +1,4 @@
-Kubernetes clusters vs Docker
+1. Kubernetes clusters vs Docker
 
 Docker engine runs containers in a single machine where as Kubernetes runs the container in a different worker node. 
 

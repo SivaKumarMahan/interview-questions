@@ -1,3 +1,35 @@
-How do you manage infra with Terraform in Azure?
+1. What is Microsoft Azure?
+Answer: Azure is Microsoft's cloud platform for compute, networking, storage, databases, identity, containers, serverless, monitoring, security, and DevOps services. It supports IaaS, PaaS, SaaS, and hybrid cloud workloads.
 
-How do you deploy applications to Azure Kubernetes Service?
+2. What is the difference between IaaS, PaaS, and serverless in Azure?
+Answer: IaaS gives you VM-level control. PaaS, such as App Service or Azure SQL Database, lets Azure manage more of the platform. Serverless, such as Azure Functions, runs event-driven code with automatic scaling and less infrastructure management.
+
+3. How do you manage infrastructure with Terraform in Azure?
+Answer: Use the `azurerm` provider, store state in a remote backend such as Azure Storage with state locking, separate environments using workspaces or separate state files, and manage secrets through Key Vault or CI/CD secret stores.
+
+4. How do you deploy applications to Azure Kubernetes Service?
+Answer: Build and scan the container image, push it to Azure Container Registry, and deploy to AKS using Kubernetes manifests, Helm, or GitOps tools such as Argo CD or Flux. Use managed identity, Key Vault CSI driver, ingress, readiness probes, autoscaling, and monitoring.
+
+5. How do you design a secure Azure landing zone?
+Answer: Use management groups, subscriptions by environment or workload, RBAC, Azure Policy, centralized logging, hub-spoke networking, private endpoints, budget controls, Defender for Cloud, and standard naming/tagging.
+
+6. How do you use managed identity in Azure?
+Answer: Enable system-assigned or user-assigned managed identity on a resource, grant it RBAC or data-plane permissions, and let the workload request tokens from Azure without storing credentials.
+
+7. How do you secure Azure networking?
+Answer: Use VNets, subnets, NSGs, route tables, Azure Firewall or NVA where required, private endpoints, DDoS protection for critical workloads, restricted public IP exposure, and diagnostic logging.
+
+8. How do you manage secrets in Azure?
+Answer: Store secrets, keys, and certificates in Key Vault, access them using managed identity, restrict access with RBAC, enable logging, rotate secrets, and avoid storing secrets in code, pipelines, or plain app settings.
+
+9. How do you monitor Azure resources?
+Answer: Use Azure Monitor metrics, Log Analytics, Application Insights, diagnostic settings, alerts, dashboards, action groups, and service-specific logs. Send critical logs to a central workspace.
+
+10. How do you control Azure costs?
+Answer: Use budgets, cost alerts, tags, reservations, savings plans, right-sizing, autoscaling, shutdown schedules, policy enforcement, storage lifecycle rules, and regular unused-resource cleanup.
+
+11. How do you enforce governance in Azure?
+Answer: Use Azure Policy, management groups, RBAC, resource locks, naming/tagging policies, blueprint-style modules, Defender for Cloud recommendations, and CI/CD checks for IaC.
+
+12. How do you approach Azure disaster recovery?
+Answer: Define RTO/RPO, use availability zones, region pairs, backups, Azure Site Recovery where appropriate, geo-redundant storage, database replication, tested restore procedures, and traffic failover with DNS or Front Door.

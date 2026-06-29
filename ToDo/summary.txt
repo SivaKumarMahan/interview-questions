@@ -1,4 +1,4 @@
-Pull vs Push Deployment Models
+1. Pull vs Push Deployment Models
 
 ↳  𝗪𝗵𝗮𝘁 𝗶𝘀 𝗣𝘂𝘀𝗵 𝗕𝗮𝘀𝗲𝗱 𝗠𝗼𝗱𝗲𝗹? 
  In push based model CI-CD pipeline pushes the changes into K8s cluster.
@@ -26,7 +26,7 @@ In Pull based model the GitOps operator which is running in one cluster will pul
 •  Generic Secret management is complex
 
 ----
-🔥 The Ultimate Real-World Guide for DevOps & Cloud Engineers
+2. 🔥 The Ultimate Real-World Guide for DevOps & Cloud Engineers
 
 If you’ve ever wanted to design, deploy, and scale microservices like a pro, this new project will take you from zero to production-grade on Kubernetes — step by step.
 
@@ -68,7 +68,7 @@ If you’ve ever wanted to design, deploy, and scale microservices like a pro, t
  ✅ Distributed tracing with Jaeger and OpenTelemetry
 
  -----
- 1. Foundations First
+3. Foundations First
 Before touching Kubernetes, ensure you can defend:
 Linux fundamentals: processes, networking (TCP/UDP), systemd, I/O.
 Git & branching strategies: explain rebases, conflicts, rollback.
@@ -104,7 +104,7 @@ Bad: “We fixed it by restarting.”
 Good: “We diagnosed a readiness probe misconfig, tuned thresholds, and prevented cascading 502s under peak load. That reduced error rate by 40% in production.” Impact wins offers.
 
 ----
-1. Infra as YAML is fading
+4. Infra as YAML is fading
 With GitOps and platform engineering on the rise, you won’t just “deploy”, you’ll design systems that heal and scale themselves.
 
 2. Monitoring ≠ Observability
