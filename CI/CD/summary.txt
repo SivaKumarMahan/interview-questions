@@ -1,0 +1,16 @@
+# CI/CD and DevOps Delivery Summary
+
+An end-to-end delivery system turns a reviewed commit into a verified running service:
+
+1. Developer writes and reviews code in GitHub/GitLab/Azure Repos.
+2. GitHub Actions, Jenkins, or another CI system triggers on pull request or protected merge.
+3. Unit/integration tests, SonarQube/static analysis, dependency/IaC/secret checks, and Trivy/container scanning provide fast evidence.
+4. The build creates one immutable package or Docker image, generates an SBOM/provenance, signs it, and pushes it to ECR or another approved registry.
+5. Terraform provisions infrastructure; Ansible configures machines when that model applies.
+6. Helm/Kustomize manifests describe Kubernetes resources. A GitOps repository records the desired digest and Argo CD/Flux reconciles it to EKS/AKS/other clusters.
+7. Service/Ingress/load balancer routes users only to ready workloads.
+8. Prometheus, Grafana, logs, traces, Dynatrace/other APM, Alertmanager, Slack, and PagerDuty support verification and operations.
+
+Build once and promote the same digest across environments. Keep environment configuration versioned and secrets external. Production uses protected identity/approval, progressive delivery, health and SLO gates, and independent rollback. CI proves artifact quality; CD controls promotion and verifies the real application.
+
+DevOps is the culture and practice of collaboration, automation, measurement, and continuous improvement. CI integrates and tests changes frequently; continuous delivery keeps an approved artifact deployable, while continuous deployment automatically releases every passing change within defined risk controls.

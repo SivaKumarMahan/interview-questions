@@ -1,0 +1,39 @@
+1. What is Netdata, and when would you use it?
+
+Answer:
+
+Netdata runs an Agent on a host or supported environment, discovers collectors, gathers detailed real-time metrics, provides dashboards and evaluates health alerts. I use it for fast infrastructure visibility and troubleshooting of CPU, memory, disk, network, processes and containers, especially when I want useful dashboards with little initial setup.
+
+It can complement Prometheus/Grafana or cloud monitoring. I still define application SLIs, retention, access and incident ownership. Tool installation alone does not prove customer availability.
+
+2. How would you deploy Netdata securely in production?
+
+Answer:
+
+I use a supported, pinned deployment method, run with only required host/container access, restrict the local dashboard/API to localhost or a private management path, require authenticated controlled access, protect configuration and streaming keys, and use TLS between Children and Parents. I do not expose default port `19999` publicly without a secured proxy and authorization design.
+
+For centralized monitoring, Child Agents stream to resilient Parent capacity or use the approved cloud connection model. Firewall rules allow only required paths. Retention/storage, labels, alert receivers and backups are defined, and agent/parent upgrades are tested in a lower ring.
+
+3. Netdata shows high CPU. How do you investigate?
+
+Answer:
+
+I confirm whether CPU is sustained, which cores and whether user, system, iowait or steal dominates. I correlate the time with process/cgroup charts, traffic, load, deployments and scheduled work. From the host I verify with `top`, `pidstat` or equivalent and inspect application/runtime evidence before restart.
+
+I mitigate through traffic shift, rollback, scaling or stopping a proven nonessential runaway task, then fix code, query, configuration or capacity. I validate application latency/errors and Netdata CPU/load recovery. A host-level CPU alert is supporting evidence, not the root cause.
+
+4. How does Netdata Parent-Child monitoring work?
+
+Answer:
+
+Children collect local metrics and stream them to configured Parent Agents. Parents centralize metrics and can provide dashboards, retention and health evaluation for their children. This reduces the need to browse every node separately and can preserve collection during some network interruptions through buffering/replication behavior according to configuration.
+
+I plan more than one parent or a recovery strategy when central monitoring is critical, size CPU/memory/disk/network from node count and metric volume, use stable host labels, TLS and access controls, and monitor stream disconnects, lag, retention and parent saturation. I test loss and reconnection rather than assuming centralization is highly available.
+
+5. How is Netdata different from Prometheus and Grafana?
+
+Answer:
+
+Netdata emphasizes an integrated Agent, automatic collectors, real-time dashboards and health alerts with quick setup. Prometheus is a labeled time-series scraping/query/rule system commonly used for services and Kubernetes, while Grafana visualizes many data sources. They can coexist: Netdata supports rapid node diagnosis, Prometheus handles selected platform/application metrics and long-term architecture, and Grafana provides shared cross-source dashboards.
+
+I choose from scale, retention, query language, application instrumentation, integrations, operational effort, access/data residency and cost rather than declaring one tool universally better.

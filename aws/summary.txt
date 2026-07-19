@@ -1,0 +1,17 @@
+# AWS Architecture Summary
+
+## Production-Ready Three-Tier Web Architecture
+
+Users resolve through Route 53 and reach CloudFront, WAF/Shield controls, and an Application Load Balancer. The VPC spans multiple Availability Zones:
+
+- Public subnets host internet-facing load balancers and NAT gateways where required.
+- Private application subnets host autoscaled EC2/ECS/EKS workloads with no direct inbound internet access.
+- Isolated/private data subnets host RDS Multi-AZ and ElastiCache replication groups. A cross-region read replica or replicated datastore is designed separately for regional DR.
+
+Security groups reference tiers rather than opening broad CIDRs: edge/load balancer to application port, application to database/cache port. ACM provides TLS certificates; Secrets Manager and KMS protect credentials and keys; Systems Manager Session Manager provides audited administration without public SSH.
+
+VPC endpoints for S3, DynamoDB, ECR API/DKR, CloudWatch Logs, Secrets Manager, and Systems Manager reduce NAT/internet dependency and can enforce endpoint policies. NAT per AZ avoids cross-AZ failure dependency when outbound internet is needed.
+
+S3 stores static artifacts/backups according to policy, ECR stores immutable signed images, CloudWatch provides metrics/logs/alarms, CloudTrail records API activity, Config evaluates configuration, Inspector/Security Hub report security posture, SNS routes notifications, SQS decouples work, and AWS Backup applies centralized protected backup policy.
+
+CI/CD flow can use GitHub → GitHub Actions/CodeBuild → ECR → CodeDeploy blue-green or instance refresh → CloudWatch verification. High availability needs multi-AZ compute and data, autoscaling, health checks, tested backups, dependency capacity, and explicit regional failover. Cost optimization includes right-sizing, autoscaling, storage lifecycle, commitments for stable demand, and measurable cost per service transaction.

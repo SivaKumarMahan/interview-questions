@@ -39,6 +39,32 @@ To deploy Helm charts, you can use the following commands:
 Helm uses Kubernetes Deployment’s rolling update strategy. When you upgrade a Helm release, it triggers a rolling update of pods with new configurations/images — old pods are terminated only after new ones become Ready, ensuring zero downtime.
 
 -----
+
+Helm Project Examples
+
+1. Full-stack To-Do application
+
+- Containerize frontend and backend separately and publish immutable image digests to Azure Container Registry.
+- Use one reusable chart or clearly separated charts for Deployments, Services, ConfigMaps, external secrets, probes, resources, and Ingress.
+- Keep Dev, QA, and Production values separate while reusing the same chart version.
+- Validate with `helm lint`, `helm template`, and a server-side dry run before `helm upgrade --install`.
+- Use `--atomic --wait --timeout 5m`, then verify rollout status and a business-level smoke test.
+- Roll back to a known Helm revision only after checking whether database or external dependency changes are backward-compatible.
+
+2. Node.js To-Do application
+
+The chart exposes the application through a Service and includes startup/readiness/liveness probes so Kubernetes does not send traffic before the application is ready. A NodePort can be used for learning, but production normally uses Ingress or a LoadBalancer with TLS, authentication, and controlled network exposure.
+
+3. Jenkins on Kubernetes
+
+Jenkins can be installed from a chart with persistent storage for the controller and ephemeral Kubernetes agents for builds. PersistentVolume backup, plugin/version pinning, credentials, security context, resource limits, controller recovery, and chart upgrade tests must be planned before treating this as a production installation.
+
+4. Helmfile
+
+Helmfile declaratively coordinates multiple Helm releases and environment values. I use it when several related releases must be installed in a known order, while still pinning chart versions, separating secrets, reviewing rendered changes, and verifying each release. For Kubernetes desired-state reconciliation across clusters, Argo CD or Flux may be a better GitOps control plane.
+
+-----
+
 Q: what is email signing and Helm chart signing? which tools do you use to sign Helm charts?
 A: Email Signing:
 Email signing is the process of digitally signing an email message to verify the sender's identity and ensure the integrity of the message content. It uses cryptographic techniques to create a digital signature that is attached to the email. The recipient can then verify the signature using the sender's public key, confirming that the email has not been altered and is indeed from the claimed sender. Common standards for email signing include S/MIME (Secure/Multipurpose Internet Mail Extensions) and PGP (Pretty Good Privacy).

@@ -47,37 +47,6 @@ Q: How would you view the last few lines of a huge log file that’s continuousl
 “I’d use tail -f logfile.log to stream the last lines in real-time.”
 
 -----
-Q: How do you enable passwordless SSH authentication between two Linux servers?
-Allow Server A to SSH into Server B without entering a password.
-
-On Server A (the client): Generate SSH key pair
-ssh-keygen -t rsa
-This generates:
-id_rsa → private key (keep secure)
-id_rsa.pub → public key (to share)
-
-Copy the public key to Server B
-Set correct permissions on Server B
-Test passwordless login
-From Server A: ssh user@serverB --> It should log in without asking for a password.
-
-How It Works
-SSH uses public-key cryptography.
-When you SSH from A → B:
-Server B checks if your public key is in its ~/.ssh/authorized_keys.
-If yes, it verifies using your private key from A — no password needed.
-
------
-Q: What if SSH key authentication still prompts for a password?
-Check: Permissions of .ssh folder and files
-/etc/ssh/sshd_config has:
-PubkeyAuthentication yes
-PasswordAuthentication no
-
-Then restart SSH service:
-sudo systemctl restart sshd
-
------
 Q: You have hosted an application on a Linux server - how would you migrate it to a serverless architecture in azure?
 To migrate an application from a Linux server to a serverless architecture, I would follow these steps:
 1. Assess the Application: Understand the application architecture, dependencies, and components to identify which parts can be migrated to serverless services.

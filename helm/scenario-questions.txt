@@ -1,0 +1,6 @@
+1. How do you troubleshoot Helm chart deployment failures?
+Answer: Run helm status & helm get manifest → Validate YAML → Check Kubernetes events/logs → Rollback using helm rollback.
+
+Detailed interview approach:
+I start with `helm lint`, `helm template --debug`, and a server-side dry run to catch templates, values, and API-schema errors before deployment. For a failed release I use `helm status <release>`, `helm get values`, `helm get manifest`, and Kubernetes Events/logs to find the exact hook, admission policy, immutable field, missing CRD, image, scheduling, or readiness problem. I compare the rendered manifest and values with the last good revision. I fix the chart or environment dependency in Git and run a controlled upgrade; if production is affected I use `helm rollback <release> <revision>` and verify Pods and application metrics. Tests, schema validation, pinned chart versions, and atomic/time-bounded upgrades prevent repeats.
+

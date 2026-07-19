@@ -1,68 +1,189 @@
 1. What are Azure Virtual Machines?
-Answer: Azure Virtual Machines provide infrastructure-as-a-service compute where you manage the operating system, patching, disks, networking, and installed applications. They are used when you need OS-level control or legacy workload support.
+
+Answer:
+
+Azure VMs are IaaS compute resources. Azure operates physical infrastructure/hypervisor; I manage guest OS, patches, software, configuration, identity, disks, and workload recovery. VMs attach network interfaces to a VNet and use managed disks.
+
+I choose VMs for legacy software, OS/kernel control, unsupported runtimes, or lift-and-shift. Production uses Availability Zones/sets as required, load balancing, backups, monitoring, patch management, managed identity, and IaC. One VM is a failure point.
+
+When diagnosing, I check Azure resource/boot diagnostics and Activity Log, then guest CPU/memory/disk/network/service logs. I distinguish Azure platform health from OS/application failure before rebooting.
 
 2. How do you secure Azure Virtual Machines?
-Answer: Use NSGs, private IPs, Bastion or VPN instead of public RDP/SSH, disk encryption, managed identity, patching, Defender for Cloud, least-privilege RBAC, and monitoring through Azure Monitor.
 
-3. What is Azure Virtual Network?
-Answer: Azure Virtual Network is the private network boundary for Azure resources. It includes address spaces, subnets, route tables, NSGs, peering, private endpoints, and connectivity to on-prem networks.
+Answer:
 
-4. What is Azure Application Gateway?
-Answer: Application Gateway is a layer 7 load balancer with HTTP routing, TLS termination, path-based routing, host-based routing, WAF integration, and backend health probes.
+I keep VMs private and access them through Bastion, VPN/ExpressRoute, or controlled jump access; I do not expose RDP/SSH broadly. NSGs/firewalls allow only required flows. Entra login/managed identity and least-privilege RBAC reduce stored credentials.
 
-5. What is Azure DNS?
-Answer: Azure DNS hosts DNS zones and records for domains. It can manage public DNS zones and private DNS zones for internal name resolution across VNets.
+I use hardened images, patch/update management, disk encryption, Secure Boot/vTPM where supported, endpoint protection/Defender, vulnerability assessment, backups, and centralized logs. Secrets come from Key Vault.
 
-6. What is an Azure Storage Account?
-Answer: A Storage Account is the top-level Azure storage resource that can host Blob, File, Queue, and Table storage. It controls redundancy, networking, encryption, access keys, and lifecycle settings.
+I monitor privileged sign-ins, NSG changes, public IP creation, malware alerts, and patch compliance. Recovery is tested. If compromise is suspected, I isolate network access, preserve evidence/snapshot according to procedure, rotate reachable credentials, rebuild from trusted image, and investigate—not merely reboot.
 
-7. What is Azure Blob Storage?
-Answer: Blob Storage is object storage for unstructured data such as logs, images, backups, static website files, and data lake workloads. It supports hot, cool, cold, and archive tiers.
+3. What is an Azure Storage Account?
 
-8. How do you secure Azure Storage?
-Answer: Disable public access where possible, use private endpoints, restrict networks, require HTTPS, use RBAC or managed identity, rotate keys/SAS, enable encryption, and monitor with Defender for Storage.
+Answer:
 
-9. What is Azure Key Vault?
-Answer: Key Vault stores and manages secrets, keys, and certificates. Applications can access it securely using managed identity and RBAC or access policies.
+A Storage Account is the Azure namespace/security/configuration boundary for Blob, Files, Queue, and Table services (depending on kind). It controls region, redundancy, performance tier, networking, encryption, identity/RBAC, lifecycle, and protection settings.
 
-10. What is Azure Managed Identity?
-Answer: Managed Identity gives Azure resources an identity in Microsoft Entra ID so they can access other Azure services without storing credentials in code or configuration.
+I select GPv2 in most cases, choose LRS/ZRS/GRS based on failure/RPO needs, disable public/anonymous access unless required, prefer Entra ID/managed identity, enforce HTTPS, use private endpoints/firewalls, and enable logs, soft delete/versioning/lifecycle based on workload.
 
-11. What is Microsoft Entra ID?
-Answer: Microsoft Entra ID, formerly Azure Active Directory, is Microsoft's cloud identity platform for users, groups, applications, service principals, SSO, conditional access, and identity governance.
+I monitor capacity, transactions, latency, availability, throttling, and egress. Recovery features and backup are selected per service; replication alone does not protect from every deletion/corruption.
 
-12. What is Azure Container Registry?
-Answer: Azure Container Registry is a private registry for Docker and OCI images. It integrates with AKS, Azure Pipelines, managed identity, image scanning workflows, and geo-replication.
+4. What is Azure Blob Storage?
 
-13. What is Azure App Service?
-Answer: Azure App Service is a platform-as-a-service offering for hosting web apps, APIs, and background jobs without managing servers. It supports scaling, deployment slots, TLS, custom domains, and CI/CD.
+Answer:
 
-14. What are Azure Functions?
-Answer: Azure Functions is a serverless compute service that runs code in response to events such as HTTP requests, timers, queues, blobs, Event Grid, or Service Bus messages.
+Blob Storage is object storage for unstructured data such as images, logs, backups, artifacts, static content, and data-lake files. Containers hold block, append, or page blobs; access tiers trade retrieval cost/latency against storage cost.
 
-15. What is Azure SQL Database?
-Answer: Azure SQL Database is a managed relational database service based on SQL Server. Azure manages backups, patching, high availability, scaling options, and security integrations.
+Applications use SDK/REST with managed identity and scoped data roles. I use lifecycle rules to tier/delete by policy, immutable storage for regulated retention where required, and versioning/soft delete for recovery. Large uploads use blocks and retries/idempotency.
 
-16. What is Azure Service Bus?
-Answer: Azure Service Bus is an enterprise messaging service for queues and topics. It supports reliable messaging, competing consumers, dead-letter queues, sessions, duplicate detection, and publish-subscribe patterns.
+I choose Blob over Azure Files when object semantics and HTTP access fit; Files suits SMB/NFS shares. Monitoring covers request errors, latency, capacity, throttling, and egress.
 
-17. What is Azure Event Grid?
-Answer: Event Grid is an event routing service for reactive architectures. It routes events from Azure services or custom sources to handlers such as Functions, Logic Apps, webhooks, or Service Bus.
+5. How do you secure Azure Storage?
 
-18. What is Azure Policy?
-Answer: Azure Policy enforces or audits governance rules across resources. It can deny non-compliant deployments, append settings, audit drift, or deploy required configurations.
+Answer:
 
-19. What is the difference between Service Bus and Event Grid?
-Answer: Service Bus is for reliable enterprise messaging where consumers process messages from queues or topics. Event Grid is for lightweight event notification and routing when something happens.
+I apply defense in depth: disable anonymous blob access, restrict/disable public network access, use private endpoints/private DNS, enforce secure transfer/TLS, prefer Entra ID managed identities and data-plane RBAC, protect/rotate account keys, and issue short-lived least-privilege SAS only when necessary.
 
-20. What is the difference between App Service and Azure Functions?
-Answer: App Service is better for always-on web apps and APIs. Azure Functions is better for event-driven, small units of code that scale based on triggers and consumption.
+Data is encrypted at rest; customer-managed keys/infrastructure encryption are used when required. I enable Defender/logging, versioning/soft delete/immutability as appropriate, and policy to prevent insecure settings.
 
-21. How do you use Key Vault with App Service or Functions?
-Answer: Enable managed identity on the app, grant Key Vault permissions, and reference secrets through Key Vault references or SDK calls. This avoids storing secrets in app settings directly.
+I test allowed and denied identity/network access. On exposure I restrict access, revoke SAS/rotate keys, preserve logs, assess downloaded/changed data, restore if required, and correct policy/architecture.
 
-22. How do you connect Azure services privately?
-Answer: Use VNets, private endpoints, private DNS zones, service endpoints where appropriate, VNet integration for App Service, and firewall rules that deny public network access.
+6. What is Azure Key Vault?
 
-23. How do you monitor Azure services?
-Answer: Use Azure Monitor metrics, Log Analytics queries, Application Insights for application telemetry, diagnostic settings, alerts, dashboards, and action groups.
+Answer:
+
+Key Vault stores secrets, cryptographic keys, and certificates. Management-plane permissions configure the vault; data-plane permissions access stored objects. A subscription Owner does not automatically have secret-reading permission.
+
+Applications use managed identity and narrow roles such as Key Vault Secrets User. I enable soft delete/purge protection, logging, rotation/expiry ownership, and private networking where required. I avoid outputting secret values through pipelines/IaC.
+
+Troubleshooting checks identity principal, RBAC vs. access-policy mode, role/scope/propagation, object version/state, token audience, firewall/private DNS, and audit logs. Rotation is tested with consumers.
+
+7. What is Azure Managed Identity?
+
+Answer:
+
+Managed Identity is an Entra identity for an Azure resource. System-assigned identity follows that resource; user-assigned identity is independent/reusable. Azure manages credentials and the workload requests short-lived tokens.
+
+Example: Function has a user-assigned identity granted Blob Data Reader on one container/account and Key Vault Secrets User on one vault. Code uses `DefaultAzureCredential`; no client secret exists in configuration.
+
+I scope roles narrowly and separate identities when workloads have different permissions. Failed access investigation checks attached identity, principal/client ID selection, token audience, RBAC data role/scope, propagation, and network restrictions.
+
+8. What is Microsoft Entra ID?
+
+Answer:
+
+Microsoft Entra ID is Microsoft’s cloud identity and access-management service for users, groups, applications/service principals, managed identities, devices, authentication, Conditional Access, and tokens. It is distinct from Azure RBAC: Entra authenticates identities; Azure RBAC authorizes actions on Azure resources.
+
+I use groups instead of direct user assignments, MFA/Conditional Access, PIM for privileged roles, workload identity instead of secrets, access reviews, break-glass accounts, and sign-in/audit monitoring.
+
+For authentication failure I check tenant, identity state, credentials/federation, Conditional Access, token audience/scopes, consent, and sign-in logs. Authorization failure then moves to target roles/policies.
+
+9. What is Azure Container Registry?
+
+Answer:
+
+ACR is a private OCI registry for container images and related artifacts. It supports repositories, geo-replication on suitable tiers, tasks/builds, webhooks, retention/quarantine features, and Azure identity integration.
+
+CI builds/scans an image, pushes immutable tag/digest using workload identity, signs it, and deployment references digest. AKS pulls through managed identity with `AcrPull`; administrators do not share the admin password.
+
+I restrict public/network access as required, apply repository permissions, retention, audit, and vulnerability workflows. `ImagePullBackOff` investigation checks image/tag/digest, registry login/role, network/private DNS, node architecture, and events.
+
+10. What is Azure App Service?
+
+Answer:
+
+App Service is PaaS hosting for web apps and APIs. Azure manages OS/runtime infrastructure; teams deploy code/container and configure plan, scaling, domains/TLS, identity, networking, diagnostics, and application behavior.
+
+Production uses multiple instances/zones where available, health check, autoscale, managed identity/Key Vault references, VNet integration/private endpoints as needed, deployment slots, and Application Insights.
+
+I deploy to a slot, warm/test it, then swap with production; database changes remain backward-compatible. For failure I check deployment logs, app logs, instance health, config, identity, DNS/network, dependencies, and platform metrics before rollback/swap.
+
+11. What are Azure Functions?
+
+Answer:
+
+Azure Functions runs event-driven code triggered by HTTP, timer, queue, blob, Event Grid, Service Bus, and other events. Bindings simplify service input/output. Hosting plan controls scaling, cold-start, networking, duration, and cost characteristics.
+
+Example: Blob upload emits work, Function validates/processes it, writes status to a database, and sends failure to a poison/dead-letter path. The function is idempotent because events may repeat; retries are bounded and external operations use correlation IDs.
+
+I configure managed identity, Key Vault, Application Insights, timeout, concurrency, alerts, and failure handling. Durable Functions suits orchestrated/stateful workflows.
+
+12. What is Azure SQL Database?
+
+Answer:
+
+Azure SQL Database is managed SQL Server-compatible PaaS. Azure handles platform patching, backups, and built-in availability; I manage schema, queries/indexes, users, data protection, performance tier, networking, recovery policy, and application resiliency.
+
+I use Entra authentication/managed identity, firewall/private endpoint, TLS, auditing/Defender, least privilege, and monitoring. Point-in-time restore and geo-replication/failover groups are selected from RPO/RTO.
+
+For slowness I inspect query performance, waits, blocking, CPU/data IO/log IO, connection pool, indexes/plans, and recent changes. Scaling may mitigate but does not replace query/root-cause correction.
+
+13. What is Azure Service Bus?
+
+Answer:
+
+Service Bus is enterprise messaging with queues and topics/subscriptions. It supports competing consumers, publish-subscribe, locks, dead-letter queues, scheduled messages, duplicate detection, sessions/ordering, and transactions in supported scenarios.
+
+Producer sends durable message; consumer receives under a lock, processes idempotently, and completes. Failure abandons/retries; poison messages dead-letter after policy. I monitor active/dead-letter counts, age, throttling, and processing latency.
+
+Managed identity and scoped sender/receiver roles protect access. I choose Service Bus when reliable command/message processing is required, not simply notification that an event occurred.
+
+14. What is Azure Event Grid?
+
+Answer:
+
+Event Grid routes events from Azure/custom sources to handlers such as Functions, Logic Apps, webhooks, Service Bus, or Event Hubs. It is designed for reactive notification/fan-out with filters and at-least-once delivery.
+
+Example: Blob-created event triggers metadata processing and notification. Handler validates event, is idempotent, returns promptly, and uses retries/dead-letter destination. Event payload usually describes what happened; consumer retrieves authoritative data if needed.
+
+I monitor delivery failures/dead-letter events and secure webhook validation/identity. Event Grid is not a replacement for enterprise command queue semantics.
+
+15. What is Azure Policy?
+
+Answer:
+
+Azure Policy evaluates resource configuration at assigned scopes. Effects can audit, deny, modify, append, or deploy required settings depending on definition. Initiatives group policies; exemptions document controlled exceptions.
+
+Example: audit storage public access, deploy diagnostic settings, then deny insecure new storage after remediation. I roll out audit first, inspect false positives/existing impact, remediate, then enforce. Policies and assignments are version-controlled.
+
+I test compliant/non-compliant deployments, monitor compliance, and give exceptions owner/justification/expiry. Policy is governance; RBAC controls who can act.
+
+16. What is the difference between Service Bus and Event Grid?
+
+Answer:
+
+Service Bus carries commands/messages that consumers reliably process from queues/topics, with locks, completion, dead-letter, sessions, and richer broker semantics. Event Grid announces events—something happened—and routes them quickly to subscribers with filtering/fan-out.
+
+Use Service Bus for order processing where each message needs controlled completion/retry/order. Use Event Grid to notify multiple handlers that a blob or resource changed. They can combine: Event Grid detects an event and routes important work into Service Bus for controlled processing.
+
+I decide using delivery semantics, ordering, transaction, retention, throughput, consumer model, retry, and payload needs.
+
+17. What is the difference between App Service and Azure Functions?
+
+Answer:
+
+App Service hosts continuously available web apps/APIs with an application process and plan. Functions organizes code around triggers/events and can scale execution based on events. Both are managed platforms and share some underlying capabilities/plans.
+
+Choose App Service for a full web application/API with predictable always-on behavior, routing, slots, and longer request lifecycle. Choose Functions for queue/timer/blob/event handlers or small APIs where trigger-based scaling fits. Consider cold start, duration, state, networking, runtime, throughput, and cost.
+
+An architecture can use both: App Service serves API; queue-triggered Functions process asynchronous work.
+
+18. How do you use Key Vault with App Service or Functions?
+
+Answer:
+
+I enable managed identity, grant a narrow Key Vault data role, configure network access/private DNS, then use Key Vault references in app settings or SDK access with `DefaultAzureCredential`.
+
+The setting contains a reference URI, not secret value. I plan refresh/rotation behavior and avoid pinning a secret version when automatic rotation is desired unless controlled versioning is required.
+
+I test startup and rotation, allowed/denied identity, slot identity/settings, and failure behavior. Troubleshooting checks reference status, identity selection, role/scope, RBAC propagation, vault network, DNS, secret expiry/state, and logs. No secret is printed in diagnostics.
+
+19. How do you monitor Azure services?
+
+Answer:
+
+I enable platform metrics, diagnostic settings to Log Analytics/Event Hub/Storage as required, Application Insights/OpenTelemetry for application traces, alerts/action groups, workbooks, and service-specific health signals.
+
+Monitoring is driven by SLOs: availability, latency, errors, traffic, saturation, dependency failures, queue age, capacity, and security changes. Each alert has owner/runbook and is tested.
+
+During investigation I establish time/scope, correlate Activity Log/deployments with metrics, follow a request through dependencies using correlation/trace ID, mitigate, then validate the original user transaction. Retention, access, sampling, cardinality, and ingestion cost are designed—not left at defaults.

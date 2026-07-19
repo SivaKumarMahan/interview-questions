@@ -1,0 +1,13 @@
+1. How does Alertmanager reduce alert noise?
+
+Answer:
+
+It groups alerts from the same incident, deduplicates repeated notifications, routes by labels, inhibits lower-level symptoms when a parent failure is active, and supports silences for maintenance. I use stable team/service/environment/severity labels and design the route tree around ownership. I review alerts that never lead to action and remove or demote them rather than merely increasing repeat intervals.
+
+2. How do you integrate Alertmanager with Slack, Teams or PagerDuty securely?
+
+Answer:
+
+I configure the receiver and route, but store webhook/API credentials in Kubernetes Secrets or an external manager. Messages contain service, impact, duration, current value, dashboard, runbook and acknowledgement/silence link. Grouping and inhibition prevent a notification storm.
+
+I inject a non-production test alert and verify the correct receiver, firing and resolved messages, and escalation. Slack/Teams supports collaboration; critical paging also uses PagerDuty or equivalent because chat can be missed. Credentials are rotated and configuration changes are reviewed.

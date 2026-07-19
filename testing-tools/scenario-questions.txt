@@ -1,0 +1,42 @@
+1. How do you integrate vulnerability scanning in CI/CD pipelines?
+Answer: Run static scans (Snyk, Trivy) during build, fail builds with critical CVEs, and automatically create tickets for remediation. Mini-case: Trivy caught a base image CVE; pipeline failed and developers patched the image before deployment.
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+
+2. How do you monitor and enforce container image provenance across environments?
+Answer: Enforce signed images and immutable tags, require SBOMs (software bill of materials) on each image, and gate deployments based on SBOM and vulnerability thresholds. Mini-case: A new release’s SBOM showed a vulnerable dependency; gate logic prevented deployment until the image was rebuilt with patched dependency.
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+
+3. How do you manage secrets scanning and prevention of accidental commits?
+Answer: Use pre-commit hooks (git-secrets), CI scanning for secrets, and push-blocking hooks in company repos; rotate any found secrets and enforce developer training. Mini-case: A developer accidentally committed an API key; pre-commit hook blocked the push locally and the CI scan caught a subsequent attempt and auto-rotated the leaked key.
+
+Detailed interview approach:
+Secrets belong in Vault, Key Vault, Secret Manager, or the CI credential store, not Git, YAML, images, command arguments, or artifacts. Jobs obtain a short-lived identity and fetch only the secret needed for that stage; masking is a secondary control because encoded or transformed values can still leak. Rotation uses an overlap period: issue new value, update consumers, verify, revoke old value, and audit failures. If scanning finds a committed secret, I revoke it immediately, inspect usage, remove it from active history where appropriate, and rotate downstream credentials—deleting the line is not sufficient. Pre-commit/server-side scans, protected logs, least privilege, expiry, and rotation tests prevent recurrence.
+
+4. How do you implement end-to-end supply-chain security for container images?
+Answer: Sign and verify images (Cosign), scan images during build (Trivy/Anchore), use reproducible builds, enforce image provenance in registries, and block unsigned or vulnerable images in the pipeline. Mini-case: In a pipeline, I added a build step that runs Trivy, then Cosign signs the image on success. The registry policy rejects any image without a valid signature — preventing a compromised build from reaching prod.
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+
+5. How do you secure CI/CD pipelines from supply chain attacks?
+Answer: Pin dependencies → Verify container/image signatures (Cosign) → Scan dependencies → Restrict external plugin usage.
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+
+6. How do you enforce code quality checks before merging in CI/CD?
+Answer: Add mandatory linting, unit tests, SonarQube scans in Jenkins/GitHub Actions → Fail build if checks don’t pass → Protect main branch with approval rules.
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+
+7. How do you enforce security scans in CI/CD?
+Answer: Add SAST (code scan with SonarQube) and DAST (OWASP ZAP) → Container image scans (Trivy/Anchore) → IaC scans (Checkov, tfsec).
+
+Detailed interview approach:
+I protect the path from source to production: branch protection and review, pinned dependencies/actions/plugins, isolated ephemeral runners, short-lived least-privilege identity, SAST/dependency/secret/IaC/container scans, SBOM generation, signed provenance and artifacts, protected registries, and deployment admission verification. Findings have an agreed severity/SLA and a time-limited exception process so gates are both enforceable and usable. If compromise is suspected, I stop promotion, revoke runner and signing credentials, quarantine artifacts, preserve audit evidence, rebuild from a trusted runner/source, and verify signatures before redeployment. Regular patching, egress restrictions, audit retention, and recovery exercises cover the controls scanners cannot.
+

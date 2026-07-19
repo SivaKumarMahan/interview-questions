@@ -1,14 +1,107 @@
 1. What is Helm and how does it simplify Kubernetes deployments?
-Answer: Helm is a package manager for Kubernetes. It packages manifests into reusable charts, supports templating through `values.yaml`, tracks releases, and makes install, upgrade, rollback, and uninstall operations repeatable across environments.
+
+Answer:
+
+Helm is a package manager and release-management tool for Kubernetes. A chart packages templates, default values, metadata, and dependencies. Installing a chart renders Kubernetes manifests and creates a named release whose revisions Helm tracks.
+
+Instead of maintaining copied Deployment, Service, Ingress, HPA, and ConfigMap files for every environment, I keep one chart and override approved values:
+
+```bash
+helm lint ./chart
+helm template orders ./chart -f values-prod.yaml
+helm upgrade --install orders ./chart \
+  -n orders --create-namespace \
+  -f values-prod.yaml --atomic --wait --timeout 5m
+```
+
+I validate rendered YAML and policies, pin chart/image versions, monitor rollout and application health, and retain rollback information. Helm simplifies packaging and configuration; Kubernetes controllers still perform the actual rollout and self-healing.
 
 2. How do you manage secrets in Helm charts?
-Answer: Avoid storing plain secrets in `values.yaml`. Use external secret managers such as Azure Key Vault, AWS Secrets Manager, HashiCorp Vault, External Secrets Operator, Sealed Secrets, or SOPS/helm-secrets. In CI/CD, inject secret references securely and restrict who can view rendered manifests.
+
+Answer:
+
+I do not store plaintext secrets in `values.yaml`, Git, packaged charts, or `--set` command history. Helm stores release information in the cluster, so marking a value as “secret” in a template is not sufficient protection.
+
+Preferred approaches are External Secrets Operator or Secrets Store CSI Driver with Vault, Key Vault, or a cloud secret manager. Workloads use workload identity, and Kubernetes receives either a mounted value or a synchronized Secret only when required.
+
+If encrypted values in Git are approved, I use SOPS/helm-secrets with keys controlled outside Git. I restrict RBAC to Secrets and Helm release data, prevent CI logs from printing rendered values, test rotation, and verify that unauthorized namespaces/service accounts cannot retrieve the secret.
 
 3. How do you roll back a Helm release?
-Answer: Check release history with `helm history <release>`, then run `helm rollback <release> <revision>`. Use `helm upgrade --atomic` for safer upgrades because Helm automatically rolls back when the upgrade fails.
+
+Answer:
+
+I first inspect why the release failed and whether rollback is safe for database/schema changes.
+
+```bash
+helm status orders -n orders
+helm history orders -n orders
+kubectl get events -n orders --sort-by=.metadata.creationTimestamp
+helm rollback orders 7 -n orders --wait --timeout 5m
+```
+
+After rollback I verify Deployment status, Pods, Service endpoints, smoke tests, error rate, latency, and dependent data. `helm upgrade --atomic --wait` can automatically roll back a failed upgrade, but it cannot reverse an incompatible database migration or external side effect.
+
+I preserve the failed revision’s logs and rendered manifests for RCA, fix the chart, test in a lower environment, and then create a new version rather than repeatedly retrying production.
 
 4. What are Helm hooks and how are they used?
-Answer: Helm hooks are annotated Kubernetes resources that run at specific release lifecycle points, such as `pre-install`, `post-install`, `pre-upgrade`, or `pre-delete`. They are commonly used for database migrations, validation jobs, backup jobs, and cleanup tasks.
+
+Answer:
+
+Hooks are annotated Kubernetes resources that Helm executes at lifecycle points such as `pre-install`, `post-install`, `pre-upgrade`, or `pre-delete`. Common examples are migration, validation, backup, and cleanup Jobs.
+
+```yaml
+metadata:
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+```
+
+I make hook Jobs idempotent, give them timeouts and least-privilege ServiceAccounts, and define cleanup policy. A failed hook can block a release, so I inspect the Job, Pod logs, events, and hook resources. Critical database migration logic should have explicit compatibility and recovery design rather than assuming Helm rollback will undo it.
 
 5. How do you handle multi-environment deployments using Helm?
-Answer: Keep one reusable chart and separate environment-specific values files such as `values-dev.yaml`, `values-stage.yaml`, and `values-prod.yaml`. Deploy with `helm upgrade --install <release> <chart> -f values-prod.yaml`, and manage promotion through CI/CD or GitOps.
+
+Answer:
+
+I keep one versioned chart and separate environment-specific, non-secret values:
+
+```text
+values.yaml
+values-dev.yaml
+values-stage.yaml
+values-prod.yaml
+```
+
+CI lints the chart, validates its values schema, renders every supported environment, runs Kubernetes schema/policy checks, and packages an immutable chart version. The same application image digest and chart version are promoted through dev, staging, and production; only approved values differ.
+
+Production uses protected approval, `--atomic --wait`, smoke tests, monitoring, and a documented rollback. Secrets are external references. I avoid copying whole charts per environment because fixes drift. Where many applications share patterns, I use a versioned library/base chart but allow explicit service-level resource, probe, and scaling configuration.
+
+6. Explain a basic Helm chart structure and the commands used to release it.
+
+Answer:
+
+A chart contains `Chart.yaml` metadata, default `values.yaml`, templates under `templates/`, optional JSON schema, tests, dependencies, and documentation. `_helpers.tpl` holds reusable names and labels; templates should render valid Kubernetes objects without hiding important workload behavior.
+
+```bash
+helm create payments
+helm dependency update ./payments
+helm lint ./payments
+helm template payments ./payments -f values-dev.yaml
+helm upgrade --install payments ./payments \
+  --namespace payments --create-namespace \
+  --values values-prod.yaml --atomic --wait
+helm history payments -n payments
+helm rollback payments <revision> -n payments
+```
+
+CI validates the values schema, renders all supported environments, runs Kubernetes schema and policy checks, packages a versioned chart, and signs/publishes it. Production deploys the same chart and image digest tested earlier, then verifies rollout, probes, logs, metrics, and a real transaction.
+
+7. How do you sign and verify Helm charts?
+
+Answer:
+
+For a classic chart repository I package and sign with a protected OpenPGP key using `helm package --sign --key <name> --keyring <ring>`, publish the `.tgz` and provenance `.prov`, and verify with `helm verify`. Key identity, expiry, rotation, and access are managed centrally; CI receives short-lived access rather than a developer's exported private key.
+
+For OCI registries I prefer signing the immutable chart digest with a supported supply-chain tool such as Cosign and enforce verification in CI or admission policy. I also retain source commit, build workflow identity, SBOM/provenance where applicable, and registry audit logs.
+
+Signing proves who/what workflow produced an unchanged artifact; it does not prove the chart is safe. Linting, template/schema validation, security/policy checks, review, and controlled promotion remain required.

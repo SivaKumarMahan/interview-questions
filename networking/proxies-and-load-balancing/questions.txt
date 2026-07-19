@@ -1,0 +1,9 @@
+1. A website starts returning HTTP 503. How do you investigate it?
+
+Answer:
+
+An HTTP 503 means some HTTP component was reached but is temporarily unable to serve the request. I first capture response headers/body and determine whether CDN, WAF, load balancer, reverse proxy, service mesh, or application generated it. I compare affected hosts, paths, regions, users, and times and check recent deployments, configuration, certificates, scaling, and dependency incidents.
+
+I trace DNS → frontend listener/TLS → routing rule → target pool → health probe → backend listener/application → dependencies. I inspect healthy-target count, proxy upstream status and timing, backend readiness, capacity, connection pools, queue depth, timeouts, retry amplification, rate limits, and logs/traces for the same request ID. A healthy load-balancer resource with zero healthy targets still returns errors.
+
+I restore service through rollback, traffic shift, capacity, or the specific routing/probe/backend/dependency fix. I do not open broad firewall rules or increase every timeout blindly. I verify sustained real-user-path traffic, p95/p99 latency, 5xx by source/backend, failover, and alerts for target loss, saturation, and SLO burn.

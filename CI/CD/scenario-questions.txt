@@ -1,0 +1,74 @@
+1. How do you manage hybrid CI/CD runners (on-prem + cloud)?
+Answer: Use self-hosted runners for sensitive/on-prem workloads, cloud runners for elastic builds, and route jobs based on labels/tags.
+Mini-case: Database migrations ran on on-prem runners, while builds/tests ran on GCP runners — ensuring both compliance and speed.
+
+Detailed interview approach:
+I classify workloads by data access, trust, latency, and elasticity. Builds that need private on-prem systems run on dedicated self-hosted pools reached through controlled network paths; ordinary builds can use ephemeral cloud runners. Labels map a job to an approved pool, and untrusted pull requests never run on privileged internal agents. All runners use versioned images, short-lived identity, isolated workspaces, restricted egress, and no persistent secrets. I monitor queue time, provisioning failure, utilization, patch age, and network dependencies, and keep capacity in both locations. A hybrid design also needs a fallback rule so a cloud outage does not silently send sensitive work to the wrong runner.
+
+2. How do you debug CI/CD pipeline flakiness?
+Answer: Identify non-deterministic tests, add retries with backoff, isolate shared resources, and monitor job history trends.
+Mini-case: A flaky integration test broke builds 1/10 times — containerizing the test DB eliminated shared state issues.
+
+Detailed interview approach:
+I collect failure rate by test, stage, agent image, time, and dependency, then reproduce using the same commit and environment. I look for shared mutable test data, time/order assumptions, random seeds, external API dependence, resource pressure, and race conditions. Logs include seed, test ID, container and dependency versions, but no secrets. I isolate databases/queues per run, freeze or inject time, mock unstable external calls, and wait on health conditions instead of fixed sleeps. A small bounded retry can classify a known transient issue, but does not turn a failed test green without recording it. I quarantine only with an owner and expiry, fix the cause, and track flake rate until it stays zero.
+
+3. How do you optimize CI/CD pipelines for monorepos?
+Answer: Use change detection to run jobs only for affected paths, parallelize builds, cache dependencies, and modularize pipelines. Mini-case: Instead of rebuilding all services, we ran jobs only for changed directories; build t imes dropped from 1 hour to 12 minutes.
+
+Detailed interview approach:
+Each service has an independently triggered pipeline based on path/repository changes, but all consume versioned shared templates. The flow builds once, runs unit/integration/contract and security tests, produces a signed image/SBOM, publishes the immutable digest, updates deployment configuration, and promotes through environments. Contract and compatibility tests protect service boundaries; canary/rolling rollout watches service SLOs and traces. Shared cache keys include lockfiles and tool versions, and parallelism respects downstream capacity. Platform controls standardize identity, secrets, policy, logging, and rollback without coupling every service release. I measure lead time, failures, queue time, and change-failure rate per service.
+
+4. How do you implement rolling updates with minimum downtime?
+Answer: Configure Kubernetes deployment strategy → Set maxUnavailable=0, maxSurge=1.
+
+Detailed interview approach:
+I use a Deployment strategy with realistic readiness/startup probes, graceful shutdown, and enough capacity. `maxUnavailable` and `maxSurge` are selected from the replica count and availability target; setting zero unavailable is useful only when the cluster can host the surge. I deploy an immutable image digest, watch `kubectl rollout status`, Pod events, error rate, latency, and business checks, and pause if the new ReplicaSet is unhealthy. A rollback uses `kubectl rollout undo deployment/<name>` or a Git revert in GitOps, followed by verification. PodDisruptionBudgets, multiple zones, backward-compatible configuration/database changes, and tested rollback make the update genuinely low-risk.
+
+5. How do you manage blue-green deployments for APIs?
+Answer: Run two versions behind load balancer → Route traffic gradually → Use Apigee/Azure API Gateway for traffic splitting.
+
+Detailed interview approach:
+I deploy an immutable artifact through a strategy matched to risk: rolling for routine stateless changes, canary for metric-based exposure, or blue-green for fast traffic switching. The pipeline runs prechecks, deploys to a small/no-traffic target, performs readiness and business smoke tests, then advances while watching error rate, latency, saturation, and SLO/error budget. If thresholds fail it stops traffic and rolls back to the previous artifact/config; database changes use expand-and-contract because application rollback cannot undo destructive schema changes. I verify recovery, record the result, and improve the test or guard that should have caught the failure earlier.
+
+6. How do you design CI/CD pipelines for microservices?
+Answer: Separate pipelines per service → Build & push Docker images → Deploy via Helm → Use shared monitoring/logging.
+
+Detailed interview approach:
+Each service has an independently triggered pipeline based on path/repository changes, but all consume versioned shared templates. The flow builds once, runs unit/integration/contract and security tests, produces a signed image/SBOM, publishes the immutable digest, updates deployment configuration, and promotes through environments. Contract and compatibility tests protect service boundaries; canary/rolling rollout watches service SLOs and traces. Shared cache keys include lockfiles and tool versions, and parallelism respects downstream capacity. Platform controls standardize identity, secrets, policy, logging, and rollback without coupling every service release. I measure lead time, failures, queue time, and change-failure rate per service.
+
+7. How do you implement CI/CD rollbacks automatically?
+Answer: Pipeline detects failure → Triggers kubectl rollout undo or redeploys last known good artifact → Notifies team.
+
+Detailed interview approach:
+I deploy an immutable artifact through a strategy matched to risk: rolling for routine stateless changes, canary for metric-based exposure, or blue-green for fast traffic switching. The pipeline runs prechecks, deploys to a small/no-traffic target, performs readiness and business smoke tests, then advances while watching error rate, latency, saturation, and SLO/error budget. If thresholds fail it stops traffic and rolls back to the previous artifact/config; database changes use expand-and-contract because application rollback cannot undo destructive schema changes. I verify recovery, record the result, and improve the test or guard that should have caught the failure earlier.
+
+8. How do you ensure consistency between environments (Dev, QA, Prod)?
+Answer: Use Terraform workspaces or separate variable files → Use Helm values for Kubernetes → Keep infra-as-code in Git.
+
+Detailed interview approach:
+I use the same versioned application artifact, pipeline template, Terraform modules, and Helm chart across environments; only reviewed configuration, capacity, endpoints, and credentials differ. Each environment has separate state and identity, while configuration follows a typed schema with validation and defaults. Promotion moves an immutable digest rather than rebuilding it, and staging mirrors production topology/integrations closely enough to expose upgrade risk. Scheduled Terraform plans and GitOps reconciliation detect drift. I compare rendered manifests/plans between stages, run smoke and contract tests, and document intentional differences. Secrets come from environment-specific vault scopes, never copied files. This makes a production difference explainable rather than accidental.
+
+9. How do you implement CI/CD notifications?
+Answer: Integrate Jenkins/Azure DevOps with Slack, Teams, or email → Send success/failure alerts with logs.
+
+Detailed interview approach:
+I send event-driven notifications from the pipeline `post`/completion path and include status, service, environment, commit, artifact, failed stage, owner, run URL, dashboard, and next action. Secrets or raw logs are never copied into chat. Success messages are grouped or limited, while production failures, approval waits, and rollback events route by severity to the owning channel/on-call system. Webhook credentials live in the secret store and delivery failures are monitored. I test notification formatting and deduplication and link to retained evidence. Chat is a communication channel, not the source of truth; the CI system and change record retain authoritative audit data.
+
+10. How do you handle multi-tenant CI/CD pipelines?
+Answer: Isolate jobs by namespaces/projects → Use separate credentials → Apply RBAC per team.
+
+Detailed interview approach:
+I isolate tenants by repository/project, credential scope, runner pool or namespace, cache/artifact path, quota, and deployment environment. Untrusted tenant code cannot run on a privileged shared agent or read another tenant’s workspace, secrets, logs, or cache. Jobs use ephemeral sandboxes, non-root containers, restricted network egress, workload identity, and per-tenant concurrency/resource limits. Shared templates are centrally versioned but changes are compatibility-tested and rolled out gradually. Audit events carry tenant and actor identity; usage/cost is attributable. High-security or mutually untrusted tenants receive dedicated runners or clusters because namespace/container boundaries alone may not meet the threat model.
+
+11. How do you implement CI/CD for microservices?
+Answer: Use separate pipelines per microservice → Containerize each → Deploy to Kubernetes via Helm/ArgoCD → Centralized monitoring.
+
+Detailed interview approach:
+Each service has an independently triggered pipeline based on path/repository changes, but all consume versioned shared templates. The flow builds once, runs unit/integration/contract and security tests, produces a signed image/SBOM, publishes the immutable digest, updates deployment configuration, and promotes through environments. Contract and compatibility tests protect service boundaries; canary/rolling rollout watches service SLOs and traces. Shared cache keys include lockfiles and tool versions, and parallelism respects downstream capacity. Platform controls standardize identity, secrets, policy, logging, and rollback without coupling every service release. I measure lead time, failures, queue time, and change-failure rate per service.
+
+12. How do you implement release approvals in CI/CD?
+Answer: Use Jenkins input step / Azure DevOps approval gates → Require manager/lead approval before deploying to production.
+
+Detailed interview approach:
+I place approval after automated build, test, security, policy, and deployment-plan checks, so the approver sees the exact immutable artifact, commit, target environment, risk, evidence, and rollback plan. In Jenkins this can be a protected `input` step with a timeout and named approver group; enterprise change records can be verified through an API. The same build artifact is promoted rather than rebuilt. Production credentials become available only after approval, and separation of duties prevents the author from self-approving high-risk changes. Approval, rejection, identity, timestamp, and deployment result are retained. Emergency bypass is limited, audited, and followed by review.
+

@@ -1,230 +1,424 @@
-1. 𝗠𝗮𝘀𝘁𝗲𝗿 𝗞𝘂𝗯𝗲𝗿𝗻𝗲𝘁𝗲𝘀 𝘄𝗶𝘁𝗵 𝗧𝗵𝗲𝘀𝗲 𝟱 𝗣𝗼𝘄𝗲𝗿𝗳𝘂𝗹 𝗣𝗿𝗼𝗷𝗲𝗰𝘁𝘀 🔥
+# Kubernetes Interview Preparation Summary
 
-Kubernetes is revolutionizing the way we deploy, scale, and secure applications in the cloud. But are you leveraging its full potential? 💡
+## 1. Containers and Kubernetes
 
-Here are 5 cutting-edge Kubernetes projects that can elevate your cloud-native journey with security, automation, and efficiency! ⬇️
+Docker and other container runtimes run containers on a host. Kubernetes orchestrates containers across a cluster by declaring desired state, scheduling workloads, maintaining replicas, exposing services, managing configuration, and recovering from failures.
 
-🔹 𝗞𝘂𝗯𝗲𝗚𝘂𝗮𝗿𝗱 – Keep your clusters secure with real-time threat detection, policy enforcement, and vulnerability scanning. 🛡️
-🔹 𝗔𝘂𝘁𝗼𝗦𝗰𝗮𝗹𝗲𝗿𝗫 – Optimize resource allocation with dynamic auto-scaling based on real-time metrics, ensuring cost-efficiency. ⚖️
-🔹 𝗞𝘂𝗯𝗲𝗙𝗹𝗼𝘄𝗢𝗽𝘀 – Automate CI/CD workflows in Kubernetes, enabling faster software deployment and seamless DevOps integration. 🚀
-🔹 𝗦𝗲𝗿𝘃𝗶𝗰𝗲𝗠𝗲𝘀𝗵𝗣𝗿𝗼 – Simplify microservices networking with mTLS encryption, observability, and traffic control. 🌐
-🔹 𝗛𝗲𝗹𝗺𝗪𝗶𝘇𝗮𝗿𝗱 – Make Helm chart management smarter and more intuitive, reducing human errors and streamlining deployments. ⚡
+| Container runtime | Kubernetes |
+| --- | --- |
+| Runs containers | Orchestrates containerized workloads |
+| Usually scoped to one host | Coordinates multiple nodes |
+| Container lifecycle is managed directly | Controllers continuously reconcile desired state |
+| Networking and scaling are configured manually | Provides service discovery, rollout, and scaling APIs |
 
-𝗪𝗵𝘆 𝘀𝗵𝗼𝘂𝗹𝗱 𝘆𝗼𝘂 𝗰𝗮𝗿𝗲? 🤔
-✅ Better Security – Automate security checks and prevent vulnerabilities.
-✅ Optimized Scaling – No more overprovisioning, save costs!
-✅ Faster Deployments – Deliver software at speed with GitOps and automation.
-✅ Enhanced Microservices – Secure and monitor service-to-service communication.
-✅ Effortless Helm Management – Reduce manual effort, focus on innovation.
+Kubernetes still needs a CRI-compatible runtime such as containerd. Kubernetes is not a replacement for container images or runtimes.
 
------
-2. Code to Cloud: Deploying Zomato on AWS EKS
-I spent a weekend working to deploy a Zomato-like app on AWS and learned a lot about cloud DevOps. The goal was to run a full-stack app on Kubernetes, making sure it’s easy to scale and monitor.
-🔧 Tech Stack:
-Infrastructure: AWS EKS, EC2, Load Balancers
-DevOps: Docker, Kubernetes, Helm, Jenkins CI/CD
-Monitoring: Prometheus, Grafana, Node Exporter
-Security: Trivy, OWASP, SonarQube, Docker Scout
-GitOps: ArgoCD for managing Kubernetes
-The steps I followed:
-1️⃣ Broke the app into microservices—frontend, backend, database. Made Docker images and sent them to DockerHub.
-2️⃣ Set up a Kubernetes cluster on AWS EKS using eksctl. Created Helm charts so deployments are easier. Used Ingress for routing.
-3️⃣ Built a CI/CD pipeline with Jenkins. This handled building, scanning for security problems, checking code quality, and deploying to EKS.
-4️⃣ Added monitoring with Prometheus and Grafana. Used ArgoCD for keeping Kubernetes up-to-date with repo changes.
-5️⃣ Learned how to fix chart issues, set up auto-scaling, and keep secrets safe. DevOps is a process—lots of small improvements!
+## 2. Cluster Architecture
 
------
-3. Deploying Applications on Kubernetes with FluxCD and Helm Charts 🚀
-Kubernetes deployments can be complex, but with FluxCD and Helm charts, the process becomes seamless, scalable, and fully automated! Recently, I deployed an application using this powerful combo, leveraging the GitOps model to ensure continuous delivery. Here's how it went:
+### 2.1 Control Plane
 
-Key Steps in the Process:
-1️⃣ Bootstrap FluxCD: Set up FluxCD to manage Kubernetes resources directly from a Git repository.
-2️⃣ Create a Helm Chart: Defined application configurations in a reusable and version-controlled Helm chart.
-3️⃣ Integrate FluxCD with Helm: Used FluxCD to manage the Helm chart as a Kubernetes resource for automated deployments.
-4️⃣ Automated Updates with GitOps: Any change in the Git repository triggers automatic updates in the Kubernetes cluster, ensuring version control and rollback capabilities.
+- **kube-apiserver:** Front end for Kubernetes API requests and the main communication hub.
+- **etcd:** Strongly consistent key-value store containing cluster state.
+- **kube-scheduler:** Assigns unscheduled Pods to suitable nodes.
+- **kube-controller-manager:** Runs controllers that reconcile resources such as nodes, Deployments, and Jobs.
+- **cloud-controller-manager:** Integrates supported cloud-provider capabilities.
 
+### 2.2 Worker Node
 
-What I Achieved:
-✅ Simplified deployment pipelines with fully declarative configurations.
-✅ Automated real-time updates for continuous delivery.
-✅ Transparent and auditable deployments with Git as the single source of truth.
+- **kubelet:** Ensures the containers described by Pod specifications are running on its node.
+- **Container runtime:** Pulls images and runs containers.
+- **kube-proxy or eBPF data plane:** Implements Service networking, depending on the cluster network implementation.
+- **CNI plugin:** Provides Pod networking and often NetworkPolicy enforcement.
 
-Why This Matters:
-This approach not only streamlines the deployment process but also empowers teams to focus on building features rather than managing infrastructure.
-If you're looking to simplify your Kubernetes operations or are curious about GitOps, I highly recommend exploring FluxCD and Helm.
+If the control plane is temporarily unavailable, existing containers can keep running, but new scheduling, updates, and controller-driven recovery stop. A production cluster should use a highly available control plane.
 
------
-4. Advanced Kubernetes – Quick Notes 📝
+## 3. Core Kubernetes Objects
 
---> StatefulSets vs Deployments: StatefulSets = stateful apps (stable Pod ID + storage); Deployments = stateless apps.
+### 3.1 Pod
 
---> Service Mesh: Manages secure, reliable service-to-service communication with traffic control and observability (e.g., Istio).
+A Pod is the smallest schedulable unit. Containers in one Pod share:
 
---> Cluster Security: RBAC, Network Policies, encrypted Secrets, TLS, Pod security policies, audits.
+- One network namespace, Pod IP, and port space
+- `localhost` connectivity
+- Declared volumes
+- Pod metadata and lifecycle
 
---> Taints & Tolerations: Taints repel Pods from nodes; tolerations allow Pods to run on tainted nodes.
+Two containers in the same Pod cannot bind the same IP and port at the same time.
 
---> Sidecar Containers: Helper containers in a Pod for logging, monitoring, or proxies.
+### 3.2 Workload Controllers
 
---> Common Pod Errors: ImagePullBackOff (fix image/registry), CrashLoopBackOff (check logs/resources), Pending (scale cluster/fix requests).
+| Object | Purpose |
+| --- | --- |
+| ReplicaSet | Maintains a desired number of matching Pods |
+| Deployment | Manages stateless replicas and declarative rollouts |
+| StatefulSet | Provides stable identities, ordered behavior, and per-Pod storage templates |
+| DaemonSet | Runs a Pod on every eligible node or selected group of nodes |
+| Job | Runs work to completion |
+| CronJob | Creates Jobs on a schedule |
 
---> Mutating Admission Webhook: Modifies resources (e.g., auto-inject sidecars) before saving in etcd.
+Deleting `app-1` from a StatefulSet recreates `app-1`; the other Pods are not renamed. Stable ordinals preserve network and storage identity.
 
---> Zero-Downtime Deployment: Use rolling updates with readiness probes, or blue-green/canary strategies.
+DaemonSet Pods receive tolerations for several node conditions, but scheduling onto control-plane nodes normally requires an explicit toleration for the applicable control-plane taint.
 
---> Custom Resource Definitions (CRDs): Extend Kubernetes with custom resources for domain-specific apps.
+### 3.3 Configuration Objects
 
---> Operators: Automate app lifecycle (deploy, scale, backup) using CRDs + controllers.
+- **ConfigMap:** Non-sensitive configuration.
+- **Secret:** Sensitive data; base64 encoding is not encryption.
+- **ServiceAccount:** Workload identity within the Kubernetes API.
+- **Namespace:** Logical isolation and scope for namespaced resources.
 
-----
-5. --> Kubernetes → Open-source container orchestration platform for automating deployment, scaling, and management of containerized apps.
+Prefer an external secret manager and workload identity for production credentials. Apply encryption at rest, RBAC, audit logging, and least privilege.
 
---> Pod → Smallest deployable unit in Kubernetes, a wrapper around one or more containers sharing network and storage.
+## 4. Manifests and Desired State
 
---> Deployment → Controller that manages Pods and ReplicaSets, supports scaling, rolling updates, and rollbacks.
+A Kubernetes manifest is YAML or JSON describing the desired state of an API object.
 
---> Service → Provides stable networking (IP/DNS) and load balancing for Pods whose IPs change dynamically.
---> Service Types →
-1. ClusterIP (internal only)
-2. NodePort (exposes via Node IP:Port)
-3. LoadBalancer (cloud LB for external access)
-4. ExternalName (maps to external DNS)
-5. Headless (direct Pod-to-Pod).
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: example/web:1.0.0
+```
 
---> ConfigMaps & Secrets → Store configuration and sensitive data separately from code; Secrets are base64-encoded.
+Common manifests define Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets, HPAs, Jobs, and NetworkPolicies.
 
---> Namespaces → Logical partitions in a cluster for isolation, multi-tenancy, and resource management.
+## 5. Services and Application Networking
 
---> Labels & Selectors → Labels = key-value identifiers; Selectors = queries to filter/manage resources based on labels.
+Detailed coverage has moved to `networking/kubernetes/summary.txt`.
 
---> PV & PVC → PV = actual storage resource, PVC = user’s request for storage; used to persist data beyond Pod lifecycle.
+## 6. Storage
 
------
-6. ■ What are Persistent Volumes (PVs) and Persistent Volume Claims (PVCs)? 
---> PV = storage resource, 
---> PVC = request for storage. 
---> Decouples storage from Pods, ensures data persistence. 
-■ What is Kubernetes networking, and how does it work? 
---> Each Pod gets a unique IP, all Pods can talk without NAT, Services provide stable DNS/IP. Implemented via CNI plugins. 
-■ What is Role-Based Access Control (RBAC) in Kubernetes? 
---> Security mechanism that controls access to resources using Roles/ClusterRoles and RoleBindings. 
-■ How does Kubernetes autoscaling work? 
---> HPA scales Pods based on metrics, 
---> VPA adjusts resource requests, 
---> Cluster Autoscaler adds/removes nodes. 
-■ How do you debug Kubernetes Pods? 
---> Use kubectl describe, logs, exec, and get events to inspect issues. 
-■ How do you perform rolling updates and rollbacks in Kubernetes? 
---> Rolling update upgrades Pods gradually (zero downtime), 
---> rollback restores previous version using kubectl rollout. 
-■ What is an Ingress in Kubernetes, and how does it work? 
---> API object managing HTTP/HTTPS external traffic using rules and Ingress Controllers. 
-■ How does Kubernetes handle resource limits and requests? 
---> Requests = guaranteed resources, 
---> Limits = max allowed; 
-exceeding memory kills Pod, CPU just throttles. 
-■ What happens if a Pod resource needs to grow beyond the assigned limits? 
---> CPU over limit → throttling; Memory over limit → OOMKilled. 
-■ What are init containers, and when should you use them? 
---> Special containers that run before main containers to set up environment/configs/dependencies. 
-■ How does Kubernetes handle Pod disruptions and high availability? 
---> Uses ReplicaSets, PodDisruptionBudgets, and rescheduling on healthy nodes for HA.
+- **PersistentVolume (PV):** Cluster storage resource.
+- **PersistentVolumeClaim (PVC):** Namespaced request for storage.
+- **StorageClass:** Defines dynamic provisioning behavior.
+- **VolumeSnapshot:** Snapshot API object when supported by the CSI driver.
 
-----
-7. Inside a Pod, all containers share:
+Common access modes:
 
-1. Network → Same IP, same localhost.
-2. Storage → Shared volumes for data exchange.
-3. Env Vars / Metadata → Pod-level environment variables & configs.
-4. (Optional) IPC → Can communicate using system signals.
-👉 This makes containers inside a Pod work like they are on the same machine, tightly coupled.
+- `ReadWriteOnce` (RWO): read-write from a single node; multiple Pods on that node may be possible depending on the driver.
+- `ReadWriteOncePod` (RWOP): read-write by one Pod.
+- `ReadOnlyMany` (ROX): read-only from many nodes.
+- `ReadWriteMany` (RWX): read-write from many nodes.
 
-In easy way to remember:
-🏠 Pod = House
-A Pod is like a house where multiple roommates (containers) live together.
-👥 Containers = Roommates
-Each container is a roommate with its own work (web app, logging, monitoring, etc.).
-🌐 Shared Network = Same Wi-Fi
-All roommates share the same Wi-Fi (IP address).
-They talk to each other using localhost (like chatting inside the house).
-📂 Shared Storage = Common Fridge/Bookshelf
-There’s a common fridge or bookshelf (Volume).
-Whatever one puts in, the others can also use.
-📝 Shared Env Vars = House Rules
-Rules (like “no loud music after 10 PM” or “APP_ENV=production”) apply to all roommates equally.
-🛎 Optional IPC = Knocking on Doors
-Roommates can also signal each other (like knocking or passing notes).
-👉 So, containers in the same Pod = roommates in one house, sharing Wi-Fi, storage, and rules, but each still does their own job.
+Zone-bound disks can prevent a StatefulSet Pod from mounting after scheduling into another zone. Use topology-aware StorageClasses, appropriate node affinity, and a tested backup/restore strategy.
 
----
-8. Question 2: Kubernetes Troubleshooting
-Your team deployed a Spring Boot microservice on GKE, but the pod is stuck in CrashLoopBackOff.
-As a DevOps engineer,
-How would you troubleshoot this issue?
-What commands or tools would you use to debug it?
+A single PV is normally bound to one PVC. Cross-namespace failures are more commonly caused by multiple PVs using the same storage backend or by an RWX service failure, not multiple ordinary PVCs binding independently to one PV.
 
-Answer: If a pod is stuck in CrashLoopBackOff, I’d follow these steps:
-🔍 1. Check Pod Status and Events
-kubectl get pods
-kubectl describe pod <pod-name>
+## 7. Scheduling
 
---> Look for reasons in the Events section: missing images, failed mounts, liveness probe errors, etc.
+The scheduler filters and scores nodes using:
 
-🔍 2. Check Logs
-kubectl logs <pod-name> --previous
+- Resource requests and allocatable capacity
+- Node selectors and node affinity
+- Pod affinity and anti-affinity
+- Taints and tolerations
+- Topology spread constraints
+- Volume topology
+- Pod priority and preemption
 
---> --previous shows logs from the previous crashed container.
---> This helps identify application-level errors (e.g., DB connection failure, wrong configs).
+Required anti-affinity can make Pods unschedulable when there are too few eligible nodes or zones. Prefer soft rules when strict separation is not essential and monitor scheduling events.
 
-🔍 3. Verify Configuration
---> Check image name and tag (wrong image causes crashes).
---> Validate ConfigMaps/Secrets:
+When a node becomes unreachable, Pods usually receive default `NoExecute` tolerations for `not-ready` and `unreachable` conditions. Per-Pod `tolerationSeconds` can alter how long they remain bound. Exact behavior depends on cluster configuration and workload type.
 
-kubectl get configmap
-kubectl get secret
+## 8. Resource Management and Autoscaling
 
-🔍 4. Check Health Probes
---> Misconfigured liveness/readiness probes often cause restarts.
---> Verify them in the Deployment manifest:
+### 8.1 Requests and Limits
 
-livenessProbe:
- httpGet:
- path: /health
- port: 8080
- initialDelaySeconds: 30
+- **Request:** Used for scheduling and influences resource guarantees.
+- **Limit:** Enforced maximum for memory and a throttling boundary for CPU.
 
-🔍 5. Test Locally
---> Run the same Docker image locally to see if it crashes outside Kubernetes:
+A container exceeding its memory limit can be terminated as `OOMKilled`. During node pressure, QoS class, usage relative to requests, and Pod priority influence eviction.
 
-docker run -it <image-name>
+Existing Pod specifications are generally replaced through their controller when resource settings change. In-place resize availability depends on the Kubernetes version, feature status, and cluster support; do not assume it is universally available.
 
-🔍 6. Restart or Roll Back
---> If a quick fix exists, restart pods:
-kubectl rollout restart deployment <deployment-name>
---> If not, rollback to a previous working version:
-kubectl rollout undo deployment <deployment-name>
+### 8.2 Autoscaling
 
-🔍 7. Check Cluster Resources
---> Sometimes crashes are due to out-of-memory (OOM) or resource limits.
+- **HPA:** Changes replica count using resource or custom/external metrics.
+- **VPA:** Recommends or updates Pod resource sizing according to its mode.
+- **Cluster Autoscaler:** Adds or removes nodes based on unschedulable Pods and utilization rules.
+
+When HPA metrics are unavailable, scaling behavior depends on which metrics fail and available recommendations. Monitor HPA conditions rather than assuming every metrics failure freezes replicas.
+
+## 9. Health Checks, Self-Healing, and Disruptions
+
+- **Startup probe:** Protects slow-starting applications from premature liveness checks.
+- **Readiness probe:** Controls whether a Pod receives Service traffic.
+- **Liveness probe:** Restarts a container considered unhealthy.
+- **PodDisruptionBudget:** Limits voluntary disruption to a replicated workload.
+
+Readiness gates traffic; liveness should detect an unrecoverable process, not temporary dependency slowness. Poor probes are a common source of rollout downtime and restart loops.
+
+## 10. Rollouts and Deployment Strategies
+
+A Deployment rolling update gradually scales a new ReplicaSet up while scaling the old one down. `maxSurge` and `maxUnavailable` control capacity during the rollout.
+
+For low-risk updates:
+
+- Use multiple replicas across nodes/zones.
+- Define realistic readiness and startup probes.
+- Set resource requests.
+- Use a PodDisruptionBudget and graceful shutdown.
+- Configure `preStop` and sufficient termination grace where needed.
+- Monitor the rollout and application metrics.
+- Keep a tested rollback method.
+
+If a Deployment is updated again during an active rollout, Kubernetes creates or uses a ReplicaSet for the newest Pod template and converges toward that latest state.
+
+Blue-green and canary releases can be implemented with Services, multiple Deployments, Ingress/service-mesh routing, or progressive-delivery tools.
+
+## 11. Jobs and Init Containers
+
+Init containers run sequentially before application containers. If an init container fails with Pod `restartPolicy: Never`, the Pod fails and the main containers never start. A higher-level controller may create another Pod.
+
+A Job maintains the requested parallelism and continues creating Pods until it reaches successful completions or a failure limit such as `backoffLimit`.
+
+## 12. Security
+
+Use layered controls:
+
+- Strong identity integration and least-privilege RBAC
+- Namespaces, quotas, and tenancy boundaries
+- Pod Security Admission
+- Non-root containers and restrictive security contexts
+- Read-only root filesystems
+- Dropped Linux capabilities and seccomp profiles
+- Trusted, signed, and scanned images
+- NetworkPolicies
+- External secret stores and workload identity
+- API audit logs and runtime monitoring
+- Regular cluster and node-image upgrades
+
+A security context can define `runAsUser`, `runAsGroup`, `fsGroup`, `allowPrivilegeEscalation`, capabilities, SELinux options, seccomp, privileged mode, and read-only filesystem settings.
+
+Deleting a ServiceAccount does not necessarily terminate existing Pods immediately. Bound tokens are short-lived and refreshed; access will eventually fail when refresh or authorization no longer succeeds. New Pods referencing a missing ServiceAccount cannot be admitted.
+
+## 13. Troubleshooting Workflow
+
+Use a consistent order:
+
+```bash
+kubectl get pod <pod> -o wide
+kubectl describe pod <pod>
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl logs <pod> --all-containers
+kubectl logs <pod> --previous
+kubectl get deploy,rs,svc,endpointslice,ingress
 kubectl top pod
-kubectl describe node <node-name>
+kubectl top node
+```
 
-🔍 8. Root Cause Resolution
---> Once root cause is found (e.g., bad config, missing dependency, low memory), fix the Deployment or ConfigMap and re-deploy.
+### CrashLoopBackOff
 
-💡 What to Say in Interview:
-“I first check pod status with kubectl describe pod and review logs with kubectl logs --previous. Then I verify configuration, secrets, and health probes. If necessary, I test the image locally and restart or roll back. I also check node resource usage with kubectl top. This structured approach helps isolate whether the issue is application-level, configuration, or resource-related.”
+Check current and previous logs, exit code, events, command/arguments, environment, mounted configuration, dependencies, probes, and OOM status. `kubectl port-forward` is unreliable while the container repeatedly crashes; use logs, an ephemeral debug container, or a stable Service target when appropriate.
 
------
-9. Question: What is Kubernetes Manifests?
-Answer: A Kubernetes manifest is a YAML file that defines the desired state of your application or infrastructure in a Kubernetes cluster.
- It tells Kubernetes:
-“I want 3 replicas of this app running, with these environment variables, secrets, and resource limits.”
-Common Manifest Types:
-1. Deployment: Runs your app containers.
-2. Service: Exposes your app internally or externally.
-3. ConfigMap/Secret: Stores configuration and secrets.
-4. Ingress: Routes traffic from the internet.
-5. HPA (Horizontal Pod Autoscaler): Scales pods automatically.
+### ImagePullBackOff
 
-----
+Check image name/tag, registry reachability, credentials, pull secrets, ServiceAccount configuration, architecture compatibility, and registry rate limits.
+
+### Pending Pod
+
+Check scheduling events, requests, affinity, taints, topology spread, quotas, pending PVCs, node selectors, and autoscaler status.
+
+### Network or 503 Failure
+
+See `networking/kubernetes/summary.txt` for the investigation flow.
+
+### NodeNotReady
+
+Check kubelet and runtime health, certificates, disk/memory/PID pressure, CNI state, system logs, control-plane connectivity, and cloud instance health.
+
+## 14. Backup, Restore, and Disaster Recovery
+
+Protect:
+
+- Cluster configuration and manifests
+- Persistent application data
+- etcd for self-managed control planes
+- External dependencies, certificates, and secrets according to policy
+
+Velero can back up Kubernetes resources and coordinate supported volume snapshots. Test restores regularly; an untested backup is not a recovery plan. Managed Kubernetes providers protect their control plane, but customers remain responsible for workload data and configuration recovery.
+
+Multi-region recovery normally uses separate clusters, replicated data, independently deployable configuration, and DNS or global traffic management. One stretched control plane creates a large failure domain.
+
+## 15. Monitoring and Observability
+
+Monitor control-plane/API health, node conditions, Pod restarts, pending Pods, CPU/memory, disk and inode pressure, network errors, workload latency/errors, HPA conditions, and persistent storage.
+
+Common stacks include Prometheus, Grafana, Alertmanager, cloud-native container insights, OpenTelemetry, and centralized log platforms. Correlate infrastructure metrics with application telemetry.
+
+## 16. CI/CD and GitOps
+
+A typical delivery flow builds and scans an image, publishes it to a registry, validates manifests or Helm charts, deploys to a lower environment, runs tests, and promotes an immutable version.
+
+- **Push deployment:** CI credentials apply changes to the cluster.
+- **Pull-based GitOps:** Argo CD or Flux reconciles cluster state from Git/OCI sources.
+
+GitOps provides continuous reconciliation and drift visibility. Projects that combine Terraform, EKS/AKS, Helm, Jenkins, Argo CD/Flux, Prometheus, and Grafana demonstrate the full infrastructure-to-observability lifecycle.
+
+## Production Microservices Design Checklist
+
+A microservices platform should define clear service and data ownership, package each service in a small non-root image, and keep configuration separate from the image. Kubernetes Deployments, Services, Ingress, ConfigMaps, external secret integration, resource requests, and health probes form the basic workload contract.
+
+Traffic design includes a supported ingress controller, TLS automation, authentication, rate limiting, and private service communication. A service mesh such as Istio or Linkerd is justified when workload identity, mTLS, traffic policy, or detailed service telemetry outweighs its additional operational cost.
+
+Scaling must cover both Pods and nodes. HPA handles suitable utilization or application metrics, VPA recommends or changes resource sizing with restart considerations, KEDA handles event/queue-driven demand, and the cluster autoscaler supplies node capacity. Load testing must verify dependency limits and scale-down behavior.
+
+Security includes namespace and RBAC boundaries, default-deny NetworkPolicies, Pod Security Admission, read-only/non-root containers, signed and scanned images, SBOMs, and secrets retrieved through workload identity. Observability combines Prometheus metrics, Grafana dashboards, structured logs through Fluent Bit/Loki or another log store, and OpenTelemetry/Jaeger traces with consistent service and request identifiers.
+
+
+## 17. Advanced Interview Scenarios
+
+Be ready to reason through:
+
+1. Failed init containers and Pod restart policies
+2. Stable StatefulSet Pod identities
+3. DaemonSets, taints, and tolerations
+4. Deployment changes during an active rolling update
+5. Node failure detection and Pod eviction timing
+6. Port conflicts between containers in one Pod
+7. RWO vs. RWOP vs. RWX storage semantics
+8. HPA behavior during metrics failures
+9. Debugging containers in CrashLoopBackOff
+10. ServiceAccount deletion and token rotation
+11. Anti-affinity scheduling deadlocks
+12. Job replacement Pods and failure limits
+13. Requests, limits, OOM kills, and eviction
+14. Default-deny egress NetworkPolicies
+15. Shared storage failure domains
+
+## 18. Interview Revision Checklist
+
+- Kubernetes architecture and reconciliation
+- Pods and workload controllers
+- Manifests, ConfigMaps, Secrets, and ServiceAccounts
+- Service types, Ingress, DNS, and NetworkPolicy
+- PV, PVC, StorageClass, access modes, and topology
+- Scheduling, affinity, taints, and disruption handling
+- Requests, limits, HPA, VPA, and cluster autoscaling
+- Probes, rolling updates, and rollback
+- Security context, RBAC, admission, and image security
+- Troubleshooting Pods, nodes, storage, and networking
+- Backup, disaster recovery, monitoring, CI/CD, and GitOps
+
+## 19. Advanced Production Scenarios
+
+The detailed scenario answers are consolidated in `questions.txt`. For quick revision, group them into the following investigation areas.
+
+### 19.1 Control Plane and Node Reliability
+
+- For `NodeNotReady`, inspect node Conditions and Events, kubelet/container-runtime status, disk and memory pressure, certificates, time synchronization, CNI state, and API-server reachability. Cordon before repair and drain only when disruption budgets and replacement capacity allow it.
+- For API-server overload, correlate request latency, inflight requests, audit logs, etcd latency, admission-webhook performance, and noisy controllers. Rate-limit or pause the offending client, then correct its list/watch, cache, pagination, and backoff behavior.
+- For etcd corruption, protect quorum and evidence, use the distribution-supported member replacement or snapshot restore process, and validate API objects and controllers before accepting writes. Velero application backups do not replace etcd snapshots.
+- Fleet upgrades should move from a representative staging cluster through controlled production waves. Check removed APIs and add-on compatibility, respect version skew, upgrade node pools gradually, and stop promotion when workload SLOs regress.
+
+### 19.2 Workload Failures and Scheduling
+
+- Start with `kubectl describe` Events, then current and previous logs. Distinguish image, configuration, command, dependency, probe, permission, scheduling, and resource failures before changing anything.
+- `Pending` Pods require scheduler evidence: CPU or memory shortage, taints, affinity, quota, unbound PVC, topology, or autoscaler limits. Fix the reported constraint rather than deleting the Pod repeatedly.
+- `Terminating` Pods require checking finalizers, preStop hooks, grace periods, attached storage, API reachability, and the responsible controller. Force deletion is a last resort after understanding state and data risk.
+- For OOM, eviction, restart, and resource-leak incidents, compare requests and limits with observed use, node pressure, throttling, heap or file-descriptor growth, and application metrics. Right-size from load-test evidence and verify after rollout.
+
+### 19.3 Security and Compliance
+
+- Use identity-based least privilege, separate service accounts, Pod Security Admission, non-root/read-only containers, seccomp, approved signed images, default-deny network controls, encrypted secrets, and audit/runtime monitoring.
+- A leaked secret must be revoked and rotated immediately; removing it from a log or Git file is not remediation. Investigate access, update consumers through an overlap period, verify the new value, and then revoke the old value.
+- Certificate incidents require identifying the exact endpoint and owner, checking expiry, SAN, SNI, issuer, chain, and consumer reload. Automate renewal and alert well before expiry.
+- Multi-tenant and multi-cluster designs need explicit isolation boundaries, quotas, policy enforcement, centralized identity and audit, and separate clusters where the risk boundary requires it.
+
+### 19.4 Delivery, Scaling, and Cost
+
+- Zero-downtime delivery depends on immutable versions, realistic readiness/startup probes, adequate surge capacity, graceful shutdown, compatible database changes, rollout monitoring, and a tested rollback—not only `RollingUpdate` settings.
+- Canary and blue-green strategies promote releases using health and business metrics. Keep the old version available during the validation window and automate rollback when thresholds fail.
+- HPA scales Pods, a node autoscaler supplies schedulable capacity, and event-driven scaling handles queue or custom demand. Validate metric freshness, resource requests, min/max limits, stabilization windows, dependency capacity, and scale-down behavior.
+- Cost optimization combines usage evidence, right-sizing, autoscaling, appropriate node pools, spot capacity for tolerant workloads, log retention, storage lifecycle, quotas, schedules, and SLO verification after each change.
+
+### 19.5 Stateful Workloads and Disaster Recovery
+
+- Stateful failover must cover data replication, quorum, storage topology, fencing, leader election, DNS or traffic switching, and application consistency. StatefulSets alone do not provide database replication.
+- For failed PV mounts, inspect PVC/PV/StorageClass, CSI Events and logs, access mode, topology, attachment state, quota, identity, and filesystem health. Do not force-detach or delete state until ownership and backups are verified.
+- Disaster recovery begins with business-approved RTO/RPO. Protect manifests, cluster state, persistent data, secrets, certificates, DNS, identity, dependencies, and runbooks in another failure domain, then prove them through restore and failover exercises.
+- Multi-region and multi-cloud recovery must control write ownership to avoid split brain and use tested weighted traffic or DNS cutover with an explicit rollback window.
+
+### 19.6 Observability, Chaos, and Continuous Improvement
+
+- Monitor availability, latency, errors, traffic, saturation, control-plane health, node pressure, scheduling, restarts, storage, DNS, and important business transactions using correlated metrics, structured logs, traces, and deployment events.
+- Chaos experiments require a hypothesis, bounded blast radius, steady-state metrics, approval, abort conditions, and a rollback. Begin in non-production and use the findings to improve redundancy, timeouts, retries, alerts, and runbooks.
+- After every incident, verify the real application path, remove temporary access or scaling, capture the root cause and contributing controls, assign preventive actions, and test that monitoring detects recurrence.
+
+## 20. Screenshot Revision: Kubernetes Operating Model
+
+### What happens after `kubectl apply`
+
+`kubectl` submits a declarative object to the API server. Authentication, authorization, admission, and schema validation run before the desired state is persisted in etcd. Controllers observe the new state and create or update lower-level objects such as ReplicaSets. The scheduler assigns unscheduled Pods using resources, affinity, taints, topology, and policy. Kubelet on the selected node asks the container runtime through CRI to pull the image and start containers. Probes determine whether the container is alive and ready; Services and Ingress route only when endpoints and readiness are correct.
+
+### Core object memory model
+
+- Pod: smallest runnable unit; one or more tightly coupled containers.
+- Deployment/ReplicaSet: stateless replicas, rollout, rollback, and desired count.
+- StatefulSet: stable identity and storage orchestration; it does not itself replicate application data.
+- DaemonSet: one Pod on every matching node, commonly agents and node services.
+- Job/CronJob: finite or scheduled work.
+- ConfigMap/Secret: non-secret configuration versus sensitive values; Secret objects still require encryption, RBAC, and safe delivery.
+- PV/PVC/StorageClass: supplied storage, a workload claim, and dynamic provisioning policy.
+- Namespace/RBAC: organizational and authorization boundaries; stronger multi-tenancy also needs policy, quotas, and network isolation.
+
+### Autoscaling
+
+HPA changes Pod replica count from CPU, memory, or custom/external metrics. VPA recommends or changes Pod resource sizing and may restart Pods. Cluster Autoscaler or the provider node autoscaler adds/removes worker-node capacity when Pods cannot schedule or nodes are underused. Metrics Server supplies common resource metrics; production scaling must also validate resource requests, min/max limits, stabilization, dependency capacity, startup time, and safe scale-down.
+
+### Production-issue checklist
+
+Repeated issue charts consolidate to one evidence-based flow:
+
+- CrashLoopBackOff: inspect current/previous logs, exit code, command, configuration, probes, permissions, dependencies, and OOM evidence.
+- ImagePullBackOff: verify image digest/tag, registry existence and reachability, architecture, pull secret/service account, CA/proxy, and node disk.
+- Pending: read scheduler Events for resource shortage, taints, affinity, quota, topology, or unbound PVC.
+- OOMKilled/high CPU or memory: measure Pod and node usage, throttling, requests/limits, GC/query/process behavior, traffic, HPA, and node pressure before scaling or tuning.
+- NodeNotReady: inspect Conditions/Events, kubelet/runtime, disk/memory/PID pressure, certificates, time, CNI, and API connectivity; cordon before repair and drain only when safe.
+- PVC Pending/mount failure: inspect PVC/PV/StorageClass, access mode, topology, CSI logs, identity, quota, and attachment state before any destructive storage action.
+
+### Controlled cluster upgrade
+
+Back up self-managed etcd and cluster configuration, confirm workload/backup health, review deprecated APIs and add-on compatibility, respect supported version skew, and rehearse in staging. Upgrade the control plane through the distribution/provider-supported procedure, then cordon and drain worker nodes one at a time while respecting PDBs and replacement capacity. Upgrade kubelet/runtime/node images and CNI/CSI/Ingress/DNS add-ons in their supported sequence. Verify nodes, system Pods, application transactions, SLOs, and rollback/recovery after every wave. Do not copy version numbers from a screenshot; select currently supported versions from the platform documentation.
+
+## 21. API Request Lifecycle and Persistent Storage
+
+### What happens after `kubectl apply -f app.yaml`
+
+1. `kubectl` reads the manifest, resolves its API resource, and sends an authenticated request to the API server.
+2. The API server performs authentication, authorization, schema/defaulting and admission checks, then persists accepted desired state in etcd.
+3. Informers notify the relevant reconcilers. For a Deployment, its controller creates or updates a ReplicaSet, and the ReplicaSet controller creates Pods. For a Pod created directly, there is no workload controller in this creation path.
+4. The scheduler watches unscheduled Pods and selects a node using resource requests, constraints, affinity, taints/tolerations, topology, and policy.
+5. The selected node's kubelet observes the PodSpec and asks the container runtime through CRI to pull images and start containers. CNI configures networking and CSI mounts storage where required.
+6. Kubelet reports status through the API server. Readiness controls whether Services send traffic; liveness and startup probes govern restart behavior.
+
+When this flow fails, investigate the stage indicated by evidence: API/RBAC/admission errors, controller events, Pending scheduling events, image-pull failures, CNI/CSI errors, probe failures, or application logs. Start with `kubectl describe`, events, current and previous logs, and the owning controller rather than repeatedly deleting the Pod.
+
+### PV, PVC, StorageClass, and Pod flow
+
+A PersistentVolumeClaim is the workload's request for capacity, access mode, and optionally a StorageClass. A PersistentVolume represents storage made available to the cluster. A StorageClass and CSI driver can dynamically provision a suitable PV, after which the claim binds to it and the Pod mounts the claim:
+
+```text
+Pod -> PVC -> bound PV -> CSI-backed storage
+```
+
+The PV lifecycle is independent of an individual Pod, but data survival also depends on the reclaim policy, storage service, zone topology, backup, and restore design. In AKS, Azure Disk commonly fits single-node block storage and Azure Files supports shared file access; choose through workload access and performance requirements rather than assuming all persistent storage behaves the same.
+
+## 22. Custom Resources and Controllers
+
+A CRD adds a declarative resource type to the Kubernetes API with group, names, scope, served/storage versions and an OpenAPI schema. Kubernetes then provides persistence in etcd, API discovery, watch, labels, RBAC and standard `kubectl` interaction. A CRD alone does not create workload or cloud resources.
+
+A custom controller watches desired custom objects and reconciles actual state through an idempotent loop. It manages owned resources or external APIs, records `status.observedGeneration` and Conditions, handles deletion through carefully designed finalizers, and retries transient failures with bounded backoff. Production design requires schema/version migration, least-privilege RBAC, leader election, metrics/logs/events, conflict handling, idempotent external operations and tests for restart, duplicate events, partial failure and deletion.

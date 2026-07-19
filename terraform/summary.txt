@@ -150,3 +150,78 @@ terraform login – Authenticate with Terraform Cloud.
 terraform providers – List all required providers for your configuration.
 
 -----
+
+## Structured Terraform Revision Notes
+
+### Workflow and project structure
+
+The normal lifecycle is write configuration → `init` → `fmt`/`validate` → reviewed `plan` → approved `apply` → post-apply verification. Common files include `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, `versions.tf`, backend configuration, environment values, and reusable modules. Remote state should be encrypted, access controlled, versioned, audited, and locked.
+
+### Parent and child modules
+
+The root module orchestrates child modules such as network, compute, database, security, storage, and monitoring. Child modules expose a small input/output contract and hide implementation detail. Values flow from root variables into module inputs; child outputs become inputs to other components only through explicit root wiring.
+
+Good modules are focused, documented, versioned, tested, and free of hardcoded environment names or credentials. Keep provider configuration and environment orchestration at the root where practical. Module version pinning and migration notes prevent one team from breaking every consumer.
+
+### `for_each` with a nested map
+
+A map of objects lets one resource block create stable instances keyed by names such as `dev` and `prod`:
+
+```hcl
+variable "storage_accounts" {
+  type = map(object({
+    name     = string
+    location = string
+    tier     = string
+  }))
+}
+
+resource "azurerm_storage_account" "example" {
+  for_each                 = var.storage_accounts
+  name                     = each.value.name
+  location                 = each.value.location
+  account_tier             = each.value.tier
+  resource_group_name      = "demo-rg"
+  account_replication_type = "LRS"
+}
+```
+
+`each.key` is the stable map key and `each.value` is the complete object. Stable keys make additions and removals easier to review than positional list indexes. This pattern supports environment, region, team, or component maps, but separate state boundaries are still needed when ownership or blast radius differs.
+
+### Scenario reminders
+
+- Import an existing object only after writing matching configuration and confirming the exact resource address and ID.
+- Protect critical resources through reviewed plans, lifecycle controls, provider deletion protection, policy, and backups; `prevent_destroy` alone is not a complete safeguard.
+- Use launch templates and autoscaling instance refresh or a blue-green pattern for AMI replacement without avoidable downtime.
+- Prefer explicit root modules and separate state for long-lived Dev, QA, and Production boundaries; use workspaces only when their shared configuration and access model is appropriate.
+
+## Meta-Arguments and State Locking
+
+Meta-arguments change how Terraform manages a resource or module:
+
+- `count` creates numbered instances and is suitable when instances are interchangeable.
+- `for_each` creates instances with stable map/set keys and is safer when each instance has an identity such as `dev`, `test`, or `prod`.
+- `depends_on` declares a dependency Terraform cannot infer from value references; inferred dependencies are preferred when possible.
+- `lifecycle` controls replacement and drift behavior through options such as `create_before_destroy`, `prevent_destroy`, and carefully scoped `ignore_changes`.
+- `provider` selects a provider configuration or alias, for example a different subscription or region.
+
+```hcl
+variable "resource_groups" {
+  type = map(string)
+  default = {
+    dev  = "dev-rg"
+    test = "test-rg"
+    prod = "prod-rg"
+  }
+}
+
+resource "azurerm_resource_group" "this" {
+  for_each = var.resource_groups
+  name     = each.value
+  location = "Central India"
+}
+```
+
+State locking prevents concurrent writers from corrupting state or applying incompatible plans. A team backend should provide locking, encryption, access control, version history, and audit logging. If another run holds the lock, identify its owner and active pipeline and wait or stop that run cleanly. Use `terraform force-unlock <LOCK_ID>` or break a backend lease only after proving no operation is running, recording the incident, and backing up or versioning state; an incorrect forced unlock can allow two applies to write concurrently.
+
+The safe team flow is one reviewed plan per state boundary, serialized apply, immutable CI logs, and post-apply verification. Split unrelated environments and components into separate state when their ownership, release cadence, privileges, or blast radius differ.

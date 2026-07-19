@@ -1,0 +1,7 @@
+# Alertmanager Summary
+
+Prometheus evaluates alert rules and sends firing alerts to Alertmanager. Alertmanager groups related events, deduplicates repeats, routes by labels, inhibits dependent alerts, applies maintenance silences and delivers notifications to receivers such as PagerDuty, Slack, email or controlled Teams integrations.
+
+Routes should use stable ownership labels such as service, team, environment and severity. A page includes observed impact, duration, relevant values, dashboard, runbook and silence/acknowledgement path. Grouping prevents one failure from producing hundreds of notifications; inhibition suppresses downstream symptoms when a known parent alert is active.
+
+Webhook URLs and receiver credentials belong in Kubernetes Secrets or an external secret manager, never committed configuration. Test a safe firing alert, correct route and template, incident creation, resolved notification and behavior during planned maintenance. Chat is useful for collaboration but critical incidents should also reach a managed paging/escalation system.

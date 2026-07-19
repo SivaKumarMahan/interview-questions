@@ -1,0 +1,77 @@
+1. A server is healthy and has network connectivity, but logs are not uploading to an S3 bucket. What do you investigate?
+
+Answer:
+
+I separate source collection, authentication/authorization, S3 policy, encryption, and object-upload behavior. First I confirm the log agent/process is reading the correct path, has permission on the files, is not stuck behind a lock or full spool disk, and is producing current errors. I test the same configured AWS identity with `aws sts get-caller-identity` and a small upload to the exact bucket and prefix without printing credentials.
+
+Common causes include an expired/static credential, wrong instance profile or region, missing `s3:PutObject`, an explicit deny in bucket policy/SCP/permissions boundary, required object tags or ACL conditions, KMS key policy missing `kms:Encrypt`/`GenerateDataKey`, Object Lock, wrong prefix, clock skew, multipart-upload failure, or storage-class/lifecycle expectations. CloudTrail data events and S3 server-side evidence show whether AWS received and denied a request.
+
+I correct the narrow policy, key permission, agent configuration, disk/spool, or file ownership issue and verify a new object, encryption, metadata, and downstream consumption. I prefer an instance role with least privilege, agent health/backlog metrics, dead-letter/spool limits, and alerts on upload age and errors.
+
+2. How do you create an AWS Lambda function and publish its artifact safely?
+
+Answer:
+
+I define Lambda, execution role, log group, event source, networking, environment references, timeout, memory, concurrency, alarms, and permissions through Terraform, CloudFormation/SAM, CDK, or another reviewed IaC workflow. The execution role gets only the API actions and resource ARNs required; deployment identity and runtime identity are separate.
+
+CI installs locked dependencies, runs unit/security tests, creates a deterministic ZIP or container image, generates an SBOM, scans it, calculates a digest, and stores it in a versioned artifact bucket or ECR. Deployment references that immutable version/digest, publishes a Lambda version, and moves an alias gradually using weighted traffic. Secrets are fetched through a secret manager and identity, not embedded in ZIP files or environment plaintext.
+
+I validate invocation, logs/traces, error/throttle/duration, dependency access, retries, DLQ/destination, and idempotency. Rollback moves the alias to the last healthy version. Artifact retention, signatures/provenance, code signing where required, and reserved concurrency protect the release.
+
+3. What do you use AWS CloudWatch and CloudTrail for in production?
+
+Answer:
+
+CloudWatch is operational telemetry: AWS service and custom metrics, logs, dashboards, alarms, traces, synthetic checks, and event-driven actions. I use it for EC2/container resource and application signals, Lambda errors/duration/throttling, load-balancer status and latency, queue depth/age, log queries, SLO dashboards, and actionable alarms routed through SNS or incident tooling.
+
+CloudTrail records AWS API activity: who or which role called an action, when, from where, against which resource, and whether it succeeded. I centralize organization trails in a protected security account, enable appropriate management and selected data events, encrypt and retain logs, and alert on high-risk actions such as policy changes, trail disabling, public exposure, key changes, or unusual role assumptions.
+
+For an incident I correlate a CloudWatch symptom with deployment/config events and CloudTrail API evidence. Neither tool replaces application tracing or all OS metrics, and CloudTrail is an audit source rather than a real-time performance monitor.
+
+4. An EC2 instance reaches 100% CPU. How do you investigate and recover it?
+
+Answer:
+
+I confirm duration, customer impact, instance status checks, load, recent deploys, autoscaling activity, and whether a burstable instance exhausted CPU credits. From SSM/console or SSH I use `uptime`, `top`, `ps`, `pidstat`, and application/runtime metrics to identify user CPU, system CPU, steal time, I/O wait, a runaway process, garbage collection, traffic spike, cron job, agent, or possible compromise.
+
+I stabilize safely by shifting traffic, scaling out, rate-limiting, stopping a proven nonessential runaway job, or rolling back a bad release. I do not reboot first unless the host is unrecoverable because that destroys useful process evidence and may only move load elsewhere. Security signs lead to isolation and incident response rather than simple restart.
+
+The permanent fix may be application profiling, query/cache improvement, resource limits, corrected scheduled work, autoscaling on useful demand signals, a suitable instance family, or capacity planning. I verify latency/error and CPU recover under load and add alerts for saturation, credits, queueing, and scaling failure.
+
+5. How do EC2, EKS, ECS, and databases fit together, and how do you interact with an ECS service?
+
+Answer:
+
+EC2 provides virtual machines and can back self-managed applications, ECS container instances, or EKS worker nodes. ECS is AWS container orchestration; EKS provides a managed Kubernetes control plane. Databases such as RDS normally live in private subnets and accept traffic only from the exact application security group on the database port. Load balancers expose selected services; IAM roles for tasks or service accounts provide workload identity.
+
+For ECS I use the AWS CLI/API rather than “logging into ECS”:
+
+```bash
+aws ecs list-clusters
+aws ecs list-services --cluster production
+aws ecs describe-services --cluster production --services payments
+aws ecs execute-command --cluster production --task <task-id> \
+  --container payments --interactive --command '/bin/sh'
+```
+
+ECS Exec requires SSM integration, IAM authorization, logging, and a running supported task. I prefer logs/metrics over interactive access and never open a database publicly. I validate DNS, security-group references, TLS, credentials, connection pools, health checks, and failure behavior across AZs.
+
+6. Design a secure, scalable, highly available AWS architecture for a global SaaS product and explain regional failover.
+
+Answer:
+
+I begin with tenancy, data classification/residency, traffic, SLO, RTO/RPO, consistency, and compliance. Route 53 or Global Accelerator directs users to regional CloudFront/WAF and load-balancer/API endpoints. Each region has multiple AZs, private application subnets, autoscaled ECS/EKS/compute, controlled egress, workload identity, KMS encryption, centralized logs/security findings, and no public databases. Tenant isolation is enforced in identity, authorization, data keys/partitions, quotas, and audit—not only network boundaries.
+
+Data architecture determines failover. DynamoDB Global Tables or a supported multi-region datastore can provide active-active behavior; relational systems may use cross-region replicas with one write region. Object data uses replication where RPO requires it. Infrastructure and policy are reproducible from versioned IaC, secrets and certificates exist independently in each region, and dependencies have regional capacity.
+
+During an outage I declare the incident, stop risky deployments, confirm the failure and replication lag, promote or fence data according to the runbook, scale the recovery region, verify internal transactions, then shift weighted traffic gradually. Preventing split brain is more important than a fast DNS change. I monitor errors, latency, data correctness, queues, and business outcomes, retain rollback criteria, and reconcile data before failing back. Regular game days prove actual RTO/RPO.
+
+7. What does email signing mean, and how would you implement it for an AWS-hosted email service?
+
+Answer:
+
+For internet email, signing normally means DKIM: the sending service signs selected headers/body with a domain private key, and recipients verify it using a public key published in DNS. With Amazon SES I verify the domain, enable Easy DKIM or bring an approved key, publish the provided CNAME/TXT records, and wait for verified status. The private signing material remains managed/protected; applications do not embed it.
+
+I also configure SPF to authorize sending infrastructure and DMARC to define alignment, reporting, and policy. DMARC is introduced with monitoring (`p=none`), analysis of legitimate senders, then quarantine/reject when alignment is proven. A custom MAIL FROM domain, bounce/complaint handling, suppression lists, least-privilege SES identity, TLS, quotas, and CloudWatch/SNS events protect delivery reputation.
+
+I test DKIM/SPF/DMARC headers with real recipients, key rotation, subdomain ownership, and failure behavior. Email signing proves domain authorization and message integrity; it does not encrypt the email content—S/MIME or PGP addresses end-to-end message signing/encryption where required.
