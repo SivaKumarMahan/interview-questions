@@ -1,0 +1,15 @@
+# Ansible Summary
+
+**Ansible** is an agentless automation/configuration tool. A **playbook** is YAML that describes desired tasks for managed hosts. **Inventory** lists hosts and groups and supplies connection or group variables. The control node connects to Linux hosts through SSH, runs modules, and returns structured results.
+
+## Playbook Structure
+
+A play has a `name`, `hosts` target, optional `become`, variables, tasks, handlers, and roles. Prefer idempotent modules such as `package`, `service`, `copy`, `template`, `user`, and `uri` over unrestricted shell commands. A handler restarts/reloads only when a notifying task changes.
+
+Example flow: playbook -> inventory/group selection -> SSH connection -> privilege escalation when approved -> modules execute -> results/changed/failed status returned. Validate in a small environment, run syntax and check/diff modes where supported, canary production changes, and verify application health.
+
+## Inventory
+
+Static INI/YAML inventory can define groups, hosts, addresses, SSH users, child groups, and common variables. Dynamic inventory plugins discover cloud hosts from AWS, Azure, or other sources. Avoid storing private keys or secrets directly in inventory; use SSH agent/credential stores and **Ansible Vault** or an external secret manager. Validate host keys and keep `sudo` least privilege.
+
+Ansible benefits include simple YAML, repeatability, scalability, and idempotence, but idempotence depends on module and playbook design. Inventory precedence, network/SSH, Python interpreter, `sudo`, and variable scope are common troubleshooting areas.

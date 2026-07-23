@@ -1,0 +1,59 @@
+# Azure Networking Interview Questions
+
+### 1. What is Azure Virtual Network?
+
+**Answer:**
+
+A VNet is an isolated Azure IP network containing address space and subnets. Resources communicate through system/custom routes, NSGs, peering, gateways, private endpoints, load balancers, and DNS.
+
+I plan non-overlapping CIDRs with future growth, separate workload/security tiers, control routes and egress, and integrate on-premises through VPN/ExpressRoute. Peering provides connectivity but is not transitive by default.
+
+For failure I check DNS, effective routes, effective NSGs, firewall/NVA, peering/gateway status, service firewall, and application port. Network Watcher connection troubleshoot and flow logs locate the deny path. I validate both allowed and denied flows after IaC changes.
+
+---
+
+### 2. What is Azure Application Gateway?
+
+**Answer:**
+
+Application Gateway is a regional Layer-7 HTTP/HTTPS load balancer. It provides host/path routing, TLS termination or end-to-end TLS, health probes, session affinity, redirects, autoscaling, and optional Web Application Firewall.
+
+**Flow:** client → frontend IP/listener → routing rule → backend pool/HTTP setting → healthy backend. WAF policies inspect requests using managed/custom rules.
+
+For 502/503 I check backend health reason, DNS/IP, probe path/status, host header, certificate trust, port/protocol, NSG/routes, and backend readiness. I correlate access/performance/firewall logs. After correction I test TLS, routing paths, health, latency, and WAF behavior without disabling protection broadly.
+
+---
+
+### 3. What is Azure DNS?
+
+**Answer:**
+
+Azure DNS hosts public DNS zones/records; Azure Private DNS provides internal resolution for VNets and private endpoints. DNS hosting does not register a domain automatically.
+
+I delegate public zones through registrar NS records, manage records via IaC, use sensible TTLs, and protect change permissions. Private zones link to required VNets and use records/zone groups for private endpoints. Hybrid DNS may require Azure DNS Private Resolver or forwarders.
+
+Troubleshooting uses `dig`/`nslookup`, confirms authoritative server, record/type, TTL/cache, VNet link, forwarding rules, and client resolver. I query both expected internal/external clients because split-horizon results differ intentionally.
+
+---
+
+### 4. How do you connect Azure services privately?
+
+**Answer:**
+
+I use private endpoints to give supported PaaS services private IPs in a VNet, with private DNS mapping service names to those IPs. Public network access is disabled/restricted after validation. App Service/Functions use VNet integration for outbound access; private endpoint handles private inbound where applicable.
+
+Service endpoints are an alternative for selected services/subnets but still address the public service endpoint; they are not the same as Private Link.
+
+I validate DNS from the workload, route, NSG/firewall, endpoint approval, service configuration, and actual TCP/application connection. Hybrid clients need DNS forwarding and VPN/ExpressRoute path. I test denied public access too.
+
+---
+
+### 5. How do you secure Azure networking?
+
+**Answer:**
+
+I start with data flows and trust boundaries. Measures include subnet segmentation, NSGs, UDRs, Azure Firewall/NVA where inspection is required, private endpoints, private DNS, restricted egress, DDoS Protection for exposed critical workloads, WAF for HTTP applications, and limited public IPs. Connectivity to on-premises uses VPN or ExpressRoute with redundant design.
+
+I test from the actual source and work layer by layer: DNS resolution, route, NSG effective rules, firewall logs, service firewall, private endpoint approval, and application port. Network Watcher connection troubleshoot and flow logs help locate the deny point.
+
+Changes use IaC and peer review. I enable diagnostics, alert on unexpected public exposure, review rules, and verify both an allowed and intentionally denied flow.

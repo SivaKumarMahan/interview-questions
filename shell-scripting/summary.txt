@@ -1,9 +1,0 @@
-# Shell Automation Summary
-
-Useful DevOps scripts include disk-capacity monitoring, controlled log retention, service health/remediation, verified backups, and user/account workflows. Production scripts should use a clear interpreter, `set -Eeuo pipefail` where appropriate, quoted variables, input validation, safe temporary files, meaningful exit codes, logging without secrets, locks for concurrency, and cleanup traps.
-
-Disk monitoring must select the intended filesystem and alert with context. Log cleanup must validate the directory, retention and ownership and should normally use logrotate/journald policy rather than raw deletion. Service remediation should validate configuration, check health after start/reload, preserve logs, limit retries, and alert rather than looping forever.
-
-A backup script must create destination safely, preserve permissions where needed, avoid recursively backing up its own output, use an atomic name, checksum/encrypt according to policy, enforce retention, copy to another failure domain, and regularly prove restoration. A command returning zero is not proof that the data is recoverable.
-
-User provisioning should not hardcode or echo passwords and should not automatically grant broad sudo. Use approved identity management, idempotent account/group/SSH-key configuration, least privilege, audit, expiry, and an offboarding path. Shell is suitable for small orchestration; use a stronger language or configuration-management tool when parsing, state, transactions, or complex error recovery grows.

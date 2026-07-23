@@ -1,0 +1,61 @@
+# Docker Networking Notes
+
+### Q: What is the difference between EXPOSE in a Dockerfile and -p in docker run?
+
+`EXPOSE 80` --> "This container app expects traffic on port 80."
+
+The container listens on port 80 internally, but it's not accessible from outside yet.
+
+```bash
+docker build -t mynginx .
+docker run mynginx
+```
+
+The container runs. But the port is not accessible from your host machine because you didn't publish it.
+
+```bash
+docker run -p 8080:80 mynginx
+```
+
+--> "Map my host's port 8080 → container's port 80 so I can access it externally."
+
+Access from browser: `http://localhost:8080` Works!
+
+Think of it like this:
+
+- **EXPOSE** = "The restaurant has a door."
+- **-p** = "You unlocked the door so customers can enter."
+
+---
+
+### Q: How do you run NGINX on a Linux server using Docker?
+
+```bash
+docker pull nginx:latest
+```
+
+--> This downloads the latest official NGINX image from Docker Hub.
+
+```bash
+docker run -d -p 80:80 --name mynginx nginx
+```
+
+- `-d` → Runs the container in detached mode (in the background).
+- `-p 80:80` → Maps port 80 of the container to port 80 on the host.
+- `--name mynginx` → Assigns a name to your container for easy reference.
+- `nginx` → The image name to run.
+
+Now if you open a browser and go to `http://<your-server-public-ip>`, you'll see the NGINX welcome
+
+```bash
+docker run -d -p 8080:80 --name web \
+  -v /home/ubuntu/website:/usr/share/nginx/html \
+  nginx
+```
+
+The NGINX container starts and listens on port 80 inside the container. Docker maps that to port 8080 on your Linux host.
+Mounts your local folder (with website files) to NGINX's default HTML directory inside the container
+
+`http://<your-server-ip>:8080` --> You'll see your website's homepage
+
+---

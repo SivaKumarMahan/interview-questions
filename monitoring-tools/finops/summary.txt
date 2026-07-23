@@ -1,5 +1,0 @@
-# Observability FinOps Summary
-
-Telemetry has business value and cost. Track ingestion bytes/events/samples/spans, active series and cardinality, retention and storage tier, query/egress cost, dashboard/query load and cost by team/service/environment. A sudden bill increase may come from debug logs, a new high-cardinality metric label, duplicate collection, overly broad diagnostic settings, trace sampling changes or real traffic.
-
-Control cost with ownership labels, budgets/anomaly alerts, per-signal retention, metric aggregation/downsampling, trace sampling that retains errors/important tails, log level/rate controls, archive tiers and removal of duplicate data. Do not cut security/audit evidence or user-impact signals blindly. Every optimization must preserve SLO detection, incident investigation and compliance requirements and be verified through drills or known queries.

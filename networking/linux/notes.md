@@ -1,0 +1,58 @@
+# Linux Network Access Notes
+
+### Q: How do you enable passwordless SSH authentication between two Linux servers?
+
+Allow Server A to SSH into Server B without entering a password.
+
+**On Server A (the client): Generate SSH key pair**
+
+```bash
+ssh-keygen -t rsa
+```
+
+This generates:
+
+- `id_rsa` → private key (keep secure)
+- `id_rsa.pub` → public key (to share)
+
+**Copy the public key to Server B**
+
+Set correct permissions on Server B
+
+**Test passwordless login**
+
+From Server A:
+
+```bash
+ssh user@serverB
+```
+
+--> It should log in without asking for a password.
+
+**How It Works**
+
+- SSH uses public-key cryptography.
+- When you SSH from A → B:
+  - Server B checks if your public key is in its `~/.ssh/authorized_keys`.
+  - If yes, it verifies using your private key from A — no password needed.
+
+---
+
+### Q: What if SSH key authentication still prompts for a password?
+
+Check: Permissions of `.ssh` folder and files
+
+`/etc/ssh/sshd_config` has:
+
+```bash
+PubkeyAuthentication yes
+PasswordAuthentication no
+```
+
+Then restart SSH service:
+
+```bash
+sudo systemctl restart sshd
+```
+
+---

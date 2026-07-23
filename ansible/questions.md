@@ -1,0 +1,192 @@
+# Ansible Interview Questions
+
+---
+
+### 1. How have you used Ansible? Give a real example.
+
+**Answer:**
+
+I use Ansible for repeatable server configuration, patching, user management, application deployment, and service configuration. Because it is agentless, the control node connects to Linux machines through SSH and executes modules remotely.
+
+A practical example is configuring Nginx on several application servers. My flow would be:
+
+1. Keep server addresses and groups in an inventory.
+2. Test access with `ansible all -m ping`.
+3. Install Nginx with the package module.
+4. Render the configuration from a Jinja2 template.
+5. Validate the Nginx configuration before reloading it.
+6. Use a handler so Nginx reloads only when its configuration changes.
+
+```yaml
+---
+- name: Configure web servers
+  hosts: web
+  become: true
+  serial: 2
+
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+
+    - name: Install Nginx configuration
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: "0644"
+        validate: "nginx -t -c %s"
+      notify: Reload Nginx
+
+    - name: Ensure Nginx is running
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+```
+
+I would run `ansible-playbook --check --diff` in a lower environment, then deploy in small batches using `serial`. Afterward I would check the play recap, service status, configuration test, health endpoint, and monitoring. This demonstrates idempotency: running the same playbook again should report no unnecessary changes.
+
+---
+
+### 2. How do you configure an Ansible agent?
+
+**Answer:**
+
+Ansible normally does not require an agent on managed Linux servers. It uses SSH, and most modules require Python on the target. The machine where Ansible runs is the control node.
+
+My setup steps are:
+
+1. Install Ansible on the control node.
+2. Create a dedicated automation user on managed hosts.
+3. Configure SSH key authentication and verify host keys.
+4. Give the user only the required `sudo` privileges.
+5. Add hosts and variables to inventory.
+6. Test connectivity and facts before running a real playbook.
+
+```ini
+[web]
+web01 ansible_host=10.0.1.10
+web02 ansible_host=10.0.1.11
+
+[web:vars]
+ansible_user=automation
+ansible_ssh_private_key_file=/secure/path/automation_key
+ansible_become=true
+```
+
+```bash
+ansible-inventory --graph
+ansible web -m ping
+ansible web -m setup -a 'filter=ansible_distribution*'
+```
+
+If `ping` fails, I use `-vvvv` and check DNS/IP reachability, port 22, SSH keys, host-key verification, username, Python availability, and sudo permissions. On Windows, Ansible usually connects through WinRM or SSH, so the connection setup is different, but it is still not a permanently installed Ansible agent.
+
+---
+
+### 3. How do you manage secrets securely in Ansible?
+
+**Answer:**
+
+I never store plaintext passwords, private keys, or API tokens in playbooks, inventory, or Git. For smaller setups I encrypt variables with Ansible Vault. In enterprise environments I prefer retrieving secrets at runtime from Vault, Azure Key Vault, AWS Secrets Manager, or another approved secret store.
+
+```bash
+ansible-vault create group_vars/prod/vault.yml
+ansible-vault encrypt_string 'StrongPassword' --name 'db_password'
+ansible-playbook site.yml --vault-id prod@prompt
+```
+
+```yaml
+- name: Configure database password without exposing it in output
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: /etc/myapp/app.conf
+    owner: root
+    group: myapp
+    mode: "0640"
+  no_log: true
+```
+
+My security measures include separate vault identities per environment, least-privilege access, protected CI credentials, encrypted transport, secret rotation, and restrictive destination-file permissions. `no_log: true` reduces accidental output, but I do not apply it blindly because it can hide useful troubleshooting information.
+
+After a deployment I verify that the application can authenticate, unauthorized users cannot read the secret file, CI logs contain no secret value, and rotation works without manually editing the playbook. If a secret is exposed, I revoke or rotate it first, then remove it from Git history and logs, and investigate who accessed it.
+
+---
+
+### 4. How does Ansible communicate with remote Linux servers, and how do you establish connectivity?
+
+**Answer:**
+
+Ansible is normally agentless: the control node connects to managed Linux hosts over SSH, transfers or streams a small module payload, executes it using the selected Python interpreter, and returns structured results. Inventory defines host addresses and variables; `remote_user`, SSH configuration, and `become` control login and privilege escalation.
+
+I create or use an approved automation account, verify DNS/routes/firewall and SSH host keys, install its public key, grant only required sudo commands, and test with:
+
+```bash
+ansible-inventory --graph
+ansible all -m ping
+ansible all -m setup -a 'filter=ansible_distribution*'
+```
+
+Ansible `ping` is not ICMP; it tests login, Python/module execution, and response. I diagnose with `ssh -vvv` and `ansible -vvv`, then check inventory precedence, proxy/bastion settings, interpreter, sudo, and file permissions. Credentials remain in an approved vault or CI identity, not inventory plaintext.
+
+---
+
+### 5. How do you configure passwordless SSH for Ansible, and where should the key be generated?
+
+**Answer:**
+
+The key pair is generated for the identity that initiates automation—an engineer's approved workstation for personal administration or, preferably, a dedicated CI/control-node identity for shared automation. The private key stays there or in a credential manager; only the public key goes into the target user's `~/.ssh/authorized_keys`.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/ansible_prod
+ssh-copy-id -i ~/.ssh/ansible_prod.pub automation@server
+ssh -i ~/.ssh/ansible_prod automation@server
+```
+
+I use restrictive permissions, validate host keys, protect the private key with a passphrase or managed agent, scope accounts and sudo, rotate keys, and separate environments. “Passwordless” means public-key authentication, not no authentication. In cloud environments I prefer short-lived certificates, SSM, or managed identity mechanisms when supported.
+
+---
+
+### 6. What if the target Ansible user does not exist or you do not yet have access to the server?
+
+**Answer:**
+
+Ansible cannot create its own first login path without an already authorized bootstrap mechanism. I do not bypass access controls or guess another account. I request the server owner, cloud-init/image process, identity-management team, or approved break-glass administrator to create the automation user, install the public key, register host keys, and grant narrowly scoped sudo.
+
+For repeatability, the base image or provisioning workflow bootstraps that account, after which Ansible manages it idempotently. If access unexpectedly fails, I verify ownership, approval, inventory address, DNS, routing, firewall, bastion, SSH service, account lock/expiry, `authorized_keys` permissions, and host-key changes using console or provider access where authorized.
+
+I record who approved bootstrap access and test both required operations and denied operations. Lack of access is a governance dependency, not a reason to weaken SSH policy.
+
+---
+
+### 7. How would you automate Machine B from Machine A with Ansible?
+
+**Answer:**
+
+Machine A must be an approved control node with Ansible, inventory, code checkout, and a valid identity for Machine B. After testing connectivity, I write an idempotent playbook using modules rather than a chain of shell commands:
+
+```yaml
+- hosts: machine_b
+  become: true
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+    - name: Ensure Nginx is enabled and running
+      ansible.builtin.service:
+        name: nginx
+        enabled: true
+        state: started
+```
+
+I run `ansible-playbook --syntax-check`, `--check --diff` where modules support it, limit the first production run to a canary, and then verify service health. Code, inventory structure, Vault references, reviews, and CI logs provide repeatability and auditability.

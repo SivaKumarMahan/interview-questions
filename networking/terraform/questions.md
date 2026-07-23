@@ -1,0 +1,66 @@
+# Terraform Networking Interview Questions
+
+### 1. What are the prerequisites before importing a VPC in Terraform?
+
+**Answer:**
+
+I need the exact account, region, VPC ID, CIDR and IPv6 settings, DNS attributes, tenancy, tags, ownership, and dependency inventory. The provider alias and credentials must point to that account/region, and a matching resource block/module address must exist. I also confirm the VPC is not already managed in another state.
+
+Before import I lock and back up remote state and decide separate addresses for subnets, route tables, gateways, ACLs, endpoints, and peering—importing a VPC does not automatically import them. I import, use `state show`, update configuration to match without replacement, review a full plan, and test connectivity. This prevents an adoption exercise from accidentally changing production networking.
+
+---
+
+### 2. How do you pass arguments to a VPC while using `terraform import`?
+
+**Answer:**
+
+I do not pass VPC configuration arguments in the import command. Import only maps a provider resource ID to an existing Terraform address, for example `terraform import aws_vpc.prod vpc-0123456789`.
+
+CIDR, DNS settings, tenancy, and tags belong in the `aws_vpc` resource block and can be supplied there through variables. After import I inspect `terraform state show aws_vpc.prod` and run plan, then adjust code until it represents the live VPC without unexpected changes. Newer import blocks can make the mapping reviewable in code, but they still do not replace the resource configuration.
+
+---
+
+### 3. How do you dynamically retrieve VPC details to create an EC2 instance? Write the code.
+
+**Answer:**
+
+I use data sources when the VPC is owned by another stack and has stable, unique discovery tags. I validate that the query cannot silently choose the wrong environment. For example:
+
+```hcl
+data "aws_vpc" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["prod-vpc"]
+  }
+}
+
+data "aws_subnets" "private" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.selected.id]
+  }
+
+  filter {
+    name   = "tag:Tier"
+    values = ["private"]
+  }
+}
+
+resource "aws_instance" "app" {
+  ami           = var.ami_id
+  instance_type = "t3.micro"
+  subnet_id     = data.aws_subnets.private.ids[0]
+}
+```
+
+For production I would normally select a subnet by a stable map/key rather than `[0]`, because list ordering can change, and add the instance role, security groups, encrypted root disk, tags, and IMDSv2 requirement. If the VPC is created in the same root module, I reference its resource/module output directly; data-source discovery is unnecessary and creates a weaker implicit contract.
+
+---
+
+### 4. What dependencies are needed for an IP address or networking resource?
+
+**Answer:**
+
+It depends on the address type and traffic path. A public EC2 path can require a VPC, subnet with public-IP behavior, internet gateway and route, network ACL, security group, and Elastic IP association. A private address may require route tables, NAT/egress, DNS, peering/transit, or load-balancer frontend configuration.
+
+Terraform infers ordering when one argument references another, such as `subnet_id = aws_subnet.public.id`; that is preferable because it documents the data dependency. I use `depends_on` only for a real behavior dependency not represented by an attribute, such as waiting for a policy attachment before a service API call. After apply I verify route selection, ACL/security-group behavior, DNS, and the application port from the actual source.

@@ -1,0 +1,158 @@
+## 1. What CI/CD tools have you used in your current role?
+
+**Answer:**
+
+I explain tools through the delivery flow rather than only naming them. A representative workflow is:
+
+1. GitHub stores code and protects the main branch.
+2. GitHub Actions runs build, unit tests, linting, SonarQube, dependency scanning, and Trivy.
+3. The pipeline publishes an immutable image to a container registry.
+4. Helm packages Kubernetes configuration.
+5. Argo CD or Flux promotes the approved image through environments.
+6. Prometheus, Grafana, and application telemetry verify the release.
+
+I have also worked with or understand comparable patterns in Jenkins, Azure Pipelines, and GitLab CI. In an interview I state exactly what I personally configured, what another team owned, the scale, one failure I investigated, and the result. Tool choice depends on repository platform, required customization, runner placement, governance, cost, and team skills.
+
+## 2. How are SonarQube, Docker, and Trivy integrated in pipelines?
+
+**Answer:**
+
+I place quality and security checks before publishing or deploying an image:
+
+```text
+checkout → test → SonarQube → quality gate → Docker build
+         → Trivy scan → push immutable image → deploy → smoke test
+```
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: npm ci && npm test -- --coverage
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: Build image
+        run: docker build -t app:${{ github.sha }} .
+      - name: Scan image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: app:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+```
+
+SonarQube evaluates source quality and test coverage; Trivy checks the built image and dependencies. I pin approved action versions, define a vulnerability exception process with expiry, upload reports even on failure, and never push or deploy an image if mandatory gates fail.
+
+## 3. How do you trigger a GitHub Actions workflow in another repository?
+
+**Answer:**
+
+The best method depends on ownership. For loosely coupled systems I prefer publishing a versioned artifact or image and letting the consumer repository detect or promote that version. When a direct trigger is required, common options are `repository_dispatch`, `workflow_dispatch` through the API, or a reusable workflow if repositories share an organization and trust model.
+
+The caller needs permission to invoke the target repository. I prefer a GitHub App token with narrow, short-lived access instead of a broad personal access token. The payload contains only identifiers such as version and source commit, not secrets. The target validates the sender, artifact existence, and allowed environment before deployment.
+
+I add concurrency control, idempotency, audit logs, and a correlation ID so duplicate requests do not deploy twice and both workflow runs can be traced.
+
+## 4. What is the purpose of `repository_dispatch` in GitHub Actions?
+
+**Answer:**
+
+`repository_dispatch` is a custom event sent through the GitHub API. It allows an external system or another repository to start a workflow and pass a small JSON payload.
+
+```yaml
+on:
+  repository_dispatch:
+    types: [deploy-version]
+
+jobs:
+  deploy:
+    if: github.event.client_payload.environment == 'staging'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying ${{ github.event.client_payload.version }}"
+```
+
+I use it for controlled cross-repository orchestration, not as an unrestricted production deployment endpoint. The sender requires suitable repository permission, the receiver validates event type and payload, and environment protection still controls production. GitHub limits payload size, so artifacts remain in a registry or artifact store; the event carries only metadata.
+
+## 5. How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?
+
+**Answer:**
+
+Assume Repo B builds a shared library and Repo A deploys an application. My preferred flow is:
+
+1. Repo B tests and publishes an immutable library/image version.
+2. Repo B authenticates with a GitHub App token.
+3. It sends a dispatch event to Repo A containing the version, source commit, and correlation ID.
+4. Repo A verifies that the version exists and is approved.
+5. Repo A runs its own tests and environment approvals before deployment.
+
+```bash
+gh api --method POST repos/company/repo-a/dispatches \
+  -f event_type=dependency-released \
+  -F 'client_payload[version]=2.3.1' \
+  -F 'client_payload[source_sha]=abc123'
+```
+
+I prevent loops by defining one-way ownership, add concurrency by environment, and make the workflow idempotent. If Repo A only needs dependency updates, a pull request from Dependabot or an update bot is often safer because it provides normal review instead of directly triggering deployment.
+
+## 6. What are GitHub Actions?
+
+**Answer:**
+
+GitHub Actions is GitHub’s event-driven automation platform. A workflow is a YAML file in `.github/workflows`; events trigger workflows, workflows contain jobs, jobs run on runners, and jobs contain steps that run commands or reusable actions.
+
+Actions can run CI/CD, scheduled maintenance, issue automation, releases, security scanning, and infrastructure workflows. GitHub-hosted runners are convenient and ephemeral; self-hosted runners are useful for private network access or special software but require patching, isolation, scaling, and cleanup.
+
+For production I use least-privilege `permissions`, protected environments, OIDC federation instead of long-lived cloud keys, pinned trusted actions, concurrency controls, timeouts, artifact retention, and branch protection for workflow changes.
+
+## 7. How do you create a GitHub Actions workflow?
+
+**Answer:**
+
+I start with the event and required outcome, then split independent work into jobs and make deployment depend on successful CI.
+
+```yaml
+name: application-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+```
+
+I validate the YAML, pin actions, set explicit permissions and timeouts, cache only safe dependencies, and avoid printing secrets. A pull request tests the workflow before merge. For deployment I add an environment with approval, OIDC authentication, a versioned artifact, smoke tests, health monitoring, and rollback.
+
+## 8. Why is GitHub Actions popular?
+
+**Answer:**
+
+It is popular because automation lives beside the code, responds directly to GitHub events, has a large action ecosystem, supports hosted and self-hosted runners, and integrates well with pull requests, environments, releases, packages, and GitHub security features.
+
+The trade-offs are important. Hosted runners may not reach private systems without additional networking, usage can become expensive, untrusted marketplace actions create supply-chain risk, and self-hosted runners need strong isolation and maintenance. I choose GitHub Actions when the source is already in GitHub and the workflow fits its security and runner model. I would consider Jenkins, Azure Pipelines, GitLab CI, or a dedicated deployment controller when customization, network placement, governance, or existing platform investment makes them more suitable.
