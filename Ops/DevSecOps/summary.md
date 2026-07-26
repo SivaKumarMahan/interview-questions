@@ -20,6 +20,32 @@ pull request -> tests and quality checks -> dependency/SAST/secret/IaC scans
 
 Pin pipeline dependencies, protect credentials through short-lived identity, generate and retain an SBOM and provenance, sign artifacts, enforce admission policy, separate duties, and regularly test rollback and incident response. Scanners reduce risk but do not replace threat modeling, secure design, patching, runtime hardening, or human review.
 
+## Azure Secure Container Delivery Example
+
+```text
+GitHub protected branch and pull request
+  -> GitHub Actions build, tests, SAST, dependency and secret scans
+  -> build image and generate SBOM
+  -> Trivy policy scan
+  -> sign and publish immutable digest to ACR
+  -> Azure DevOps protected production environment
+  -> approval, branch/policy/health checks
+  -> deploy digest to AKS
+  -> Defender for Containers + Azure Monitor
+  -> verify, promote or roll back
+```
+
+This is defense in depth:
+
+- **Trivy in CI** gives fast feedback before promotion and can fail the build according to an agreed severity and exception policy.
+- **ACR** stores the immutable image and associated supply-chain evidence.
+- **Azure DevOps approvals and checks** protect the production resource independently of pipeline YAML.
+- **Azure Key Vault and workload identity** prevent application and deployment credentials from being stored in code or images.
+- **Defender for Containers** adds registry/running-image vulnerability assessment, posture recommendations and runtime security signals according to the enabled plan and extensions.
+- **AKS controls** such as least-privilege RBAC, network policy, workload identity, restrictive security contexts and image/admission policy limit runtime exposure.
+
+Do not scan only `latest`: deploy and scan the same digest. A new vulnerability database finding after deployment also requires continuous reassessment, ownership, remediation deadlines and a tested emergency release path.
+
 ## Common DevSecOps Scanners
 
 - **TFLint** validates Terraform style/provider rules and catches common IaC mistakes.

@@ -15,9 +15,58 @@ GitHub Actions is an event-driven automation platform built into GitHub. Workflo
 
 Use least-privilege `permissions`, pin third-party actions to trusted immutable commit SHAs, prefer OIDC federation over long-lived cloud keys, isolate self-hosted runners, protect environments, and keep untrusted pull requests away from deployment secrets.
 
+## Workflow Building Blocks
+
+- **Events** trigger a workflow, for example `push`, `pull_request`, `workflow_dispatch` or `schedule`.
+- **Jobs** run on separate runners and run in parallel unless `needs` defines a dependency.
+- **Steps** run sequentially inside a job and can execute a shell command or an action.
+- **Actions** are reusable automation units.
+- **Runners** provide the execution environment and can be GitHub-hosted or self-hosted.
+
+Basic Node.js CI example:
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+```
+
+Version tags keep this example readable, but production workflows should pin third-party and reusable actions to reviewed full commit SHAs and use dependency automation to update them safely. `npm ci` honors the committed lock file and is more reproducible than `npm install` in CI.
+
 ## CI/CD Workflow Pattern
 
 A production workflow commonly has checkout, language/tool setup, dependency caching, build, unit tests, test-report upload, code/security checks, Docker build, registry login through short-lived identity, image push by digest, deployment, rollout verification, and notification. Matrices can test supported versions; reusable workflows prevent copy/paste drift.
+
+## Handoff to Azure DevOps
+
+When GitHub Actions performs CI and Azure DevOps performs CD, GitHub Actions publishes a versioned package or immutable ACR image digest together with provenance and scan evidence. Azure DevOps consumes and promotes that same artifact through protected environments; it must not rebuild the application.
+
+Prefer GitHub OIDC to obtain short-lived Azure credentials, grant the identity only the required ACR publishing permissions, and protect the production Azure DevOps environment with resource permissions, branch control, approvals and checks. If Azure Pipelines already connects directly to GitHub and can own the full workflow, compare that simpler design before maintaining a cross-platform handoff.
 
 ## Common Failures
 

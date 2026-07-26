@@ -1,4 +1,159 @@
-# Better Logging in Python with Loguru
+# Python Summary
+
+## List and Tuple
+
+Both lists and tuples are ordered collections that can contain mixed object types. Their main difference is mutability.
+
+| List | Tuple |
+|---|---|
+| Mutable: items can be added, removed or replaced | Immutable: its item references cannot be replaced after creation |
+| Written with `[]` | Usually written with `()` |
+| Provides mutating methods such as `append()`, `extend()` and `remove()` | Has fewer methods because it cannot be modified in place |
+| Suitable for a collection that changes | Suitable for a fixed record or an immutable interface |
+| Not hashable | Can be hashable when all contained values are hashable |
+
+```python
+topics = ["Python", "Linux", "Kubernetes"]
+topics.append("Terraform")
+
+coordinates = (17.3850, 78.4867)
+
+print(topics)
+print(coordinates)
+```
+
+Immutability does not mean that every nested object is immutable. A tuple can contain a list, and that nested list can still change.
+
+## The `__init__()` Method
+
+`__init__()` is an instance initializer that runs after Python creates a new object. It assigns initial instance state and should return `None`. Interview answers often call it a constructor, although object creation itself is performed by `__new__()`.
+
+```python
+class Book:
+    def __init__(self, title: str) -> None:
+        self.title = title
+
+    def display(self) -> None:
+        print(f"Book name: {self.title}")
+
+
+book = Book("Sandman")
+book.display()
+```
+
+Here, `self` refers to the newly created instance. Each `Book` object receives its own `title` attribute.
+
+## Decorators
+
+A decorator accepts a function or class and returns a replacement or enhanced callable. The `@decorator` syntax applies it without changing the decorated function's body. Common uses include logging, timing, authentication, authorization, caching and retries.
+
+```python
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
+
+
+def audit_call(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        print(f"Calling {func.__name__}")
+        result = func(*args, **kwargs)
+        print(f"Completed {func.__name__}")
+        return result
+
+    return wrapper
+
+
+@audit_call
+def say_hello(name: str) -> str:
+    return f"Hello, {name}!"
+
+
+print(say_hello("Momen"))
+```
+
+`functools.wraps()` preserves metadata such as the original function name and documentation. The wrapper accepts `*args` and `**kwargs` so it can forward different call signatures.
+
+## Missing Values in pandas
+
+Use `isna()` or its alias `isnull()` to identify missing values. Calling `sum()` counts them per column because `True` is treated as `1`.
+
+```python
+import numpy as np
+import pandas as pd
+
+data = {
+    "id": [1, 4, np.nan, 9],
+    "age": [30, 45, np.nan, np.nan],
+    "score": [np.nan, 140, 180, 198],
+}
+
+frame = pd.DataFrame(data)
+
+print(frame.isna().sum())
+print(frame.isna().mean().mul(100).round(2))  # missing percentage
+```
+
+Detection is only the first step. Treatment depends on what the missing value means:
+
+- Use `dropna()` only when removing rows or columns will not bias the result.
+- Use `fillna()` with a justified constant or statistic for simple imputation.
+- For time series, forward/backward filling is valid only when the domain supports it.
+- Add a missing-value indicator when absence itself carries information.
+- Fit imputation rules on training data and apply the same rules to validation/test data to avoid leakage.
+- Validate data types and distinguish `NaN`, `None`, empty strings and invalid sentinel values.
+
+## Instance, Class and Static Methods
+
+| Method type | Declaration | First argument | Typical purpose |
+|---|---|---|---|
+| Instance method | Normal `def` in a class | `self` | Read or modify one object's state; can also access class state |
+| Class method | `@classmethod` | `cls` | Read or modify class state; commonly used as an alternative constructor |
+| Static method | `@staticmethod` | None supplied automatically | Utility logically related to the class but independent of instance/class state |
+
+```python
+class Deployment:
+    platform = "AKS"
+
+    def __init__(self, service: str) -> None:
+        self.service = service
+
+    def description(self) -> str:
+        return f"{self.service} runs on {self.platform}"
+
+    @classmethod
+    def from_repository(cls, repository: str) -> "Deployment":
+        service = repository.rsplit("/", maxsplit=1)[-1]
+        return cls(service)
+
+    @staticmethod
+    def valid_replicas(replicas: int) -> bool:
+        return replicas > 0
+```
+
+A static method is not forbidden from reading global data, but it receives neither `self` nor `cls` automatically. If behavior needs object or class state, use the corresponding method type.
+
+## Inheritance
+
+Inheritance lets a child class reuse and specialize behavior from a parent class. It supports polymorphism, but composition is often clearer when the relationship is not genuinely “is-a.”
+
+```python
+class Notifier:
+    def send(self, message: str) -> None:
+        raise NotImplementedError
+
+
+class TeamsNotifier(Notifier):
+    def __init__(self, channel: str) -> None:
+        self.channel = channel
+
+    def send(self, message: str) -> None:
+        print(f"Sending to {self.channel}: {message}")
+```
+
+A child can override inherited methods. Use `super()` when the parent implementation also needs to run, particularly when extending `__init__()`. Avoid deep inheritance trees and test overridden behavior.
+
+## Better Logging in Python with Loguru
 
 When talking about logging, **log level** is an important term — levels act as a severity scale for your messages. Assigning different levels makes it easier to focus on critical issues while reducing noise from less important events during troubleshooting or monitoring.
 

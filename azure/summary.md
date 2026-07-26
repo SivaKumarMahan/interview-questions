@@ -345,6 +345,20 @@ Add an access policy that explicitly grants the required key, secret, or certifi
 
 Check the configured model under **Key Vault > Settings > Access configuration**. Apply least privilege and prefer managed identities for applications.
 
+### 6.2 Defender for Containers
+
+Microsoft Defender for Containers provides cloud-native security capabilities for supported container registries and Kubernetes environments. Depending on the enabled Defender plan, extensions and connectivity, it can provide registry and running-image vulnerability assessment, security-posture recommendations and runtime threat detection.
+
+In an Azure delivery flow:
+
+1. CI scans the exact image digest and blocks findings according to policy.
+2. The approved digest is stored in Azure Container Registry.
+3. AKS deploys the same digest using managed identity with narrowly scoped `AcrPull`.
+4. Defender for Containers continuously reassesses supported registry and running images and produces security findings.
+5. Defender alerts flow to the security operations process; Azure Monitor verifies application health.
+
+Defender is not merely a pipeline task and should not be described as automatically stopping an Azure DevOps run. Enforce deployment policy through a failing CI scan, admission policy, or an Azure DevOps environment check that queries an approved external decision source. Plan the required Defender components and private-cluster connectivity deliberately, then test alert routing and remediation.
+
 ---
 
 ## 7. Governance and Resource Management

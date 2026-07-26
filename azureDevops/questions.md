@@ -90,38 +90,6 @@ I document precedence because template, pipeline, stage, job, and queue-time val
 
 ---
 
-### 6. How do you publish and consume artifacts in Azure DevOps?
-
-**Answer:**
-
-The build stage creates a tested artifact once and publishes it with version, commit SHA, checksum, and retention. Deployment stages download that exact artifact rather than rebuilding.
-
-```yaml
-- publish: $(Build.ArtifactStagingDirectory)
-  artifact: application
-
-- download: current
-  artifact: application
-```
-
-Pipeline artifacts suit build outputs; Azure Artifacts feeds host NuGet, npm, Maven, Python, and Universal Packages. Container images go to a registry such as ACR.
-
-I restrict write permissions, scan/sign artifacts, avoid secrets, and clean by retention policy. During investigation I verify artifact ID/digest and that the deployed environment used the same version tested in staging.
-
----
-
-### 7. How do you handle large artifacts efficiently in Azure Pipelines?
-
-**Answer:**
-
-I first determine why the artifact is large and whether all files are deployment inputs. I remove build caches/debug output, use package/container registries, compress suitable content, split independent packages, and use incremental dependency caching—not artifact rebuilding.
-
-Artifacts have explicit retention and immutable versions. Agents and storage are placed close to consumers where possible; parallel downloads are used only if supported and beneficial. I monitor upload/download time, size trend, storage cost, and deployment time.
-
-For very large datasets or VM images, I use the appropriate storage/image service and pass a versioned reference through the pipeline rather than transferring it as a normal pipeline artifact.
-
----
-
 ### 8. How do approvals and environments work in Azure Pipelines?
 
 **Answer:**
