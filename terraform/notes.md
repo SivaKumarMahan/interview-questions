@@ -396,3 +396,13 @@ Integrating Terraform with CI/CD pipelines for automated deployments in Azure an
 9. **Monitor and Notify:** Set up notifications (e.g., via email or Slack) to inform stakeholders of deployment status and results.
 
 By following these steps, you can effectively integrate Terraform with CI/CD pipelines using Azure and GitHub Actions, enabling automated and reliable infrastructure deployments.
+
+## State, Replacement, Provisioners, and CIDR
+
+Keep Terraform state in an encrypted remote backend with least-privilege access, versioning/soft-delete, locking and audit logging. State can contain sensitive values, so protect read access as strongly as write access. If infrastructure is changed or deleted manually, inspect the real object and a fresh plan before applying; Terraform may propose recreation to reconcile declared state.
+
+`terraform taint` is deprecated. Prefer an explicit reviewed replacement such as `terraform apply -replace=module.example.aws_instance.web` after confirming dependencies, downtime and rollback. Do not use replacement merely to “test” a change in production.
+
+Provisioners (`local-exec`, `remote-exec`, `file`, and destroy-time provisioners) are last-resort escape hatches, not configuration-management defaults. They are hard to make idempotent and can fail after a resource was created. Prefer cloud-init, image builds, managed services, Ansible, or provider-native resources. If one is necessary, make input/output, retry, secrets, failure handling and destroy behavior explicit.
+
+CIDR notation such as `10.0.0.0/24` represents a network prefix: `/24` leaves 8 host bits (256 addresses before provider reservations). Plan non-overlapping ranges and future growth; never infer usable addresses from the raw mathematical count alone because cloud platforms reserve addresses.

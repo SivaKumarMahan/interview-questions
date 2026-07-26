@@ -138,3 +138,57 @@ I begin with business impact analysis and define RTO, RPO, data-loss tolerance, 
 A runbook covers detection, decision authority, data consistency, failover order, secret/DNS availability, smoke tests, communication, and failback. Backups are isolated and protected from deletion.
 
 I run restore tests and regional exercises, measure actual RTO/RPO, and fix gaps. Replication is not a backup: corruption or deletion can replicate. I also test failback, because recovery is incomplete until normal operations are restored safely.
+
+## 12. How do you resize an Azure VM, and does it require a reboot?
+
+**Answer:**
+
+In the portal, select the VM, open **Size** under Availability + scale, choose a compatible size and apply the change; the same can be done through Azure CLI or IaC. A resize normally restarts the VM. If the requested size is unavailable on the current hardware cluster, Azure may require the VM to be stopped and deallocated first, which releases dynamic public IPs unless they are configured as static. I check application maintenance requirements, disk/network compatibility, availability-set/zone constraints, capacity, cost, backup and rollback before the change.
+
+## 13. Can an NSG be attached directly to a virtual network?
+
+**Answer:**
+
+No. A Network Security Group is associated with a subnet or a network interface, not directly with the virtual network. Effective rules are the combination of applicable subnet and NIC NSGs, evaluated with Azure's priority rules. I use the effective security rules and network watcher tools to validate the real path, and avoid relying on broad default allows.
+
+## 14. Can VMs in different subnets of the same VNet communicate?
+
+**Answer:**
+
+Yes, VNet routing allows communication between subnets by default. It can be restricted by NSGs, user-defined routes, Azure Firewall/NVAs, service endpoints, private endpoints, or the guest OS firewall. I validate effective routes and NSG flow, DNS and the target listener before assuming a subnet boundary is a security boundary.
+
+## 15. Can an OS disk be removed from an Azure VM?
+
+**Answer:**
+
+The OS disk cannot simply be detached from a running VM like an ordinary data disk. Azure supports OS-disk swap for a stopped VM in supported scenarios, and a replacement VM can be created from a managed-disk snapshot or image. I take an application-consistent backup, confirm the recovery objective and use the documented swap/rebuild workflow rather than attempting a destructive detach.
+
+## 16. Must an Azure VM and its Recovery Services vault be in the same region for backup?
+
+**Answer:**
+
+Yes, Azure VM Backup requires the Recovery Services vault and the protected VM to be in the same Azure region. Redundancy options affect how backup data is replicated, but they do not remove that registration requirement. I select the vault region deliberately, apply retention/immutability/access controls, and perform restore tests—not merely backup-success checks.
+
+## 17. Do Azure tags automatically flow to child resources?
+
+**Answer:**
+
+No. Tags are not inherited automatically by child resources. Azure Policy with a `modify` effect, IaC modules, or automation can enforce/copy required tags. I require ownership, environment, cost center and data classification tags at deployment, monitor compliance and handle exceptions explicitly so cost allocation and incident ownership remain reliable.
+
+## 18. Can a resource belong to more than one Azure resource group?
+
+**Answer:**
+
+No. An Azure resource belongs to exactly one resource group at a time. A resource group is a management and lifecycle boundary, while resources in it can exist in different regions. I group resources by ownership, lifecycle, access and cost boundaries rather than assuming a resource group is a network boundary.
+
+## 19. Why does an Azure resource group have a location?
+
+**Answer:**
+
+The location stores the resource group's management metadata, such as deployment history, tags, locks and resource-management information. It does not force every resource in the group into that region. I choose it deliberately for governance and support considerations, while setting each resource's own location according to workload, residency and resilience needs.
+
+## 20. Are you charged for an Azure VM that is stopped but not deallocated?
+
+**Answer:**
+
+Yes. A VM stopped from inside the guest OS or shown as **Stopped** can still retain compute allocation and incur compute charges. **Stopped (deallocated)** releases compute allocation and stops those charges, though managed disks, snapshots, public IPs and other attached resources can still cost money. I use scheduled deallocation for nonproduction workloads and verify the actual power state and dependent-resource cost.

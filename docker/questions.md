@@ -406,3 +406,15 @@ Build arguments are appropriate only for non-secret build choices because `ARG` 
 I never bake Dev/UAT/Prod credentials into separate images. I build once, publish an immutable digest to the approved registry, and provide environment-specific non-secret configuration through Kubernetes ConfigMaps, platform settings, or orchestrator variables. Secret values come from Vault/Key Vault/Secrets Manager/external-secret integration with least privilege and rotation.
 
 I verify `docker history`, image configuration, CI logs, SBOM/provenance, and registry access to ensure values were not exposed. If a credential entered a layer, deleting a later file is insufficient; I rotate it and rebuild without the secret.
+
+## 30. Docker versus virtual machines: what is the difference?
+
+**Answer:**
+
+Virtual machines emulate hardware and run a full guest operating system on a hypervisor, giving strong isolation but more startup time and overhead. Containers isolate processes while sharing the host kernel, so they start quickly and package application dependencies more densely. Containers do not replace VM boundaries for every security or operating-system requirement; production isolation also relies on a hardened host, namespaces/cgroups, non-root users, seccomp/AppArmor, image provenance and orchestration policy. Containers are commonly run on VMs in cloud environments.
+
+## 31. What Docker network types exist, and which is common in production?
+
+**Answer:**
+
+Common Docker drivers are `bridge` for single-host container networking, `host` to share the host network namespace, `none` for no network, and `overlay` for multi-host Swarm networking. `macvlan`/`ipvlan` can present containers directly on a physical network but add operational complexity. A user-defined bridge is a sensible default for local or single-host work because it provides DNS and isolation. In production Kubernetes/ECS/service platforms usually provide their own CNI/VPC networking rather than exposing raw Docker network choices; I choose based on isolation, service discovery, policy, observability and failure-domain needs.

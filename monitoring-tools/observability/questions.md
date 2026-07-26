@@ -49,3 +49,9 @@ The strategy rests on three pillars: metrics, logs, and traces. For metrics, I d
 For logging, I use Fluent Bit as a DaemonSet to collect container logs and forward them to OpenSearch, with structured JSON logging standardized across services for consistent querying. For distributed tracing, I implement OpenTelemetry instrumentation in all services with sampling rates adjusted to traffic volume, sending traces to Jaeger for visualization and analysis.
 
 Service-to-service dependencies are mapped automatically through Istio service mesh telemetry, which also provides request rate, error, and duration metrics. I implement SLOs for each service using Prometheus recording rules and alert on error-budget consumption. All observability data is tagged with consistent metadata (cluster, namespace, service, version), enabling correlation across systems. This approach reduces MTTR from hours to minutes by quickly identifying the root cause of complex issues spanning multiple services.
+
+## 8. Infrastructure is healthy and dashboards are green, but the system feels slow. What do you check first?
+
+**Answer:**
+
+I treat the user and business symptom as valid evidence and first confirm its scope with real-user monitoring, synthetic transactions and business KPIs such as conversion, successful checkout or queue completion. “Green” often means only host CPU and basic availability are covered. I compare a healthy baseline across p95/p99 latency, errors by route, client/network geography, DNS/TLS timing, dependency latency, saturation, queue age, database pools and recent changes. I then add the missing user-facing SLI and alerting so the dashboard represents the service outcome, not merely infrastructure reachability.

@@ -19,3 +19,15 @@ pull request -> tests and quality checks -> dependency/SAST/secret/IaC scans
 - **Prometheus**, **Grafana**, and centralized logs and traces verify the release; alert routing creates an operational feedback loop.
 
 Pin pipeline dependencies, protect credentials through short-lived identity, generate and retain an SBOM and provenance, sign artifacts, enforce admission policy, separate duties, and regularly test rollback and incident response. Scanners reduce risk but do not replace threat modeling, secure design, patching, runtime hardening, or human review.
+
+## Common DevSecOps Scanners
+
+- **TFLint** validates Terraform style/provider rules and catches common IaC mistakes.
+- **Checkov** evaluates IaC against security and compliance policies.
+- **SonarQube** performs static code analysis for bugs, vulnerabilities and maintainability issues.
+- **Trivy** scans container images, filesystems, SBOMs and supported IaC for vulnerabilities/misconfiguration.
+- **OWASP Dependency-Check** identifies known-vulnerable third-party libraries.
+- **Gitleaks** detects committed secrets; it should run pre-commit and in CI, but exposed credentials must still be revoked and rotated.
+- **Snyk** provides code, dependency, container and IaC vulnerability monitoring.
+
+Pin scanner versions and policy baselines, scan pull requests and release artifacts, triage findings by exploitability and business context, and define an exception expiry/owner. A passing scan is a control signal—not proof that a release is secure.

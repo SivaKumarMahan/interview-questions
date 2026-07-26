@@ -75,3 +75,75 @@ For internet email, signing normally means DKIM: the sending service signs selec
 I also configure SPF to authorize sending infrastructure and DMARC to define alignment, reporting, and policy. DMARC is introduced with monitoring (`p=none`), analysis of legitimate senders, then quarantine/reject when alignment is proven. A custom MAIL FROM domain, bounce/complaint handling, suppression lists, least-privilege SES identity, TLS, quotas, and CloudWatch/SNS events protect delivery reputation.
 
 I test DKIM/SPF/DMARC headers with real recipients, key rotation, subdomain ownership, and failure behavior. Email signing proves domain authorization and message integrity; it does not encrypt the email content—S/MIME or PGP addresses end-to-end message signing/encryption where required.
+
+## 8. What is Amazon S3, and which storage classes would you choose?
+
+**Answer:**
+
+S3 is highly durable object storage: applications store objects in buckets using keys, policies, encryption and lifecycle rules. I choose Standard for frequent access; Intelligent-Tiering for uncertain patterns; Standard-IA or One Zone-IA for infrequent/re-creatable data; and Glacier Instant Retrieval, Flexible Retrieval or Deep Archive for increasingly cold archives. I account for retrieval, minimum-duration and availability trade-offs, and use lifecycle rules rather than manually moving objects. Versioning, block-public-access, KMS where required, least-privilege bucket policies and restore testing are baseline controls.
+
+## 9. What is the difference between a security group and a network ACL?
+
+**Answer:**
+
+A security group is a stateful, allow-only virtual firewall attached to an ENI/resource; return traffic is automatically allowed and rules can reference another security group. A network ACL is a stateless subnet boundary with ordered allow and deny rules; both inbound and outbound return traffic must be allowed explicitly. I use security groups for the normal least-privilege application path and NACLs for coarse subnet guardrails or explicit deny requirements. I troubleshoot by checking route tables, both directions, ephemeral ports and the actual ENI/subnet—not by opening `0.0.0.0/0`.
+
+## 10. IAM role versus IAM user: when do you use each?
+
+**Answer:**
+
+An IAM role supplies temporary credentials to a workload or a federated human identity and can be assumed with narrowly scoped permissions. An IAM user is a long-lived AWS principal; it is a legacy fit only for exceptional cases where federation or roles cannot be used. I use roles for EC2, Lambda, ECS/EKS workloads, CI and human access through SSO, with MFA and least privilege. I avoid static access keys, rotate any unavoidable key, and review CloudTrail evidence and permission boundaries/SCPs.
+
+## 11. How do you back up and restore an EC2 workload?
+
+**Answer:**
+
+I make the application recoverable rather than treating a running instance as the only copy. Infrastructure is recreated from IaC; data is backed up from the database/application and EBS volumes use scheduled, encrypted snapshots with retention and cross-account/region copies when required. An AMI can preserve a tested machine image but is not a substitute for application-consistent data backups. A restore runbook launches or rebuilds the instance, restores data, validates security/DNS/secrets and proves the application transaction. I regularly test restores against stated RTO/RPO.
+
+## 12. EBS versus S3: when would you use each?
+
+**Answer:**
+
+EBS is low-latency block storage attached to an EC2 instance in one Availability Zone; it suits filesystems, boot volumes and databases that need block semantics. S3 is regional object storage accessed through its API; it suits backups, static assets, logs, data lakes and artifacts. EBS is not a shared object store, and S3 is not a mounted POSIX disk by default. I choose based on access semantics, latency, sharing, durability, lifecycle and recovery needs.
+
+## 13. What is a NAT Gateway, and where is it deployed?
+
+**Answer:**
+
+A NAT Gateway lets private-subnet workloads initiate outbound IPv4 connections without accepting unsolicited inbound internet traffic. It is deployed in a public subnet with an Elastic IP and a route to an Internet Gateway; private subnet route tables send `0.0.0.0/0` to the NAT Gateway. For resilience, I deploy one per Availability Zone and route each private subnet to its local NAT Gateway. I use VPC endpoints for AWS services such as S3 where possible to reduce cost and internet dependency.
+
+## 14. What is API Gateway, and when would you use it?
+
+**Answer:**
+
+API Gateway is a managed API front door that can expose REST, HTTP or WebSocket APIs and route them to Lambda, AWS services, VPC backends or other HTTP endpoints. It can provide authentication/authorization, throttling, request validation/transformation, custom domains, stages, logging and metrics. I use it when those managed API capabilities fit the service boundary; an ALB or direct service endpoint can be simpler for an internal or conventional web workload. I configure least-privilege backend permissions, WAF/auth as required, quotas/rate limits, observability and explicit timeout/error behavior.
+
+## 15. Explain a CloudFront + S3 + API Gateway + Lambda request flow.
+
+**Answer:**
+
+CloudFront is the public edge entry point. It serves cacheable static paths from an S3 origin—normally protected by Origin Access Control so the bucket is not public—and forwards dynamic API paths to API Gateway. API Gateway authenticates/authorizes and validates the request, then invokes Lambda with a resource policy/role that permits only that invocation. Lambda executes business logic and reads dependent services with its own least-privilege role; the response returns through API Gateway and CloudFront, subject to caching rules. I add TLS/custom domain, WAF, logs/traces, cache invalidation/versioned assets, error handling, throttling and alarms at each boundary.
+
+## 16. What is AWS Lambda, and where is it a good fit?
+
+**Answer:**
+
+Lambda runs short-lived, event-driven code without managing servers. It is well suited to API handlers, scheduled work, object/queue/event processing and automation that can be stateless, idempotent and bounded by Lambda execution limits. I set memory/timeout/concurrency intentionally, use an execution role with minimum permissions, keep dependencies small, store secrets externally, and monitor errors, duration, throttles, retries and DLQ/destinations. For long-running, highly connection-heavy or specialized-runtime workloads, containers or compute services may be a better fit.
+
+## 17. How do you grant an application access to an S3 bucket safely?
+
+**Answer:**
+
+I attach a least-privilege IAM role to the workload (EC2 instance profile, ECS task role, Lambda execution role or EKS workload identity), then allow only the required actions and prefix—for example `s3:GetObject` on `arn:aws:s3:::reports-bucket/approved/*` and `s3:ListBucket` constrained by `s3:prefix`. Bucket policy, IAM policy, permission boundary, SCP, VPC endpoint policy and KMS key policy must all permit the access; an explicit deny wins. I keep Block Public Access enabled unless there is a deliberate public-content design, require TLS/encryption, audit CloudTrail data events as appropriate and test both an allowed and denied operation.
+
+## 18. What is the difference between an ALB and an NLB?
+
+**Answer:**
+
+An Application Load Balancer is Layer 7: it understands HTTP/HTTPS and can route by host, path, header or method, terminate TLS and integrate with web-oriented controls. A Network Load Balancer is Layer 4: it forwards TCP/UDP/TLS with very high performance and static IP options, but has less HTTP awareness. I choose ALB for web applications and APIs; NLB for non-HTTP protocols, low-latency TCP/UDP, preserved client addressing or static-IP requirements. Both still require healthy targets, timeouts, security groups where applicable, observability and multi-AZ design.
+
+## 19. How do Route 53 routing policies reduce latency or improve availability?
+
+**Answer:**
+
+Latency-based routing directs DNS answers toward the lowest-latency healthy AWS region; weighted routing supports gradual traffic shifts; failover routing provides active-passive recovery; geolocation/geoproximity supports location or residency needs; multivalue answers return several healthy records; and simple routing is a basic single-record choice. I choose the policy from the traffic, data-consistency and failover design, configure health checks where needed, keep TTLs realistic and test recovery. DNS routing alone does not replicate data or prevent split brain.

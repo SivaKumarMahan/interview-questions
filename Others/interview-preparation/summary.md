@@ -30,3 +30,27 @@ Use a clear structure: context and scale -> responsibility -> symptoms and evide
 - **Monitoring** reports known signals; **observability** helps investigate unknown failures through correlated metrics, logs, and traces.
 - **Deployment engineering** includes progressive delivery, health gates, rollback, and database compatibility - not only `kubectl apply`.
 - **Production failures** can involve `kubelet`, CoreDNS, telemetry gaps, certificates, identity, or dependencies even when a high-level dashboard remains green.
+
+## 8. Introduction, daily work, and technology stack
+
+Do not recite a generic biography. Give a 60–90 second answer tailored to your real experience:
+
+```text
+current role and years of relevant experience
+-> product/domain and scale
+-> cloud and application stack
+-> your ownership across CI/CD, IaC, containers, Kubernetes and operations
+-> one measurable reliability, delivery, security or cost result
+```
+
+A credible day-to-day answer can cover reviewing pull requests and pipeline results, building or promoting immutable artifacts, changing Terraform through reviewed plans, supporting Kubernetes/EC2 deployments, investigating alerts and incidents, improving dashboards/runbooks, patching vulnerabilities, controlling cloud cost, and coordinating releases. Mention only tools and responsibilities you have actually used, and distinguish personal work from team ownership.
+
+Describe the application stack in layers: client/frontend, API or Java framework, synchronous and asynchronous integration, database/cache, build tool, artifact/container registry, compute platform, CI/CD, IaC, secrets, and observability. For example, replace placeholders with your real stack rather than claiming all of them:
+
+```text
+React -> Java/Spring Boot REST services -> PostgreSQL/Redis/Kafka
+Maven -> Docker/ECR -> EC2 or EKS
+Jenkins/GitHub Actions -> Terraform -> CloudWatch/Prometheus/Grafana
+```
+
+When asked which cloud, CI/CD tool, or services you use, lead with the primary platform and workflow, then name services by purpose. Explain one real deployment or incident to demonstrate depth instead of presenting a long product list.

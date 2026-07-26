@@ -162,7 +162,7 @@ Now, whenever you need another VM, just call the module again with different var
 ### 🧰 Helpful Utilities
 
 - `terraform fmt` – Automatically format your configuration files.
-- `terraform refresh` – Update the state file to reflect real infrastructure.
+- `terraform plan -refresh-only` / `terraform apply -refresh-only` – Review and then record remote drift in state without changing infrastructure; prefer these over the deprecated `terraform refresh`.
 - `terraform output` – Display outputs defined in your configuration.
 - `terraform show` – Inspect the current state or saved plans.
 - `terraform get` – Installs/upgrades modules.
@@ -172,7 +172,7 @@ Now, whenever you need another VM, just call the module again with different var
 - `terraform state` – Interact directly with the state file.
 - `terraform import` – Bring existing infrastructure under Terraform management.
 - `terraform workspace` – Manage multiple environments (e.g. dev, staging, prod).
-- `terraform taint` – Mark a resource to be recreated on the next apply.
+- `terraform plan -replace=<address>` / `terraform apply -replace=<address>` – Review and replace a damaged resource; prefer this over the deprecated `terraform taint`.
 
 ### 🔐 Authentication & Providers
 
@@ -186,6 +186,14 @@ Now, whenever you need another VM, just call the module again with different var
 ### Workflow and project structure
 
 The normal lifecycle is write configuration → `init` → `fmt`/`validate` → reviewed `plan` → approved `apply` → post-apply verification. Common files include `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, `versions.tf`, backend configuration, environment values, and reusable modules. Remote state should be encrypted, access controlled, versioned, audited, and locked.
+
+### Core configuration blocks
+
+- `terraform` declares required Terraform/provider versions and backend settings; a backend stores state but is not a standalone top-level `backend` block.
+- `provider` configures access to a platform API; use aliases for multiple regions, subscriptions, or accounts.
+- `resource` creates or manages infrastructure, while `data` reads existing information without creating it.
+- `variable` defines typed inputs, `locals` defines reusable expressions, and `output` exposes selected values.
+- `module` calls a reusable child module with an explicit input/output contract.
 
 ### Parent and child modules
 
@@ -217,6 +225,18 @@ resource "azurerm_storage_account" "example" {
 ```
 
 `each.key` is the stable map key and `each.value` is the complete object. Stable keys make additions and removals easier to review than positional list indexes. This pattern supports environment, region, team, or component maps, but separate state boundaries are still needed when ownership or blast radius differs.
+
+For a list of unique strings, `for_each = toset(var.names)` converts the list to a set whose strings become stable instance keys. Sets are unordered and automatically discard duplicates, so this is appropriate only when uniqueness is intended:
+
+```hcl
+resource "azurerm_resource_group" "example" {
+  for_each = toset(var.resource_group_names)
+  name     = each.value
+  location = var.location
+}
+```
+
+If duplicates indicate bad input, reject them with variable validation instead of silently relying on `toset()`. Use a map of objects when instances need additional per-item attributes.
 
 ### Scenario reminders
 
@@ -255,6 +275,23 @@ resource "azurerm_resource_group" "this" {
 State locking prevents concurrent writers from corrupting state or applying incompatible plans. A team backend should provide locking, encryption, access control, version history, and audit logging. If another run holds the lock, identify its owner and active pipeline and wait or stop that run cleanly. Use `terraform force-unlock <LOCK_ID>` or break a backend lease only after proving no operation is running, recording the incident, and backing up or versioning state; an incorrect forced unlock can allow two applies to write concurrently.
 
 The safe team flow is one reviewed plan per state boundary, serialized apply, immutable CI logs, and post-apply verification. Split unrelated environments and components into separate state when their ownership, release cadence, privileges, or blast radius differ.
+
+### State, collaboration, and console drift
+
+State maps Terraform resource addresses to remote object IDs and records the attributes needed to calculate dependency-aware plans. It is not the source code or a general-purpose inventory. Treat it as sensitive because it can contain infrastructure metadata and secret values; keep it in a protected remote backend rather than Git or individual laptops.
+
+When two engineers use the same configuration, the shared backend and locking serialize writes. Before changing anything, pull the reviewed branch and run a fresh plan against the correct backend/workspace. The plan refreshes remote objects in memory and shows whether another apply or an out-of-band change has altered them; backend version history, CI logs, and cloud audit logs show who changed what.
+
+If someone edits an EC2 resource in the AWS Console, Terraform does **not** automatically rewrite the `.tf` files:
+
+1. Run `terraform plan -refresh-only` to review the drift without proposing infrastructure changes.
+2. Decide whether the console change is authorized and should become the desired state.
+3. To keep it, update the HCL and review a normal plan; optionally apply the reviewed refresh-only plan to record current remote values in state.
+4. To reject it, run a reviewed normal plan/apply so Terraform restores the declared configuration.
+
+Use `terraform import` for an existing object that Terraform does not yet manage. Import associates the object with a resource address; configuration must still be written and reviewed. Configuration generation can provide a starting template for supported imports, but generated HCL must be cleaned up and validated rather than accepted blindly.
+
+One common AWS team architecture uses small root modules and reusable child modules, with separate states for environments or components. CI assumes a short-lived IAM role, creates and publishes the plan, and performs the protected apply. The S3 backend stores encrypted state in a versioned, access-logged bucket; current Terraform versions can enable S3 lockfile locking with `use_lockfile = true`. Restrict state and lock-object paths by IAM and provide a tested recovery procedure. DynamoDB-based S3 locking is deprecated, so describe it as a legacy implementation only when that is what the project actually uses.
 
 ## Terraform Functions Reference
 
@@ -406,6 +443,12 @@ resource "aws_instance" "example" {
   tags          = zipmap(["Name"], [var.resource_names[count.index]])
 }
 ```
+
+## Azure Infrastructure Automation Pattern
+
+For Azure, compose reviewed modules for resource groups, VNets/subnets, NSGs, private DNS/endpoints, storage, Key Vault, Log Analytics/Application Insights, ACR, AKS, databases, role assignments and the required ingress/egress components. Modules should expose stable inputs and outputs, keep environment-specific values at the root, and avoid creating a tightly coupled all-in-one state file. State boundaries normally follow lifecycle and ownership, for example connectivity, shared platform, data and application environments.
+
+Run `fmt`, `validate`, security/policy checks and a plan in CI; use an encrypted/versioned remote backend with locking and apply only an approved saved plan through a protected environment. Terraform creates infrastructure and grants identities, but applications should retrieve secrets at runtime through managed identity and Key Vault rather than passing secret values through state. After apply, verify private DNS, routes, RBAC propagation, diagnostic ingestion, AKS/ACR access and the user-facing health path.
 
 **`length()`** — returns the length of a list, string, or map. **`keys()`** — returns a list of a map's keys. **`values()`** — returns a list of a map's values.
 

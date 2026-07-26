@@ -47,6 +47,10 @@ Then stop/kill the process and try again.
 
 ---
 
+## System Logging Notes
+
+Linux log locations vary by distribution and service manager. With systemd, query services and the kernel with `journalctl`; traditional files may be under `/var/log/` such as `syslog`, `messages`, `auth.log` or application-specific logs. `tail -n 4 /var/log/messages` prints the last four lines where that file exists. Centralized logging should preserve timestamps, host/service identity and access controls, and `logrotate` should manage retention, compression and safe rotation of large files.
+
 ### Q: How do you print the last 15 lines of a file in Linux?
 
 **Using the `tail` command**

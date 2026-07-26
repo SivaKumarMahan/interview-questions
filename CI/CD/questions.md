@@ -257,3 +257,9 @@ I compare the exact artifact digest and configuration commit first; rebuilding b
 I preserve the production error, deployment events, logs, metrics, traces, and audit changes, then reproduce using production-like configuration with sensitive values protected. I avoid making random manual changes. If impact is active, I pause or roll back and verify recovery before testing a fix.
 
 The preventive action is environment parity where practical, explicit versioned differences where not, promotion of one immutable artifact, production-like load and policy testing, configuration schema validation, preflight dependency checks, and drift detection.
+
+## 26. A deployment succeeded, but traffic still reaches the old version. Where do you start?
+
+**Answer:**
+
+I first verify the deployed artifact digest, workload revision and actual Pod/container image rather than trusting a success message. Then I trace the request path: DNS/CDN cache, load balancer or ingress routing, service selector and EndpointSlices, readiness, rollout strategy/weights, service-mesh routing, and client/browser cache. Common causes are a mutable tag resolving unexpectedly, an unchanged deployment template, old ready endpoints, canary/blue-green routing still weighted to the old revision, cache TTL, or deployment to the wrong cluster/namespace. I capture evidence, make the smallest reversible routing or rollout correction, and verify live requests with version headers/metrics before closing the incident.

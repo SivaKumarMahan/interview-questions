@@ -82,3 +82,9 @@ sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -delete
 ```
 
 I avoid deleting the active log because a process may keep writing to its old file descriptor and disk space may not be released. After cleanup I verify `df -hT`, the service is still logging, rotation works, central logs remain searchable, and alerts/retention prevent recurrence.
+
+## 7. Prometheus versus Splunk, and what is an SPL search?
+
+**Answer:**
+
+Prometheus stores numeric time-series metrics and evaluates PromQL rules; it is suited to rates, latency percentiles, capacity and alerting. Splunk indexes/searches logs and events, with metrics and traces available in some products; it is suited to forensic event search and log correlation. They are complementary, not substitutes. SPL is Splunk Processing Language: a typical safe investigation narrows time and source first, then filters and aggregates, for example `index=prod service=payments level=ERROR | stats count by error_code | sort - count`. I avoid unbounded all-time searches and ensure sensitive fields are masked before ingestion.

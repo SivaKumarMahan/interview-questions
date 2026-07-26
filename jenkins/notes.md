@@ -262,4 +262,18 @@ stage('Parallel Testing') {
 
 By applying these strategies, you can effectively reduce the execution time of your Jenkins pipeline from 45
 
+## Reusable Jobs, Triggers, and Post Actions
+
+Prefer versioned Jenkinsfiles, shared libraries, Job DSL or Configuration as Code over copying UI job configuration. Parameterized or multibranch Pipelines reduce duplication, while permissions and production credentials remain environment-specific. `$JENKINS_HOME` stores controller configuration, build metadata and plugin data; back it up consistently and test restoration rather than treating it as an artifact store.
+
+Git webhooks are the preferred event-driven trigger: validate webhook signatures, use TLS and restrict the endpoint. Poll SCM or periodic cron triggers are fallbacks and consume capacity; Jenkins cron uses its own syntax and should include sensible spread (`H`) where applicable. A failed Pipeline may be restarted from a stage only when the stage is safe and required artifacts/inputs still exist; this is not a substitute for idempotent deployment design.
+
+Declarative Pipeline `post` conditions such as `success`, `failure`, `unstable`, `changed` and `always` run after the Pipeline/stage outcome. Use them for notifications, publishing reports and bounded cleanup; make cleanup safe even when an earlier stage did not create every resource.
+
+## Agents and Git Integration
+
+Jenkins agents should be treated as isolated execution environments. Static agents may connect over SSH; inbound agents use a supported agent protocol and authentication. Prefer ephemeral, least-privilege agents for untrusted or variable workloads, and never place build workloads on the controller. Monitor agent capacity, disk, workspace cleanup, tool versions and connection failures.
+
+Git integration needs a narrowly scoped credential or GitHub App, branch protection, webhook signature validation and a defined checkout ref. `git pull` fetches and integrates changes; use explicit `fetch` plus reviewed merge/rebase workflows in automation where predictable behavior matters. A revert adds a new commit that reverses a prior commit and is generally safer than history rewriting on a protected shared branch.
+
 ---

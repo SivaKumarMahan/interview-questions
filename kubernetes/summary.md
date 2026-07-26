@@ -117,6 +117,8 @@ Zone-bound disks can prevent a StatefulSet Pod from mounting after scheduling in
 
 A single PV is normally bound to one PVC. Cross-namespace failures are more commonly caused by multiple PVs using the same storage backend or by an RWX service failure, not multiple ordinary PVCs binding independently to one PV.
 
+Use no persistent mount for stateless workloads whose local data can disappear when a container or Pod is replaced. Use `emptyDir` only for Pod-lifetime scratch space shared by containers. Use a PVC for data that must survive Pod replacement; choose the StorageClass, access mode, capacity, topology, expansion, snapshot and backup behavior from application requirements. A mount is not itself a backup, and stateful databases also require application-consistent recovery testing.
+
 ## 7. Scheduling
 
 The scheduler filters and scores nodes using:
@@ -770,3 +772,46 @@ Each layer between your user and your pod exists because the previous setup was 
 - **Service Mesh** secures and observes pod-to-pod traffic.
 - **Network Policies** enforce who can talk to whom.
 - **API Gateway** manages what your public APIs do.
+
+## AKS Operations and Log Locations
+
+For an AKS workload, inspect from the Kubernetes API first:
+
+```bash
+kubectl logs <pod> -c <container> --previous
+kubectl describe pod <pod>
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+On Linux nodes, container-runtime log symlinks are commonly under `/var/log/containers/` and pod log directories under `/var/log/pods/`. Kubelet and node/system messages are often available through `journalctl -u kubelet` and the OS journal rather than a fixed `/var/log/kubelet.log` or `syslog` file. Paths vary by OS, runtime and managed-service configuration.
+
+In managed AKS, control-plane components are operated by Azure; their local host log files are not normally available. Enable and query AKS diagnostic/control-plane logs, Azure Activity Log, Container Insights/Log Analytics and Application Insights as applicable. Use application logs for business and code failures, node/kubelet/CNI logs for node and scheduling symptoms, and control-plane telemetry for API, scheduler and controller issues. Collect structured `stdout`/`stderr` logs with correlation IDs; avoid logging secrets.
+
+## EKS Pod and Cluster Logs
+
+For immediate investigation, identify the namespace, Pod and container, then inspect current and previous container output and Events:
+
+```bash
+kubectl logs -n <namespace> <pod> -c <container> --since=30m
+kubectl logs -n <namespace> <pod> -c <container> --previous
+kubectl describe pod -n <namespace> <pod>
+kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
+```
+
+`kubectl logs` is not durable centralized storage. In EKS, deploy the Amazon CloudWatch Observability add-on or an approved Fluent Bit/OpenTelemetry logging pipeline with Pod Identity or another least-privilege workload identity. Route structured application logs with Kubernetes metadata to CloudWatch Logs, OpenSearch, Loki, or the organization’s platform; set retention, filtering, multiline parsing, redaction, cost controls, dashboards, and alerts. Enable EKS control-plane log types separately when required, and distinguish application, node/data-plane, control-plane, and CloudTrail API audit evidence during investigation.
+
+## Helm-Based Microservice Delivery
+
+Helm charts define the workload, Service, ingress/Gateway routes, configuration, resource limits, probes and policy-compatible metadata. Store chart templates separately from environment values; promote an immutable chart version and image digest rather than rebuilding for each environment. A typical release validates with `helm lint` and `helm template`, runs policy/security checks, deploys with bounded `--wait`/`--atomic` behavior where suitable, then proves health through real requests and observability. Helm release success alone is not application success.
+
+## Namespaces
+
+A Namespace is a logical scope within one Kubernetes cluster. It organizes resources by team, application, tenant or environment and enables namespace-scoped RBAC, ResourceQuota, LimitRange, NetworkPolicy and name isolation. The same resource name can exist in separate namespaces, so `dev/nginx`, `qa/nginx` and `production/nginx` do not conflict.
+
+```bash
+kubectl get pods -n dev
+kubectl get pods -n qa
+kubectl get pods -n production
+```
+
+Namespaces are not strong security boundaries by themselves. Pods can normally communicate across namespaces through Services such as `api.payments.svc.cluster.local`; use enforced ingress and egress NetworkPolicies, workload identity and least-privilege RBAC to allow only the required paths. Cluster-scoped objects such as Nodes, PersistentVolumes and StorageClasses are not namespaced.

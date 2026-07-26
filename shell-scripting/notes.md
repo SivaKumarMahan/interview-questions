@@ -30,3 +30,7 @@ echo "Backup completed: $backup_file"
 ```
 
 I would additionally generate a checksum, upload to versioned immutable storage, alert on failure or missing successful backup, and regularly restore into an isolated database. Retention by age is clearer and safer than parsing `ls` output.
+
+## Shell Error Handling and Logging
+
+For automation, begin with a deliberate strict-mode choice such as `set -Eeuo pipefail`; understand that `-e` has shell-context exceptions, so important commands should still be checked explicitly. Use an `ERR` trap to add line number and command context, then exit with a useful status. Log both stdout and stderr while preserving visibility, for example `exec > >(tee -a "$log_file") 2>&1`. Avoid printing secrets, quote variables, use `mktemp` for temporary files, and test failure paths rather than only the happy path.

@@ -21,3 +21,14 @@ reviewed code -> pipeline identity -> Key Vault authorization
 ```
 
 Use separate vaults or strong authorization boundaries for environments, private endpoints and firewall rules where required, rotation and expiry alerts, purge protection and recovery controls, and diagnostic logging. Prefer applications retrieving secrets through managed identity rather than baking secrets into artifacts or Kubernetes manifests. Secret masking is a last safety net: avoid echoing values, command-line exposure, output variables, and untrusted scripts.
+
+## Terraform Delivery with Azure DevOps
+
+A Terraform pipeline should run from reviewed Git code using a protected Azure Resource Manager service connection—preferably workload identity federation, with a narrowly scoped service principal only when necessary. A self-hosted agent is appropriate when it must reach private endpoints or private Azure APIs, but it must be patched, isolated, monitored and prevented from running untrusted pull-request code with production credentials.
+
+```text
+pull request -> fmt/validate -> tfsec/Checkov -> plan artifact -> review
+protected environment -> approval -> apply saved plan -> smoke test -> audit evidence
+```
+
+Keep Terraform modules reusable and make Dev, QA and Production separate by state, identity, approval, subscription/resource scope and policy—not just by variable files. Use an encrypted, versioned remote state backend with locking; do not keep state or service-principal secrets in the repository. Publish the plan for review, apply the reviewed saved plan, and retain pipeline logs, deployment metadata and rollback/recovery instructions.

@@ -37,3 +37,15 @@ I stabilize by rolling back or shifting traffic, disabling the costly feature, r
 At the edge I use strong authentication, authorization, rate limits and input validation. Internally, workloads use short-lived identity, mTLS where required, least-privilege service authorization, network policy and external secret management. Images are minimal, signed/scanned and run non-root with resource limits.
 
 Every service emits bounded metrics, structured redacted logs and distributed traces with service, environment, version and trace ID. Dashboards show latency, traffic, errors, saturation, dependency health, queue age and business outcomes; alerts are SLO-based and owned. Audit logs cover sensitive actions. Observability data never contains tokens or unnecessary personal data.
+
+## 6. When would you use SQS rather than Kafka, or vice versa?
+
+**Answer:**
+
+I use SQS when I need a managed queue for decoupled work, simple producer/consumer scaling, retries and dead-letter queues without operating a streaming platform. It is a good fit for asynchronous commands and background jobs. I use Kafka when multiple consumers need an ordered, durable event log, replay, high throughput, consumer-managed offsets and stream processing. Neither guarantees business-level exactly-once behavior by itself: consumers must be idempotent and monitor age/lag, failures and DLQs. The choice follows delivery semantics, retention/replay, ordering scope, throughput and operational ownership.
+
+## 7. What are a Kafka broker and a consumer group?
+
+**Answer:**
+
+A Kafka broker is a server in the Kafka cluster that stores topic partitions, serves producers/consumers and participates in replication and leader election. A consumer group is a set of consumers sharing a group ID; Kafka assigns each partition to at most one active consumer in that group, allowing parallel processing while retaining partition order. Different groups can consume the same topic independently. I monitor consumer lag, partition balance, broker disk/replication health, ISR, throughput and failed consumers; consumers must be idempotent because retries and rebalances can cause reprocessing.

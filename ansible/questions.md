@@ -190,3 +190,27 @@ Machine A must be an approved control node with Ansible, inventory, code checkou
 ```
 
 I run `ansible-playbook --syntax-check`, `--check --diff` where modules support it, limit the first production run to a canary, and then verify service health. Code, inventory structure, Vault references, reviews, and CI logs provide repeatability and auditability.
+
+### 16. Is Ansible inventory static or dynamic?
+
+**Answer:**
+
+It can be either. A static inventory lists hosts and groups in INI or YAML and suits small, stable environments. A dynamic inventory plugin queries a source such as AWS, Azure, VMware or Kubernetes at run time and can group hosts by tags, region or metadata. I use dynamic inventory for elastic cloud fleets, cache it appropriately, and validate it with `ansible-inventory --graph` before a change. Inventory describes targets; it should not contain secrets.
+
+### 17. What is the difference between the `command` and `shell` modules?
+
+**Answer:**
+
+`ansible.builtin.command` runs a program directly and does not interpret shell syntax, so pipes, redirects, glob expansion and variables do not work. It is the safe default because it avoids unnecessary shell injection. `ansible.builtin.shell` runs through a shell and is appropriate only when shell features are genuinely needed. I prefer a dedicated Ansible module over either, use `creates`/`removes` or an idempotent module where possible, and quote validated variables carefully when `shell` is unavoidable.
+
+### 18. What is an Ansible module?
+
+**Answer:**
+
+A module is a reusable unit Ansible executes to perform an action, for example `package`, `service`, `copy`, `user`, `template`, or cloud modules. Modules return structured facts such as `changed`, `failed` and output; good modules are idempotent, so the same desired state can be applied repeatedly. A task invokes a module, while a playbook organizes plays, variables, handlers and tasks. I use fully qualified names such as `ansible.builtin.copy` to make the source unambiguous.
+
+### 19. How do you automate private VMs with Ansible when their IP addresses change?
+
+**Answer:**
+
+I use a dynamic inventory plugin for the cloud/virtualization platform and group hosts by trusted metadata such as environment, application and role. Ansible queries the provider API for current private addresses or hostnames; a static inventory is not maintained by hand. Internal DNS, a CMDB-backed inventory or a bastion/proxy can provide the connection path where direct access is unavailable. The control node still needs authenticated network reachability, host-key verification and least-privilege credentials; dynamic inventory discovers hosts but does not bypass network security.

@@ -526,3 +526,23 @@ A multi-region Azure application can use Front Door as the global entry point an
 ### Azure three-tier blueprint and automation
 
 A typical Azure three-tier design uses Front Door for global entry, Application Gateway/WAF for regional Layer-7 routing, and App Service, VM Scale Sets, containers, or AKS for the presentation tier. The application tier runs on a separately secured service or compute boundary and can use an internal load balancer, Service Bus, and Redis to decouple work and reduce latency. Azure SQL, Cosmos DB, or Storage services form the data tier through private connectivity, managed identity, encryption, backup, and tested recovery. Terraform modules, Azure CLI where appropriate, Git-based review, and CI/CD make the Dev, Test, and Production environments repeatable; environment separation must also include state, identity, approval, policy, and network boundaries.
+
+## AKS Microservices Reference Architecture
+
+An Azure microservices platform can use Azure DevOps to build, test, scan and publish immutable container images to Azure Container Registry (ACR). AKS pulls those images using a managed identity or workload identity with the narrow `AcrPull` permission. Helm packages the Kubernetes manifests and environment values; a deployment pipeline or GitOps controller promotes the same chart and image digest through environments.
+
+```text
+developer -> Azure DevOps CI -> ACR
+                              -> Helm/GitOps -> AKS
+internet -> Front Door/WAF or Application Gateway -> AKS ingress/Gateway -> Services -> Pods
+Pods -> Key Vault / Cosmos DB / Redis / Service Bus through private networking
+Pods -> Azure Monitor, Log Analytics and Application Insights
+```
+
+Use an AKS-supported CNI/data-plane configuration and enforce NetworkPolicy, but validate the exact supported Cilium and policy capabilities for the chosen AKS version. Keep secrets in Key Vault and retrieve them through workload identity/CSI or an approved external-secrets pattern; do not store long-lived cloud credentials in Helm values. Production design also needs resource requests/limits, probes, autoscaling, PDBs, image-signing/scanning policy, RBAC, backup/recovery and tested rollback.
+
+## Azure Functions and Virtual Machines
+
+**Azure Functions** is event-driven serverless compute. HTTP, timer, Blob, queue and Event Grid triggers are common. It is a strong fit for short-lived APIs, automation, scheduled work, notifications and event processing. Choose plan, timeout, memory, concurrency, retry/DLQ behavior, identity, secret access and observability deliberately. It is not automatically the best fit for long-running, stateful or connection-heavy workloads.
+
+**Azure Virtual Machines** provide operating-system control for legacy applications, custom software, migration workloads, self-managed tools and development environments. They require patching, image management, endpoint protection, backup, monitoring, least-privilege access and capacity planning. Use private IPs by default, Azure Bastion or controlled JIT administration rather than broad public RDP/SSH, and VM Scale Sets when horizontally scaling identical instances. A VM that is merely stopped can still incur compute cost; **Stopped (deallocated)** releases compute allocation, although disks and other attached resources still cost money.

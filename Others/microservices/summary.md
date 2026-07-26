@@ -12,3 +12,9 @@ client -> API gateway -> service A -> service B
 **Production design** uses explicit contracts, backward compatibility, timeouts, retry budgets with jitter, circuit breaking, bulkheads, rate limits, idempotency, queues for buffering, health/readiness, workload identity, least privilege, centralized secrets, structured logs, metrics and distributed traces. Retries must not multiply load or duplicate non-idempotent work.
 
 Avoid a shared database that lets every service modify every table. Cross-service workflows use event-driven patterns, outbox/inbox, idempotent consumers or sagas according to consistency needs. Monitoring follows the user transaction across gateway, services, queues and data stores and includes deployment/version context.
+
+## Example Azure Implementation
+
+On Azure, a practical implementation runs independently deployable services on AKS, stores signed/scanned images in ACR, uses Helm or GitOps for release configuration, and exposes only the required north-south routes through an ingress/Gateway and WAF-capable edge. Cosmos DB or Azure SQL is chosen per service/data requirement; Redis supports low-latency caching; Service Bus provides durable asynchronous work and back-pressure. These services should use private endpoints and private DNS where supported.
+
+Workloads use managed/workload identity to access Key Vault and Azure services, rather than shared connection strings in manifests. Azure Monitor, Log Analytics and Application Insights provide platform telemetry, logs, traces and availability checks. The design must still include contract versioning, retry limits, idempotency, dead-letter handling, data backup/recovery and failure testing; cloud services do not remove distributed-systems failure modes.

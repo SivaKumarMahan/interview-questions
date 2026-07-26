@@ -33,3 +33,21 @@ I use a real incident and structure it as situation, task, evidence, action, res
 I describe stabilization first—pausing the rollout, reverting the change, limiting retries, and communicating impact and update times—then the targeted investigation and verification. I include what I personally did, what other owners did, and measurable recovery such as latency returning from two seconds to the normal range within a stated time. I do not claim a perfect solo save or expose confidential details.
 
 The strongest part is what changed afterward: query/load tests, canary SLO gates, bounded retry standards, connection-pool dashboards, dependency runbooks, and a game-day test. I also mention any mistake or delayed signal and what I learned. The answer demonstrates judgment, teamwork, evidence, communication, and durable improvement—not just commands.
+
+## 5. Tell me about a time a production server went down. What did you do first?
+
+**Answer:**
+
+I answer with a real example and start with impact and safety: acknowledge/declare the incident, confirm the affected user path and scope, pause risky changes, and assign or join an incident lead and communications channel. I check recent changes, health signals and the fastest safe stabilization path—rollback, failover, traffic shift or scaling—before deep investigation. I state what I personally did, how I kept stakeholders updated, how recovery was verified, and the preventive action taken afterward. I avoid claiming that I worked alone or invented production responsibility.
+
+## 6. Three servers report issues simultaneously. How do you prioritize?
+
+**Answer:**
+
+I prioritize by customer impact, security/data-integrity risk, SLO burn, blast radius and whether the alerts share a dependency—not the order in which pages arrived. I create one incident when a common cause is likely, assign owners, stabilize the highest-impact service first and suppress derivative alert noise. I preserve a timeline and communicate scope and next update time. Afterward I verify each service and improve dependency mapping, alert grouping and capacity/runbook gaps that made the simultaneous failure harder to handle.
+
+## 7. Describe a time you introduced an infrastructure failure. What changed afterward?
+
+**Answer:**
+
+I use a real example and own my part clearly. I explain the change, the safety checks that existed or were missed, the detected impact, how I helped stabilize it, and how I communicated without hiding the error. Then I describe the durable improvement: for example an immutable artifact check, peer-reviewed Terraform plan, narrower rollout, better alarm, tested rollback, or a runbook. The goal is not to present a dramatic failure; it is to demonstrate accountability, calm incident behavior and a concrete control that prevents recurrence.

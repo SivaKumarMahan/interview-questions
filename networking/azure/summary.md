@@ -96,13 +96,15 @@ client -> frontend IP -> listener -> routing rule
 
 Application Gateway is a regional Layer-7 HTTP/HTTPS load balancer. Listeners receive traffic, rules select a backend by host or path, backend settings define protocol, port, TLS and session behavior, and health probes remove unhealthy targets. Backend pools can include supported VM, scale-set, App Service, AKS, or IP/FQDN targets. WAF adds managed/custom web-attack rules; TLS can terminate at the gateway or be re-encrypted to the backend.
 
+Cookie-based affinity can keep a client on the same backend when an application requires session stickiness, but stateless applications are easier to scale and recover. Current v2 SKUs support autoscaling and zone redundancy where the region supports Availability Zones. For centralized certificate management, Application Gateway can retrieve supported TLS certificates from Key Vault through a managed identity with least-privilege access. Send access, performance, firewall, and health telemetry through diagnostic settings to Azure Monitor/Log Analytics and alert on unhealthy backends, failed requests, latency, capacity, and WAF events.
+
 Troubleshoot the resolved frontend address, listener/SNI and certificate, WAF logs, rule priority, rewrite/redirect behavior, backend health, probe host/path/status, NSG/UDR/firewall path, backend TLS trust, and application logs. A healthy gateway does not imply a healthy backend.
 
 ### Load Balancer and secure administration
 
 Azure Load Balancer distributes Layer-4 TCP/UDP flows using a frontend, rule, backend pool, and health probe. A common path is internet -> public frontend -> load-balancing rule -> healthy VM backend. Use an internal load balancer for private tier-to-tier traffic.
 
-A jump VM is a hardened administrative VM used as an intermediate access point, but it still needs patching, identity controls, logging, and network protection. Azure Bastion is a managed alternative that provides RDP or SSH access to private VMs without assigning each VM a public IP. Whichever pattern is chosen, use least privilege, just-in-time access, session logging, restricted management sources, and a break-glass procedure.
+A jump VM is a hardened administrative VM used as an intermediate access point, but it still needs patching, identity controls, logging, and network protection. Azure Bastion is a managed alternative that provides RDP or SSH access to private VMs without assigning each VM a public IP. Users commonly initiate the session through the Azure portal over HTTPS, while Bastion reaches the VM over its private address; this avoids exposing inbound TCP 22 or 3389 to the public internet. Whichever pattern is chosen, use least privilege, just-in-time access, session logging, restricted management sources, and a break-glass procedure.
 
 ### NSG and Azure Firewall together
 

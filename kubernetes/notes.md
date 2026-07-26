@@ -1,9 +1,3 @@
-# Kubernetes Detailed Interview Notes
-
-These notes provide extended explanations, commands, YAML examples, investigation flows, corrective actions, and preventive measures for Kubernetes interviews. Numbered interview questions and scenario answers are maintained in `questions.txt`; concise revision material is maintained in `summary.md`.
-
----
-
 ## Cluster Operations, Workloads, Monitoring, Upgrades, and Troubleshooting
 
 ### Q: There are 1 master and 3 worker nodes. If the master fails, what happens? Will pods keep running or will they crash?
@@ -1072,3 +1066,12 @@ spec:
 ```
 
 Each StatefulSet pod gets its own PVC with the naming pattern `<claim-name>-<pod-name>-<ordinal>` (e.g., `data-mysql-0`, `data-mysql-1`).
+
+## Operations, Networking, and Security Notes
+
+- `kubelet` runs on each node and reconciles assigned Pod specifications with the container runtime. `kubectl` is the client CLI; it is not a control-plane component. Metrics Server provides resource metrics used by `kubectl top` and commonly by HPA.
+- A Service selects ready Pods by labels. `ClusterIP` is internal, `NodePort` exposes a node port, and a headless Service (`clusterIP: None`) returns Pod endpoints directly—commonly for StatefulSets. Ingress/Gateway resources define HTTP(S) routing, but an installed controller/data plane implements them.
+- Use readiness to control traffic, liveness to restart a stuck container, and startup probes to protect slow-starting applications. Use HPA for horizontal replica scaling; right-size requests/limits and use cluster/node autoscaling separately.
+- For planned node work: `kubectl cordon <node>`, drain with an appropriate PDB-aware command, perform maintenance, then `kubectl uncordon <node>`. Do not use `--ignore-daemonsets` as a substitute for understanding workload disruption.
+- Secure clusters with RBAC, short-lived ServiceAccount/workload identity, NetworkPolicies, Pod Security admission, signed/scanned images, secret-management integration, audit logs, patching and restricted administrative access. `imagePullSecrets` are a fallback for private registries; cloud workload identity/integration is preferred where available.
+- A highly available control plane needs multiple API servers behind a load balancer and an odd-numbered healthy etcd quorum. Worker-node failure causes Pods to be evicted/rescheduled after node-health timeouts; the exact behavior depends on controllers, PDBs, storage and scheduling capacity.

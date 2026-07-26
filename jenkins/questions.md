@@ -215,3 +215,21 @@ I configure the GitHub Enterprise Server URL and trusted CA in the supported Jen
 Authentication uses a GitHub App where supported because it provides repository-scoped permissions and short-lived installation tokens. A narrowly scoped service identity or deploy key is the fallback. Secrets live in Jenkins credentials, are bound only for the required step, and production deployment credentials are unavailable to pull-request jobs. TLS, proxy/firewall, and host-key trust are explicitly configured.
 
 I require branch protection and Jenkins status checks, protect Jenkinsfile/shared-library changes with code owners, and log webhook, checkout, build, and deployment identity. Troubleshooting covers webhook delivery history/signature, DNS/TLS/proxy, GitHub API rate limits, app installation permissions, branch discovery, Jenkins queue, and commit-status permissions.
+
+## 13. Freestyle job versus Pipeline: what is the difference?
+
+**Answer:**
+
+A Freestyle job is configured mainly in the Jenkins UI and is useful for a simple, isolated task, but its configuration is harder to review, version and reuse. A Pipeline defines delivery stages as code in a `Jenkinsfile`; it supports code review, durable execution, parallelism, shared libraries, credentials binding, approvals and repeatable promotion. I prefer Declarative Pipeline for conventional CI/CD because its structure and validation are clearer; Scripted Pipeline is more flexible but needs stronger code discipline.
+
+## 14. What are Jenkins plugins, and how do you manage them safely?
+
+**Answer:**
+
+Plugins extend Jenkins for SCM, credentials, agents, pipelines, test reports, artifact repositories, cloud provisioning and notifications. Each plugin is executable code with compatibility and supply-chain risk, so I install only supported plugins, pin and test versions in a non-production controller, monitor security advisories, remove unused plugins, back up configuration and plan restart/rollback. I avoid installing a plugin simply because a pipeline can call it; a CLI, API or shared-library integration can be safer and easier to govern.
+
+## 15. Ten Jenkins jobs have nearly the same configuration. How do you manage them?
+
+**Answer:**
+
+I avoid ten independently edited UI jobs. Where one workflow varies only by environment, component or target, I use a single parameterized Pipeline and a versioned `Jenkinsfile`. For genuinely separate jobs, I generate them with Job DSL or Jenkins Configuration as Code and put shared logic in a reviewed shared library. Multibranch Pipelines are appropriate when each repository or branch owns its own pipeline. Parameters and templates reduce duplication, but production credentials and permissions must remain separated; a generic job must not let an untrusted parameter choose a privileged deployment target.

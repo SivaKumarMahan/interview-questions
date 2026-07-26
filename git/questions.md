@@ -238,3 +238,9 @@ I avoid permanent environment branches containing different application code bec
 Environment-specific desired configuration can live in clearly separated directories or repositories with protected pull requests and environment owners. A promotion changes the image digest/chart version in the next environment; it does not rebuild source. Secrets remain external references.
 
 If an organization requires environment branches, I define one-way promotion, automated comparison, branch protection, and rules preventing direct production commits, but I would explain the drift risk and work toward artifact-based promotion.
+
+## 18. `git pull` says “not a git repository.” How do you troubleshoot?
+
+**Answer:**
+
+I first run `pwd` and `git rev-parse --show-toplevel`; the error usually means the command is being run outside the cloned directory, the `.git` metadata is missing, or an environment/script changed the working directory. I `cd` to the repository root and verify `git status` and `git remote -v`. If `.git` was removed or the checkout is corrupted, I preserve uncommitted files, clone a fresh copy, restore only the needed work and then pull the intended branch. I do not run `git init` inside an unknown directory because it creates unrelated history and can hide the real problem.

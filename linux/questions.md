@@ -558,3 +558,79 @@ ps -eo pid,ppid,user,%mem,rss,vsz,etime,cmd --sort=-rss | head -n 11
 RSS is the physical memory currently resident for the process; VSZ includes virtual mappings and can look large without representing real RAM pressure. `%MEM` is useful for a quick comparison but a snapshot does not show whether usage is growing.
 
 I confirm system pressure using `free -h`, `vmstat 1`, swap activity and OOM evidence from `journalctl -k | grep -i oom`. Then I map the PID to its systemd service, container or application and monitor it with `pidstat -r -p <pid> 1` or runtime-specific tools. Before restarting or killing anything, I capture logs, heap/thread diagnostics where appropriate, confirm user impact, and try graceful service control. The permanent fix may be a memory leak correction, cache/heap tuning, resource limits, traffic scaling or capacity adjustment.
+
+## 65. How do you find the process using the most CPU right now?
+
+**Answer:**
+
+Use a snapshot first, then confirm the pattern over time:
+
+```bash
+ps -eo pid,ppid,user,%cpu,%mem,etime,cmd --sort=-%cpu | head -n 11
+top -o %CPU
+pidstat -u 1
+```
+
+I check load average, CPU steal time, I/O wait, recent deployments and traffic before acting. High load does not necessarily mean CPU saturation: blocked I/O tasks can also raise it. I capture the PID, service/container owner and logs, then mitigate safely by scaling, rolling back, rate-limiting or gracefully restarting the confirmed faulty workload.
+
+## 66. What does `chmod 754` set?
+
+**Answer:**
+
+It sets `rwxr-xr--`: the owner can read, write and execute (7); the group can read and execute (5); everyone else can only read (4). For directories, execute means traversal/accessing entries, so a user with only read permission can list names but cannot enter the directory. I verify the target and current permissions with `ls -ld`, avoid making sensitive files world-readable, and use groups or ACLs when simple mode bits are insufficient.
+
+## 67. What is the difference between `kill -15` and `kill -9`?
+
+**Answer:**
+
+`kill -15` sends `SIGTERM`, which an application can handle for graceful shutdown: stop accepting work, flush state and close connections. `kill -9` sends `SIGKILL`; the kernel stops the process immediately and it cannot clean up. I start with `SIGTERM`, inspect why shutdown is slow, and use `SIGKILL` only when the process is stuck and the impact of abrupt termination is understood. Neither signal should be used blindly on a database or critical service.
+
+## 68. How do you find and stop a process listening on port 8080?
+
+**Answer:**
+
+```bash
+sudo ss -ltnp '( sport = :8080 )'
+sudo lsof -nP -iTCP:8080 -sTCP:LISTEN
+sudo systemctl stop <service-name>
+```
+
+I identify the owning service before stopping it; killing a PID can cause a supervisor to recreate it and may interrupt users. If no service unit owns it, I use `kill -TERM <pid>`, confirm the listener is gone, and escalate to `KILL` only if necessary. I also check containers (`docker ps` or `crictl ps`) and firewall/proxy configuration because a reachable port is not proof the application is healthy.
+
+## 69. A disk is 95% full. How do you find what is consuming space?
+
+**Answer:**
+
+I first identify the full filesystem with `df -hT`, then inspect only that mount so another filesystem does not distort the result:
+
+```bash
+sudo du -xhd1 /var | sort -h
+sudo find /var -xdev -type f -size +500M -printf '%s %p\n' | sort -nr | head
+sudo lsof +L1
+```
+
+The last command finds deleted-but-open files, a common reason `du` and `df` disagree. I check logs, package caches, container images/volumes, temporary files, snapshots and inode use (`df -i`). I preserve evidence and apply retention, rotation, resize or a controlled cleanup; I do not delete unknown production data to make an alert disappear.
+
+## 70. How do you investigate a service crash using system logs?
+
+**Answer:**
+
+I establish the service, host and failure window, then use `systemctl status <service>`, `journalctl -u <service> --since '30 minutes ago'`, and `journalctl -k` for kernel/OOM evidence. I correlate exit code, restart count, configuration/deployment changes, dependency and resource signals. If applicable, I validate the configuration and reproduce safely in a lower environment. After restoring with rollback, a targeted configuration fix or capacity change, I verify the health path and add an actionable alert or runbook for the discovered failure mode.
+
+## 71. Package manager versus compiling from source: when do you use each?
+
+**Answer:**
+
+I prefer the supported `apt`, `dnf` or `yum` package because it gives dependency management, signed updates, inventory, security patches and a repeatable removal path. I compile from source only when a required feature/version is unavailable in approved repositories and the operational owner accepts the patching, provenance, build reproducibility and rollback burden. For production I package the build or use a trusted repository rather than leaving untracked binaries under `/usr/local`.
+
+## 72. The server has high load and an application reports “disk full”, but `df -h` shows free space. What do you check?
+
+**Answer:**
+
+I check inode exhaustion with `df -i`, because millions of small files can consume all inodes while blocks remain free. I also check the actual mount namespace (`findmnt`, container namespace), quotas, a full application-specific filesystem such as `/tmp`, filesystem errors/remount-read-only messages in `dmesg`, and deleted-open files with `lsof +L1`. High load can be I/O wait from a storage problem rather than CPU work, so I inspect `iostat`, `vmstat`, latency/error metrics and kernel logs. I remediate the specific constraint, verify application writes and root cause, then set alerts for both bytes and inode utilization.
+
+## 73. Walk through the Linux boot process from firmware to login.
+
+**Answer:**
+
+Firmware (BIOS or UEFI) initializes hardware and selects a boot device. The bootloader, commonly GRUB, loads the chosen kernel and initramfs. The kernel initializes drivers, mounts the initial root filesystem, starts PID 1 (normally `systemd`), and systemd mounts remaining filesystems, starts ordered targets/services and presents a console or display manager. If boot fails, I use the bootloader options, emergency/rescue target, `journalctl -b`, kernel messages, mount/fs checks and recent configuration changes. I preserve a known-good kernel and rescue path before changing boot configuration.
