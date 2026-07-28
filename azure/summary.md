@@ -55,7 +55,7 @@ The framework helps teams balance five connected design pillars:
    - Define recovery time and recovery point objectives.
 
 2. **Security** — Protect identities, applications, infrastructure, and data.
-   - Apply least privilege with RBAC.
+   - Apply least privilege (only the permissions needed) with RBAC.
    - Store secrets and keys in Key Vault.
    - Use Defender for Cloud and Azure Policy to improve security posture.
 
@@ -66,7 +66,7 @@ The framework helps teams balance five connected design pillars:
 
 4. **Operational Excellence** — Improve deployment, monitoring, and operational processes.
    - Use infrastructure as code with Bicep or ARM templates.
-   - Centralize telemetry with Azure Monitor and Log Analytics.
+   - Centralize monitoring data with Azure Monitor and Log Analytics.
    - Automate repeatable operational tasks.
 
 5. **Performance Efficiency** — Meet demand efficiently as usage changes.
@@ -124,7 +124,7 @@ Azure Functions is an event-driven compute service. A function runs code in resp
 - Cold starts may affect latency on some hosting plans.
 - Execution and timeout behavior depends on the chosen plan.
 - Stateful or long-running workflows need an appropriate pattern, such as Durable Functions.
-- Distributed functions require good logging, correlation, retries, and idempotency.
+- Distributed functions require good logging, correlation, retries, and idempotency (safe repeat behavior).
 
 **Example flow:** A user uploads a photo to Blob Storage. A Function is triggered, validates or transforms the image, calls an API, and writes metadata to a database.
 
@@ -225,7 +225,7 @@ Queue Storage provides simple, durable message queues for asynchronous communica
 3. A consumer retrieves and processes it.
 4. The consumer deletes the message after successful processing.
 
-Design consumers to be idempotent because a message can be delivered more than once. Use visibility timeouts, retry handling, and poison-message handling.
+Design consumers to be idempotent (safe to run more than once) because a message can be delivered more than once. Use visibility timeouts, retry handling, and poison-message handling.
 
 **Interview distinction:** Queue Storage is a good choice for straightforward queueing. Azure Service Bus is generally preferred when enterprise messaging features such as topics, subscriptions, sessions, transactions, duplicate detection, or dead-lettering are required.
 
@@ -343,12 +343,13 @@ Assign a suitable data-plane role at the narrowest practical scope:
 
 Add an access policy that explicitly grants the required key, secret, or certificate operations.
 
-Check the configured model under **Key Vault > Settings > Access configuration**. Apply least privilege and prefer managed identities for applications.
+Check the configured model under **Key Vault > Settings > Access configuration**. Apply least privilege (only the permissions needed) and prefer managed identities for applications.
 
 ### 6.2 Defender for Containers
 
-Microsoft Defender for Containers provides cloud-native security capabilities for supported container registries and Kubernetes environments. Depending on the enabled Defender plan, extensions and connectivity, it can provide registry and running-image vulnerability assessment, security-posture recommendations and runtime threat detection.
+Microsoft Defender for Containers provides cloud-native security capabilities for supported container registries and Kubernetes environments.
 
+Depending on the enabled Defender plan, extensions and connectivity, it can provide registry and running-image vulnerability assessment, security-posture recommendations and runtime threat detection.
 In an Azure delivery flow:
 
 1. CI scans the exact image digest and blocks findings according to policy.
@@ -357,7 +358,9 @@ In an Azure delivery flow:
 4. Defender for Containers continuously reassesses supported registry and running images and produces security findings.
 5. Defender alerts flow to the security operations process; Azure Monitor verifies application health.
 
-Defender is not merely a pipeline task and should not be described as automatically stopping an Azure DevOps run. Enforce deployment policy through a failing CI scan, admission policy, or an Azure DevOps environment check that queries an approved external decision source. Plan the required Defender components and private-cluster connectivity deliberately, then test alert routing and remediation.
+Defender is not merely a pipeline task and should not be described as automatically stopping an Azure DevOps run. Enforce deployment policy through a failing CI scan, admission policy, or an Azure DevOps environment check that queries an approved external decision source.
+
+Plan the required Defender components and private-cluster connectivity deliberately, then test alert routing and fix.
 
 ---
 
@@ -401,7 +404,7 @@ Example policy rule:
 - With `deny`, `Standard_LRS` passes and a disallowed SKU is rejected.
 - With `audit`, a disallowed SKU can be created but appears as non-compliant.
 
-Test policies in a non-production scope first. Review aliases, exemptions, existing resources, and remediation requirements before broad assignment.
+Test policies in a non-production scope first. Review aliases, exemptions, existing resources, and fix requirements before broad assignment.
 
 ### 7.2 Moving Resources Between Resource Groups
 
@@ -499,19 +502,29 @@ Azure architecture should be explained as a business flow rather than a list of 
 7. Azure Monitor, Application Insights, Log Analytics, Defender for Cloud, and Azure Policy provide operations, security, and governance.
 8. GitHub, Azure DevOps, Terraform, and Bicep automate reviewed, repeatable delivery.
 
-Architecture choices should be evaluated against the Azure Well-Architected pillars: reliability, security, cost optimization, operational excellence, and performance efficiency. Resource hierarchy flows from management groups to subscriptions, resource groups, and resources. Identity should use Entra ID, RBAC, managed identities, MFA, and least privilege. Availability Zones protect against datacenter failure, while region pairs, replicated data, traffic failover, and tested runbooks address regional disaster recovery.
+Architecture choices should be evaluated against the Azure Well-Architected pillars: reliability, security, cost optimization, operational excellence, and performance efficiency. Resource hierarchy flows from management groups to subscriptions, resource groups, and resources.
 
-Storage redundancy choices range from LRS and ZRS to GRS, GZRS, and read-access variants. Choose from the durability, availability, residency, latency, and recovery requirements rather than selecting the most expensive option automatically. Cost controls include correct sizing, reservations or savings plans where applicable, autoscaling, lifecycle policies, budgets, and removal of confirmed unused resources.
+Identity should use Entra ID, RBAC, managed identities, MFA, and least privilege (only the permissions needed). Availability Zones protect against datacenter failure, while region pairs, replicated data, traffic failover, and tested runbooks address regional disaster recovery.
+
+Storage redundancy choices range from LRS and ZRS to GRS, GZRS, and read-access variants. Choose from the durability, availability, residency, latency, and recovery requirements rather than selecting the most expensive option automatically.
+
+Cost controls include correct sizing, reservations or savings plans where applicable, autoscaling, lifecycle policies, budgets, and removal of confirmed unused resources.
 
 ## Notes Addendum: Enterprise Azure Design
 
 ### Landing Zone design areas
 
-An Azure Landing Zone is a governed platform blueprint, not merely a collection of VNets and subnets. Its design covers tenant and resource organization, identity and access, network topology and hybrid connectivity, security and governance, management and monitoring, business continuity, cost, and platform automation. Management groups and subscriptions establish policy, ownership, billing, and blast-radius boundaries; shared platform subscriptions can host connectivity, identity, and management capabilities while application teams own workload subscriptions.
+An Azure Landing Zone is a governed platform blueprint, not merely a collection of VNets and subnets.
+
+Its design covers tenant and resource organization, identity and access, network topology and hybrid connectivity, security and governance, management and monitoring, business continuity, cost, and platform automation.
+
+Management groups and subscriptions establish policy, ownership, billing, and blast-radius boundaries; shared platform subscriptions can host connectivity, identity, and management capabilities while application teams own workload subscriptions.
 
 ### Entra ID, RBAC, and scope
 
-Microsoft Entra ID authenticates users, groups, service principals, and managed identities. Azure RBAC authorizes actions against Azure resources. Entra directory roles such as Global Administrator govern directory capabilities; Azure roles such as Owner, Contributor, and Reader govern resource scopes. They are different permission systems.
+Microsoft Entra ID authenticates users, groups, service principals, and managed identities. Azure RBAC authorizes actions against Azure resources.
+
+Entra directory roles such as Global Administrator govern directory capabilities; Azure roles such as Owner, Contributor, and Reader govern resource scopes. They are different permission systems.
 
 Azure resource scope inherits downward:
 
@@ -519,31 +532,49 @@ Azure resource scope inherits downward:
 management group -> subscription -> resource group -> resource
 ```
 
-Apply the rule **right principal, right role, right scope**. Prefer groups and managed identities, least privilege, time-bound privileged access, separation of duties, access reviews, and diagnostic logs. `Owner` includes role assignment capability; `Contributor` manages resources but cannot grant Azure RBAC access by default; `Reader` is view-only. Avoid broad permanent assignments when a resource-group or resource scope is sufficient.
+Apply the rule **right principal, right role, right scope**. Prefer groups and managed identities, least privilege (only the permissions needed), time-bound privileged access, separation of duties, access reviews, and diagnostic logs.
+
+`Owner` includes role assignment capability; `Contributor` manages resources but cannot grant Azure RBAC access by default; `Reader` is view-only. Avoid broad permanent assignments when a resource-group or resource scope is sufficient.
 
 ### Azure Policy governance
 
-Azure Policy evaluates resources against organizational rules. Effects can audit, deny, modify supported properties, deploy required configuration, or mark non-compliance. Initiatives group policies into a baseline and assignments at management-group scope can inherit across subscriptions. Common controls include allowed regions or SKUs, mandatory tags, diagnostic settings, encryption, private networking, and security baselines.
+Azure Policy evaluates resources against organizational rules. Effects can audit, deny, modify supported properties, deploy required configuration, or mark non-compliance.
 
-Policy rollout should begin with inventory and audit, assess exemptions and remediation impact, then move to enforcement through change control. Policy is not a replacement for RBAC: RBAC controls who may act, while Policy constrains which resource states are acceptable.
+Initiatives group policies into a baseline and assignments at management-group scope can inherit across subscriptions. Common controls include allowed regions or SKUs, mandatory tags, diagnostic settings, encryption, private networking, and security baselines.
+
+Policy rollout should begin with inventory and audit, assess exemptions and fix impact, then move to enforcement through change control. Policy is not a replacement for RBAC: RBAC controls who may act, while Policy constrains which resource states are acceptable.
 
 ### Virtual Machine Scale Sets
 
-VM Scale Sets run similarly configured VMs and integrate with load balancing, health, autoscale, and rolling upgrades. Scale-out adds instances when demand crosses a controlled threshold; scale-in removes excess capacity after stabilization. Production configuration includes minimum/maximum/default capacity, health probes, zones or fault-domain strategy, instance repair, graceful termination, image versioning, rolling-upgrade health gates, and application startup time.
+VM Scale Sets run similarly configured VMs and integrate with load balancing, health, autoscale, and rolling upgrades. Scale-out adds instances when demand crosses a controlled threshold; scale-in removes excess capacity after stabilization.
+
+Production configuration includes minimum/maximum/default capacity, health probes, zones or fault-domain strategy, instance repair, graceful termination, image versioning, rolling-upgrade health gates, and application startup time.
 
 Autoscaling does not cure inefficient code or an overloaded database. Verify end-to-end latency, queue depth, dependency limits, and cost after scaling. For predictable events, scheduled scaling can add capacity before traffic arrives.
 
 ### Resilient multi-region application
 
-A multi-region Azure application can use Front Door as the global entry point and regional Application Gateway/WAF or another regional ingress in each deployment. Separate web, application, data, and management boundaries; use private endpoints, Key Vault, Firewall, Policy, Monitor, and tested backup/failover according to requirements. Data replication and failover semantics determine the real recovery point and recovery time; deploying compute in two regions alone does not provide disaster recovery. Regularly test regional traffic failover, dependency capacity, DNS/TLS, data recovery, and operational runbooks.
+A multi-region Azure application can use Front Door as the global entry point and regional Application Gateway/WAF or another regional ingress in each deployment.
+
+Separate web, application, data, and management boundaries; use private endpoints, Key Vault, Firewall, Policy, Monitor, and tested backup/failover according to requirements.
+
+Data replication and failover semantics determine the real recovery point and recovery time; deploying compute in two regions alone does not provide disaster recovery. Regularly test regional traffic failover, dependency capacity, DNS/TLS, data recovery, and operational runbooks.
 
 ### Azure three-tier blueprint and automation
 
-A typical Azure three-tier design uses Front Door for global entry, Application Gateway/WAF for regional Layer-7 routing, and App Service, VM Scale Sets, containers, or AKS for the presentation tier. The application tier runs on a separately secured service or compute boundary and can use an internal load balancer, Service Bus, and Redis to decouple work and reduce latency. Azure SQL, Cosmos DB, or Storage services form the data tier through private connectivity, managed identity, encryption, backup, and tested recovery. Terraform modules, Azure CLI where appropriate, Git-based review, and CI/CD make the Dev, Test, and Production environments repeatable; environment separation must also include state, identity, approval, policy, and network boundaries.
+A typical Azure three-tier design uses Front Door for global entry, Application Gateway/WAF for regional Layer-7 routing, and App Service, VM Scale Sets, containers, or AKS for the presentation tier.
+
+The application tier runs on a separately secured service or compute boundary and can use an internal load balancer, Service Bus, and Redis to decouple work and reduce latency.
+
+Azure SQL, Cosmos DB, or Storage services form the data tier through private connectivity, managed identity, encryption, backup, and tested recovery.
+
+Terraform modules, Azure CLI where appropriate, Git-based review, and CI/CD make the Dev, Test, and Production environments repeatable; environment separation must also include state, identity, approval, policy, and network boundaries.
 
 ## AKS Microservices Reference Architecture
 
-An Azure microservices platform can use Azure DevOps to build, test, scan and publish immutable container images to Azure Container Registry (ACR). AKS pulls those images using a managed identity or workload identity with the narrow `AcrPull` permission. Helm packages the Kubernetes manifests and environment values; a deployment pipeline or GitOps controller promotes the same chart and image digest through environments.
+An Azure microservices platform can use Azure DevOps to build, test, scan and publish immutable (not changed after creation) container images to Azure Container Registry (ACR). AKS pulls those images using a managed identity or workload identity with the narrow `AcrPull` permission.
+
+Helm packages the Kubernetes manifests and environment values; a deployment pipeline or GitOps controller promotes the same chart and image digest through environments.
 
 ```text
 developer -> Azure DevOps CI -> ACR
@@ -553,10 +584,24 @@ Pods -> Key Vault / Cosmos DB / Redis / Service Bus through private networking
 Pods -> Azure Monitor, Log Analytics and Application Insights
 ```
 
-Use an AKS-supported CNI/data-plane configuration and enforce NetworkPolicy, but validate the exact supported Cilium and policy capabilities for the chosen AKS version. Keep secrets in Key Vault and retrieve them through workload identity/CSI or an approved external-secrets pattern; do not store long-lived cloud credentials in Helm values. Production design also needs resource requests/limits, probes, autoscaling, PDBs, image-signing/scanning policy, RBAC, backup/recovery and tested rollback.
+Use an AKS-supported CNI/data-plane configuration and enforce NetworkPolicy, but validate the exact supported Cilium and policy capabilities for the chosen AKS version.
+
+Keep secrets in Key Vault and retrieve them through workload identity/CSI or an approved external-secrets pattern; do not store long-lived cloud credentials in Helm values.
+
+Production design also needs resource requests/limits, probes, autoscaling, PDBs, image-signing/scanning policy, RBAC, backup/recovery and tested rollback.
 
 ## Azure Functions and Virtual Machines
 
-**Azure Functions** is event-driven serverless compute. HTTP, timer, Blob, queue and Event Grid triggers are common. It is a strong fit for short-lived APIs, automation, scheduled work, notifications and event processing. Choose plan, timeout, memory, concurrency, retry/DLQ behavior, identity, secret access and observability deliberately. It is not automatically the best fit for long-running, stateful or connection-heavy workloads.
+**Azure Functions** is event-driven serverless compute. HTTP, timer, Blob, queue and Event Grid triggers are common.
 
-**Azure Virtual Machines** provide operating-system control for legacy applications, custom software, migration workloads, self-managed tools and development environments. They require patching, image management, endpoint protection, backup, monitoring, least-privilege access and capacity planning. Use private IPs by default, Azure Bastion or controlled JIT administration rather than broad public RDP/SSH, and VM Scale Sets when horizontally scaling identical instances. A VM that is merely stopped can still incur compute cost; **Stopped (deallocated)** releases compute allocation, although disks and other attached resources still cost money.
+It is a strong fit for short-lived APIs, automation, scheduled work, notifications and event processing. Choose plan, timeout, memory, concurrency, retry/DLQ behavior, identity, secret access and observability deliberately.
+
+It is not automatically the best fit for long-running, stateful or connection-heavy workloads.
+
+**Azure Virtual Machines** provide operating-system control for legacy applications, custom software, migration workloads, self-managed tools and development environments.
+
+They require patching, image management, endpoint protection, backup, monitoring, least-privilege access (only the permissions needed) and capacity planning.
+
+Use private IPs by default, Azure Bastion or controlled JIT administration rather than broad public RDP/SSH, and VM Scale Sets when horizontally scaling identical instances.
+
+A VM that is merely stopped can still incur compute cost; **Stopped (deallocated)** releases compute allocation, although disks and other attached resources still cost money.

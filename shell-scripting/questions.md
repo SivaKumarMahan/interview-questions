@@ -38,7 +38,7 @@ I use a dedicated read-only SSH key, verify host keys, restrict remote permissio
 
 **Answer:**
 
-A strong example is a deployment script that validates inputs, checks dependencies, takes a backup, deploys an immutable artifact, performs smoke tests, and rolls back if validation fails.
+A strong example is a deployment script that validates inputs, checks dependencies, takes a backup, deploys an immutable (not changed after creation) artifact, performs smoke tests, and rolls back if validation fails.
 
 My flow is:
 
@@ -53,7 +53,6 @@ My flow is:
 9. Return traffic, release the lock, emit metrics, and notify the team.
 
 I use `set -Eeuo pipefail`, a cleanup trap, structured logs, quoted variables, explicit exit codes, and a dry-run mode. In an interview I explain one failure found—for example, a health endpoint passed while database authentication failed—and how I added a dependency smoke test to prevent recurrence.
-
 ---
 
 ### 3. How do you debug automation scripts?
@@ -87,7 +86,6 @@ $disks | Select-Object Name, ResourceGroupName, DiskSizeGB, TimeCreated |
 ```
 
 My process is report → owner validation → approval → deletion after retention. Other automations stop non-production VMs after business hours, identify idle public IPs and snapshots, enforce tags, right-size resources from metrics, and create budget alerts.
-
 I use managed identity, `-WhatIf` where supported, scope restrictions, exclusions for protected resources, audit logs, and a recoverable holding period. Cost savings are measured without violating availability, performance, or retention requirements.
 
 ---
@@ -99,8 +97,9 @@ I use managed identity, `-WhatIf` where supported, scope restrictions, exclusion
 PowerShell can participate in both.
 
 In CI it can validate configuration, run Pester tests, calculate versions, build packages, and inspect ARM/Bicep/Terraform output. In CD it can authenticate using workload identity, deploy resources, update configuration, run smoke tests, and trigger rollback.
+I keep scripts in Git as modules/functions rather than embedding large inline pipeline blocks. The pipeline passes explicit parameters, secrets come from the platform secret store, and scripts return non-zero on failure.
 
-I keep scripts in Git as modules/functions rather than embedding large inline pipeline blocks. The pipeline passes explicit parameters, secrets come from the platform secret store, and scripts return non-zero on failure. Destructive functions support `ShouldProcess`/`-WhatIf`. I test the script independently and pin the Az module version so an automatic module upgrade does not unexpectedly change production behavior.
+Destructive functions support `ShouldProcess`/`-WhatIf`. I test the script independently and pin the Az module version so an automatic module upgrade does not unexpectedly change production behavior.
 
 ---
 
@@ -148,7 +147,6 @@ printf 'Largest file: %q (%s bytes)\n' "$path" "$size"
 ```
 
 I mention that filenames can contain newlines, so a fully general production implementation should use null-delimited processing or another language. I also avoid deleting the result automatically: first verify whether it is an active log, open file, database file, or protected backup.
-
 ---
 
 ### 8. Write a shell script that starts Nginx only when it is not running.
@@ -177,7 +175,9 @@ else
 fi
 ```
 
-In automation I run this through a properly authorized service account or configuration-management module rather than embedding a password. I validate `nginx -t` after configuration changes, preserve logs on failure, and make repeated execution safe. A monitoring system should detect the outage; the script is remediation, not the only health check.
+In automation I run this through a properly authorized service account or configuration-management module rather than embedding a password. I validate `nginx -t` after configuration changes, preserve logs on failure, and make repeated execution safe.
+
+A monitoring system should detect the outage; the script is fix, not the only health check.
 
 ---
 
@@ -185,7 +185,9 @@ In automation I run this through a properly authorized service account or config
 
 **Answer:**
 
-`$?` is the exit status of the most recently completed foreground command or pipeline. By convention, zero means success and a nonzero value indicates a command-specific failure. It must be captured immediately because running `echo`, `cd`, or another command replaces it.
+`$?` is the exit status of the most recently completed foreground command or pipeline. By convention, zero means success and a nonzero value indicates a command-specific failure.
+
+It must be captured immediately because running `echo`, `cd`, or another command replaces it.
 
 ```bash
 curl --fail --silent https://service.example/health

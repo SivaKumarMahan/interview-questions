@@ -21,4 +21,6 @@ The command above publishes host port `8080` to container port `80`. Containers 
 
 ## Best Practices
 
-Best practices are separate networks per application/trust boundary, publish only required ports on intended interfaces, avoid `--network host` unless necessary, use DNS names, restrict egress/ingress with host/cloud policy, and monitor network and NAT capacity. Troubleshoot with container inspect, namespace routes/listeners, Docker DNS, host firewall/NAT, port mappings, and packet capture on both host and container paths.
+Best practices are separate networks per application/trust boundary, publish only required ports on intended interfaces, avoid `--network host` unless necessary, use DNS names, restrict egress/ingress with host/cloud policy, and monitor network and NAT capacity.
+
+Troubleshoot with container inspect, namespace routes/listeners, Docker DNS, host firewall/NAT, port mappings, and packet capture on both host and container paths.

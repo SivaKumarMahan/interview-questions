@@ -1,6 +1,8 @@
 # YAML Summary
 
-YAML (YAML Ain't Markup Language) is the backbone of modern DevOps tooling — Kubernetes, Docker, GitHub Actions, and more. It is a human-readable data serialization language that, unlike JSON or XML, prioritizes readability with a clean, minimal syntax that relies on indentation for structure (similar to Python), while remaining machine-parsable.
+YAML (YAML Ain't Markup Language) is the backbone of modern DevOps tooling — Kubernetes, Docker, GitHub Actions, and more.
+
+It is a human-readable data serialization language that, unlike JSON or XML, prioritizes readability with a clean, minimal syntax that relies on indentation for structure (similar to Python), while remaining machine-parsable.
 
 ## The Basic Building Blocks
 

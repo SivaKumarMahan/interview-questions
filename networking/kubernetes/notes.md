@@ -32,7 +32,6 @@ spec:
 ### Q: what is port forwarding in kubernetes?
 
 Port forwarding in Kubernetes allows you to access a specific pod directly from your local machine by forwarding a local port to a port on the pod. It's typically used for debugging or accessing applications running inside pods without exposing them via a service.
-
 ```bash
 kubectl port-forward <pod-name> <local-port>:<pod-port>
 ```
@@ -73,7 +72,9 @@ Now you can access the application running in the `my-app` pods via `http://loca
 
 ### Q: How do you restrict pod-to-pod communication in a Kubernetes cluster?
 
-To restrict pod-to-pod communication in a Kubernetes cluster, you can use **Network Policies**. Network Policies allow you to define rules that control the traffic flow between pods based on labels, namespaces, and ports. Here's how to implement pod-to-pod communication restrictions using Network Policies:
+To restrict pod-to-pod communication in a Kubernetes cluster, you can use **Network Policies**. Network Policies allow you to define rules that control the traffic flow between pods based on labels, namespaces, and ports.
+
+Here's how to implement pod-to-pod communication restrictions using Network Policies:
 
 1. **Enable Network Policy Support:**
    - Ensure that your Kubernetes cluster has a network plugin that supports Network Policies, such as Calico, Cilium, or Weave.

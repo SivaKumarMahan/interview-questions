@@ -1,25 +1,29 @@
 # Linux Network Access Notes
 
-### Q: How do you enable passwordless SSH authentication between two Linux servers?
+## Q: How do you enable SSH key authentication between two Linux servers?
 
-Allow Server A to SSH into Server B without entering a password.
+The goal is to allow Server A to connect to Server B with a key instead of the remote account's password.
 
-**On Server A (the client): Generate SSH key pair**
+### Generate a key on Server A
 
 ```bash
-ssh-keygen -t rsa
+ssh-keygen -t ed25519
 ```
 
 This generates:
 
-- `id_rsa` → private key (keep secure)
-- `id_rsa.pub` → public key (to share)
+- `~/.ssh/id_ed25519` → Private key; keep it secure and never copy it to Server B.
+- `~/.ssh/id_ed25519.pub` → Public key; this is safe to copy to Server B.
 
-**Copy the public key to Server B**
+### Copy the public key to Server B
 
-Set correct permissions on Server B
+```bash
+ssh-copy-id user@serverB
+```
 
-**Test passwordless login**
+This adds the public key to `~/.ssh/authorized_keys` with suitable permissions.
+
+### Test the connection
 
 From Server A:
 
@@ -27,32 +31,39 @@ From Server A:
 ssh user@serverB
 ```
 
---> It should log in without asking for a password.
+SSH may ask for the private-key passphrase if one was configured, but it should not ask for the remote account's password.
 
-**How It Works**
+### How it works
 
 - SSH uses public-key cryptography.
-- When you SSH from A → B:
-  - Server B checks if your public key is in its `~/.ssh/authorized_keys`.
-  - If yes, it verifies using your private key from A — no password needed.
+- Server B checks whether the public key exists in `~/.ssh/authorized_keys`.
+- Server A proves that it holds the matching private key.
+- The private key never leaves Server A.
 
 ---
 
-### Q: What if SSH key authentication still prompts for a password?
+## Q: What if SSH key authentication still asks for the account password?
 
-Check: Permissions of `.ssh` folder and files
-
-`/etc/ssh/sshd_config` has:
+On Server B, check ownership and permissions:
 
 ```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Check `/etc/ssh/sshd_config`:
+
+```text
 PubkeyAuthentication yes
-PasswordAuthentication no
 ```
 
-Then restart SSH service:
+Test the configuration before reloading SSH:
 
 ```bash
-sudo systemctl restart sshd
+sudo sshd -t
+sudo systemctl reload sshd
 ```
+
+Keep the current session open until a second session successfully connects. Disabling password authentication is a separate hardening change and should be done only after key access and an emergency access method are confirmed.
 
 ---

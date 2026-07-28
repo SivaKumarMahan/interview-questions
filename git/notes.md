@@ -30,7 +30,9 @@ git rebase --continue
 git push --force-with-lease
 ```
 
-I use `--force-with-lease` only on my reviewed feature branch because it refuses to overwrite remote work I have not fetched. Shared and protected branches should reject force pushes. Before committing, I review the staged diff and run secret scanning so credentials never enter history.
+I use `--force-with-lease` only on my reviewed feature branch because it refuses to overwrite remote work I have not fetched. Shared and protected branches should reject force pushes.
+
+Before committing, I review the staged diff and run secret scanning so credentials never enter history.
 
 ## Recovery commands
 

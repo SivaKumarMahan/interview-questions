@@ -6,10 +6,10 @@ Both lists and tuples are ordered collections that can contain mixed object type
 
 | List | Tuple |
 |---|---|
-| Mutable: items can be added, removed or replaced | Immutable: its item references cannot be replaced after creation |
+| Mutable: items can be added, removed, or replaced | Immutable: item references cannot be replaced after creation |
 | Written with `[]` | Usually written with `()` |
 | Provides mutating methods such as `append()`, `extend()` and `remove()` | Has fewer methods because it cannot be modified in place |
-| Suitable for a collection that changes | Suitable for a fixed record or an immutable interface |
+| Suitable for a collection that changes | Suitable for a fixed record or an interface that should not change |
 | Not hashable | Can be hashable when all contained values are hashable |
 
 ```python
@@ -22,7 +22,7 @@ print(topics)
 print(coordinates)
 ```
 
-Immutability does not mean that every nested object is immutable. A tuple can contain a list, and that nested list can still change.
+Immutability applies to the tuple's item references, not necessarily to every object inside it. A tuple can contain a list, and that nested list can still change.
 
 ## The `__init__()` Method
 

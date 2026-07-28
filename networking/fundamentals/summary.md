@@ -14,29 +14,43 @@ The OSI model is useful for organizing evidence: physical/link, IP routing, tran
 
 ## 2. IP addressing, CIDR, and subnets
 
-An IP identifies an interface. The prefix length describes which bits represent the network, for example `10.20.4.0/24`. Hosts treat destinations inside their connected subnet as directly reachable and use ARP/neighbor discovery; other destinations use a route, normally the default gateway. Overlapping CIDRs create routing ambiguity in peering, VPN, containers, and multi-cloud designs.
+An IP identifies an interface. The prefix length describes which bits represent the network, for example `10.20.4.0/24`.
 
-For IPv4, a `/24` contains 256 total addresses, `/26` contains 64, and `/30` contains 4. Traditional non-cloud subnetting often describes these as 254, 62, and 2 usable host addresses, but cloud providers reserve additional addresses in a subnet, so usable capacity must be checked against the platform's rules. Choose non-overlapping ranges with space for growth, load balancers, private endpoints, Kubernetes nodes and pods, and hybrid connectivity. CIDR planning affects VPC/VNet peering, VPNs, routing, firewalls, and future mergers; it is difficult to repair after overlapping networks are connected.
+Hosts treat destinations inside their connected subnet as directly reachable and use ARP/neighbor discovery; other destinations use a route, normally the default gateway. Overlapping CIDRs create routing ambiguity in peering, VPN, containers, and multi-cloud designs.
+
+For IPv4, a `/24` contains 256 total addresses, `/26` contains 64, and `/30` contains 4. Traditional non-cloud subnetting often describes these as 254, 62, and 2 usable host addresses, but cloud providers reserve additional addresses in a subnet, so usable capacity must be checked against the platform's rules.
+
+Choose non-overlapping ranges with space for growth, load balancers, private endpoints, Kubernetes nodes and pods, and hybrid connectivity. CIDR planning affects VPC/VNet peering, VPNs, routing, firewalls, and future mergers; it is difficult to repair after overlapping networks are connected.
 
 ## 3. Routing and NAT
 
-Routers select the most specific matching route. Troubleshooting must verify both forward and return paths because an allowed outbound packet can still fail through asymmetric routing or a missing return route. NAT changes source or destination addresses; a cloud NAT gateway normally enables private-subnet egress but does not create unsolicited inbound access.
+Routers select the most specific matching route. Troubleshooting must verify both forward and return paths because an allowed outbound packet can still fail through asymmetric routing or a missing return route.
+
+NAT changes source or destination addresses; a cloud NAT gateway normally enables private-subnet egress but does not create unsolicited inbound access.
 
 ## 4. TCP, UDP, and ports
 
-TCP is connection-oriented and provides ordered reliable delivery. A TCP connection begins with the **SYN, SYN-ACK, ACK** handshake and has observable states and retransmissions. UDP is datagram-oriented with no transport-level connection or delivery guarantee, making it useful for DNS, streaming, and other latency-sensitive protocols. A listening port proves a process bound a socket, not that all remote network layers or the application are healthy.
+TCP is connection-oriented and provides ordered reliable delivery. A TCP connection begins with the **SYN, SYN-ACK, ACK** handshake and has observable states and retransmissions.
+
+UDP is datagram-oriented with no transport-level connection or delivery guarantee, making it useful for DNS, streaming, and other latency-sensitive protocols. A listening port proves a process bound a socket, not that all remote network layers or the application are healthy.
 
 ## 5. DNS
 
-DNS maps names to records through local cache/resolver, recursive resolvers, and authoritative servers. Distinguish `NXDOMAIN` from a timeout. Check the requested record type, search domains, split-horizon/private zones, TTL/cache, upstream forwarding, and whether UDP and TCP 53 are allowed. Confirm the resolved address is the intended endpoint before troubleshooting the service.
+DNS maps names to records through local cache/resolver, recursive resolvers, and authoritative servers. Distinguish `NXDOMAIN` from a timeout.
+
+Check the requested record type, search domains, split-horizon/private zones, TTL/cache, upstream forwarding, and whether UDP and TCP 53 are allowed. Confirm the resolved address is the intended endpoint before troubleshooting the service.
 
 ## 6. Firewalls, security groups, and ACLs
 
-Stateful controls remember allowed connections and automatically allow related return traffic. Stateless ACLs evaluate inbound and outbound packets separately, including ephemeral ports. Use least-privilege source, destination, protocol, and port rules. Do not open all traffic as a shortcut; compare flow logs, packet capture, and counters to prove which rule or hop drops traffic.
+Stateful controls remember allowed connections and automatically allow related return traffic. Stateless ACLs evaluate inbound and outbound packets separately, including ephemeral ports.
+
+Use least-privilege (minimum required access) source, destination, protocol, and port rules. Do not open all traffic as a shortcut; compare flow logs, packet capture, and counters to prove which rule or hop drops traffic.
 
 ## 7. Load balancers and proxies
 
-Layer-4 load balancers route TCP/UDP connections, while Layer-7 proxies understand HTTP concepts such as host, path, headers, redirects, and cookies. Verify listener, certificate/SNI, routing rule, target group/endpoint, health-probe path, backend port, source-IP behavior, timeout, and application response. A healthy load-balancer resource with unhealthy or incorrect backends still fails users.
+Layer-4 load balancers route TCP/UDP connections, while Layer-7 proxies understand HTTP concepts such as host, path, headers, redirects, and cookies. Verify listener, certificate/SNI, routing rule, target group/endpoint, health-probe path, backend port, source-IP behavior, timeout, and application response.
+
+A healthy load-balancer resource with unhealthy or incorrect backends still fails users.
 
 ## 8. Useful investigation commands
 

@@ -4,14 +4,14 @@
 
 The supplied project folder contains a high-level design and five staged implementation prompts. It does not contain the generated backend/frontend source code, deployment manifests, automated test results, screenshots, or production metrics.
 
-In an interview, I should therefore say **“I designed and prototyped this workflow”** unless I have separately built, executed, and validated the application. I should claim that it is fully implemented or production-deployed only when I can show the working code, test evidence, security review, deployment and measured results.
+In an interview, I should therefore say **“I designed and prototyped this workflow”** unless I have separately built, executed, and validated the application.
 
+I should claim that it is fully implemented or production-deployed only when I can show the working code, test evidence, security review, deployment and measured results.
 ---
 
 ## One-Line Project Explanation
 
 I designed an on-demand AI assistant that collects Kubernetes evidence such as Pod status, logs, Events, Deployment health and Service networking, sends structured evidence to an LLM, and returns a simple root cause, supporting explanation, suggested fix, commands, prevention advice and confidence score.
-
 The objective is to help an engineer investigate faster. The AI recommends actions; it does not automatically run destructive changes.
 
 ---
@@ -41,8 +41,8 @@ The information is spread across multiple commands. A junior engineer may see `C
 
 We separated the solution into two responsibilities:
 
-1. A deterministic investigation layer gathers reliable Kubernetes evidence.
-2. An AI reasoning layer correlates that evidence and explains the probable cause in simple language.
+1. A predictable investigation layer gathers reliable Kubernetes evidence.
+2. An AI reasoning layer compares that evidence and explains the probable cause in simple language.
 
 The backend remains the orchestrator. The LLM never receives direct cluster credentials and should not be allowed to execute commands.
 
@@ -64,7 +64,6 @@ User logs in
 ### What was the end goal?
 
 The end goal was not to replace the DevOps or SRE engineer. It was to reduce mean time to understand an incident, standardize the initial investigation, preserve a useful history and help engineers move from a Kubernetes symptom to an evidence-backed next action.
-
 ---
 
 ## High-Level Architecture
@@ -97,7 +96,7 @@ The end goal was not to replace the DevOps or SRE engineer. It was to reduce mea
 └───────────────────────────────────────────────┘
 ```
 
-This is an **on-demand troubleshooting application**, not a Kubernetes controller or operator. It investigates only when a user or API triggers it; it does not continuously reconcile cluster state.
+This is an **on-demand troubleshooting application**, not a Kubernetes controller or operator. It investigates only when a user or API triggers it; it does not continuously reconcile (make actual state match desired state) cluster state.
 
 ---
 
@@ -115,8 +114,9 @@ This is an **on-demand troubleshooting application**, not a Kubernetes controlle
 | Packaging | Docker and Docker Compose | Repeatable local frontend/backend startup |
 | Configuration | Environment variables | Keep API keys, model name, kubeconfig path and API base URL outside code |
 
-We deliberately used `kubectl` rather than the Kubernetes Python SDK for the initial prototype because it kept the investigation steps easy to understand and demonstrate. For a larger production system, I would evaluate the SDK because it provides typed APIs, watches, cancellation and avoids some command-construction risk.
+We deliberately used `kubectl` rather than the Kubernetes Python SDK for the initial prototype because it kept the investigation steps easy to understand and demonstrate.
 
+For a larger production system, I would evaluate the SDK because it provides typed APIs, watches, cancellation and avoids some command-construction risk.
 ---
 
 ## How We Implemented It in Five Stages
@@ -198,7 +198,7 @@ It records namespace, Pod, container, reason, restart count, readiness and ownin
 
 ### Logs collector
 
-It fetches a bounded amount of current and, when relevant, previous container logs. It looks for startup exceptions, missing configuration, connection failures and termination clues. The goal is not to send thousands of log lines to the LLM.
+It fetches a limited amount of current and, when relevant, previous container logs. It looks for startup exceptions, missing configuration, connection failures and termination clues. The goal is not to send thousands of log lines to the LLM.
 
 ### Events analyzer
 
@@ -249,7 +249,7 @@ The prompt contains:
 
 - Exact scope and selected cluster
 - Pod/container state
-- Relevant bounded logs
+- Relevant limited logs
 - Recent related Events
 - Deployment health
 - Service/network findings
@@ -276,15 +276,21 @@ Expected output:
 
 ### LLM client
 
-The backend uses HTTPX to call OpenRouter. The API key and selected model come from environment/secret configuration, never source control. The client adds connection/read timeout, bounded retry for transient failures, safe error messages and correlation logging without prompts containing secrets.
+The backend uses HTTPX to call OpenRouter. The API key and selected model come from environment/secret configuration, never source control.
+
+The client adds connection/read timeout, limited retry for temporary failures, safe error messages and correlation logging without prompts containing secrets.
 
 ### Root-cause and recommendation handling
 
-The LLM output is parsed through a strict Pydantic response model. The system rejects invalid or incomplete output instead of displaying free-form text as a trusted diagnosis. Suggested commands are treated as guidance and displayed for human review; the application does not execute them.
+The LLM output is parsed through a strict Pydantic response model. The system rejects invalid or incomplete output instead of displaying free-form text as a trusted diagnosis.
+
+Suggested commands are treated as guidance and displayed for human review; the application does not execute them.
 
 ### Confidence
 
-Confidence must reflect evidence quality, not the model's writing style. A high score is reasonable only when independent signals agree—for example termination state, previous log and Event all indicate the same cause. Missing logs, collection errors or conflicting evidence must lower confidence and produce explicit next investigation steps.
+Confidence must reflect evidence quality, not the model's writing style. A high score is reasonable only when independent signals agree—for example termination state, previous log and Event all indicate the same cause.
+
+Missing logs, collection errors or conflicting evidence must lower confidence and produce explicit next investigation steps.
 
 ## Stage 4: Application Experience with InsForge
 
@@ -402,7 +408,7 @@ I would not recommend `kubectl edit` as the permanent source of truth when GitOp
 
 ## How AI Was Used in Day-to-Day DevOps
 
-The useful AI part is not “ask a chatbot why Kubernetes is broken.” We first gather deterministic evidence and give the model a narrow reasoning task.
+The useful AI part is not “ask a chatbot why Kubernetes is broken.” We first gather predictable evidence and give the model a narrow reasoning task.
 
 AI helps with:
 
@@ -413,7 +419,7 @@ AI helps with:
 - Generating prevention recommendations
 - Summarizing an investigation for history and handover
 
-Deterministic code still handles:
+Predictable code still handles:
 
 - Authentication and authorization
 - Cluster selection
@@ -434,7 +440,7 @@ The supplied design prompts describe the functional flow, but a production imple
 
 ### Kubernetes access
 
-- Use read-only, least-privilege RBAC for investigation.
+- Use read-only, least-privilege (minimum required access) RBAC for investigation.
 - Scope access by allowed cluster and namespace.
 - Do not expose a general-purpose shell endpoint.
 - Use an argument array, command allow-list, timeout and output limit.
@@ -453,15 +459,15 @@ The supplied design prompts describe the functional flow, but a production imple
 - Delimit evidence and instruct the model that evidence is data, not instructions.
 - Use a strict response schema and reject extra executable content.
 - Never automatically run LLM-generated commands.
-- Allow only human-reviewed or pre-approved bounded runbooks.
+- Allow only human-reviewed or pre-approved limited runbooks.
 - Record model, prompt version, evidence references and result for audit.
 
 ### Operational safety
 
-- Use correlation IDs and bounded retries.
+- Use correlation IDs and limited retries.
 - Apply rate limits and investigation concurrency limits.
 - Cancel timed-out investigations.
-- Make progress/history updates idempotent.
+- Make progress/history updates idempotent (safe to run more than once).
 - Provide a non-AI fallback that returns collected evidence when the LLM is unavailable.
 
 ---
@@ -544,7 +550,7 @@ The backend builds allow-listed argument arrays. User input is validated as a co
 
 ### LLM or network failure
 
-The deterministic investigation result is still returned. The UI explains that AI analysis is temporarily unavailable and gives the evidence to the engineer.
+The predictable investigation result is still returned. The UI explains that AI analysis is temporarily unavailable and gives the evidence to the engineer.
 
 ### Confidence can be misleading
 
@@ -559,7 +565,7 @@ Use read-only RBAC, explicit scope, short-lived identity, audit and separate cre
 ## What I Would Improve Next
 
 1. Replace or complement subprocess calls with the Kubernetes client for typed API access and watches.
-2. Add deterministic rule checks for obvious failures before invoking the LLM.
+2. Add predictable rule checks for obvious failures before invoking the LLM.
 3. Retrieve relevant approved runbooks and Kubernetes documentation rather than asking the model from memory alone.
 4. Add OpenTelemetry traces and service metrics for the agent itself.
 5. Use queued background jobs for long investigations and enforce per-cluster concurrency.
@@ -575,7 +581,7 @@ Use read-only RBAC, explicit scope, short-lived identity, audit and separate cre
 
 ### Why use AI when scripts and alerts already exist?
 
-Scripts are excellent for deterministic checks, but incidents often contain several related signals. AI helps correlate and explain them. I keep evidence collection and safety deterministic and use AI only for reasoning and explanation.
+Scripts are excellent for predictable checks, but incidents often contain several related signals. AI helps compare and explain them. I keep evidence collection and safety predictable and use AI only for reasoning and explanation.
 
 ### Why did you use FastAPI?
 
@@ -587,7 +593,7 @@ For the prototype it was simple, familiar and easy to demonstrate. The trade-off
 
 ### Is this a Kubernetes operator?
 
-No. An operator continuously watches desired state and reconciles it. This system runs only when an authenticated user requests an investigation and primarily reads evidence.
+No. An operator continuously watches desired state and reconciles (makes actual state match desired state) it. This system runs only when an authenticated user requests an investigation and primarily reads evidence.
 
 ### How do you prevent hallucination?
 
@@ -599,7 +605,7 @@ The evidence collector still works. The API returns the structured investigation
 
 ### How do you secure Kubernetes access?
 
-Read-only least-privilege RBAC, allowed cluster/namespace scope, short-lived identity, command allow-list, no shell execution, timeouts, audit logs and no Secret-value collection.
+Read-only least-privilege (minimum required access) RBAC, allowed cluster/namespace scope, short-lived identity, command allow-list, no shell execution, timeouts, audit logs and no Secret-value collection.
 
 ### How do you validate the confidence score?
 
@@ -616,7 +622,6 @@ It supports audit, handover, repeated-incident detection and evaluation of model
 ### What result can you confidently claim from the supplied repository?
 
 I can confidently claim a complete staged design and implementation plan for an AI-assisted Kubernetes troubleshooting product. I cannot claim a working production deployment or measured MTTR improvement from this supplied folder alone because it contains prompts/HLD rather than application source and test evidence.
-
 ---
 
 ## Final Interview Closing Statement

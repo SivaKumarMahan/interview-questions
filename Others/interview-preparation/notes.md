@@ -5,7 +5,7 @@
 - Jenkins, GitHub Actions, GitLab CI, and Azure Pipelines
 - Build-once and environment promotion from Dev to QA to Production
 - Blue-green, canary, rolling, rollback, and zero-downtime deployment
-- Artifact repositories and immutable Docker images
+- Artifact repositories and immutable (not changed after creation) Docker images
 - GitOps with Argo CD and Flux
 
 ## Infrastructure as Code
@@ -31,7 +31,7 @@
 ## Cloud, networking, and security
 
 - VPC/VNet, subnets, routing, NAT, load balancers, peering, DNS, and private endpoints
-- IAM least privilege, workload identity, certificate and secret rotation
+- IAM least privilege (only the permissions needed), workload identity, certificate and secret rotation
 - Container/runtime and software-supply-chain security
 - SAST, DAST, dependency, secret, IaC, and image scanning
 - Audit logging, compliance evidence, and cost optimization

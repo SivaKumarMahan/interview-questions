@@ -5,6 +5,7 @@
 ## Kubernetes
 
 ### 3.1 How confident are you in Kubernetes & Docker? (rating question)
+
 Give an honest self-rating with evidence, e.g. *"8/10 — I run production EKS clusters: writing manifests/Helm charts, HPA/VPA autoscaling, RBAC, network policies, and I've handled incident troubleshooting (CrashLoopBackOff, pending pods, node pressure)."* Avoid claiming 10/10; back the number with concrete work.
 
 ### 3.2 How do you stop / delete a pod?
@@ -16,6 +17,7 @@ kubectl delete deploy <name>         # remove workload entirely
 Deleting a bare pod managed by a Deployment just triggers a rescheduled replacement — to truly stop it, scale the controller to 0 or delete the controller.
 
 ### 3.3 How do you replicate a pod?
+
 Don't manage pods directly — use a **Deployment** (or ReplicaSet/StatefulSet) and set replicas:
 ```bash
 kubectl scale deployment <name> --replicas=3
@@ -34,6 +36,7 @@ kubectl logs -l app=web --tail=100      # by label selector
 For aggregated, persistent logs use centralized logging (§8.4), since pod logs vanish when the pod is deleted.
 
 ### 3.5 A pod is not responding / stuck in Pending — troubleshooting approach
+
 General flow:
 ```bash
 kubectl get pods -o wide
@@ -53,6 +56,7 @@ kubectl get events --sort-by=.lastTimestamp
 - **OOMKilled** (`describe` shows reason) → raise memory limit or fix the leak.
 
 ### 3.6 A pod is under heavy load — keep it healthy before it dies (auto-scaling)
+
 - **Horizontal Pod Autoscaler (HPA):** scale replicas on CPU/memory or custom/external metrics (e.g. requests-per-second via Prometheus Adapter, or KEDA for event-driven).
   ```bash
   kubectl autoscale deployment web --cpu-percent=70 --min=3 --max=20
@@ -63,6 +67,7 @@ kubectl get events --sort-by=.lastTimestamp
 - **VPA** for right-sizing single-instance workloads. Add caching/queues to shed load.
 
 ### 3.7 Challenges with StatefulSets & persistent storage
+
 - **StatefulSets** give stable network identity (`pod-0`, `pod-1`), ordered deployment/scaling, and stable per-pod storage via `volumeClaimTemplates`.
 - **Challenges:**
   - **Storage is zone-bound:** an EBS volume lives in one AZ, so the pod is pinned to that AZ — plan topology spread and multi-AZ replication at the app layer.
@@ -73,6 +78,7 @@ kubectl get events --sort-by=.lastTimestamp
 - **Best practice:** use CSI drivers with dynamic provisioning + a proper StorageClass, run stateful workloads via battle-tested operators where possible, and back up regularly.
 
 ### 3.8 Automated zero-downtime EKS upgrades
+
 1. **Upgrade the control plane** first (`eks update-cluster-version`) — AWS manages it; one minor version at a time.
 2. **Upgrade managed add-ons** (VPC CNI, CoreDNS, kube-proxy) to compatible versions.
 3. **Node groups:** use **managed node groups** or **Karpenter**; create new nodes on the new version, then **cordon & drain** old nodes so pods reschedule gracefully. Managed node groups do this rolling update for you.

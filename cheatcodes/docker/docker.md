@@ -15,7 +15,7 @@ docker history <image>            # Show the history of an image
 docker save <image> > <file.tar>  # Save an image to a tar archive
 ```
 
-Prefer pulling and running by immutable digest (`<image>@sha256:<digest>`) in production. Inspect and back up state before pruning; do not use "remove everything" commands on production hosts.
+Prefer pulling and running by immutable (not changed after creation) digest (`<image>@sha256:<digest>`) in production. Inspect and back up state before pruning; do not use "remove everything" commands on production hosts.
 
 ## Containers
 

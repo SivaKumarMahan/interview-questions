@@ -3,33 +3,29 @@
 ## Important Accuracy Note
 
 The supplied project contains a README, architecture and request-flow documents, and five staged implementation prompts. It does not contain the generated backend or frontend source code, automated test evidence, deployment files, screenshots, measured savings, or production results.
-
 In an interview, I should therefore say **“I designed and prototyped this solution”** unless I have separately implemented and tested it. I should not claim that an AI recommendation saved a specific amount of money without billing data, utilization metrics, approval records, and measured before-and-after results.
-
 ---
 
 ## One-Line Project Explanation
 
 I designed an AI-assisted FinOps application that inventories resources in an Azure Resource Group, detects possible waste and configuration problems, explains the findings in simple language, and presents reviewable optimization commands while keeping a history of every analysis.
-
 ---
 
 ## 30-Second Interview Answer
 
-> I designed an AI Cloud Cost Detective using React, FastAPI, Azure CLI, OpenAI, WebSockets and Azure Database for PostgreSQL. An authenticated user selects an Azure Resource Group. The FastAPI backend executes controlled, read-only Azure CLI commands and converts the resource inventory into structured JSON. A rule-based validation layer identifies obvious facts, and the AI correlates those facts into possible cost issues such as idle resources, oversized SKUs, missing lifecycle controls or inappropriate pricing tiers. The UI receives live progress, then displays evidence, severity, estimated savings assumptions and suggested Azure CLI fixes. Results are saved for audit and comparison. The important safety decision is that AI only recommends changes; a human reviews the evidence and command before anything is modified.
+> I designed an AI Cloud Cost Detective using React, FastAPI, Azure CLI, OpenAI, WebSockets and Azure Database for PostgreSQL. An authenticated user selects an Azure Resource Group. The FastAPI backend executes controlled, read-only Azure CLI commands and converts the resource inventory into structured JSON. A rule-based validation layer identifies obvious facts, and the AI compares those facts into possible cost issues such as idle resources, oversized SKUs, missing lifecycle controls or inappropriate pricing tiers. The UI receives live progress, then displays evidence, severity, estimated savings assumptions and suggested Azure CLI fixes. Results are saved for audit and comparison. The important safety decision is that AI only recommends changes; a human reviews the evidence and command before anything is modified.
 
 ---
 
 ## Two-Minute Interview Explanation
 
 Cloud bills are difficult to investigate because resource inventory, billing data, utilization, ownership tags and configuration are normally checked in different places. Engineers may also know that cost increased without knowing which resource caused it or what action is safe.
-
 I divided the solution into five layers:
 
 1. React provides login, Resource Group selection, progress, reports and history.
 2. FastAPI authenticates requests and orchestrates the investigation.
 3. Azure CLI gathers read-only resource information from the selected scope.
-4. A deterministic layer validates and enriches the facts, and the OpenAI layer converts the evidence into a structured explanation and recommendations.
+4. A predictable layer validates and enriches the facts, and the OpenAI layer converts the evidence into a structured explanation and recommendations.
 5. Azure PostgreSQL stores users and analysis history, while WebSockets send progress to the browser.
 
 The end-to-end flow is:
@@ -40,7 +36,7 @@ User logs in
     -> backend validates user and scope
     -> Azure inventory and supporting cost/metric evidence are collected
     -> sensitive fields are removed and data is normalized
-    -> deterministic rules calculate facts
+    -> predictable rules calculate facts
     -> AI explains and prioritizes possible savings
     -> output schema and commands are validated
     -> report is stored and displayed for human review
@@ -113,7 +109,9 @@ This is more convincing than saying “AI found an expensive VM,” because it i
                   └────────────────────┘
 ```
 
-The original design uses `az resource list` for inventory. For a production-grade cost detector, I would add Azure Cost Management data, Azure Monitor metrics, Azure Advisor recommendations and current retail/rate-card data. Inventory alone cannot prove that a resource is idle or calculate reliable savings.
+The original design uses `az resource list` for inventory. For a production-grade cost detector, I would add Azure Cost Management data, Azure Monitor metrics, Azure Advisor recommendations and current retail/rate-card data.
+
+Inventory alone cannot prove that a resource is idle or calculate reliable savings.
 
 ---
 
@@ -125,7 +123,7 @@ The original design uses `az resource list` for inventory. For a production-grad
 | Backend | Python, FastAPI, Uvicorn | Validation, async APIs and orchestration |
 | Authentication | bcrypt, PyJWT | Password hashing and signed access tokens |
 | Azure collection | Azure CLI through Python `subprocess` | Simple prototype access to authenticated Azure inventory |
-| AI analysis | OpenAI API | Correlate evidence and explain findings in plain language |
+| AI analysis | OpenAI API | Compare evidence and explain findings in plain language |
 | Database | Azure Database for PostgreSQL | Users, JSON reports, status and analysis history |
 | Live progress | FastAPI WebSocket | Show long-running analysis stages without browser polling |
 | Configuration | Environment variables | Keep database URL, JWT secret and AI key outside source code |
@@ -169,8 +167,9 @@ def list_resources(resource_group: str) -> list[dict]:
     return run_az(["resource", "list", "--resource-group", resource_group])
 ```
 
-The Resource Group is passed as a separate argument, not concatenated into a shell string. I would also validate it against the Resource Groups available to the authenticated identity, set a timeout, limit output size, avoid `shell=True`, log a correlation ID, and return a sanitized error rather than CLI credentials or raw stderr.
+The Resource Group is passed as a separate argument, not concatenated into a shell string.
 
+I would also validate it against the Resource Groups available to the authenticated identity, set a timeout, limit output size, avoid `shell=True`, log a correlation ID, and return a sanitized error rather than CLI credentials or raw stderr.
 The inventory is normalized so the AI does not need to understand many different Azure response shapes:
 
 ```json
@@ -252,7 +251,9 @@ Storing results...
 Analysis complete
 ```
 
-In a robust design, `POST /api/analyze` first creates an analysis record and immediately returns `202 Accepted` with an `analysis_id`. A background worker performs the job while the browser subscribes to `/ws/progress/{analysis_id}`. This avoids the race in which analysis finishes before the frontend learns which WebSocket to open.
+In a robust design, `POST /api/analyze` first creates an analysis record and immediately returns `202 Accepted` with an `analysis_id`. A background worker performs the job while the browser subscribes to `/ws/progress/{analysis_id}`.
+
+This avoids the race in which analysis finishes before the frontend learns which WebSocket to open.
 
 WebSocket access must also be authenticated, checked against ownership of the analysis, rate-limited, and closed cleanly. For multi-instance deployment, I would use a job queue and Redis or a managed message service rather than an in-memory connection map.
 
@@ -268,7 +269,9 @@ The frontend contains:
 
 Passwords are hashed with bcrypt and never stored in plain text. JWTs include a user identifier, expiry, issuer and audience. The backend validates the token on every protected API.
 
-The initial prompt stores JWTs in `localStorage`. That is easy for a prototype but exposes the token if an XSS vulnerability occurs. For production I would prefer short-lived access tokens, refresh-token rotation, and `HttpOnly`, `Secure`, `SameSite` cookies where the architecture permits. I would also enforce TLS, strong password policy, login throttling and secret rotation.
+The initial prompt stores JWTs in `localStorage`. That is easy for a prototype but exposes the token if an XSS vulnerability occurs.
+
+For production I would prefer short-lived access tokens, refresh-token rotation, and `HttpOnly`, `Secure`, `SameSite` cookies where the architecture permits. I would also enforce TLS, strong password policy, login throttling and secret rotation.
 
 ### Stage 5: End-to-end integration
 
@@ -287,7 +290,6 @@ signup/login
 ```
 
 The UI shows total resources scanned, issue count and estimated saving, followed by individual findings with severity badges, explanation and copyable commands. A copy button does not mean a command is safe: the report must show prerequisites, scope, expected impact, verification and rollback guidance.
-
 ---
 
 ## How the Cost Investigation Works
@@ -296,7 +298,7 @@ The UI shows total resources scanned, issue count and estimated saving, followed
 
 I first record subscription, Resource Group, currency and analysis window. Cost comparisons are meaningless if the time period or scope changes between reports.
 
-### 2. Collect deterministic evidence
+### 2. Collect predictable evidence
 
 I collect four evidence groups:
 
@@ -339,12 +341,12 @@ If an interviewer asks how I would investigate a spike, I would say:
 2. Group cost by resource, resource type, service, location, meter and tag.
 3. Compare with the previous equivalent period and find the largest contributors to the delta.
 4. Check whether usage increased, SKU changed, a new resource was created, egress grew, reservation coverage changed, or a discount expired.
-5. Correlate deployment/activity logs and ownership tags with the spike time.
+5. Compare deployment/activity logs and ownership tags with the spike time.
 6. Check utilization and business need before proposing rightsizing or deletion.
 7. Produce recommendations with evidence, expected saving range, risk, owner and verification plan.
 8. Apply approved changes through Terraform or the normal change process, then monitor service health and realized cost.
 
-The AI helps summarize and correlate the data, but the numerical delta and saving are calculated from trusted billing inputs.
+The AI helps summarize and compare the data, but the numerical delta and saving are calculated from trusted billing inputs.
 
 ---
 
@@ -373,7 +375,7 @@ The AI helps summarize and correlate the data, but the numerical delta and savin
 | Azure CLI missing | Fail health/readiness check with installation guidance |
 | Azure session expired | Return an authentication-specific error; do not expose raw tokens |
 | Invalid or unauthorized Resource Group | Return 404/403 without leaking other scopes |
-| CLI timeout or throttling | Bounded retry with backoff and correlation ID |
+| CLI timeout or throttling | Limited retry with backoff (increasing wait between retries) and correlation ID |
 | Partial provider data | Store partial status and show which evidence is missing |
 | OpenAI timeout/rate limit | Retry with limits, then preserve inventory and mark analysis incomplete |
 | Invalid AI JSON | Schema validation, one repair attempt, then controlled failure |
@@ -470,7 +472,7 @@ Authentication alone is insufficient. Every Resource Group, history row and WebS
 
 1. Replace production CLI subprocess calls with Azure SDK and managed identity.
 2. Add Cost Management exports/query data, Azure Monitor metrics and Azure Advisor evidence.
-3. Add deterministic price and reservation/savings-plan calculations.
+3. Add predictable price and reservation/savings-plan calculations.
 4. Add provider-specific scanners for compute, disks, databases, storage, App Service and Log Analytics.
 5. Use a durable job queue for horizontal scaling, retries and cancellation.
 6. Add prompt/version tracking and a regression evaluation set.
@@ -485,7 +487,7 @@ Authentication alone is insufficient. Every Resource Group, history row and WebS
 
 ### Why did you need AI if rules can detect waste?
 
-Rules are best for facts and calculations. AI is useful for correlating many signals, ranking them and explaining the result in plain language. I use a hybrid approach: deterministic collection and calculation, AI explanation, then deterministic validation.
+Rules are best for facts and calculations. AI is useful for correlating many signals, ranking them and explaining the result in plain language. I use a hybrid approach: predictable collection and calculation, AI explanation, then predictable validation.
 
 ### Can the tool really detect an oversized VM from the original data?
 
@@ -513,11 +515,13 @@ I minimize and redact the payload, remove credentials and sensitive tag values, 
 
 ### What happens if OpenAI is unavailable?
 
-The deterministic inventory and rule findings remain available. I mark the explanation stage incomplete, retry within a fixed policy, and allow a later re-analysis rather than losing the collected evidence.
+The predictable inventory and rule findings remain available. I mark the explanation stage incomplete, retry within a fixed policy, and allow a later re-analysis rather than losing the collected evidence.
 
 ### How is this different from Azure Advisor?
 
-Advisor is a valuable source of platform recommendations. This application can combine Advisor with organization-specific rules, ownership tags, billing history, operational metrics, approval workflow and a simple cross-signal explanation. It should complement, not pretend to replace, native Azure capabilities.
+Advisor is a valuable source of platform recommendations. This application can combine Advisor with organization-specific rules, ownership tags, billing history, operational metrics, approval workflow and a simple cross-signal explanation.
+
+It should complement, not pretend to replace, native Azure capabilities.
 
 ### How would you prove business value?
 
@@ -527,4 +531,4 @@ I would track accepted recommendations and compare verified cost after an approv
 
 ## Honest Closing Statement
 
-> This project demonstrates how I would apply AI in day-to-day DevOps and FinOps work: automate repetitive evidence collection, use deterministic logic for facts and money, use AI to correlate and explain the evidence, and keep a human in control of changes. The supplied material is a staged design rather than proof of a production deployment, so my next step would be to implement it, validate it with known Azure scenarios, and measure accepted and realized savings.
+> This project demonstrates how I would apply AI in day-to-day DevOps and FinOps work: automate repetitive evidence collection, use predictable logic for facts and money, use AI to compare and explain the evidence, and keep a human in control of changes. The supplied material is a staged design rather than proof of a production deployment, so my next step would be to implement it, validate it with known Azure scenarios, and measure accepted and realized savings.

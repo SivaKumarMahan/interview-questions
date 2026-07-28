@@ -4,11 +4,15 @@
 
 ## Image, Runtime, and Multi-Host Notes
 
-Keep images small by using an approved minimal runtime base, multi-stage builds, a `.dockerignore`, pinned dependencies, only runtime packages and no build cache or secrets in the final image. Fewer layers is not the goal by itself; use cache-friendly ordering and verify functionality, SBOM and vulnerability results. Never use `docker system prune` indiscriminately on a shared or production host because it can remove needed unused resources.
+Keep images small by using an approved minimal runtime base, multi-stage builds, a `.dockerignore`, pinned dependencies, only runtime packages and no build cache or secrets in the final image. Fewer layers is not the goal by itself; use cache-friendly ordering and verify functionality, SBOM and vulnerability results.
+
+Never use `docker system prune` indiscriminately on a shared or production host because it can remove needed unused resources.
 
 Docker namespaces isolate process IDs, mounts, network and other kernel views; cgroups enforce resource accounting and limits. A container is still a process sharing the host kernel, so run non-root, drop unnecessary capabilities and use a hardened host.
 
-Docker Compose is primarily a single-host developer/local workflow. For multi-host scheduling, networking, health management and failover use an orchestrator such as Kubernetes or, where it is deliberately supported, Docker Swarm. `docker export` exports a container filesystem and loses image metadata/layers; use `docker save`/`docker load` for image transfer. Prefer an authenticated registry over ad-hoc image tar files.
+Docker Compose is primarily a single-host developer/local workflow. For multi-host scheduling, networking, health management and failover use an orchestrator such as Kubernetes or, where it is deliberately supported, Docker Swarm.
+
+`docker export` exports a container filesystem and loses image metadata/layers; use `docker save`/`docker load` for image transfer. Prefer an authenticated registry over ad-hoc image tar files.
 
 ### Q: If Docker containers are consuming too much disk space, how do you fix it?
 

@@ -14,10 +14,9 @@ Security and reliability controls:
 
 - Use TLS and validate the webhook signature with a rotated secret.
 - Allow only expected event types and validate repository, branch, and sender data.
-- Protect against replay using delivery IDs/timestamps and make event handling idempotent.
-- Acknowledge quickly, queue longer work, and use bounded retry/dead-letter handling.
+- Protect against replay using delivery IDs/timestamps and make event handling idempotent (safe to run more than once).
+- Acknowledge quickly, queue longer work, and use limited retry/dead-letter handling.
 - Never treat receipt of a webhook as authorization to deploy production; branch protection, checks, artifact trust, environment approval, and deployment identity remain separate controls.
 - Log delivery ID, event type, repository, decision, and pipeline run without logging secrets or sensitive payload data.
 
 For troubleshooting I compare the repository delivery log with receiver access logs, verify DNS/TLS/firewall and response status, validate the signature secret and endpoint path, and check whether pipeline rules intentionally ignored the event.
-

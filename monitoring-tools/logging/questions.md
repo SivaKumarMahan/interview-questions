@@ -2,13 +2,21 @@
 
 **Answer:**
 
-An ELK-style flow uses Logstash/Fluent Bit to send parsed records to Elasticsearch/OpenSearch and Kibana, enabling rich full-text and field search but requiring careful index/shard/lifecycle management. Loki primarily indexes labels and stores compressed log chunks, often reducing index cost when labels are controlled; Grafana queries it. Choice depends on search needs, volume, retention, operations, tenant/security requirements and cost.
+An ELK-style flow uses Logstash/Fluent Bit to send parsed records to Elasticsearch/OpenSearch and Kibana, enabling rich full-text and field search but requiring careful index/shard/lifecycle management.
+
+Loki primarily indexes labels and stores compressed log chunks, often reducing index cost when labels are controlled; Grafana queries it.
+
+Choice depends on search needs, volume, retention, operations, tenant/security requirements and cost.
 
 ## 2. How do you handle a sudden log explosion?
 
 **Answer:**
 
-I identify the service, version, logger and event pattern causing growth; check collector queues, dropped events, backend storage and ingestion limits; and protect the platform from cascading failure. I reduce debug verbosity or sample a proven repetitive event through reviewed configuration while preserving security/audit evidence. I do not delete logs blindly.
+I identify the service, version, logger and event pattern causing growth; check collector queues, dropped events, backend storage and ingestion limits; and protect the platform from cascading failure.
+
+I reduce debug verbosity or sample a proven repetitive event through reviewed configuration while preserving security/audit evidence.
+
+I do not delete logs blindly.
 
 Then I fix the cause, set rate/size limits, structured levels, buffer/backpressure and tiered retention, and alert on bytes/events, queue age, drops and forecasted capacity. I verify that essential troubleshooting and compliance logs remain available.
 
@@ -16,7 +24,9 @@ Then I fix the cause, set rate/size limits, structured levels, buffer/backpressu
 
 **Answer:**
 
-Timestamp, severity, event name, service, environment, version, instance/Pod, trace or correlation ID and relevant bounded business/error fields. They must not contain passwords, tokens, private keys or unnecessary personal data. Clock synchronization and W3C trace context allow correlation. Request IDs belong in logs/traces, not metric labels.
+Timestamp, severity, event name, service, environment, version, instance/Pod, trace or correlation ID and relevant limited business/error fields. They must not contain passwords, tokens, private keys or unnecessary personal data.
+
+Clock synchronization and W3C trace context allow correlation. Request IDs belong in logs/traces, not metric labels.
 
 ## 4. How do you find the ten largest files under `/var/log`?
 
@@ -36,7 +46,9 @@ sudo find /var/log -xdev -type f -printf '%s\t%p\n' 2>/dev/null \
   | sort -nr | head -n 10
 ```
 
-I compare `df` and `du`, and run `sudo lsof +L1` because a deleted log still held open by a process consumes space but no longer appears in `find`. I identify the writing service with `lsof` or `fuser`, check its logging configuration and preserve incident/audit evidence. The safe fix is usually correct log level, rotation, compression, retention or capacity—not blindly deleting the largest file.
+I compare `df` and `du`, and run `sudo lsof +L1` because a deleted log still held open by a process consumes space but no longer appears in `find`. I identify the writing service with `lsof` or `fuser`, check its logging configuration and preserve incident/audit evidence.
+
+The safe fix is usually correct log level, rotation, compression, retention or capacity—not blindly deleting the largest file.
 
 ## 5. How do you find all `.log` files larger than 100 MB?
 
@@ -55,7 +67,9 @@ sudo find /var/log -xdev -type f -name '*.log' -size +100M \
   -printf '%s bytes\t%u:%g\t%TY-%Tm-%Td %TH:%TM\t%p\n' | sort -nr
 ```
 
-This does not match rotated names such as `app.log.1` or `app.log.2.gz`, so I broaden the approved pattern when investigating total retention. I also remember that a large active log may be legitimate. I check its growth rate, writer, log level, rotation policy and available disk time before taking action.
+This does not match rotated names such as `app.log.1` or `app.log.2.gz`, so I broaden the approved pattern when investigating total retention. I also remember that a large active log may be legitimate.
+
+I check its growth rate, writer, log level, rotation policy and available disk time before taking action.
 
 ## 6. How do you delete `.log` files older than 30 days safely?
 
@@ -67,7 +81,9 @@ I never begin with deletion. First I preview the exact matches:
 sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -print
 ```
 
-I confirm application ownership, compliance and incident-retention requirements, backup/central-log availability, and whether any matched file is open using `lsof`. `-mtime +30` uses file modification time in completed 24-hour periods; it does not inspect timestamps inside the log. The pattern also does not include common rotated files such as `.log.1` or `.gz` unless explicitly configured.
+I confirm application ownership, compliance and incident-retention requirements, backup/central-log availability, and whether any matched file is open using `lsof`. `-mtime +30` uses file modification time in completed 24-hour periods; it does not inspect timestamps inside the log.
+
+The pattern also does not include common rotated files such as `.log.1` or `.gz` unless explicitly configured.
 
 The preferred permanent solution is the service's retention setting, `logrotate`, or journald configuration. I test logrotate safely with:
 
@@ -87,4 +103,8 @@ I avoid deleting the active log because a process may keep writing to its old fi
 
 **Answer:**
 
-Prometheus stores numeric time-series metrics and evaluates PromQL rules; it is suited to rates, latency percentiles, capacity and alerting. Splunk indexes/searches logs and events, with metrics and traces available in some products; it is suited to forensic event search and log correlation. They are complementary, not substitutes. SPL is Splunk Processing Language: a typical safe investigation narrows time and source first, then filters and aggregates, for example `index=prod service=payments level=ERROR | stats count by error_code | sort - count`. I avoid unbounded all-time searches and ensure sensitive fields are masked before ingestion.
+Prometheus stores numeric time-series metrics and evaluates PromQL rules; it is suited to rates, latency percentiles, capacity and alerting. Splunk indexes/searches logs and events, with metrics and traces available in some products; it is suited to forensic event search and log correlation.
+
+They are complementary, not substitutes. SPL is Splunk Processing Language: a typical safe investigation narrows time and source first, then filters and aggregates, for example `index=prod service=payments level=ERROR | stats count by error_code | sort - count`.
+
+I avoid unlimited all-time searches and ensure sensitive fields are masked before ingestion.

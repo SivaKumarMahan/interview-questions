@@ -53,7 +53,7 @@ Helm uses Kubernetes Deployment's rolling update strategy. When you upgrade a He
 
 ### 1. Full-stack To-Do application
 
-- Containerize frontend and backend separately and publish immutable image digests to Azure Container Registry.
+- Containerize frontend and backend separately and publish immutable (not changed after creation) image digests to Azure Container Registry.
 - Use one reusable chart or clearly separated charts for Deployments, Services, ConfigMaps, external secrets, probes, resources, and Ingress.
 - Keep Dev, QA, and Production values separate while reusing the same chart version.
 - Validate with `helm lint`, `helm template`, and a server-side dry run before `helm upgrade --install`.
@@ -66,11 +66,15 @@ The chart exposes the application through a Service and includes startup/readine
 
 ### 3. Jenkins on Kubernetes
 
-Jenkins can be installed from a chart with persistent storage for the controller and ephemeral Kubernetes agents for builds. PersistentVolume backup, plugin/version pinning, credentials, security context, resource limits, controller recovery, and chart upgrade tests must be planned before treating this as a production installation.
+Jenkins can be installed from a chart with persistent storage for the controller and ephemeral Kubernetes agents for builds.
+
+PersistentVolume backup, plugin/version pinning, credentials, security context, resource limits, controller recovery, and chart upgrade tests must be planned before treating this as a production installation.
 
 ### 4. Helmfile
 
-Helmfile declaratively coordinates multiple Helm releases and environment values. I use it when several related releases must be installed in a known order, while still pinning chart versions, separating secrets, reviewing rendered changes, and verifying each release. For Kubernetes desired-state reconciliation across clusters, Argo CD or Flux may be a better GitOps control plane.
+Helmfile declaratively coordinates multiple Helm releases and environment values. I use it when several related releases must be installed in a known order, while still pinning chart versions, separating secrets, reviewing rendered changes, and verifying each release.
+
+For Kubernetes desired-state reconciliation (making actual state match desired state) across clusters, Argo CD or Flux may be a better GitOps control plane.
 
 ---
 
@@ -80,11 +84,17 @@ Helmfile declaratively coordinates multiple Helm releases and environment values
 
 **Email Signing:**
 
-Email signing is the process of digitally signing an email message to verify the sender's identity and ensure the integrity of the message content. It uses cryptographic techniques to create a digital signature that is attached to the email. The recipient can then verify the signature using the sender's public key, confirming that the email has not been altered and is indeed from the claimed sender. Common standards for email signing include **S/MIME** (Secure/Multipurpose Internet Mail Extensions) and **PGP** (Pretty Good Privacy).
+Email signing is the process of digitally signing an email message to verify the sender's identity and ensure the integrity of the message content. It uses cryptographic techniques to create a digital signature that is attached to the email.
+
+The recipient can then verify the signature using the sender's public key, confirming that the email has not been altered and is indeed from the claimed sender. Common standards for email signing include **S/MIME** (Secure/Multipurpose Internet Mail Extensions) and **PGP** (Pretty Good Privacy).
 
 **Helm Chart Signing:**
 
-Helm chart signing is the process of digitally signing Helm charts to ensure their authenticity and integrity. By signing a Helm chart, the chart maintainer provides a way for users to verify that the chart has not been tampered with and is from a trusted source. Helm uses **GPG** (GNU Privacy Guard) for signing charts. When a chart is signed, a signature file is created alongside the chart package. Users can then verify the signature using the public key of the chart maintainer before installing the chart.
+Helm chart signing is the process of digitally signing Helm charts to ensure their authenticity and integrity. By signing a Helm chart, the chart maintainer provides a way for users to verify that the chart has not been tampered with and is from a trusted source.
+
+Helm uses **GPG** (GNU Privacy Guard) for signing charts. When a chart is signed, a signature file is created alongside the chart package.
+
+Users can then verify the signature using the public key of the chart maintainer before installing the chart.
 
 **Tools for Signing Helm Charts:**
 
@@ -103,5 +113,4 @@ helm verify <chart-package>
 ```
 
 In summary, email signing and Helm chart signing both serve to verify authenticity and integrity, but they apply to different contexts — email communication and software package distribution, respectively. GPG is the tool commonly used for signing Helm charts.
-
 ---

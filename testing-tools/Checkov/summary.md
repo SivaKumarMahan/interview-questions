@@ -1,13 +1,17 @@
 # Checkov Interview Summary
 
-**Checkov** is a static policy and security scanner for infrastructure-as-code. For Terraform it parses configuration or supported plan JSON and evaluates built-in or custom policies for misconfiguration such as public exposure, missing encryption/logging, weak network rules and unsafe defaults. It also supports other IaC frameworks, but Checkov does **not** prove runtime security or replace `terraform validate`, provider policy, cloud audit and penetration testing.
+**Checkov** is a static policy and security scanner for infrastructure-as-code. For Terraform it parses configuration or supported plan JSON and evaluates built-in or custom policies for misconfiguration such as public exposure, missing encryption/logging, weak network rules and unsafe defaults.
+
+It also supports other IaC frameworks, but Checkov does **not** prove runtime security or replace `terraform validate`, provider policy, cloud audit and penetration testing.
 
 ```bash
 checkov --directory . --framework terraform
 checkov --file main.tf --framework terraform
 ```
 
-Run it during local/pre-commit feedback and in pull-request CI before `terraform apply`. Pin the tool version in the build image/dependency lock, publish a protected report such as **SARIF** or **JUnit XML** where appropriate, and fail according to an agreed policy. Review each finding against the actual resource path, variables/modules, provider behavior and environment.
+Run it during local/pre-commit feedback and in pull-request CI before `terraform apply`. Pin the tool version in the build image/dependency lock, publish a protected report such as **SARIF** or **JUnit XML** where appropriate, and fail according to an agreed policy.
+
+Review each finding against the actual resource path, variables/modules, provider behavior and environment.
 
 **Exceptions must include:**
 

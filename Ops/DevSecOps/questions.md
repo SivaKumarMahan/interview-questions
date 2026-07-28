@@ -2,19 +2,27 @@
 
 **Answer:**
 
-Image scanning is a pre-deployment control and cannot detect stolen credentials, unexpected processes, lateral movement, or unsafe runtime configuration. I combine signed approved images and admission policy with non-root users, read-only root filesystems, dropped Linux capabilities, seccomp/AppArmor/SELinux, no privileged mode or host Docker socket, resource limits, namespace isolation, and default-deny communication rules.
+Image scanning is a pre-deployment control and cannot detect stolen credentials, unexpected processes, lateral movement, or unsafe runtime configuration.
 
-At runtime, Falco, eBPF-based tooling, cloud workload protection, Kubernetes audit logs, and container/runtime telemetry detect behaviors such as a shell in a normally shell-less service, writes to system paths, crypto-mining, privilege escalation, unusual outbound traffic, or access to service-account tokens. Detection rules have owners, context, tested severity, and a response action; noisy generic syscall alerts are tuned rather than ignored.
+I combine signed approved images and admission policy with non-root users, read-only root filesystems, dropped Linux capabilities, seccomp/AppArmor/SELinux, no privileged mode or host Docker socket, resource limits, namespace isolation, and default-deny communication rules.
+At runtime, Falco, eBPF-based tooling, cloud workload protection, Kubernetes audit logs, and container/runtime monitoring data detect behaviors such as a shell in a normally shell-less service, writes to system paths, crypto-mining, privilege escalation, unusual outbound traffic, or access to service-account tokens.
 
-For a credible alert I isolate traffic/workload while preserving audit, process, network, and image evidence; revoke exposed identities; inspect lateral activity; and replace the workload/node from trusted artifacts instead of cleaning it in place. I verify service recovery and denied attack paths, then improve policy, patching, key rotation, and detection coverage.
+Detection rules have owners, context, tested severity, and a response action; noisy generic syscall alerts are tuned rather than ignored.
+For a credible alert I isolate traffic/workload while preserving audit, process, network, and image evidence; revoke exposed identities; inspect lateral activity; and replace the workload/node from trusted artifacts instead of cleaning it in place.
+
+I verify service recovery and denied attack paths, then improve policy, patching, key rotation, and detection coverage.
 
 ## 2. How would you secure secrets for more than 100 microservices without exposing credentials?
 
 **Answer:**
 
-I centralize secrets in Vault, cloud secret managers, or an approved platform and authenticate each workload through its own short-lived identity. Kubernetes workload identity/service accounts, cloud IAM roles, or SPIFFE-style identities remove shared static credentials. Policies map one service and environment to only the required secret paths and operations; production identities cannot be used from developer laptops or CI branches.
+I centralize secrets in Vault, cloud secret managers, or an approved platform and authenticate each workload through its own short-lived identity. Kubernetes workload identity/service accounts, cloud IAM roles, or SPIFFE-style identities remove shared static credentials.
 
-Applications fetch secrets at runtime or through an external-secret/CSI integration with controlled in-memory/file delivery. Values never enter Git, images, Terraform outputs, command arguments, tickets, or normal logs. Rotation uses version overlap: issue new, update consumers, verify, revoke old, and audit failures. Dynamic database credentials and short TTLs reduce the rotation problem.
+Policies map one service and environment to only the required secret paths and operations; production identities cannot be used from developer laptops or CI branches.
+
+Applications fetch secrets at runtime or through an external-secret/CSI integration with controlled in-memory/file delivery. Values never enter Git, images, Terraform outputs, command arguments, tickets, or normal logs.
+
+Rotation uses version overlap: issue new, update consumers, verify, revoke old, and audit failures. Dynamic database credentials and short TTLs reduce the rotation problem.
 
 At scale I require ownership, naming, metadata, expiry, rotation SLOs, access reviews, audit alerts, break-glass procedure, and dashboards for stale or unused secrets. If exposure occurs I revoke first, identify usage from audit logs, rotate downstream trust, rebuild affected artifacts, and then remove leaked copies.
 
@@ -22,18 +30,25 @@ At scale I require ownership, naming, metadata, expiry, rotation SLOs, access re
 
 **Answer:**
 
-I use defense in depth across source, CI, artifact, infrastructure, workload, and operations. Source repositories have SSO/MFA, branch protection, signed or reviewed changes, secret scanning, and least privilege. CI uses isolated ephemeral runners, short-lived workload identity, pinned actions/plugins, SAST/SCA/IaC/container scans, SBOMs, signed artifacts, and protected deployment environments. Policies block critical violations with a documented exception path.
+I use defense in depth across source, CI, artifact, infrastructure, workload, and operations. Source repositories have SSO/MFA, branch protection, signed or reviewed changes, secret scanning, and least privilege (only the permissions needed).
 
-Infrastructure uses private-by-default networks, encryption, hardened images, patching, IAM reviews, backups, centralized audit logs, and IaC drift detection. Runtime controls restrict privilege and communication and feed actionable detection. Incident response includes ownership, evidence preservation, credential revocation, containment, recovery from trusted artifacts, communication, and post-incident improvement.
+CI uses isolated ephemeral runners, short-lived workload identity, pinned actions/plugins, SAST/SCA/IaC/container scans, SBOMs, signed artifacts, and protected deployment environments. Policies block critical violations with a documented exception path.
 
-I measure patch and secret age, critical finding remediation, policy bypasses, privileged access, restore tests, detection coverage, and security-related change failures. Security is part of the standard delivery path, not a final manual checklist.
+Infrastructure uses private-by-default networks, encryption, hardened images, patching, IAM reviews, backups, centralized audit logs, and IaC drift detection. Runtime controls restrict privilege and communication and feed actionable detection.
+
+Incident response includes ownership, evidence preservation, credential revocation, containment, recovery from trusted artifacts, communication, and post-incident improvement.
+
+I measure patch and secret age, critical finding fix, policy bypasses, privileged access, restore tests, detection coverage, and security-related change failures. Security is part of the standard delivery path, not a final manual checklist.
 
 ## 4. A secret key was accidentally committed to Git. What actions do you take?
 
 **Answer:**
 
-I treat the key as compromised even if the commit was quickly deleted. I revoke or disable it immediately, inspect provider and repository audit logs for use, issue a replacement with least privilege and expiry, update consumers through the secret manager, and verify service health. If it could unlock other credentials, I rotate those too.
+I treat the key as compromised even if the commit was quickly deleted. I revoke or disable it immediately, inspect provider and repository audit logs for use, issue a replacement with least privilege (only the permissions needed) and expiry, update consumers through the secret manager, and verify service health.
+
+If it could unlock other credentials, I rotate those too.
 
 Next I remove the value from the current tree and, when policy requires, coordinate history rewriting with `git filter-repo`, force-push protection, re-cloning guidance, and cleanup of forks, caches, CI artifacts, logs, and package/image layers. History cleanup reduces exposure but does not replace revocation.
+I document timeline, scope, access evidence, and recovery, notify security and owners, and add preventive controls: pre-commit and server-side secret scanning, push protection, short-lived workload identity, restricted CI logs/artifacts, and developer training.
 
-I document timeline, scope, access evidence, and recovery, notify security and owners, and add preventive controls: pre-commit and server-side secret scanning, push protection, short-lived workload identity, restricted CI logs/artifacts, and developer training. I test that the old key fails and the new identity has only required access.
+I test that the old key fails and the new identity has only required access.

@@ -4,7 +4,9 @@
 
 **Answer:**
 
-I determine whether failure affects one container, network, host, or all destinations. Inside the container I inspect `/etc/resolv.conf`, `getent hosts`, application error, and connectivity by IP vs. name. On host I check Docker network, embedded DNS (`127.0.0.11`), upstream DNS, routes/firewall, VPN, and daemon logs.
+I determine whether failure affects one container, network, host, or all destinations. Inside the container I inspect `/etc/resolv.conf`, `getent hosts`, application error, and connectivity by IP vs. name.
+
+On host I check Docker network, embedded DNS (`127.0.0.11`), upstream DNS, routes/firewall, VPN, and daemon logs.
 
 ```bash
 docker exec app cat /etc/resolv.conf

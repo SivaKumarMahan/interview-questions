@@ -15,5 +15,8 @@ user -> edge/load balancer -> presentation -> application -> data
 ```
 
 For an online purchase, the presentation tier submits the order, the application tier validates identity, inventory, price, and payment workflow, and the data tier records the order and inventory transaction. The response returns through the application and presentation tiers.
+Separation improves maintainability and security, but tiers alone do not guarantee a good system.
 
-Separation improves maintainability and security, but tiers alone do not guarantee a good system. Production design also needs stateless scaling where possible, health-based load balancing, caching, asynchronous messaging, least-privilege network paths, secrets management, observability, dependency timeouts and retries, data consistency, backups, and tested disaster recovery. Scale the bottleneck shown by metrics rather than increasing every tier equally.
+Production design also needs stateless scaling where possible, health-based load balancing, caching, asynchronous messaging, least-privilege (minimum required access) network paths, secrets management, observability, dependency timeouts and retries, data consistency, backups, and tested disaster recovery.
+
+Scale the bottleneck shown by metrics rather than increasing every tier equally.

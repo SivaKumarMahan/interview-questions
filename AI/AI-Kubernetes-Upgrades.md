@@ -5,33 +5,32 @@
 The supplied project contains one detailed assessment prompt and an Apache 2.0 license. It does not contain an implemented application, cluster collector, AI integration, assessment output, automated tests, upgrade execution logs or production results.
 
 In an interview, I should say **“I designed an AI-assisted Kubernetes upgrade assessment workflow”** unless I have separately implemented and validated it against real clusters. The prompt defines what the assessment must do; it is not evidence that a cluster was successfully upgraded.
-
 ---
 
 ## One-Line Project Explanation
 
 I designed an AI-assisted readiness tool that combines live Kubernetes evidence, manifests, release notes and vendor compatibility matrices to decide whether a cluster upgrade is safe, what could break, what must be fixed first, and how to validate and roll back the change.
-
 ---
 
 ## 30-Second Interview Answer
 
-> I designed an AI-assisted Kubernetes upgrade risk assessor. Before an upgrade, it gathers read-only evidence about cluster and node versions, workloads, APIs, CRDs, operators, admission webhooks, CNI, CSI, runtime and resource pressure. It then checks every intermediate Kubernetes release and verifies installed add-ons against official compatibility information. Deterministic checks find removed APIs and unsafe settings, while AI correlates the large evidence set, explains failure scenarios and produces a risk matrix, readiness score and ordered remediation plan. Unknown compatibility is never treated as safe, and AI never performs the upgrade. A platform engineer reviews the evidence, tests the upgrade in a representative environment, follows the approved runbook and validates service health after each phase.
+> I designed an AI-assisted Kubernetes upgrade risk assessor. Before an upgrade, it gathers read-only evidence about cluster and node versions, workloads, APIs, CRDs, operators, admission webhooks, CNI, CSI, runtime and resource pressure. It then checks every intermediate Kubernetes release and verifies installed add-ons against official compatibility information. Predictable checks find removed APIs and unsafe settings, while AI compares the large evidence set, explains failure scenarios and produces a risk matrix, readiness score and ordered fix plan. Unknown compatibility is never treated as safe, and AI never performs the upgrade. A platform engineer reviews the evidence, tests the upgrade in a representative environment, follows the approved runbook and validates service health after each phase.
 
 ---
 
 ## Two-Minute Interview Explanation
 
 A Kubernetes upgrade is not just changing the control-plane version. The API server may remove an API, an operator may not support the target version, a conversion webhook may stop working, a CSI driver may lose compatibility, or draining a node may expose missing capacity and PodDisruptionBudget problems.
-
 I split the assessment into four parts:
 
 1. A read-only collector inventories the cluster and supporting configuration.
 2. A compatibility engine checks objective rules such as version skew, removed APIs, CRD storage versions and add-on support.
 3. A retrieval layer obtains the official Kubernetes release notes and vendor compatibility documents for every version step.
-4. An AI reasoning layer correlates the verified facts, models failure scenarios and creates a simple executive and engineering report.
+4. An AI reasoning layer compares the verified facts, models failure scenarios and creates a simple executive and engineering report.
 
-The report separates verified, probable, possible and unknown risks. For every issue it says what can break, during which upgrade phase, the impact, severity, supporting evidence and required remediation. It ends with an `APPROVED`, `CONDITIONAL` or `NOT RECOMMENDED` decision, but the decision is accepted only after deterministic validation and human review.
+The report separates verified, probable, possible and unknown risks. For every issue it says what can break, during which upgrade phase, the impact, severity, supporting evidence and required fix.
+
+It ends with an `APPROVED`, `CONDITIONAL` or `NOT RECOMMENDED` decision, but the decision is accepted only after predictable validation and human review.
 
 The key principle is conservative reasoning: if compatibility cannot be verified, it reduces confidence and cannot silently become a pass.
 
@@ -71,7 +70,7 @@ Confidence: 84%
 Verified blocker:
   Component: example-controller
   Evidence: installed version does not support target Kubernetes version
-  Break point: first reconciliation after control-plane upgrade
+  Break point: first reconciliation (making actual state match desired state) after control-plane upgrade
   Impact: custom resources stop reconciling
   Required action: upgrade controller and CRDs before cluster upgrade
 ```
@@ -114,7 +113,7 @@ Scores help summarize the assessment, but evidence and explicit blockers determi
 └──────────────────────────────────────────────┘
 ```
 
-AI is not the source of truth. Live cluster evidence and official compatibility documentation are the source of truth; AI helps correlate and explain them.
+AI is not the source of truth. Live cluster evidence and official compatibility documentation are the source of truth; AI helps compare and explain them.
 
 ---
 
@@ -124,10 +123,10 @@ AI is not the source of truth. Live cluster evidence and official compatibility 
 | --- | --- | --- |
 | Collector | Python, Kubernetes Python client or controlled `kubectl` | Read cluster objects and status |
 | API | FastAPI and Pydantic | Start assessments and validate structured results |
-| Compatibility | Deterministic Python rules | Version skew, API, CRD, capacity and policy checks |
+| Compatibility | Predictable Python rules | Version skew, API, CRD, capacity and policy checks |
 | Manifest scanning | Pluto, kubent or equivalent plus repository scanning | Find deprecated/removed APIs in deployed and source manifests |
 | Documentation retrieval | Official Kubernetes and vendor sources | Verify changes and add-on support |
-| AI | Approved LLM with structured output | Correlate evidence and explain risk |
+| AI | Approved LLM with structured output | Compare evidence and explain risk |
 | Persistence | PostgreSQL/object storage | Store evidence snapshot, citations, report and audit history |
 | Execution | Background worker/queue | Run long assessments with retry and cancellation |
 | Observability | Metrics, structured logs and traces | Audit duration, errors and evidence coverage |
@@ -175,7 +174,7 @@ kubectl top pods -A
 
 I additionally collect Deployments, StatefulSets, DaemonSets, Jobs, CronJobs, Services, Ingresses, NetworkPolicies, StorageClasses, PVs, PVCs, VolumeSnapshots, PodDisruptionBudgets, priority classes, events and relevant node conditions.
 
-Every command has an allow-list, timeout, output limit, correlation ID and sanitized error handling. Collection uses a least-privilege read-only identity and never fetches Secret values.
+Every command has an allow-list, timeout, output limit, correlation ID and sanitized error handling. Collection uses a least-privilege (minimum required access) read-only identity and never fetches Secret values.
 
 ### Phase 3: Inventory controllers and operators
 
@@ -219,7 +218,9 @@ I check three places:
 2. Stored and requested API usage from metrics or audit evidence
 3. Git, Helm and deployment manifests that may recreate an old API later
 
-This distinction matters because `kubectl get -o yaml` normally shows the version currently served by the API server. The API server can convert objects, so scanning only live YAML may miss an old API still present in a Helm chart or CI repository. I therefore scan source manifests and, where available, API request metrics/audit logs as well.
+This distinction matters because `kubectl get -o yaml` normally shows the version currently served by the API server. The API server can convert objects, so scanning only live YAML may miss an old API still present in a Helm chart or CI repository.
+
+I therefore scan source manifests and, where available, API request metrics/audit logs as well.
 
 For each affected object the report states:
 
@@ -246,7 +247,7 @@ For every CRD I verify:
 - controller support for every stored/served version
 - need for storage-version migration
 
-A CRD definition being accepted does not prove that its controller can reconcile objects on the target Kubernetes version. CRD and controller compatibility are separate gates.
+A CRD definition being accepted does not prove that its controller can reconcile (make actual state match desired state) objects on the target Kubernetes version. CRD and controller compatibility are separate gates.
 
 ### Phase 7: Assess admission webhooks
 
@@ -311,7 +312,7 @@ The AI receives normalized, redacted evidence and retrieved compatibility facts.
 }
 ```
 
-The backend validates the schema, recalculates scores, checks citations and applies policy gates. The LLM cannot turn a deterministic critical failure into `APPROVED`.
+The backend validates the schema, recalculates scores, checks citations and applies policy gates. The LLM cannot turn a predictable critical failure into `APPROVED`.
 
 ---
 
@@ -321,8 +322,8 @@ The backend validates the schema, recalculates scores, checks citations and appl
 | --- | --- | --- |
 | PASS | Verified compatible with strong evidence | Continue |
 | GOOD | No issue found; normal validation still required | Continue with checks |
-| WARNING | Non-blocking concern or migration approaching | Schedule remediation |
-| HIGH RISK | Likely outage or major degradation without remediation | Fix before upgrade |
+| WARNING | Non-blocking concern or migration approaching | Schedule fix |
+| HIGH RISK | Likely outage or major decline without fix | Fix before upgrade |
 | CRITICAL | Verified blocker, data risk or unsupported path | Do not upgrade |
 
 Every finding uses the mandatory failure format:
@@ -358,7 +359,7 @@ Control plane     5 points
 Total           100 points
 ```
 
-Deterministic deductions are mapped to severity, with a critical blocker also forcing `NOT RECOMMENDED` regardless of the total. The weights must be versioned and agreed with the platform team rather than invented by the LLM.
+Predictable deductions are mapped to severity, with a critical blocker also forcing `NOT RECOMMENDED` regardless of the total. The weights must be versioned and agreed with the platform team rather than invented by the LLM.
 
 Confidence is limited by evidence coverage:
 
@@ -414,7 +415,7 @@ I validate more than `kubectl get nodes`:
 - admission, RBAC and Pod Security behavior
 - monitoring, logging and alert delivery
 - application synthetic tests and critical business transactions
-- error rate, latency, saturation and event comparison with baseline
+- error rate, latency, saturation (how close a resource is to its limit) and event comparison with baseline
 
 Example commands:
 
@@ -442,7 +443,7 @@ Rollback must be designed before the change. I document:
 - traffic-shift or failover plan
 - stop conditions and decision authority
 
-Kubernetes downgrades are not generally something I assume is safe. On managed platforms, control-plane rollback may be unavailable. Therefore forward remediation, replacement node pools, backup restore or cluster failover may be the real recovery method.
+Kubernetes downgrades are not generally something I assume is safe. On managed platforms, control-plane rollback may be unavailable. Therefore forward fix, replacement node pools, backup restore or cluster failover may be the real recovery method.
 
 ---
 
@@ -451,13 +452,13 @@ Kubernetes downgrades are not generally something I assume is safe. On managed p
 ### Good uses of AI
 
 - summarize changes across several release documents
-- correlate a removed API with affected manifests and workloads
+- compare a removed API with affected manifests and workloads
 - explain why a webhook or controller creates upgrade risk
 - organize findings by failure phase and severity
-- draft remediation, validation and runbook steps
+- draft fix, validation and runbook steps
 - highlight contradictions and missing evidence
 
-### Tasks kept deterministic
+### Tasks kept predictable
 
 - cluster collection
 - semantic version comparison
@@ -490,7 +491,7 @@ Kubernetes downgrades are not generally something I assume is safe. On managed p
 | Operator version unknown | Classify support as unknown/high risk based on criticality |
 | Vendor matrix unavailable | Do not let the model assume compatibility |
 | Release-note retrieval incomplete | Block final approval or lower confidence below policy threshold |
-| CRD owner cannot be identified | Report unknown reconciliation risk |
+| CRD owner cannot be identified | Report unknown reconciliation (making actual state match desired state) risk |
 | Webhook endpoint is unhealthy | Flag possible API-write/deployment failure |
 | AI output is invalid | Fail report generation safely; preserve collected evidence |
 | Cluster changes during scan | Record timestamps/resource versions and warn about snapshot inconsistency |
@@ -548,13 +549,13 @@ The strongest validation is a representative staging or cloned environment. I ru
 - critical findings confirmed by engineers
 - false-positive and unsupported-claim rate
 - assessment duration compared with manual review
-- remediation completion before upgrade
+- fix completion before upgrade
 - upgrade success without unplanned outage or data loss
-- post-upgrade error, latency and reconciliation health
+- post-upgrade error, latency and reconciliation (making actual state match desired state) health
 - number of rollbacks or emergency fixes
 - repeatability of assessment results from the same evidence snapshot
 
-I would not claim the AI “prevented an outage” without a confirmed finding and documented remediation. A defensible outcome is that it identified a specific risk before the change and the team verified and fixed it.
+I would not claim the AI “prevented an outage” without a confirmed finding and documented fix. A defensible outcome is that it identified a specific risk before the change and the team verified and fixed it.
 
 ---
 
@@ -574,7 +575,7 @@ I require owner confirmation and test evidence. Until then, compatibility remain
 
 ### Upgrade risk is phase-specific
 
-Each finding states whether failure occurs during control-plane upgrade, node drain, node startup, first workload restart, first API write or first controller reconciliation.
+Each finding states whether failure occurs during control-plane upgrade, node drain, node startup, first workload restart, first API write or first controller reconciliation (making actual state match desired state).
 
 ### A numeric score can create false confidence
 
@@ -601,11 +602,11 @@ Critical policy gates override the weighted score, and unknowns reduce confidenc
 
 ### Why use AI for a Kubernetes upgrade?
 
-An upgrade produces a large, cross-component evidence set. AI helps correlate and explain it, but deterministic rules and official documentation decide compatibility. This reduces manual reading without allowing the model to invent support.
+An upgrade produces a large, cross-component evidence set. AI helps compare and explain it, but predictable rules and official documentation decide compatibility. This reduces manual reading without allowing the model to invent support.
 
 ### Can AI approve the upgrade automatically?
 
-No. It can generate a recommendation. Deterministic blockers, provider policy, staging evidence and a platform engineer's change approval determine whether execution proceeds.
+No. It can generate a recommendation. Predictable blockers, provider policy, staging evidence and a platform engineer's change approval determine whether execution proceeds.
 
 ### Why check every intermediate version?
 
@@ -617,7 +618,9 @@ I combine a versioned removal database, repository/Helm manifest scanning, live 
 
 ### What is the highest-risk area?
 
-It depends on the cluster. Common high-risk areas are unsupported operators, admission webhooks that fail closed, CRD conversion, CNI/CSI incompatibility and workloads that cannot move during node drain. The assessment uses evidence rather than assuming one universal answer.
+It depends on the cluster. Common high-risk areas are unsupported operators, admission webhooks that fail closed, CRD conversion, CNI/CSI incompatibility and workloads that cannot move during node drain.
+
+The assessment uses evidence rather than assuming one universal answer.
 
 ### What if an operator has no compatibility matrix?
 
@@ -643,4 +646,4 @@ I stop at the defined gate, preserve evidence, restore traffic or capacity using
 
 ## Honest Closing Statement
 
-> This project shows how I would use AI to improve a Kubernetes platform task without giving AI unsafe control. The system gathers read-only evidence, verifies compatibility against authoritative sources, uses deterministic logic for technical gates, and uses AI to correlate and explain risks. The supplied repository is an assessment design, so I would describe it as designed or prototyped until I have implemented the collector, evaluated it with known failure scenarios, rehearsed an upgrade and recorded real results.
+> This project shows how I would use AI to improve a Kubernetes platform task without giving AI unsafe control. The system gathers read-only evidence, verifies compatibility against authoritative sources, uses predictable logic for technical gates, and uses AI to compare and explain risks. The supplied repository is an assessment design, so I would describe it as designed or prototyped until I have implemented the collector, evaluated it with known failure scenarios, rehearsed an upgrade and recorded real results.

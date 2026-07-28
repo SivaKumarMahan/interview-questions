@@ -2,18 +2,20 @@
 
 ## Architecture
 
-GitHub Actions is an event-driven automation platform built into GitHub. Workflow YAML files live under `.github/workflows/`. Events such as `push`, `pull_request`, `workflow_dispatch`, schedules, releases, or repository dispatch create workflow runs. A workflow contains jobs; each job runs on a GitHub-hosted or self-hosted runner and contains ordered steps that execute commands or reusable actions.
+GitHub Actions is an event-driven automation platform built into GitHub. Workflow YAML files live under `.github/workflows/`.
+
+Events such as `push`, `pull_request`, `workflow_dispatch`, schedules, releases, or repository dispatch create workflow runs. A workflow contains jobs; each job runs on a GitHub-hosted or self-hosted runner and contains ordered steps that execute commands or reusable actions.
 
 **Typical flow:**
 
 1. A developer pushes a commit or opens a pull request.
 2. GitHub evaluates workflow event, branch, and path filters.
 3. A runner checks out the exact commit and executes build, test, scan, and packaging jobs.
-4. Artifacts or an immutable container digest are published.
+4. Artifacts or an immutable (not changed after creation) container digest are published.
 5. Protected environments apply reviewers, branch restrictions, and scoped secrets before deployment.
 6. The workflow deploys to VM, Kubernetes, or cloud targets and reports status/notifications.
 
-Use least-privilege `permissions`, pin third-party actions to trusted immutable commit SHAs, prefer OIDC federation over long-lived cloud keys, isolate self-hosted runners, protect environments, and keep untrusted pull requests away from deployment secrets.
+Use least-privilege (minimum required access) `permissions`, pin third-party actions to trusted immutable (not changed after creation) commit SHAs, prefer OIDC federation over long-lived cloud keys, isolate self-hosted runners, protect environments, and keep untrusted pull requests away from deployment secrets.
 
 ## Workflow Building Blocks
 
@@ -60,13 +62,18 @@ Version tags keep this example readable, but production workflows should pin thi
 
 ## CI/CD Workflow Pattern
 
-A production workflow commonly has checkout, language/tool setup, dependency caching, build, unit tests, test-report upload, code/security checks, Docker build, registry login through short-lived identity, image push by digest, deployment, rollout verification, and notification. Matrices can test supported versions; reusable workflows prevent copy/paste drift.
+A production workflow commonly has checkout, language/tool setup, dependency caching, build, unit tests, test-report upload, code/security checks, Docker build, registry login through short-lived identity, image push by digest, deployment, rollout verification, and notification.
+
+Matrices can test supported versions; reusable workflows prevent copy/paste drift.
 
 ## Handoff to Azure DevOps
 
-When GitHub Actions performs CI and Azure DevOps performs CD, GitHub Actions publishes a versioned package or immutable ACR image digest together with provenance and scan evidence. Azure DevOps consumes and promotes that same artifact through protected environments; it must not rebuild the application.
+When GitHub Actions performs CI and Azure DevOps performs CD, GitHub Actions publishes a versioned package or immutable (not changed after creation) ACR image digest together with provenance (where an artifact came from and how it was built) and scan evidence.
 
-Prefer GitHub OIDC to obtain short-lived Azure credentials, grant the identity only the required ACR publishing permissions, and protect the production Azure DevOps environment with resource permissions, branch control, approvals and checks. If Azure Pipelines already connects directly to GitHub and can own the full workflow, compare that simpler design before maintaining a cross-platform handoff.
+Azure DevOps consumes and promotes that same artifact through protected environments; it must not rebuild the application.
+Prefer GitHub OIDC to obtain short-lived Azure credentials, grant the identity only the required ACR publishing permissions, and protect the production Azure DevOps environment with resource permissions, branch control, approvals and checks.
+
+If Azure Pipelines already connects directly to GitHub and can own the full workflow, compare that simpler design before maintaining a cross-platform handoff.
 
 ## Common Failures
 

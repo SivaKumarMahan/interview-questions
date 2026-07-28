@@ -29,7 +29,7 @@ playbook
 -> play recap
 ```
 
-Ansible aims for **idempotence**: running the same automation again should keep the desired state without making unnecessary changes. Idempotence depends on using suitable modules and writing the playbook correctly; arbitrary shell commands are not automatically idempotent.
+Ansible aims for **idempotence**, which means the same automation can run again without making unnecessary changes. This depends on using suitable modules and writing the playbook correctly; an arbitrary shell command is not automatically safe to repeat.
 
 ---
 
@@ -957,7 +957,7 @@ tasks:
       msg: "Welcome: {{ welcome_text }}"
 ```
 
-Do not use `debug` for a secret lookup result. For Azure Key Vault or another external secret provider, use the approved collection/plugin, least-privilege identity and `no_log`; avoid copying the secret into inventory or source control.
+Do not use `debug` for a secret lookup result. For Azure Key Vault or another external secret provider, use the approved collection/plugin, least-privilege (minimum required access) identity and `no_log`; avoid copying the secret into inventory or source control.
 
 ---
 
@@ -1089,7 +1089,7 @@ Stop the run if safe, preserve evidence, inspect the inventory source and host p
 
 ### Task always reports changed
 
-Prefer an idempotent module. If a command is unavoidable, define accurate `changed_when`, `failed_when`, `creates` or `removes` behavior and verify the real desired state.
+Prefer an idempotent (safe to run more than once) module. If a command is unavoidable, define accurate `changed_when`, `failed_when`, `creates` or `removes` behavior and verify the real desired state.
 
 ---
 
@@ -1099,7 +1099,7 @@ Prefer an idempotent module. If a command is unavoidable, define accurate `chang
 - Inventory defines hosts/groups; playbooks define desired automation.
 - A module performs one action; tasks call modules; plays map tasks to hosts.
 - Ad hoc commands are for one-time work; repeatable work belongs in playbooks.
-- Prefer idempotent modules over `shell`.
+- Prefer idempotent (safe to run more than once) modules over `shell`.
 - Facts describe managed hosts and support conditions/templates.
 - Variables come from many scopes and follow precedence; extra vars have very high precedence.
 - `loop` repeats a task and uses `item`.

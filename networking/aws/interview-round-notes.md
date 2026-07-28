@@ -1,6 +1,7 @@
 # AWS Networking Interview Notes
 
 ### 7.3 Design a VPC with subnets, security groups; explain networking (production)
+
 - **VPC** with a planned CIDR (e.g. `10.0.0.0/16`), spanning **≥2 AZs** for HA.
 - **Subnets per AZ:** public (ALB/NAT), private-app (compute), private-data (RDS) — a 3-tier layout.
 - **Routing:** public subnets → Internet Gateway; private subnets → **NAT Gateway** (egress only, one per AZ for HA). DB subnets have no internet route.

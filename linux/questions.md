@@ -1,46 +1,67 @@
 ## 1. Do you have hands-on Linux experience? Which platform?
+
 **Answer:**
 
-I answer truthfully with platforms, years/scale, and work performed. Example: “I have administered Ubuntu and RHEL/Amazon Linux application servers. My work included systemd services, users/sudo/SSH, packages/patches, filesystems/LVM, network/DNS/firewall checks, cron, logs, performance troubleshooting, hardening, backup and CI/CD deployment.”
+I answer truthfully with platforms, years/scale, and work performed. Example: “I have administered Ubuntu and RHEL/Amazon Linux application servers.
 
-Then I give an incident: disk filled from unrotated logs; I identified filesystem/path and open files, safely rotated/released space, validated application writes, and added logrotate plus 70/85% alerts. This proves hands-on investigation rather than only naming distributions. I clearly distinguish tasks I owned from managed/cloud-team responsibilities.
+My work included systemd services, users/sudo/SSH, packages/patches, filesystems/LVM, network/DNS/firewall checks, cron, logs, performance troubleshooting, hardening, backup and CI/CD deployment.”
+
+Then I give an incident: disk filled from unrotated logs; I identified filesystem/path and open files, safely rotated/released space, validated application writes, and added logrotate plus 70/85% alerts. This proves hands-on investigation rather than only naming distributions.
+
+I clearly distinguish tasks I owned from managed/cloud-team responsibilities.
 
 ## 2. What are common Linux commands you use?
+
 **Answer:**
 
-I group commands by purpose: files (`ls`, `find`, `cp`, `mv`, `stat`), text/logs (`less`, `grep`, `awk`, `sed`, `tail`), processes (`ps`, `top`, `pidstat`, `kill`), resources (`free`, `vmstat`, `df`, `du`, `iostat`), network (`ip`, `ss`, `dig`, `curl`, `nc`), services/logs (`systemctl`, `journalctl`), permissions (`chmod`, `chown`, `getfacl`), transfer/archive (`rsync`, `scp`, `tar`).
+I group commands by purpose: files (`ls`, `find`, `cp`, `mv`, `stat`), text and logs (`less`, `grep`, `awk`, `sed`, `tail`), processes (`ps`, `top`, `pidstat`, `kill`), resources (`free`, `vmstat`, `df`, `du`, `iostat`), network (`ip`, `ss`, `dig`, `curl`, `nc`), services (`systemctl`, `journalctl`), permissions (`chmod`, `chown`, `getfacl`), and transfer or archive work (`rsync`, `scp`, `tar`).
 
-I mention safe use: quote paths, prefer read-only evidence first, use `--` before untrusted filenames, inspect before recursive/delete commands, and record commands/output during incidents. Command choice follows hypothesis; running many commands without interpreting results is not troubleshooting.
+I use them safely: quote paths, collect read-only evidence first, use `--` before an untrusted filename, inspect targets before recursive or delete commands, and record commands and output during incidents. I choose a command to test a specific idea; running many commands without understanding their output is not troubleshooting.
 
 ## 3. How do you check running processes?
+
 **Answer:**
 
 For snapshot: `ps -eo pid,ppid,user,stat,lstart,etime,%cpu,%mem,cmd --sort=-%cpu`. For live: `top/htop`; for trends: `pidstat -p <pid> 1`. `pgrep -af name` locates matching command lines; systemd service uses `systemctl status` and `journalctl -u`.
 
-I check owner, parent, state (`R/S/D/Z`), elapsed time, CPU/memory, threads and open files/ports. A process shown by `ps` may not be healthy, so I verify application endpoint/service metrics. I avoid killing until I know ownership/purpose and capture logs/dump if failure evidence would disappear.
+I check owner, parent, state (`R/S/D/Z`), elapsed time, CPU/memory, threads and open files/ports. A process shown by `ps` may not be healthy, so I verify application endpoint/service metrics.
+
+I avoid killing until I know ownership/purpose and capture logs/dump if failure evidence would disappear.
 
 ## 4. How do you kill a process in one command?
+
 **Answer:**
 
-I normally use service manager or SIGTERM: `systemctl stop app` or `kill -TERM <pid>`, wait and verify. SIGTERM allows cleanup, connection drain and data flush. If it does not exit after approved timeout, inspect state (D-state cannot be killed until kernel wait resolves), capture evidence, then `kill -KILL` as last resort.
+I normally use service manager or SIGTERM: `systemctl stop app` or `kill -TERM <pid>`, wait and verify. SIGTERM allows cleanup, connection drain and data flush.
+
+If it does not exit after approved timeout, inspect state (D-state cannot be killed until kernel wait resolves), capture evidence, then `kill -KILL` as last resort.
 
 I avoid broad `pkill` unless pattern is verified with `pgrep -af`. After termination I check parent/supervisor—systemd/Kubernetes may restart it—ports, data consistency and application health. Killing a process is mitigation, not root-cause fix.
 
 ## 5. How do you check disk usage?
+
 **Answer:**
 
 `df -hT` shows filesystem block use; `df -i` inode use. Then stay on affected filesystem with `du -xhd1 /path | sort -h` and drill down. `find` can list large files; `lsof +L1` finds deleted-but-open files not visible to `du`.
 
-I compare `df` vs. `du`, check mounts, reserved blocks, sparse files and container/log paths. I do not delete unknown/system/database files. I stop growth source, rotate/archive approved data or extend storage, validate services can write, and add retention/capacity forecast alerts.
+I compare `df` vs. `du`, check mounts, reserved blocks, sparse files and container/log paths.
+
+I do not delete unknown/system/database files. I stop growth source, rotate/archive approved data or extend storage, validate services can write, and add retention/capacity forecast alerts.
 
 ## 6. How do you find free memory?
+
 **Answer:**
 
-`free -h`—I focus on `available`, not `free`, because Linux uses RAM for reclaimable cache. `vmstat 1` shows swap in/out (`si/so`), run/block queues; `ps --sort=-%mem`, `smem`, `pmap`, `pidstat -r` identify consumers. Check kernel OOM logs (`journalctl -k | grep -i oom`).
+`free -h`—I focus on `available`, not `free`, because Linux uses RAM for reclaimable cache. `vmstat 1` shows swap in/out (`si/so`), run/block queues; `ps --sort=-%mem`, `smem`, `pmap`, `pidstat -r` identify consumers.
 
-I correlate with workload and trends. High used/cache alone is normal; sustained swap activity, allocation failure, OOM, latency indicate pressure. Fix leak/cache/config, right-size/service scale or add capacity based on evidence. Restart only as mitigation after preserving diagnostics.
+Check kernel OOM logs (`journalctl -k | grep -i oom`).
+
+I compare with workload and trends. High used/cache alone is normal; sustained swap activity, allocation failure, OOM, latency indicate pressure.
+
+Fix leak/cache/config, right-size/service scale or add capacity based on evidence. Restart only as mitigation after preserving diagnostics.
 
 ## 7. How do you archive or compress a directory?
+
 **Answer:**
 
 ```bash
@@ -50,25 +71,36 @@ mkdir restore && tar -C restore -xzf backup-2026-07-19.tar.gz
 sha256sum backup-2026-07-19.tar.gz > backup.sha256
 ```
 
-`tar` archives metadata; gzip compresses. I use `-C` to avoid unwanted absolute paths, inspect archive before extract, extract untrusted archives into isolated directory, verify checksum and perform restore test. For live database/data I use application-consistent backup—not tar while files change. Encryption and off-host retention follow data policy.
+`tar` archives metadata; gzip compresses. I use `-C` to avoid unwanted absolute paths, inspect archive before extract, extract untrusted archives into isolated directory, verify checksum and perform restore test.
+
+For live database/data I use application-consistent backup—not tar while files change. Encryption and off-host retention follow data policy.
 
 ## 8. Do you need a password or key for SSH?
+
 **Answer:**
 
-SSH supports passwords, public keys, certificates, MFA/PAM and federated/session systems. Production/cloud commonly disables password and direct root, using key/certificate or SSM. Client proves private key; server stores public key in `authorized_keys` with correct ownership/permissions.
+SSH supports passwords, public keys, certificates, MFA/PAM and federated/session systems. Production/cloud commonly disables password and direct root, using key/certificate or SSM.
+
+Client proves private key; server stores public key in `authorized_keys` with correct ownership/permissions.
 
 Private key is protected (passphrase/agent/hardware where possible), never copied to servers/CI broadly, and each user has individual identity. Access is logged and keys rotate/revoke.
 
 If key lost, remove public key, issue new pair through identity-verified process, test new access before closing recovery session, and treat unknown old private key as compromised.
 
 ## 9. How do you list all SSH users?
+
 **Answer:**
 
-There is no single “SSH users” database. I identify accounts with interactive shells (`getent passwd`, excluding `nologin/false`), inspect `AllowUsers/AllowGroups/Deny*`, PAM/directory groups, sudo rules, and authorized keys/SSH certificates. Actual use comes from auth logs and current sessions (`who`, `w`, `last`, `journalctl -u sshd`).
+There is no single “SSH users” database. I identify accounts with interactive shells (`getent passwd`, excluding `nologin/false`), inspect `AllowUsers/AllowGroups/Deny*`, PAM/directory groups, sudo rules, and authorized keys/SSH certificates.
 
-I do not print private/sensitive key material. A review produces user, owner, purpose, authentication method, privilege, last use, expiry. Stale accounts/keys are disabled through approved process and monitored; service accounts use noninteractive shell unless SSH is explicitly required.
+Actual use comes from auth logs and current sessions (`who`, `w`, `last`, `journalctl -u sshd`).
+
+I do not print private/sensitive key material. A review produces user, owner, purpose, authentication method, privilege, last use, expiry.
+
+Stale accounts/keys are disabled through approved process and monitored; service accounts use noninteractive shell unless SSH is explicitly required.
 
 ## 10. A user cannot log in. How will you troubleshoot?
+
 **Answer:**
 
 I separate network from authentication. Client: DNS/IP, port test, `ssh -vvv`. Server via console/other access: sshd running/listening/config (`sshd -t`), firewall/SELinux, auth log exact reason.
@@ -78,20 +110,26 @@ Then account: `getent passwd`, lock/expiry (`passwd -S`, `chage -l`), shell/home
 I make narrow correction, test user login and denied invalid access, never disable security broadly. Record root cause—expired account, wrong key, permission/config—and preventive expiry alert/onboarding automation.
 
 ## 11. A user was added to sudoers, but sudo still does not work. What could be wrong?
+
 **Answer:**
 
 I capture exact `sudo` error, run `id user` and `sudo -l -U user`, inspect `/etc/sudoers` and included files/order, group membership/session refresh, hostname/runas/command restrictions, secure_path, PAM/account state. Validate syntax only with `visudo -c`; edit with `visudo`/`visudo -f`.
+I grant least required command rather than `ALL=(ALL) ALL`, use group-based config and configuration management. Test allowed command and a command that must remain denied.
 
-I grant least required command rather than `ALL=(ALL) ALL`, use group-based config and configuration management. Test allowed command and a command that must remain denied. Audit logs confirm use. `NOPASSWD` only affects password prompt, not authorization; adding it is not the generic fix.
+Audit logs confirm use. `NOPASSWD` only affects password prompt, not authorization; adding it is not the generic fix.
 
 ## 12. A user's home directory is missing. How will you restore it?
+
 **Answer:**
 
-I verify account home path with `getent passwd user`, filesystem/mount/automount, and whether it was deleted vs. unavailable network home. Stop user processes/writes if restoring data. Recreate `install -d -m 700 -o user -g group /home/user`, copy `/etc/skel` only for defaults, restore backup preserving ownership/ACL/xattrs, fix SELinux context (`restorecon`) where applicable.
+I verify account home path with `getent passwd user`, filesystem/mount/automount, and whether it was deleted vs. unavailable network home. Stop user processes/writes if restoring data.
+
+Recreate `install -d -m 700 -o user -g group /home/user`, copy `/etc/skel` only for defaults, restore backup preserving ownership/ACL/xattrs, fix SELinux context (`restorecon`) where applicable.
 
 I avoid recursive chown across mounted/shared data without scope review. Validate login, shell, SSH and application files, compare restore time/content. Investigate deletion/audit and implement backup, access restriction and lifecycle automation.
 
 ## 13. What does `chmod 755` mean?
+
 **Answer:**
 
 Octal digits are owner/group/other; read=4, write=2, execute=1. `755` = owner `rwx`, group `r-x`, others `r-x`. On directory, read lists names, write creates/deletes entries, execute traverses/accesses entries. On regular file, execute permits execution.
@@ -104,15 +142,16 @@ stat -c '%A %a %U:%G %n' /opt/app/bin/start
 I do not use 755 universally—config/secrets need narrower permissions, shared directories may use setgid/ACL. Permissions also depend on parent directories, ACL, mount options and SELinux/AppArmor.
 
 ## 14. What is `chown`?
+
 **Answer:**
 
 `chown user:group path` changes owner/group; `chgrp` group only. Ownership controls DAC permission evaluation and service access.
 
 Before recursive change I preview `find`, confirm mount boundaries/symlinks and application requirement; wrong `chown -R` on `/`, database, or system tree can break/security expose. Use `chown -R --from=old:group new:group /explicit/path` where supported, or targeted `find -xdev`.
-
 Afterward verify `stat/getfacl`, service runs, write/read behavior, SELinux context (ownership does not fix context). Codify in package/config management so it persists.
 
 ## 15. A script is executable by one user but not another. How do you resolve this?
+
 **Answer:**
 
 I run as failing user and capture `Permission denied` vs. interpreter not found. Check `namei -l /path/script` (execute/traverse every parent), `ls -l/getfacl`, `id`, shebang/interpreter permission, line endings, mount `noexec`, SELinux/AppArmor/audit.
@@ -122,6 +161,7 @@ Test `bash script` helps distinguish execute bit/noexec from contents but is not
 New session may be required for group membership. Validate intended user succeeds and unauthorized user remains denied; codify permissions.
 
 ## 16. How do you set default file and directory permissions?
+
 **Answer:**
 
 Creation base usually files 666/directories 777 minus umask: `022` gives 644/755; `027` gives 640/750. Configure in shell/profile or systemd `UMask=` depending service—actual app may set mode explicitly.
@@ -137,13 +177,17 @@ getfacl /srv/team
 I test newly created file/dir as service user. Umask does not retroactively change existing files and ACL may alter effective permission. Avoid overly permissive defaults.
 
 ## 17. What are sticky bit, setuid, and setgid?
+
 **Answer:**
 
-Sticky directory (`+t`, e.g. `/tmp` 1777) restricts deletion/rename to file owner, directory owner or privileged user despite shared write. setgid on directory (`2xxx`) makes new entries inherit group; on executable runs effective group. setuid executable (`4xxx`) runs effective file owner (often root); Linux generally ignores setuid on scripts.
+The sticky bit (`+t`), used by a shared directory such as `/tmp` with mode `1777`, allows only the file owner, directory owner, or a privileged user to delete or rename a file. The setgid bit on a directory (`2xxx`) makes new entries inherit the directory's group; on an executable, it runs with the file's group.
 
-These are security sensitive. I inventory `find / -xdev -perm /6000 -type f`, verify package/purpose, and remove unexpected bits through approved hardening. Prefer sudo/capabilities/service design over custom setuid binaries. Test behavior and audit.
+The setuid bit on an executable (`4xxx`) runs it with the file owner's identity, which is often root. Linux generally ignores setuid on scripts.
+
+These settings affect security. I use `find / -xdev -perm /6000 -type f` to list them, verify the package and purpose, and remove unexpected bits through an approved hardening change. I prefer `sudo`, Linux capabilities, or a service design over custom setuid programs, then test and audit the result.
 
 ## 18. What is the purpose of `grep`?
+
 **Answer:**
 
 `grep` selects lines matching regular expression. Useful flags: `-i` case-insensitive, `-n` line, `-r` recursive, `-E` extended regex, `-F` literal, `-C` context, `-v` invert.
@@ -153,9 +197,12 @@ grep -nC 3 -E 'ERROR|FATAL' /var/log/app.log
 zgrep -h 'request_id=abc123' /var/log/app.log*.gz
 ```
 
-I constrain time/files and use fixed string for user-supplied/literal pattern. A match is evidence, not root cause; correlate timestamp/request with service/system metrics. Avoid exposing secrets when sharing output. For structured logs use `jq`/query platform instead of fragile regex.
+I constrain time/files and use fixed string for user-supplied/literal pattern. A match is evidence, not root cause; compare timestamp/request with service/system metrics.
+
+Avoid exposing secrets when sharing output. For structured logs use `jq`/query platform instead of fragile regex.
 
 ## 19. Which `grep` flag shows lines not containing a keyword?
+
 **Answer:**
 
 Use `-v` to invert selection:
@@ -165,9 +212,12 @@ grep -vF 'health-check' access.log
 grep -Ev 'DEBUG|TRACE' app.log
 ```
 
-`-F` treats keyword literally; `-E` supports alternation/regex. I quote patterns and know `grep` exit 0 match, 1 no selected lines, >1 error—important under `set -e` in scripts. For binary/compressed/rotated logs select appropriate `grep -a`, `zgrep`, or log query. I preserve original logs and do not overwrite file merely to filter view.
+`-F` treats keyword literally; `-E` supports alternation/regex. I quote patterns and know `grep` exit 0 match, 1 no selected lines, >1 error—important under `set -e` in scripts.
+
+For binary/compressed/rotated logs select appropriate `grep -a`, `zgrep`, or log query. I preserve original logs and do not overwrite file merely to filter view.
 
 ## 20. How do you find all files modified in the last 10 minutes?
+
 **Answer:**
 I use `find` with the `-mmin` filter:
 
@@ -175,9 +225,12 @@ I use `find` with the `-mmin` filter:
 sudo find /var/log -type f -mmin -10 -printf '%TY-%Tm-%Td %TH:%TM %s %p\n'
 ```
 
-`-10` means less than ten minutes, while `+10` means more than ten minutes. I first search a limited path instead of `/` to reduce load and permission noise. If this is an incident, I sort the output and correlate the modification time with the deployment or failure time. I do not immediately run `-delete`; I review the matches, owner, and purpose first.
+`-10` means less than ten minutes, while `+10` means more than ten minutes. I first search a limited path instead of `/` to reduce load and permission noise.
+
+If this is an incident, I sort the output and compare the modification time with the deployment or failure time. I do not immediately run `-delete`; I review the matches, owner, and purpose first.
 
 ## 21. How do you find large unused files across multiple partitions?
+
 **Answer:**
 I first list the mounted filesystems with `df -hT`, then search each relevant mount separately. For example:
 
@@ -186,9 +239,12 @@ sudo find /data -xdev -type f -size +1G -mtime +30 \
   -printf '%s %u %TY-%Tm-%Td %p\n' | sort -nr | head -50
 ```
 
-This finds files larger than 1 GB that have not been modified for over 30 days. Modification time alone does not prove a file is unused, so I check access patterns, open handles with `lsof`, ownership, retention policy, and the application owner. I archive or move a small approved set first, verify the service, and only then remove it. For recurring growth I add retention or log rotation instead of performing repeated manual cleanup.
+This finds files larger than 1 GB that have not been modified for over 30 days. Modification time alone does not prove a file is unused, so I check access patterns, open handles with `lsof`, ownership, retention policy, and the application owner.
+
+I archive or move a small approved set first, verify the service, and only then remove it. For recurring growth I add retention or log rotation instead of performing repeated manual cleanup.
 
 ## 22. How do you identify which process is writing to a file in real time?
+
 **Answer:**
 I start with `sudo lsof /path/file` or `sudo fuser -v /path/file`; both show processes that currently hold the file open. I then confirm the PID and command with `ps -fp <pid>` and inspect its systemd unit with `systemctl status <service>`.
 
@@ -202,6 +258,7 @@ sudo ausearch -k file_write
 After the investigation I remove the temporary audit rule. I avoid stopping a process until I know whether it is an expected writer, a badly configured service, or suspicious activity.
 
 ## 23. A log file shows junk characters. How do you check and recover it?
+
 **Answer:**
 I preserve a copy first and check what the file really is:
 
@@ -211,9 +268,12 @@ xxd -l 64 app.log
 gzip -t app.log.gz       # if it is expected to be gzip
 ```
 
-The file may be compressed, UTF-16, contain ANSI control codes, or be a binary application log rather than corrupted text. I try a safe conversion on a copy, for example `iconv -f UTF-16 -t UTF-8 input > output`, and use `less -R`, `strings`, or the application's log viewer as appropriate. I also check disk errors, interrupted rotation, and whether multiple processes wrote incompatible formats. If integrity checks fail, I restore the log from backup or a central log system; I do not overwrite the only evidence during an incident.
+The file may be compressed, UTF-16, contain ANSI control codes, or be a binary application log rather than corrupted text. I try a safe conversion on a copy, for example `iconv -f UTF-16 -t UTF-8 input > output`, and use `less -R`, `strings`, or the application's log viewer as appropriate.
+
+I also check disk errors, interrupted rotation, and whether multiple processes wrote incompatible formats. If integrity checks fail, I restore the log from backup or a central log system; I do not overwrite the only evidence during an incident.
 
 ## 24. Where are Apache logs usually located?
+
 **Answer:**
 On Debian and Ubuntu, the usual location is `/var/log/apache2/`; on RHEL-family systems it is `/var/log/httpd/`. Common files are `access.log` and `error.log`, but virtual hosts can define separate files.
 
@@ -228,24 +288,36 @@ journalctl -u apache2 --since today   # or httpd
 For a failed request I match timestamp, client IP, URL, and status in the access log, then use the request ID or timestamp to inspect the error log and upstream application logs.
 
 ## 25. What logs appear under `/var/log`?
+
 **Answer:**
 Typical examples are authentication logs (`auth.log` or `secure`), general system messages (`syslog` or `messages`), kernel messages, package-manager history, `audit/audit.log`, cron logs, boot logs, and application directories such as `nginx`, `apache2`, or `containers`. Rotated files may end in `.1` or `.gz`.
+The exact files depend on the distribution and logging setup because many systems store service output primarily in the systemd journal. I use `journalctl -u <service>`, `journalctl -p err`, and `journalctl --since ...` alongside files in `/var/log`.
 
-The exact files depend on the distribution and logging setup because many systems store service output primarily in the systemd journal. I use `journalctl -u <service>`, `journalctl -p err`, and `journalctl --since ...` alongside files in `/var/log`. I check permissions and never change or truncate production logs during an investigation without preserving evidence.
+I check permissions and never change or truncate production logs during an investigation without preserving evidence.
 
 ## 26. What is log rotation?
-**Answer:**
-Log rotation prevents a continuously growing log from filling the disk. Based on time or size, the current file is renamed, older copies may be compressed, and copies beyond the retention count are removed. Linux commonly uses `/etc/logrotate.conf` and files under `/etc/logrotate.d/`.
 
-Before changing it, I test the configuration with `logrotate -d /etc/logrotate.conf`. A service that keeps a file descriptor open may need `postrotate` to reload it, such as `systemctl reload nginx`; `copytruncate` is a fallback but can lose a small amount of data. I verify permissions, ownership, retention/compliance needs, disk use, and the next scheduled run rather than forcing rotation blindly.
+**Answer:**
+Log rotation prevents a continuously growing log from filling the disk. Based on time or size, the current file is renamed, older copies may be compressed, and copies beyond the retention count are removed.
+
+Linux commonly uses `/etc/logrotate.conf` and files under `/etc/logrotate.d/`.
+
+Before changing it, I test the configuration with `logrotate -d /etc/logrotate.conf`. A service that keeps a file descriptor open may need `postrotate` to reload it, such as `systemctl reload nginx`; `copytruncate` is a fallback but can lose a small amount of data.
+
+I verify permissions, ownership, retention/compliance needs, disk use, and the next scheduled run rather than forcing rotation blindly.
 
 ## 27. A service is consuming 100% CPU. How will you find and fix it?
-**Answer:**
-First I confirm whether 100% means one core or the whole machine using `top`, `mpstat -P ALL 1`, and `pidstat -u -p ALL 1`. I identify the PID and hot threads with `top -H -p <pid>`, then correlate the start time and CPU rise with traffic, cron jobs, deployments, and service logs.
 
-The next evidence depends on the runtime: a Java thread dump (`jstack`), .NET dump, Python stack, or `strace -p <pid>` for a short controlled period. If customer impact is high, I rate-limit traffic, remove one unhealthy instance from the load balancer, scale healthy replicas, or restart gracefully after collecting evidence. The permanent fix could be an infinite-loop correction, query/index improvement, timeout, resource limit, or capacity change. I verify CPU, latency, errors, and business transactions afterward and add an alert or regression test.
+**Answer:**
+First I confirm whether 100% means one core or the whole machine using `top`, `mpstat -P ALL 1`, and `pidstat -u -p ALL 1`. I identify the PID and hot threads with `top -H -p <pid>`, then compare the start time and CPU rise with traffic, cron jobs, deployments, and service logs.
+The next evidence depends on the runtime: a Java thread dump (`jstack`), .NET dump, Python stack, or `strace -p <pid>` for a short controlled period.
+
+If customer impact is high, I rate-limit traffic, remove one unhealthy instance from the load balancer, scale healthy replicas, or restart gracefully after collecting evidence.
+
+The permanent fix could be an infinite-loop correction, query/index improvement, timeout, resource limit, or capacity change. I verify CPU, latency, errors, and business transactions afterward and add an alert or regression test.
 
 ## 28. A process is causing high memory usage. How do you locate and stop it?
+
 **Answer:**
 I check both system pressure and the process:
 
@@ -256,17 +328,27 @@ ps -eo pid,ppid,user,%mem,rss,vsz,cmd --sort=-rss | head
 pmap -x <pid> | tail -1
 ```
 
-RSS shows resident memory; VSZ alone can be misleading. I check swap, OOM messages (`journalctl -k | grep -i oom`), container/cgroup limits, request load, and whether memory grows continuously, which suggests a leak. I capture a heap dump or runtime metrics before stopping it when safe. I use `systemctl stop` or `kill -TERM` first and `kill -KILL` only if graceful shutdown fails. Then I fix the leak/cache setting, set realistic limits and alerts, and load-test the change.
+RSS shows resident memory; VSZ alone can be misleading. I check swap, OOM messages (`journalctl -k | grep -i oom`), container/cgroup limits, request load, and whether memory grows continuously, which suggests a leak.
+
+I capture a heap dump or runtime metrics before stopping it when safe. I use `systemctl stop` or `kill -TERM` first and `kill -KILL` only if graceful shutdown fails.
+
+Then I fix the leak/cache setting, set realistic limits and alerts, and load-test the change.
 
 ## 29. What are zombie processes and how do you remove them?
+
 **Answer:**
 A zombie is a child that has exited, but its parent has not called `wait()` to collect the exit status. It uses almost no memory or CPU, but keeps a process-table entry. I find them with `ps -eo pid,ppid,state,cmd | awk '$3=="Z"'` and inspect the parent PID.
 
-Sending a signal to the zombie does not remove it because it is already dead. I first ask the parent to reload or restart gracefully; when the parent exits, PID 1 normally adopts and reaps the zombie. If zombies repeatedly accumulate, the real fix is in the parent program—handle `SIGCHLD` and call `wait`/`waitpid`. I also check process-count limits because thousands of zombies can prevent new processes from starting.
+Sending a signal to the zombie does not remove it because it is already dead. I first ask the parent to reload or restart gracefully; when the parent exits, PID 1 normally adopts and reaps the zombie.
+
+If zombies repeatedly accumulate, the real fix is in the parent program—handle `SIGCHLD` and call `wait`/`waitpid`. I also check process-count limits because thousands of zombies can prevent new processes from starting.
 
 ## 30. How do you fix "Too many open files" in Linux?
+
 **Answer:**
-I determine whether the failure is per-process or system-wide. I check `cat /proc/<pid>/limits`, count descriptors with `ls /proc/<pid>/fd | wc -l`, inspect their types with `lsof -p <pid>`, and check `/proc/sys/fs/file-nr`. Repeated sockets or files usually reveal a descriptor leak.
+I determine whether the failure is per-process or system-wide. I check `cat /proc/<pid>/limits`, count descriptors with `ls /proc/<pid>/fd | wc -l`, inspect their types with `lsof -p <pid>`, and check `/proc/sys/fs/file-nr`.
+
+Repeated sockets or files usually reveal a descriptor leak.
 
 For a systemd service, a controlled limit change looks like:
 
@@ -278,24 +360,37 @@ LimitNOFILE=65536
 After `systemctl daemon-reload`, I restart during an approved window and verify `/proc/<new-pid>/limits`. Raising the limit only buys time if the application leaks connections, so I also fix connection closing/pooling, tune traffic if necessary, and alert well before the new limit.
 
 ## 31. How do you analyze high system load?
+
 **Answer:**
 Load average counts runnable tasks and tasks waiting in uninterruptible sleep, so it is not the same as CPU percentage. I compare the 1/5/15-minute load with CPU count, then use `vmstat 1` (`r`, `b`, swap and wait), `mpstat -P ALL 1`, `iostat -xz 1`, and `pidstat -dur 1` to classify the bottleneck.
+High `r` with busy CPUs points to CPU contention; high `b`, I/O wait, `await`, or queue depth points to storage; swapping and major faults point to memory pressure. I also inspect `ps` for `D` state tasks and check NFS or downstream latency.
 
-High `r` with busy CPUs points to CPU contention; high `b`, I/O wait, `await`, or queue depth points to storage; swapping and major faults point to memory pressure. I also inspect `ps` for `D` state tasks and check NFS or downstream latency. I mitigate the affected resource or workload, compare with the normal baseline and recent changes, and verify latency/error recovery—not merely a lower load number.
+I mitigate the affected resource or workload, compare with the normal baseline and recent changes, and verify latency/error recovery—not merely a lower load number.
 
 ## 32. How do you debug a kernel panic?
-**Answer:**
-My first priority is preserving the panic message and restoring service through the approved failover or reboot procedure. I collect the console/serial output, hypervisor events, the previous boot's journal (`journalctl -k -b -1`), and any `vmcore` under `/var/crash`. I record the kernel version and recent driver, kernel, firmware, hardware, and workload changes.
 
-If `kdump` is configured, I analyze the matching unstripped kernel and `vmcore` with the `crash` utility or give them to the vendor. I look for the faulting module, stack trace, machine-check errors, OOM/panic settings, and whether the issue reproduces. A temporary mitigation may be rolling back a kernel/module or moving the workload; the lasting fix is a patched kernel/driver or failed-hardware replacement. I test `kdump` and keep console access ready before the next incident.
+**Answer:**
+My first priority is preserving the panic message and restoring service through the approved failover or reboot procedure. I collect the console/serial output, hypervisor events, the previous boot's journal (`journalctl -k -b -1`), and any `vmcore` under `/var/crash`.
+
+I record the kernel version and recent driver, kernel, firmware, hardware, and workload changes.
+
+If `kdump` is configured, I analyze the matching unstripped kernel and `vmcore` with the `crash` utility or give them to the vendor. I look for the faulting module, stack trace, machine-check errors, OOM/panic settings, and whether the issue reproduces.
+
+A temporary mitigation may be rolling back a kernel/module or moving the workload; the lasting fix is a patched kernel/driver or failed-hardware replacement. I test `kdump` and keep console access ready before the next incident.
 
 ## 33. How do you fix NTP time sync issues?
-**Answer:**
-I check `timedatectl`, `chronyc tracking`, and `chronyc sources -v` to see the offset, selected source, and reachability. Then I verify the time service is running, configured sources resolve, and UDP 123 is permitted. On virtual machines I also check whether conflicting hypervisor time synchronization is enabled.
 
-For a large offset, stepping time can affect databases and authentication, so I follow the application maintenance procedure; for small offsets, chrony should slew it safely. After correcting `/etc/chrony.conf`, I reload/restart chronyd and verify decreasing offset and a selected `^*` source. I monitor drift and use multiple approved internal sources so one NTP server is not a single point of failure.
+**Answer:**
+I check `timedatectl`, `chronyc tracking`, and `chronyc sources -v` to see the offset, selected source, and reachability. Then I verify the time service is running, configured sources resolve, and UDP 123 is permitted.
+
+On virtual machines I also check whether conflicting hypervisor time synchronization is enabled.
+
+For a large offset, stepping time can affect databases and authentication, so I follow the application maintenance procedure; for small offsets, chrony should slew it safely. After correcting `/etc/chrony.conf`, I reload/restart chronyd and verify decreasing offset and a selected `^*` source.
+
+I monitor drift and use multiple approved internal sources so one NTP server is not a single point of failure.
 
 ## 34. A scheduled cron job is not executing. How do you debug?
+
 **Answer:**
 I confirm the correct user's crontab with `crontab -l -u user`, validate the five time fields, timezone, and that `cron`/`crond` is running. Then I check `journalctl -u cron` or `/var/log/cron` and any cron mail output.
 
@@ -305,9 +400,10 @@ Cron has a small environment and a different working directory, so I use absolut
 */5 * * * * /opt/jobs/report.sh >>/var/log/report-cron.log 2>&1
 ```
 
-I run the same command as the cron user with a clean environment, check locking and SELinux/AppArmor denials, and verify its expected output. For important jobs I add failure alerting and idempotency so a retry is safe.
+I run the same command as the cron user with a clean environment, check locking and SELinux/AppArmor denials, and verify its expected output. For important jobs I add failure alerting and idempotency (safe repeat behavior) so a retry is safe.
 
 ## 35. How do you schedule a cron job every 15 minutes?
+
 **Answer:**
 The crontab entry is:
 
@@ -315,15 +411,23 @@ The crontab entry is:
 */15 * * * * /usr/local/bin/collect-metrics.sh >>/var/log/collect-metrics.log 2>&1
 ```
 
-This runs at minutes 0, 15, 30, and 45 of every hour, not fifteen minutes after the previous run finishes. I use absolute paths, set a shebang and executable permission, and install it under the intended service account. If overlapping runs are unsafe, I use `flock -n /run/collect-metrics.lock ...`. I test the script as that user and add monitoring because cron itself does not prove the business task succeeded.
+This runs at minutes 0, 15, 30, and 45 of every hour, not fifteen minutes after the previous run finishes. I use absolute paths, set a shebang and executable permission, and install it under the intended service account.
+
+If overlapping runs are unsafe, I use `flock -n /run/collect-metrics.lock ...`. I test the script as that user and add monitoring because cron itself does not prove the business task succeeded.
 
 ## 36. What happens when `/` is 100% full?
-**Answer:**
-When root is full, applications cannot write logs, PID or temporary files, package databases, uploads, or database transactions. Services may crash or refuse to start, and even login can fail if PAM or the shell cannot write required files. Inodes can cause the same symptom even when `df -h` shows space, so I check both `df -hT` and `df -i`.
 
-I preserve access, identify the growing filesystem and largest safe candidates, and reduce writes if possible. I rotate or archive known logs, clear approved caches/temp data, or extend storage; I do not blindly remove files under `/var/lib`. After recovery I restart only affected services, check filesystem/application integrity, verify monitoring, and fix retention or capacity so the condition cannot silently return.
+**Answer:**
+When root is full, applications cannot write logs, PID or temporary files, package databases, uploads, or database transactions. Services may crash or refuse to start, and even login can fail if PAM or the shell cannot write required files.
+
+Inodes can cause the same symptom even when `df -h` shows space, so I check both `df -hT` and `df -i`.
+
+I preserve access, identify the growing filesystem and largest safe candidates, and reduce writes if possible. I rotate or archive known logs, clear approved caches/temp data, or extend storage; I do not blindly remove files under `/var/lib`.
+
+After recovery I restart only affected services, check filesystem/application integrity, verify monitoring, and fix retention or capacity so the condition cannot silently return.
 
 ## 37. The `/` partition is full. How do you find and delete large files safely?
+
 **Answer:**
 I confirm the filesystem with `df -hT /` and inodes with `df -i /`, then stay on that filesystem while locating usage:
 
@@ -332,9 +436,12 @@ sudo du -xhd1 / 2>/dev/null | sort -h
 sudo find / -xdev -type f -size +500M -printf '%s %p\n' 2>/dev/null | sort -nr | head
 ```
 
-Before deletion I check owner, last modification, open handles, service retention, and whether a mount hides data. Logs should normally be rotated through `logrotate` or safely reopened by the service; application/database files require the owner’s procedure. I make the smallest recoverable cleanup, verify `df`, service health, and logs, then implement rotation, quotas, alerts, or expansion. I also check `lsof +L1` if `du` cannot explain `df`.
+Before deletion I check owner, last modification, open handles, service retention, and whether a mount hides data. Logs should normally be rotated through `logrotate` or safely reopened by the service; application/database files require the owner’s procedure.
+
+I make the smallest recoverable cleanup, verify `df`, service health, and logs, then implement rotation, quotas, alerts, or expansion. I also check `lsof +L1` if `du` cannot explain `df`.
 
 ## 38. Deleted large files but disk space is not freeing up. Why?
+
 **Answer:**
 Linux removes the filename immediately, but the data blocks remain allocated while any process still has the inode open. I confirm this with:
 
@@ -342,36 +449,53 @@ Linux removes the filename immediately, but the data blocks remain allocated whi
 sudo lsof +L1
 ```
 
-The output gives the process, PID, descriptor, and retained size. The safest fix is to reload or restart that service so it closes and reopens the file; for some daemons a documented signal such as `SIGHUP` is enough. In an emergency, truncating through `/proc/<pid>/fd/<fd>` is possible but risky and must follow an approved procedure. I verify space with `df`, then fix rotation so it signals the service correctly.
+The output gives the process, PID, descriptor, and retained size. The safest fix is to reload or restart that service so it closes and reopens the file; for some daemons a documented signal such as `SIGHUP` is enough.
+
+In an emergency, truncating through `/proc/<pid>/fd/<fd>` is possible but risky and must follow an approved procedure. I verify space with `df`, then fix rotation so it signals the service correctly.
 
 ## 39. What happens when a file is deleted but still open by a process?
+
 **Answer:**
 `unlink()` removes the directory entry, so new commands cannot find the pathname, but the inode and blocks remain until the last open file descriptor is closed. The process can continue reading or writing the deleted data, and `df` still counts it although `du` cannot see it.
+I demonstrate or diagnose it with `lsof +L1` and inspect `/proc/<pid>/fd/<number>`, which usually shows `(deleted)`. I release it by making the application close the descriptor—normally a graceful reload/restart.
 
-I demonstrate or diagnose it with `lsof +L1` and inspect `/proc/<pid>/fd/<number>`, which usually shows `(deleted)`. I release it by making the application close the descriptor—normally a graceful reload/restart. This behavior is also why replacing a deployed binary does not automatically change code already mapped by a running process.
+This behavior is also why replacing a deployed binary does not automatically change code already mapped by a running process.
 
 ## 40. What is inode exhaustion and how do you resolve it?
-**Answer:**
-Each file and directory needs an inode. A filesystem with millions of tiny files can reach 100% inode use while many data blocks are free; creating a new file then fails with "No space left on device." I check `df -i` and narrow down high-count directories, for example with `find /var -xdev -type f -printf '%h\n' | sort | uniq -c | sort -nr | head`.
 
-I identify what produced the files—sessions, mail queue, cache, container layers, or unrotated temp data—and apply that product's supported cleanup/retention. For a permanent solution I may move the workload, redesign storage/object usage, or recreate the filesystem with an inode density suited to the workload; inode count generally cannot be increased in-place on ext filesystems. I add file-count monitoring as well as byte monitoring.
+**Answer:**
+Each file and directory needs an inode.
+
+A filesystem with millions of tiny files can reach 100% inode use while many data blocks are free; creating a new file then fails with "No space left on device." I check `df -i` and narrow down high-count directories, for example with `find /var -xdev -type f -printf '%h\n' | sort | uniq -c | sort -nr | head`.
+I identify what produced the files—sessions, mail queue, cache, container layers, or unrotated temp data—and apply that product's supported cleanup/retention.
+
+For a permanent solution I may move the workload, redesign storage/object usage, or recreate the filesystem with an inode density suited to the workload; inode count generally cannot be increased in-place on ext filesystems.
+
+I add file-count monitoring as well as byte monitoring.
 
 ## 41. Why do `df -h` and `du -sh` show different usage?
-**Answer:**
-`df` reads filesystem allocation metadata, whereas `du` walks visible directory entries and sums their blocks. The most common large difference is deleted-but-open files, checked with `lsof +L1`. Other causes are filesystem reserved blocks/metadata, files hidden beneath a mount point, lack of permission during the `du` scan, snapshots, or comparing different filesystems.
 
-I ensure both commands target the same mount (`findmnt` and `du -x`), run `du` with adequate permission, inspect open-deleted files and snapshots, and check mounts. Sparse files may show a large apparent size with `ls -l` but consume less space; `du --apparent-size` helps explain that opposite difference. I fix the identified cause rather than trusting one number blindly.
+**Answer:**
+`df` reads filesystem allocation metadata, whereas `du` walks visible directory entries and sums their blocks. The most common large difference is deleted-but-open files, checked with `lsof +L1`.
+
+Other causes are filesystem reserved blocks/metadata, files hidden beneath a mount point, lack of permission during the `du` scan, snapshots, or comparing different filesystems.
+
+I ensure both commands target the same mount (`findmnt` and `du -x`), run `du` with adequate permission, inspect open-deleted files and snapshots, and check mounts. Sparse files may show a large apparent size with `ls -l` but consume less space; `du --apparent-size` helps explain that opposite difference.
+
+I fix the identified cause rather than trusting one number blindly.
 
 ## 42. How do you check disk partitions and usage?
+
 **Answer:**
 I use different commands for different layers: `lsblk -f` shows disks, partitions, filesystems, UUIDs, and mount points; `df -hT` shows mounted filesystem use; `findmnt` shows the mount relationship and options; and `blkid` confirms filesystem identifiers. `fdisk -l` or `parted -l` shows partition tables.
+For LVM I also run `pvs`, `vgs`, and `lvs -a -o +devices` to map physical volumes to volume groups and logical volumes. Before any change I record this mapping and confirm the exact device by size, serial, and path.
 
-For LVM I also run `pvs`, `vgs`, and `lvs -a -o +devices` to map physical volumes to volume groups and logical volumes. Before any change I record this mapping and confirm the exact device by size, serial, and path. Cloud disk size, partition size, LVM size, filesystem size, and mounted capacity are separate layers and may not all grow automatically.
+Cloud disk size, partition size, LVM size, filesystem size, and mounted capacity are separate layers and may not all grow automatically.
 
 ## 43. How do you extend a partition without unmounting it?
+
 **Answer:**
 I first confirm the layout and filesystem with `lsblk -f`, `findmnt`, and LVM commands, take a backup/snapshot, and verify the filesystem supports online growth. After expanding the underlying cloud/virtual disk, a non-LVM partition might be grown with `growpart /dev/sda 2`.
-
 For LVM, a typical controlled flow is:
 
 ```bash
@@ -384,18 +508,26 @@ sudo xfs_growfs /data              # XFS, use mount point
 Exact devices vary, so I never paste commands without mapping them. I verify each layer with `pvs/lvs`, `lsblk`, and `df -hT`. Shrinking is very different and XFS cannot be shrunk in place.
 
 ## 44. What steps are needed to add a new disk to a Linux server?
+
 **Answer:**
 After the platform attaches the disk, I identify it by serial and size with `lsblk -o NAME,SIZE,TYPE,SERIAL,MOUNTPOINTS`; I do not assume it is always `/dev/sdb`. I check it has no required data, create a GPT/partition if needed, then make the approved filesystem or add it to LVM.
+I create the mount point, mount it temporarily, set ownership, and test reads/writes. For persistence I use the filesystem UUID from `blkid` in `/etc/fstab`, not an unstable device name.
 
-I create the mount point, mount it temporarily, set ownership, and test reads/writes. For persistence I use the filesystem UUID from `blkid` in `/etc/fstab`, not an unstable device name. I validate with `findmnt --verify` and `mount -a` before reboot, then verify capacity and permissions. Backup, monitoring, and application configuration are updated to include the new location.
+I validate with `findmnt --verify` and `mount -a` before reboot, then verify capacity and permissions. Backup, monitoring, and application configuration are updated to include the new location.
 
 ## 45. How do you mount and unmount filesystems in Linux?
-**Answer:**
-I create an empty mount point and use the UUID and explicit filesystem/options, for example `mount -t xfs UUID=<uuid> /data`. I verify with `findmnt /data`, test permissions, and add a reviewed `/etc/fstab` entry only after the temporary mount works. `findmnt --verify` and `mount -a` catch syntax errors before a reboot.
 
-Before `umount /data`, I stop or redirect applications using it and check `lsof +f -- /data` or `fuser -vm /data` if it is busy. I avoid lazy or forced unmount unless I understand the data-loss and stale-handle risk. After unmounting I confirm it is absent from `findmnt`; deleting a mount point while mounted or writing beneath an unexpected unmounted path can fill root.
+**Answer:**
+I create an empty mount point and use the UUID and explicit filesystem/options, for example `mount -t xfs UUID=<uuid> /data`. I verify with `findmnt /data`, test permissions, and add a reviewed `/etc/fstab` entry only after the temporary mount works.
+
+`findmnt --verify` and `mount -a` catch syntax errors before a reboot.
+
+Before `umount /data`, I stop or redirect applications using it and check `lsof +f -- /data` or `fuser -vm /data` if it is busy. I avoid lazy or forced unmount unless I understand the data-loss and stale-handle risk.
+
+After unmounting I confirm it is absent from `findmnt`; deleting a mount point while mounted or writing beneath an unexpected unmounted path can fill root.
 
 ## 46. How do you create and mount a swap file?
+
 **Answer:**
 I first check `free -h`, `swapon --show`, disk capacity, and whether the workload/platform supports a swap file. Then:
 
@@ -407,39 +539,59 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-I verify with `swapon --show` and `free -h`, then add `/swapfile none swap sw 0 0` to `/etc/fstab`. Permission `600` is essential because swap can contain sensitive memory. Swap can prevent an abrupt OOM for some workloads but is much slower than RAM; it is not a substitute for fixing a memory leak or sizing memory correctly. I also choose and document an appropriate `vm.swappiness` rather than changing it without evidence.
+I verify with `swapon --show` and `free -h`, then add `/swapfile none swap sw 0 0` to `/etc/fstab`. Permission `600` is essential because swap can contain sensitive memory.
+
+Swap can prevent an abrupt OOM for some workloads but is much slower than RAM; it is not a substitute for fixing a memory leak or sizing memory correctly. I also choose and document an appropriate `vm.swappiness` rather than changing it without evidence.
 
 ## 47. How do you remount a filesystem read-write without rebooting?
+
 **Answer:**
 If it was intentionally mounted read-only and the filesystem is healthy, I use `sudo mount -o remount,rw /mountpoint` and confirm the options with `findmnt -no OPTIONS /mountpoint`. I also correct `/etc/fstab` if the change must survive reboot.
 
-If the kernel remounted it read-only after I/O or filesystem errors, forcing `rw` can worsen corruption. I first inspect `journalctl -k`, storage/cloud health, and SMART information. I fail over or stop writes, back up what is readable, unmount or boot rescue mode, run the filesystem-specific repair, and only remount after the underlying storage problem is addressed.
+If the kernel remounted it read-only after I/O or filesystem errors, forcing `rw` can worsen corruption. I first inspect `journalctl -k`, storage/cloud health, and SMART information.
+
+I fail over or stop writes, back up what is readable, unmount or boot rescue mode, run the filesystem-specific repair, and only remount after the underlying storage problem is addressed.
 
 ## 48. How do you fix a corrupted filesystem using `fsck`?
-**Answer:**
-I confirm the exact device and filesystem with `lsblk -f` and protect data first. `fsck` is a front end mainly for ext-family filesystems; XFS uses `xfs_repair`, and the filesystem must normally be unmounted. For root I boot into rescue/emergency mode or attach the disk to a recovery host.
 
-For ext4, I may first run a read-only check `e2fsck -fn /dev/mapper/vg-lv`, review the result, then run the approved repair while unmounted. I avoid automatic `-y` on valuable data unless the recovery plan accepts it. Afterward I mount read-only first if appropriate, inspect `lost+found`, validate application data, and investigate underlying disk, power, or kernel errors so corruption is not treated as an isolated event.
+**Answer:**
+I confirm the exact device and filesystem with `lsblk -f` and protect data first. `fsck` is a front end mainly for ext-family filesystems; XFS uses `xfs_repair`, and the filesystem must normally be unmounted.
+
+For root I boot into rescue/emergency mode or attach the disk to a recovery host.
+
+For ext4, I may first run a read-only check `e2fsck -fn /dev/mapper/vg-lv`, review the result, then run the approved repair while unmounted. I avoid automatic `-y` on valuable data unless the recovery plan accepts it.
+
+Afterward I mount read-only first if appropriate, inspect `lost+found`, validate application data, and investigate underlying disk, power, or kernel errors so corruption is not treated as an isolated event.
 
 ## 49. How do you recover a deleted file in Linux?
+
 **Answer:**
 I stop or minimize writes immediately because new data can overwrite the deleted blocks. My recovery order is application recycle/version history, backup, storage/LVM snapshot, replica, and then an open descriptor (`lsof +L1`) that may still allow copying `/proc/<pid>/fd/<fd>` to another filesystem.
+If none exists, I unmount or snapshot the filesystem and perform any forensic recovery on a copy, using filesystem-specific tools. Recovery tools are uncertain, especially on SSDs with TRIM, so I set that expectation and preserve evidence.
 
-If none exists, I unmount or snapshot the filesystem and perform any forensic recovery on a copy, using filesystem-specific tools. Recovery tools are uncertain, especially on SSDs with TRIM, so I set that expectation and preserve evidence. I validate the recovered file with checksums or the application, restore owner/mode, document the incident, and improve tested backups and deletion controls.
+I validate the recovered file with checksums or the application, restore owner/mode, document the incident, and improve tested backups and deletion controls.
 
 ## 50. A Linux server is not booting due to filesystem corruption. How do you recover it?
+
 **Answer:**
 I use console access to capture the exact boot error and distinguish filesystem corruption from a bad `/etc/fstab`, missing device, or bootloader problem. I boot recovery/rescue media or attach the root disk to a helper host, map encrypted/LVM volumes, and take a snapshot before repair.
+With affected filesystems unmounted I run the correct checker (`e2fsck` for ext, `xfs_repair` for XFS), review `/etc/fstab` UUIDs/options, and inspect disk/platform health. I mount read-only and validate critical files before returning it.
 
-With affected filesystems unmounted I run the correct checker (`e2fsck` for ext, `xfs_repair` for XFS), review `/etc/fstab` UUIDs/options, and inspect disk/platform health. I mount read-only and validate critical files before returning it. Then I rebuild initramfs/bootloader only if evidence points there, reboot through console, verify all mounts/services and application consistency, and restore from backup if repair cannot guarantee data integrity.
+Then I rebuild initramfs/bootloader only if evidence points there, reboot through console, verify all mounts/services and application consistency, and restore from backup if repair cannot guarantee data integrity.
 
 ## 51. How do you check disk I/O performance?
-**Answer:**
-I start with `iostat -xz 1`, `vmstat 1`, and `pidstat -d 1`. I compare throughput and IOPS with the disk's expected limits, and look at `await`, average queue size, utilization, and CPU I/O wait. `iotop` helps identify the process, while cloud metrics reveal throttled IOPS/throughput or burst-credit exhaustion.
 
-High utilization alone is not always bad; the important evidence is increased latency and application impact. I correlate it with backups, queries, compaction, deployments, and kernel/storage errors. Fixes can include query/index tuning, caching, moving batch jobs, separating data/log volumes, increasing provisioned IOPS, or scaling. I baseline and remeasure the same workload after the change.
+**Answer:**
+I start with `iostat -xz 1`, `vmstat 1`, and `pidstat -d 1`. I compare throughput and IOPS with the disk's expected limits, and look at `await`, average queue size, utilization, and CPU I/O wait.
+
+`iotop` helps identify the process, while cloud metrics reveal throttled IOPS/throughput or burst-credit exhaustion.
+
+High utilization alone is not always bad; the important evidence is increased latency and application impact. I compare it with backups, queries, compaction, deployments, and kernel/storage errors.
+
+Fixes can include query/index tuning, caching, moving batch jobs, separating data/log volumes, increasing provisioned IOPS, or scaling. I baseline and remeasure the same workload after the change.
 
 ## 52. What is the fastest way to copy huge files across servers?
+
 **Answer:**
 The best method depends on network, change rate, file count, and whether downtime is allowed. For a large resumable transfer I normally use:
 
@@ -447,39 +599,64 @@ The best method depends on network, change rate, file count, and whether downtim
 rsync -aHAX --info=progress2 --partial source/ user@host:/data/destination/
 ```
 
-Compression (`-z`) helps compressible data on a slower network but wastes CPU for already compressed files. I run an initial copy while the source is live, pause writes or take a snapshot, then run a final delta sync. For cloud volumes, snapshot/replication or object storage may be faster and safer. I estimate bandwidth and disk space, protect credentials, throttle if production is affected, and verify counts/checksums before cutover.
+Compression (`-z`) helps compressible data on a slower network but wastes CPU for already compressed files. I run an initial copy while the source is live, pause writes or take a snapshot, then run a final delta sync.
+
+For cloud volumes, snapshot/replication or object storage may be faster and safer. I estimate bandwidth and disk space, protect credentials, throttle if production is affected, and verify counts/checksums before cutover.
 
 ## 53. What are hard links and soft links?
-**Answer:**
-A hard link is another directory entry for the same inode. Both names are equal references to the same file; deleting one name leaves data available through the other. Hard links normally cannot cross filesystems or link directories. `ls -li` shows the shared inode and link count.
 
-A symbolic link is a separate small file containing a target path: `ln -s /opt/app/current app`. It can cross filesystems and point to a directory, but becomes dangling if the path moves. I use symlinks for versioned release switches and hard links for certain backup/deduplication schemes, while remembering that editing a hard-linked file changes the shared inode.
+**Answer:**
+A hard link is another directory entry for the same inode. Both names are equal references to the same file; deleting one name leaves data available through the other.
+
+Hard links normally cannot cross filesystems or link directories. `ls -li` shows the shared inode and link count.
+
+A symbolic link is a separate small file containing a target path: `ln -s /opt/app/current app`. It can cross filesystems and point to a directory, but becomes dangling if the path moves.
+
+I use symlinks for versioned release switches and hard links for certain backup/deduplication schemes, while remembering that editing a hard-linked file changes the shared inode.
 
 ## 54. What is the difference between `find` and `locate`?
+
 **Answer:**
 `find` walks the live directory tree and can filter by name, type, owner, time, size, permissions, and filesystem, then safely act on results. For example, `find /var/log -xdev -type f -mtime +30 -print` returns current matches but can take time.
 
-`locate '*.conf'` queries an index built by `updatedb`, so it is very fast but may include deleted files or omit new ones, and excluded paths depend on configuration. I use `locate` for quick discovery and verify with `stat`; I use `find` when completeness/current state or actions matter. Before `find -delete` or `-exec`, I first run the same expression with `-print`.
+`locate '*.conf'` queries an index built by `updatedb`, so it is very fast but may include deleted files or omit new ones, and excluded paths depend on configuration. I use `locate` for quick discovery and verify with `stat`; I use `find` when completeness/current state or actions matter.
+
+Before `find -delete` or `-exec`, I first run the same expression with `-print`.
 
 ## 55. What are runlevels or systemd targets?
+
 **Answer:**
 SysV runlevels represent boot modes: commonly 1 is single-user/rescue, 3 multi-user text, 5 graphical, and 0/6 halt/reboot, though meanings can vary. Systemd uses targets that group units and dependencies, such as `rescue.target`, `multi-user.target`, and `graphical.target`.
+I inspect the default with `systemctl get-default`, change it persistently with `systemctl set-default multi-user.target`, or switch the current boot with `systemctl isolate ...`. `isolate` can stop services not required by the target, so I use console access and understand impact.
 
-I inspect the default with `systemctl get-default`, change it persistently with `systemctl set-default multi-user.target`, or switch the current boot with `systemctl isolate ...`. `isolate` can stop services not required by the target, so I use console access and understand impact. Legacy runlevel commands map approximately to targets but the dependency model is richer than a single number.
+Legacy runlevel commands map approximately to targets but the dependency model is richer than a single number.
 
 ## 56. You need to secure a Linux server exposed to the internet with a weak root password. What steps do you take?
-**Answer:**
-I treat this as possible compromise, not only a hardening task. I restrict exposure at the cloud firewall to approved source networks, preserve authentication/audit evidence, review successful logins, users, SSH keys, sudo changes, processes, persistence, and outbound connections. If compromise is suspected, I isolate and rebuild from a trusted image rather than trying to "clean" it in place.
 
-I rotate root and all reachable secrets, create named admin accounts with least-privilege sudo and MFA/bastion access, test key access, then set `PermitRootLogin no` and normally disable password SSH. I patch, remove unused services, enforce host firewall/SELinux, centralize logs, enable EDR/fail2ban where appropriate, and verify backups. Changes are staged with a second session/console so I do not lock out administrators.
+**Answer:**
+I treat this as possible compromise, not only a hardening task. I restrict exposure at the cloud firewall to approved source networks, preserve authentication/audit evidence, review successful logins, users, SSH keys, sudo changes, processes, persistence, and outbound connections.
+
+If compromise is suspected, I isolate and rebuild from a trusted image rather than trying to "clean" it in place.
+
+I rotate root and all reachable secrets, create named admin accounts with least-privilege (minimum required access) sudo and MFA/bastion access, test key access, then set `PermitRootLogin no` and normally disable password SSH.
+
+I patch, remove unused services, enforce host firewall/SELinux, centralize logs, enable EDR/fail2ban where appropriate, and verify backups.
+
+Changes are staged with a second session/console so I do not lock out administrators.
 
 ## 57. `yum` or `apt` installation is failing. How do you troubleshoot?
-**Answer:**
-I read the exact error first. I check disk/inodes and time, then repository DNS/TLS/proxy reachability, configured release/version, and GPG-key validity. A lock error requires finding the active `apt`, `dpkg`, `dnf`, or `yum` process; I do not delete lock files while a package transaction is running.
 
-For Debian I use `apt-get update`, `apt-cache policy`, `dpkg --audit`, and if interrupted `dpkg --configure -a`. For RHEL I use `dnf repolist -v`, `dnf makecache`, and `dnf history`. I inspect repository and package logs, resolve held/broken dependencies intentionally, and avoid disabling signature checks. After repair I install the exact package, confirm its version/service, and restore the approved repository configuration.
+**Answer:**
+I read the exact error first. I check disk/inodes and time, then repository DNS/TLS/proxy reachability, configured release/version, and GPG-key validity.
+
+A lock error requires finding the active `apt`, `dpkg`, `dnf`, or `yum` process; I do not delete lock files while a package transaction is running.
+
+For Debian I use `apt-get update`, `apt-cache policy`, `dpkg --audit`, and if interrupted `dpkg --configure -a`. For RHEL I use `dnf repolist -v`, `dnf makecache`, and `dnf history`.
+
+I inspect repository and package logs, resolve held/broken dependencies intentionally, and avoid disabling signature checks. After repair I install the exact package, confirm its version/service, and restore the approved repository configuration.
 
 ## 58. How do you find the top 5 CPU-consuming and memory-consuming processes?
+
 **Answer:**
 For a snapshot I use:
 
@@ -488,9 +665,12 @@ ps -eo pid,ppid,user,%cpu,%mem,rss,etime,cmd --sort=-%cpu | head -n 6
 ps -eo pid,ppid,user,%cpu,%mem,rss,etime,cmd --sort=-rss  | head -n 6
 ```
 
-I sort memory by RSS because `%mem` is derived from it and VSZ can include large unresident mappings. A snapshot can catch a short spike or miss one, so I confirm with `pidstat 1`, `top`, or historical `sar/atop`. I also map a PID to its service/container and correlate it with request rate and recent changes before deciding that the process is abnormal.
+I sort memory by RSS because `%mem` is derived from it and VSZ can include large unresident mappings. A snapshot can catch a short spike or miss one, so I confirm with `pidstat 1`, `top`, or historical `sar/atop`.
+
+I also map a PID to its service/container and compare it with request rate and recent changes before deciding that the process is abnormal.
 
 ## 59. How do you check logs from the last 7 days?
+
 **Answer:**
 For systemd I use a precise time range and unit, for example:
 
@@ -498,9 +678,12 @@ For systemd I use a precise time range and unit, for example:
 journalctl -u nginx --since "2026-07-12 00:00:00" --until "2026-07-19 00:00:00" -o short-iso
 ```
 
-For file logs I first identify current and rotated files under `/var/log`; `find ... -mtime -7` selects by file modification time, not by each log entry. I use `grep` on plain files and `zgrep` on `.gz`, then filter by the timestamp format, request ID, host, or severity. I account for timezone and log rotation boundaries and export a read-only copy when preserving incident evidence.
+For file logs I first identify current and rotated files under `/var/log`; `find ... -mtime -7` selects by file modification time, not by each log entry. I use `grep` on plain files and `zgrep` on `.gz`, then filter by the timestamp format, request ID, host, or severity.
+
+I account for timezone and log rotation boundaries and export a read-only copy when preserving incident evidence.
 
 ## 60. What command generates an SSH key?
+
 **Answer:**
 For a modern user key I use:
 
@@ -508,21 +691,34 @@ For a modern user key I use:
 ssh-keygen -t ed25519 -a 100 -C "sunil@company-laptop-2026"
 ```
 
-I choose a protected path, set a strong passphrase, and use `ssh-agent` rather than leaving the private key unencrypted. The `.pub` file is shared; the private key is never emailed, copied into a repository, or placed on the server. If policy or old compatibility requires RSA, I use RSA 3072/4096. I install the public key for the intended account and test a second session before removing old access.
+I choose a protected path, set a strong passphrase, and use `ssh-agent` rather than leaving the private key unencrypted. The `.pub` file is shared; the private key is never emailed, copied into a repository, or placed on the server.
+
+If policy or old compatibility requires RSA, I use RSA 3072/4096. I install the public key for the intended account and test a second session before removing old access.
 
 ## 61. What do you do if a user loses an SSH private key?
-**Answer:**
-I treat the key as potentially compromised. Using a separate approved admin path, I identify and remove its exact public-key line from every `authorized_keys`, bastion, Git service, and automation account where it was trusted. I review authentication logs for that fingerprint/user and rotate other secrets if the lost device may expose them.
 
-The user generates a new passphrase-protected key on a trusted device; administrators receive only the public key. I add it with correct ownership/modes, test access, and record owner, purpose, and expiry. I never try to reconstruct or transmit a replacement private key. Central SSH certificates or managed access can make future revocation and expiry much safer.
+**Answer:**
+I treat the key as potentially compromised. Using a separate approved admin path, I identify and remove its exact public-key line from every `authorized_keys`, bastion, Git service, and automation account where it was trusted.
+
+I review authentication logs for that fingerprint/user and rotate other secrets if the lost device may expose them.
+
+The user generates a new passphrase-protected key on a trusted device; administrators receive only the public key. I add it with correct ownership/modes, test access, and record owner, purpose, and expiry.
+
+I never try to reconstruct or transmit a replacement private key. Central SSH certificates or managed access can make future revocation and expiry much safer.
 
 ## 62. How will you change user access or privileges?
-**Answer:**
-I start from the approved role and least privilege: which systems, commands, files, and duration are required? I prefer group-based access over one-off user permissions. For sudo I create a narrow file under `/etc/sudoers.d/` using `visudo -f`, specify exact commands where practical, and avoid broad passwordless root access.
 
-For data access I use owner/group mode bits or ACLs (`setfacl`) and verify with `namei -l`/`getfacl`. I test with `sudo -l -U user` and an actual non-destructive command, retain an emergency admin session, and log the ticket/expiry. When access is removed I revoke group/sudo/key entries and active sessions if needed, then audit that no alternate privilege path remains.
+**Answer:**
+I start from the approved role and least privilege (only the permissions needed): which systems, commands, files, and duration are required? I prefer group-based access over one-off user permissions.
+
+For sudo I create a narrow file under `/etc/sudoers.d/` using `visudo -f`, specify exact commands where practical, and avoid broad passwordless root access.
+
+For data access I use owner/group mode bits or ACLs (`setfacl`) and verify with `namei -l`/`getfacl`. I test with `sudo -l -U user` and an actual non-destructive command, retain an emergency admin session, and log the ticket/expiry.
+
+When access is removed I revoke group/sudo/key entries and active sessions if needed, then audit that no alternate privilege path remains.
 
 ## 63. How do you list the top 10 largest files anywhere on a Linux system?
+
 **Answer:**
 I can use the following command for a quick system-wide investigation:
 
@@ -530,8 +726,9 @@ I can use the following command for a quick system-wide investigation:
 sudo find / -type f -exec du -h -- {} + 2>/dev/null | sort -hr | head -n 10
 ```
 
-`find / -type f` walks files from the root directory, `du -h` reports allocated disk usage in human-readable units, `sort -hr` sorts largest first, and `head -n 10` returns the first ten results. Redirecting stderr hides permission and transient `/proc` errors, but during a formal investigation I may capture those errors because an inaccessible path means the search was incomplete.
+`find / -type f` walks files from the root directory, `du -h` reports allocated disk usage in human-readable units, `sort -hr` sorts largest first, and `head -n 10` returns the first ten results.
 
+Redirecting stderr hides permission and temporary `/proc` errors, but during a formal investigation I may capture those errors because an inaccessible path means the search was incomplete.
 Scanning `/` can be slow and can cross NFS, container, backup and other mounted filesystems. I normally start with `df -hT` to identify the full filesystem and search that mount using `-xdev`, for example:
 
 ```bash
@@ -539,9 +736,12 @@ sudo find /var -xdev -type f -exec du -h -- {} + 2>/dev/null \
   | sort -hr | head -n 10
 ```
 
-For exact logical file size with GNU tools, I can use `find ... -printf '%s\t%p\n' | sort -nr`; `du` instead reports allocated blocks, so sparse files can differ. Filenames containing newlines require a null-delimited or scripted implementation. After locating a large file, I check `stat`, `file`, `lsof`, owner, purpose and retention policy. I do not delete it merely because it is large.
+For exact logical file size with GNU tools, I can use `find ... -printf '%s\t%p\n' | sort -nr`; `du` instead reports allocated blocks, so sparse files can differ. Filenames containing newlines require a null-delimited or scripted implementation.
+
+After locating a large file, I check `stat`, `file`, `lsof`, owner, purpose and retention policy. I do not delete it merely because it is large.
 
 ## 64. How do you find which process is consuming the most memory?
+
 **Answer:**
 For a quick snapshot I use:
 
@@ -557,7 +757,9 @@ ps -eo pid,ppid,user,%mem,rss,vsz,etime,cmd --sort=-rss | head -n 11
 
 RSS is the physical memory currently resident for the process; VSZ includes virtual mappings and can look large without representing real RAM pressure. `%MEM` is useful for a quick comparison but a snapshot does not show whether usage is growing.
 
-I confirm system pressure using `free -h`, `vmstat 1`, swap activity and OOM evidence from `journalctl -k | grep -i oom`. Then I map the PID to its systemd service, container or application and monitor it with `pidstat -r -p <pid> 1` or runtime-specific tools. Before restarting or killing anything, I capture logs, heap/thread diagnostics where appropriate, confirm user impact, and try graceful service control. The permanent fix may be a memory leak correction, cache/heap tuning, resource limits, traffic scaling or capacity adjustment.
+I confirm system pressure using `free -h`, `vmstat 1`, swap activity and OOM evidence from `journalctl -k | grep -i oom`. Then I map the PID to its systemd service, container or application and monitor it with `pidstat -r -p <pid> 1` or runtime-specific tools.
+
+Before restarting or killing anything, I capture logs, heap/thread diagnostics where appropriate, confirm user impact, and try graceful service control. The permanent fix may be a memory leak correction, cache/heap tuning, resource limits, traffic scaling or capacity adjustment.
 
 ## 65. How do you find the process using the most CPU right now?
 
@@ -571,19 +773,25 @@ top -o %CPU
 pidstat -u 1
 ```
 
-I check load average, CPU steal time, I/O wait, recent deployments and traffic before acting. High load does not necessarily mean CPU saturation: blocked I/O tasks can also raise it. I capture the PID, service/container owner and logs, then mitigate safely by scaling, rolling back, rate-limiting or gracefully restarting the confirmed faulty workload.
+I check load average, CPU steal time, I/O wait, recent deployments and traffic before acting. High load does not necessarily mean CPU saturation (how close a resource is to its limit): blocked I/O tasks can also raise it.
+
+I capture the PID, service/container owner and logs, then mitigate safely by scaling, rolling back, rate-limiting or gracefully restarting the confirmed faulty workload.
 
 ## 66. What does `chmod 754` set?
 
 **Answer:**
 
-It sets `rwxr-xr--`: the owner can read, write and execute (7); the group can read and execute (5); everyone else can only read (4). For directories, execute means traversal/accessing entries, so a user with only read permission can list names but cannot enter the directory. I verify the target and current permissions with `ls -ld`, avoid making sensitive files world-readable, and use groups or ACLs when simple mode bits are insufficient.
+It sets `rwxr-xr--`: the owner can read, write and execute (7); the group can read and execute (5); everyone else can only read (4). For directories, execute means traversal/accessing entries, so a user with only read permission can list names but cannot enter the directory.
+
+I verify the target and current permissions with `ls -ld`, avoid making sensitive files world-readable, and use groups or ACLs when simple mode bits are insufficient.
 
 ## 67. What is the difference between `kill -15` and `kill -9`?
 
 **Answer:**
 
-`kill -15` sends `SIGTERM`, which an application can handle for graceful shutdown: stop accepting work, flush state and close connections. `kill -9` sends `SIGKILL`; the kernel stops the process immediately and it cannot clean up. I start with `SIGTERM`, inspect why shutdown is slow, and use `SIGKILL` only when the process is stuck and the impact of abrupt termination is understood. Neither signal should be used blindly on a database or critical service.
+`kill -15` sends `SIGTERM`, which an application can handle for graceful shutdown: stop accepting work, flush state and close connections. `kill -9` sends `SIGKILL`; the kernel stops the process immediately and it cannot clean up.
+
+I start with `SIGTERM`, inspect why shutdown is slow, and use `SIGKILL` only when the process is stuck and the impact of abrupt termination is understood. Neither signal should be used blindly on a database or critical service.
 
 ## 68. How do you find and stop a process listening on port 8080?
 
@@ -595,7 +803,9 @@ sudo lsof -nP -iTCP:8080 -sTCP:LISTEN
 sudo systemctl stop <service-name>
 ```
 
-I identify the owning service before stopping it; killing a PID can cause a supervisor to recreate it and may interrupt users. If no service unit owns it, I use `kill -TERM <pid>`, confirm the listener is gone, and escalate to `KILL` only if necessary. I also check containers (`docker ps` or `crictl ps`) and firewall/proxy configuration because a reachable port is not proof the application is healthy.
+I identify the owning service before stopping it; killing a PID can cause a supervisor to recreate it and may interrupt users. If no service unit owns it, I use `kill -TERM <pid>`, confirm the listener is gone, and escalate to `KILL` only if necessary.
+
+I also check containers (`docker ps` or `crictl ps`) and firewall/proxy configuration because a reachable port is not proof the application is healthy.
 
 ## 69. A disk is 95% full. How do you find what is consuming space?
 
@@ -609,28 +819,46 @@ sudo find /var -xdev -type f -size +500M -printf '%s %p\n' | sort -nr | head
 sudo lsof +L1
 ```
 
-The last command finds deleted-but-open files, a common reason `du` and `df` disagree. I check logs, package caches, container images/volumes, temporary files, snapshots and inode use (`df -i`). I preserve evidence and apply retention, rotation, resize or a controlled cleanup; I do not delete unknown production data to make an alert disappear.
+The last command finds deleted-but-open files, a common reason `du` and `df` disagree. I check logs, package caches, container images/volumes, temporary files, snapshots and inode use (`df -i`).
+
+I preserve evidence and apply retention, rotation, resize or a controlled cleanup; I do not delete unknown production data to make an alert disappear.
 
 ## 70. How do you investigate a service crash using system logs?
 
 **Answer:**
 
-I establish the service, host and failure window, then use `systemctl status <service>`, `journalctl -u <service> --since '30 minutes ago'`, and `journalctl -k` for kernel/OOM evidence. I correlate exit code, restart count, configuration/deployment changes, dependency and resource signals. If applicable, I validate the configuration and reproduce safely in a lower environment. After restoring with rollback, a targeted configuration fix or capacity change, I verify the health path and add an actionable alert or runbook for the discovered failure mode.
+I establish the service, host and failure window, then use `systemctl status <service>`, `journalctl -u <service> --since '30 minutes ago'`, and `journalctl -k` for kernel/OOM evidence. I compare exit code, restart count, configuration/deployment changes, dependency and resource signals.
+
+If applicable, I validate the configuration and reproduce safely in a lower environment. After restoring with rollback, a targeted configuration fix or capacity change, I verify the health path and add an actionable alert or runbook for the discovered failure mode.
 
 ## 71. Package manager versus compiling from source: when do you use each?
 
 **Answer:**
 
-I prefer the supported `apt`, `dnf` or `yum` package because it gives dependency management, signed updates, inventory, security patches and a repeatable removal path. I compile from source only when a required feature/version is unavailable in approved repositories and the operational owner accepts the patching, provenance, build reproducibility and rollback burden. For production I package the build or use a trusted repository rather than leaving untracked binaries under `/usr/local`.
+I prefer the supported `apt`, `dnf` or `yum` package because it gives dependency management, signed updates, inventory, security patches and a repeatable removal path.
+
+I compile from source only when a required feature/version is unavailable in approved repositories and the operational owner accepts the patching, provenance (where an artifact came from and how it was built), build reproducibility and rollback burden.
+
+For production I package the build or use a trusted repository rather than leaving untracked binaries under `/usr/local`.
 
 ## 72. The server has high load and an application reports “disk full”, but `df -h` shows free space. What do you check?
 
 **Answer:**
 
-I check inode exhaustion with `df -i`, because millions of small files can consume all inodes while blocks remain free. I also check the actual mount namespace (`findmnt`, container namespace), quotas, a full application-specific filesystem such as `/tmp`, filesystem errors/remount-read-only messages in `dmesg`, and deleted-open files with `lsof +L1`. High load can be I/O wait from a storage problem rather than CPU work, so I inspect `iostat`, `vmstat`, latency/error metrics and kernel logs. I remediate the specific constraint, verify application writes and root cause, then set alerts for both bytes and inode utilization.
+I check inode exhaustion with `df -i`, because millions of small files can consume all inodes while blocks remain free.
+
+I also check the actual mount namespace (`findmnt`, container namespace), quotas, a full application-specific filesystem such as `/tmp`, filesystem errors/remount-read-only messages in `dmesg`, and deleted-open files with `lsof +L1`.
+
+High load can be I/O wait from a storage problem rather than CPU work, so I inspect `iostat`, `vmstat`, latency/error metrics and kernel logs. I remediate the specific constraint, verify application writes and root cause, then set alerts for both bytes and inode utilization.
 
 ## 73. Walk through the Linux boot process from firmware to login.
 
 **Answer:**
 
-Firmware (BIOS or UEFI) initializes hardware and selects a boot device. The bootloader, commonly GRUB, loads the chosen kernel and initramfs. The kernel initializes drivers, mounts the initial root filesystem, starts PID 1 (normally `systemd`), and systemd mounts remaining filesystems, starts ordered targets/services and presents a console or display manager. If boot fails, I use the bootloader options, emergency/rescue target, `journalctl -b`, kernel messages, mount/fs checks and recent configuration changes. I preserve a known-good kernel and rescue path before changing boot configuration.
+Firmware (BIOS or UEFI) initializes hardware and selects a boot device. The bootloader, commonly GRUB, loads the chosen kernel and initramfs.
+
+The kernel initializes drivers, mounts the initial root filesystem, starts PID 1 (normally `systemd`), and systemd mounts remaining filesystems, starts ordered targets/services and presents a console or display manager.
+
+If boot fails, I use the bootloader options, emergency/rescue target, `journalctl -b`, kernel messages, mount/fs checks and recent configuration changes.
+
+I preserve a known-good kernel and rescue path before changing boot configuration.

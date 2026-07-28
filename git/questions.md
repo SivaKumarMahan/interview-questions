@@ -18,7 +18,9 @@ The flow is: fetch the latest original project through `upstream`, update my fea
 
 **Answer:**
 
-`git fetch` downloads remote commits, branches, and tags and updates remote-tracking references such as `origin/main`. It does not modify my current branch or working files. `git pull` performs a fetch and then integrates the remote branch into the current branch, normally by merge or rebase.
+`git fetch` downloads remote commits, branches, and tags and updates remote-tracking references such as `origin/main`. It does not modify my current branch or working files.
+
+`git pull` performs a fetch and then integrates the remote branch into the current branch, normally by merge or rebase.
 
 ```bash
 git fetch origin
@@ -27,7 +29,9 @@ git diff HEAD..origin/main
 git merge origin/main
 ```
 
-I prefer fetch when I want to inspect changes before integrating them, especially on an important branch. I use `git pull --rebase` on my private feature branch when team policy allows it. Before pulling, I check `git status` and commit or stash local work so the operation does not mix unrelated changes.
+I prefer fetch when I want to inspect changes before integrating them, especially on an important branch. I use `git pull --rebase` on my private feature branch when team policy allows it.
+
+Before pulling, I check `git status` and commit or stash local work so the operation does not mix unrelated changes.
 
 ## 3. How do you resolve merge conflicts?
 
@@ -37,7 +41,7 @@ I first understand why the two branches changed the same lines; I do not simply 
 
 1. Run `git status` to list conflicted files.
 2. Open each file and review the `<<<<<<<`, `=======`, and `>>>>>>>` sections.
-3. Discuss ambiguous business logic with the other author.
+3. Discuss unclear business logic with the other author.
 4. Edit the file into the correct combined result and remove markers.
 5. Run formatters, unit tests, builds, and relevant integration tests.
 6. Stage resolved files and continue the merge or rebase.
@@ -87,15 +91,16 @@ git branch release/2.4 <commit-sha>
 git push origin release/2.4
 ```
 
-Before pushing, I compare the recovered commit with the last deployed artifact and ask the branch owner to confirm it. I then restore branch protection and build-validation policies, because recreating a branch may not automatically restore platform settings. I avoid garbage collection or cleanup commands until recovery is complete.
+Before pushing, I compare the recovered commit with the last deployed artifact and ask the branch owner to confirm it. I then restore branch protection and build-validation policies, because recreating a branch may not automatically restore platform settings.
+
+I avoid garbage collection or cleanup commands until recovery is complete.
 
 ## 6. How do you generate a GitHub token?
 
 **Answer:**
 
 For automation I prefer GitHub Apps or OpenID Connect because they provide short-lived, narrowly scoped credentials. If a personal access token is required, I create a fine-grained token under GitHub settings, select only the required repositories, grant the minimum permissions, and set a short expiration.
-
-I store the token in a CI secret store or OS credential manager, not in source code or command history. I test one required operation and one denied operation to prove least privilege. I also record the owner and expiry and configure rotation alerts.
+I store the token in a CI secret store or OS credential manager, not in source code or command history. I test one required operation and one denied operation to prove least privilege (only the permissions needed). I also record the owner and expiry and configure rotation alerts.
 
 If a token leaks, I revoke it immediately, review GitHub audit and access logs, rotate any downstream credentials it could reach, remove the value from history and pipeline output, and investigate the source of exposure.
 
@@ -112,7 +117,9 @@ develop ──●──●──●────●──────────
            \ feature / \ release /
 ```
 
-It provides explicit release control and suits products with scheduled versions or multiple supported releases. Its drawback is merge overhead and long-lived branch divergence. For teams delivering continuously, trunk-based development with short feature branches and feature flags is often simpler. I choose based on release frequency, regulatory gates, team size, and support policy rather than using Gitflow automatically.
+It provides explicit release control and suits products with scheduled versions or multiple supported releases. Its drawback is merge overhead and long-lived branch divergence.
+
+For teams delivering continuously, trunk-based development with short feature branches and feature flags is often simpler. I choose based on release frequency, regulatory gates, team size, and support policy rather than using Gitflow automatically.
 
 ## 8. What is the difference between GitHub, Azure Repos, and GitLab?
 
@@ -132,7 +139,9 @@ I compare identity integration, compliance, runner model, network placement, ava
 
 A pull request (GitHub/Azure Repos) or merge request (GitLab) proposes merging one branch into another. It is a collaboration and quality-control workflow, not only a Git operation.
 
-A good request contains the problem, solution, risk, test evidence, screenshots or plan output where relevant, deployment notes, and rollback considerations. Automated checks should validate build, tests, security, linting, and policy. Reviewers check correctness, maintainability, security, operability, and unintended effects.
+A good request contains the problem, solution, risk, test evidence, screenshots or plan output where relevant, deployment notes, and rollback considerations. Automated checks should validate build, tests, security, linting, and policy.
+
+Reviewers check correctness, maintainability, security, operability, and unintended effects.
 
 After feedback is resolved and policies pass, the change is merged using the team’s chosen strategy. The linked issue, reviewers, checks, comments, and final commit create an audit trail.
 
@@ -160,13 +169,15 @@ I test the policy with a normal developer account to confirm direct pushes and u
 - **Squash merge** combines all feature commits into one new commit on the target branch. It keeps `main` simple but removes individual feature-branch commits from that history.
 - **Rebase** rewrites commits onto a new base, producing a linear history. Because commit IDs change, I avoid rebasing shared public branches.
 
-For short feature branches, I often squash incomplete “fix” commits into one reviewed change. For a release or integration branch where individual commits matter, merge may be better. If I rebase a branch I own, I push with `--force-with-lease`, not an unguarded `--force`.
+For short feature branches, I often squash incomplete “fix” commits into one reviewed change. For a release or integration branch where individual commits matter, merge may be better.
+
+If I rebase a branch I own, I push with `--force-with-lease`, not an unguarded `--force`.
 
 ## 12. How do you handle release tags?
 
 **Answer:**
 
-I create an annotated, immutable tag from the exact reviewed commit used to build the release. Semantic versioning such as `v2.4.1` makes compatibility clear.
+I create an annotated, immutable (not changed after creation) tag from the exact reviewed commit used to build the release. Semantic versioning such as `v2.4.1` makes compatibility clear.
 
 ```bash
 git tag -a v2.4.1 -m "Release 2.4.1"
@@ -174,7 +185,9 @@ git push origin v2.4.1
 git show v2.4.1
 ```
 
-CI builds a versioned artifact or image and records the commit SHA, tag, checksums, and release notes. Production promotion reuses that artifact rather than rebuilding from a moving branch. I restrict tag creation/deletion, optionally sign tags, and never silently move a published release tag. A correction receives a new version.
+CI builds a versioned artifact or image and records the commit SHA, tag, checksums, and release notes. Production promotion reuses that artifact rather than rebuilding from a moving branch.
+
+I restrict tag creation/deletion, optionally sign tags, and never silently move a published release tag. A correction receives a new version.
 
 ## 13. How do you find merge conflicts before completing a merge?
 
@@ -190,7 +203,9 @@ git rebase origin/main
 git diff --name-only --diff-filter=U
 ```
 
-If I only need analysis, `git merge-tree` can show potential merge results without changing the working tree. CI should also test the proposed merge commit because two branches can merge textually without conflict but still break compilation or behavior. After resolving conflicts, I run the complete relevant test set and inspect the combined diff.
+If I only need analysis, `git merge-tree` can show potential merge results without changing the working tree. CI should also test the proposed merge commit because two branches can merge textually without conflict but still break compilation or behavior.
+
+After resolving conflicts, I run the complete relevant test set and inspect the combined diff.
 
 ## 14. What branching strategy would you recommend for a team of more than 20 developers?
 
@@ -198,9 +213,13 @@ If I only need analysis, `git merge-tree` can show potential merge results witho
 
 I would first ask about release frequency, number of supported versions, regulatory approvals, repository ownership, and whether incomplete work can be hidden with feature flags. Team size alone does not decide the strategy.
 
-For frequent delivery, I prefer trunk-based development: short-lived branches, small pull requests, protected `main`, mandatory automated checks, a merge queue, and feature flags. This reduces long-running conflicts and integration risk. For scheduled releases or multiple supported versions, I add release branches with clear owners and limited lifetime.
+For frequent delivery, I prefer trunk-based development: short-lived branches, small pull requests, protected `main`, mandatory automated checks, a merge queue, and feature flags. This reduces long-running conflicts and integration risk.
 
-I measure lead time, pull-request age, change-failure rate, conflict frequency, and rollback time. If branches remain open for weeks, the process is creating integration risk. CODEOWNERS, component-level tests, and clearly defined repository boundaries help a large team work independently without weakening review.
+For scheduled releases or multiple supported versions, I add release branches with clear owners and limited lifetime.
+
+I measure lead time, pull-request age, change-failure rate, conflict frequency, and rollback time. If branches remain open for weeks, the process is creating integration risk.
+
+CODEOWNERS, component-level tests, and clearly defined repository boundaries help a large team work independently without weakening review.
 
 ## 15. How do you undo a bad commit that has already been pushed to the protected main branch?
 
@@ -215,7 +234,9 @@ git revert <bad-commit-sha>
 git push origin main
 ```
 
-For a merge commit I identify the correct mainline parent and use `git revert -m 1 <merge-sha>`, then review the resulting diff carefully. If multiple dependent commits are involved, I revert in a controlled order or revert the merge through a pull request. I run tests and follow the normal review/deployment process, while pausing or rolling back the affected release if production impact is active.
+For a merge commit I identify the correct mainline parent and use `git revert -m 1 <merge-sha>`, then review the resulting diff carefully. If multiple dependent commits are involved, I revert in a controlled order or revert the merge through a pull request.
+
+I run tests and follow the normal review/deployment process, while pausing or rolling back the affected release if production impact is active.
 
 I avoid `reset --hard` plus force push on shared main because it changes history and disrupts other clones. A secret commit is different: I revoke the secret immediately and may coordinate history rewriting because revert alone leaves the value in history.
 
@@ -224,8 +245,11 @@ I avoid `reset --hard` plus force push on shared main because it changes history
 **Answer:**
 
 For frequent delivery I prefer protected trunk-based development with short-lived branches, small pull requests, mandatory checks, and feature flags. A release branch is created only when a supported release needs stabilization; new features continue on main, while the release branch accepts only approved fixes.
+For a hotfix I branch from the exact production tag, make the smallest tested change, review it, build a new immutable (not changed after creation) version, and deploy it through the emergency but audited pipeline.
 
-For a hotfix I branch from the exact production tag, make the smallest tested change, review it, build a new immutable version, and deploy it through the emergency but audited pipeline. I then merge or cherry-pick the fix back into main and any still-supported release branches so it is not lost in the next release. I tag the fixed release and document the incident/change.
+I then merge or cherry-pick the fix back into main and any still-supported release branches so it is not lost in the next release.
+
+I tag the fixed release and document the incident/change.
 
 The branch does not guarantee stability—the controls do. I require reproducible builds, tests, security checks, code owners, traceable approvals, and verified rollback, and I delete or close stale release branches to prevent drift.
 
@@ -233,9 +257,13 @@ The branch does not guarantee stability—the controls do. I require reproducibl
 
 **Answer:**
 
-I avoid permanent environment branches containing different application code because merging between them creates drift and unclear release identity. Application code normally uses one protected main/trunk and immutable release tags. The same built artifact is promoted through Dev, QA, UAT, and Production.
+I avoid permanent environment branches containing different application code because merging between them creates drift and unclear release identity. Application code normally uses one protected main/trunk and immutable (not changed after creation) release tags.
 
-Environment-specific desired configuration can live in clearly separated directories or repositories with protected pull requests and environment owners. A promotion changes the image digest/chart version in the next environment; it does not rebuild source. Secrets remain external references.
+The same built artifact is promoted through Dev, QA, UAT, and Production.
+
+Environment-specific desired configuration can live in clearly separated directories or repositories with protected pull requests and environment owners. A promotion changes the image digest/chart version in the next environment; it does not rebuild source.
+
+Secrets remain external references.
 
 If an organization requires environment branches, I define one-way promotion, automated comparison, branch protection, and rules preventing direct production commits, but I would explain the drift risk and work toward artifact-based promotion.
 
@@ -243,4 +271,6 @@ If an organization requires environment branches, I define one-way promotion, au
 
 **Answer:**
 
-I first run `pwd` and `git rev-parse --show-toplevel`; the error usually means the command is being run outside the cloned directory, the `.git` metadata is missing, or an environment/script changed the working directory. I `cd` to the repository root and verify `git status` and `git remote -v`. If `.git` was removed or the checkout is corrupted, I preserve uncommitted files, clone a fresh copy, restore only the needed work and then pull the intended branch. I do not run `git init` inside an unknown directory because it creates unrelated history and can hide the real problem.
+I first run `pwd` and `git rev-parse --show-toplevel`; the error usually means the command is being run outside the cloned directory, the `.git` metadata is missing, or an environment/script changed the working directory. I `cd` to the repository root and verify `git status` and `git remote -v`.
+
+If `.git` was removed or the checkout is corrupted, I preserve uncommitted files, clone a fresh copy, restore only the needed work and then pull the intended branch. I do not run `git init` inside an unknown directory because it creates unrelated history and can hide the real problem.

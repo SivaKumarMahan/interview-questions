@@ -2,11 +2,19 @@
 
 ### 1. How do you monitor API performance in Apigee/Azure API Management?
 
-**Answer:** Enable API metrics (latency, error rate), log requests, set SLO dashboards, and configure rate limiting & alerts. **Mini-case:** Apigee showed a 30% latency spike on one backend API; scaling backend pods f ixed response times.
+**Answer:** Collect API response time, error rate, and request logs. Add dashboards for the service target, configure useful alerts, and apply rate limiting where needed.
+
+**Mini-case:** Apigee showed a 30% response-time increase for one backend API. The backend Pods were at their resource limit, so scaling them restored normal response times.
 
 **Detailed interview approach:**
 
-I define service indicators first—availability, latency, errors, traffic, saturation, and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs. Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks. For scale, I aggregate/downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events. I verify alert delivery and recovery and regularly tune noisy or unactionable signals.
+I define service indicators first—availability, latency, errors, traffic, saturation (how close a resource is to its limit), and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs.
+
+Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks.
+
+For scale, I combine or downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events.
+
+I verify alert delivery and recovery and regularly tune noisy or unactionable signals.
 
 ---
 
@@ -16,7 +24,13 @@ I define service indicators first—availability, latency, errors, traffic, satu
 
 **Detailed interview approach:**
 
-I define service indicators first—availability, latency, errors, traffic, saturation, and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs. Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks. For scale, I aggregate/downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events. I verify alert delivery and recovery and regularly tune noisy or unactionable signals.
+I define service indicators first—availability, latency, errors, traffic, saturation (how close a resource is to its limit), and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs.
+
+Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks.
+
+For scale, I combine or downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events.
+
+I verify alert delivery and recovery and regularly tune noisy or unactionable signals.
 
 ---
 
@@ -31,4 +45,10 @@ I define service indicators first—availability, latency, errors, traffic, satu
 
 **Detailed interview approach:**
 
-I define service indicators first—availability, latency, errors, traffic, saturation, and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs. Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks. For scale, I aggregate/downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events. I verify alert delivery and recovery and regularly tune noisy or unactionable signals.
+I define service indicators first—availability, latency, errors, traffic, saturation (how close a resource is to its limit), and key business outcomes—then collect correlated metrics, structured logs, and traces with consistent service, environment, version, and request IDs.
+
+Dashboards show both symptoms and dependencies; SLO-based alerts route with severity, ownership, and runbooks.
+
+For scale, I combine or downsample old metrics, sample traces intelligently, and apply hot/warm/cold log retention based on debugging and compliance needs. During an incident I follow one request across layers and compare with deployment/config events.
+
+I verify alert delivery and recovery and regularly tune noisy or unactionable signals.

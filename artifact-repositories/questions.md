@@ -2,25 +2,39 @@
 
 **Answer:**
 
-I trust an organization-approved registry—not an image merely because it is public or popular. The registry must provide strong identity and least-privilege repositories, TLS and encryption, immutable tags or digest-based deployment, vulnerability scanning, audit logs, retention and recovery, replication/availability, and integration with signing, SBOM, and admission policy. Examples may include ECR, ACR, GCR/Artifact Registry, JFrog Artifactory, Nexus, Harbor, or another managed internal service.
+I trust an organization-approved registry—not an image merely because it is public or popular.
 
-Base images come from allowlisted publishers, are mirrored internally, pinned by digest, scanned, and rebuilt on an owned schedule. CI authenticates with short-lived identity, signs the resulting digest, and only the release workflow can write production repositories. Kubernetes or the runtime verifies approved registry, signature/provenance, and policy before deployment.
+The registry must provide strong identity and least-privilege (minimum required access) repositories, TLS and encryption, immutable (not changed after creation) tags or digest-based deployment, vulnerability scanning, audit logs, retention and recovery, replication/availability, and integration with signing, SBOM, and admission policy.
 
-I test pull behavior during registry/AZ failure and monitor auth failures, scan findings, replication lag, storage, and unusual downloads. A private registry alone is not a trust guarantee; provenance and controlled production promotion establish trust.
+Examples may include ECR, ACR, GCR/Artifact Registry, JFrog Artifactory, Nexus, Harbor, or another managed internal service.
+
+Base images come from allowlisted publishers, are mirrored internally, pinned by digest, scanned, and rebuilt on an owned schedule. CI authenticates with short-lived identity, signs the resulting digest, and only the release workflow can write production repositories.
+
+Kubernetes or the runtime verifies approved registry, signature/provenance (where an artifact came from and how it was built), and policy before deployment.
+
+I test pull behavior during registry/AZ failure and monitor auth failures, scan findings, replication lag, storage, and unusual downloads. A private registry alone is not a trust guarantee; provenance (where an artifact came from and how it was built) and controlled production promotion establish trust.
 
 ## Q. How do you sign software artifacts and verify them before deployment?
 
 **Answer:**
 
-I sign the immutable digest after the build and security checks, using a protected key or keyless workload identity tied to the CI workflow. Containers and OCI Helm charts can use Cosign; classic Helm charts can use provenance signatures; packages may use ecosystem-native signing. The signature and provenance identify the source commit, builder/workflow, artifact digest, and relevant attestations such as SBOM or test results.
+I sign the immutable (not changed after creation) digest after the build and security checks, using a protected key or keyless workload identity tied to the CI workflow. Containers and OCI Helm charts can use Cosign; classic Helm charts can use provenance (where an artifact came from and how it was built) signatures; packages may use ecosystem-native signing.
 
-Deployment policy verifies digest, signature identity/issuer, expected repository/workflow, and required attestations before admitting or promoting the artifact. Keys have owners, rotation, revocation, and audit; CI jobs do not receive long-lived exported private keys. Offline or recovery verification is tested.
+The signature and provenance (where an artifact came from and how it was built) identify the source commit, builder/workflow, artifact digest, and relevant attestations such as SBOM or test results.
 
-Signing proves origin and integrity, not quality. Code review, tests, scanning, policy checks, and runtime controls remain necessary. If a key or workflow is compromised, I revoke trust, identify every affected digest, rebuild from a trusted pipeline, and prevent those artifacts from deployment.
+Deployment policy verifies digest, signature identity/issuer, expected repository/workflow, and required attestations before admitting or promoting the artifact. Keys have owners, rotation, revocation, and audit; CI jobs do not receive long-lived exported private keys.
+
+Offline or recovery verification is tested.
+
+Signing proves origin and integrity, not quality. Code review, tests, scanning, policy checks, and runtime controls remain necessary.
+
+If a key or workflow is compromised, I revoke trust, identify every affected digest, rebuild from a trusted pipeline, and prevent those artifacts from deployment.
 
 ### Q: Artifacts in Azure DevOps
 
-**A:** In Azure DevOps, artifacts refer to the files or packages produced as a result of a build or release pipeline. They can include compiled code, binaries, libraries, configuration files, or any other output that needs to be stored and shared for deployment or further processing. Azure DevOps provides a built-in artifact management system that allows teams to publish, store, and consume artifacts efficiently.
+**A:** In Azure DevOps, artifacts refer to the files or packages produced as a result of a build or release pipeline. They can include compiled code, binaries, libraries, configuration files, or any other output that needs to be stored and shared for deployment or further processing.
+
+Azure DevOps provides a built-in artifact management system that allows teams to publish, store, and consume artifacts efficiently.
 
 Artifacts in Azure DevOps are typically managed through the following features:
 
@@ -98,8 +112,9 @@ I restrict write permissions, scan/sign artifacts, avoid secrets, and clean by r
 **Answer:**
 
 I first determine why the artifact is large and whether all files are deployment inputs. I remove build caches/debug output, use package/container registries, compress suitable content, split independent packages, and use incremental dependency caching—not artifact rebuilding.
+Artifacts have explicit retention and immutable (not changed after creation) versions. Agents and storage are placed close to consumers where possible; parallel downloads are used only if supported and beneficial.
 
-Artifacts have explicit retention and immutable versions. Agents and storage are placed close to consumers where possible; parallel downloads are used only if supported and beneficial. I monitor upload/download time, size trend, storage cost, and deployment time.
+I monitor upload/download time, size trend, storage cost, and deployment time.
 
 For very large datasets or VM images, I use the appropriate storage/image service and pass a versioned reference through the pipeline rather than transferring it as a normal pipeline artifact.
 

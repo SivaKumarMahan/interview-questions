@@ -3,7 +3,6 @@
 ## What Prometheus Does
 
 Prometheus is a pull-based monitoring system, time-series database, PromQL query engine and rule evaluator. It periodically scrapes HTTP metric endpoints, stores each sample with a timestamp and labels, evaluates recording and alerting rules, and exposes data to tools such as Grafana.
-
 The usual flow is:
 
 ```text
@@ -16,7 +15,9 @@ Prometheus TSDB + PromQL + rules
         └── Alertmanager notifications
 ```
 
-A time series consists of a metric name and a unique label set. For example, `http_requests_total{service="orders",status="200"}` is different from the same metric with `status="500"`. Labels should be bounded and operationally useful. Never use request IDs, user IDs, timestamps or unbounded URL values as metric labels because they create excessive cardinality.
+A time series consists of a metric name and a unique label set. For example, `http_requests_total{service="orders",status="200"}` is different from the same metric with `status="500"`.
+
+Labels should be limited and operationally useful. Never use request IDs, user IDs, timestamps or unlimited URL values as metric labels because they create excessive cardinality (number of unique label combinations).
 
 ## Metric Types
 
@@ -121,7 +122,7 @@ histogram_quantile(
 )
 ```
 
-Use a range long enough to contain several scrapes. Aggregate away instance-level labels only when that matches the question being asked.
+Use a range long enough to contain several scrapes. Combined away instance-level labels only when that matches the question being asked.
 
 ## Recording and Alerting Rules
 
@@ -153,14 +154,16 @@ The `for` duration prevents a short spike from immediately firing. Test the comp
 ## Production Practices
 
 - Persist the TSDB and size retention according to ingestion rate, disk capacity and compliance needs.
-- Monitor Prometheus itself: failed scrapes, rule evaluation failures, storage growth, compaction, cardinality and remote-write backlog.
+- Monitor Prometheus itself: failed scrapes, rule evaluation failures, storage growth, compaction, cardinality (number of unique label combinations) and remote-write backlog.
 - Use recording rules for repeated expensive queries and keep dashboards within reasonable query ranges.
 - Run highly available replicas when required. Long retention and global querying can use a compatible managed service, Thanos or Mimir.
-- Keep Prometheus, exporters and service-discovery endpoints on private networks. Use TLS, authentication/authorization at the ingress or reverse proxy, and least-privilege discovery credentials.
+- Keep Prometheus, exporters and service-discovery endpoints on private networks. Use TLS, authentication/authorization at the ingress or reverse proxy, and least-privilege (minimum required access) discovery credentials.
 - Pin reviewed container versions, back up configuration/rules, and provision them through version control.
 
 For an Azure-based environment, Azure Monitor managed service for Prometheus and Azure Managed Grafana can reduce the operational work for AKS monitoring. Self-managed Prometheus remains useful where configuration control or portability is required.
 
 ## Local Learning Stack
 
-A Docker Compose lab commonly contains Prometheus (`9090`), Grafana (`3000`), Node Exporter (`9100`), cAdvisor (`8080`), Loki (`3100`) and Alertmanager (`9093`). Use service names for container-to-container URLs, such as `http://prometheus:9090`, and bind web ports to `127.0.0.1` for local practice. Publicly exposing monitoring ports or using unpinned `latest` images is not a production design.
+A Docker Compose lab commonly contains Prometheus (`9090`), Grafana (`3000`), Node Exporter (`9100`), cAdvisor (`8080`), Loki (`3100`) and Alertmanager (`9093`). Use service names for container-to-container URLs, such as `http://prometheus:9090`, and bind web ports to `127.0.0.1` for local practice.
+
+Publicly exposing monitoring ports or using unpinned `latest` images is not a production design.

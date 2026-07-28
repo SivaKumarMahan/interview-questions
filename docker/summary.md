@@ -2,7 +2,9 @@
 
 ## Core Model
 
-Docker packages an application and its runtime dependencies into an image and starts isolated container processes from that image. The CLI talks to the Docker daemon/API; the daemon builds images, manages containers, volumes, and networks, and pulls/pushes through registries. Images are immutable layered blueprints; containers add an ephemeral writable layer. Persistent application state belongs in volumes or external services.
+Docker packages an application and its runtime dependencies into an image and starts isolated container processes from that image. The CLI talks to the Docker daemon/API; the daemon builds images, manages containers, volumes, and networks, and pulls/pushes through registries.
+
+Images are immutable (not changed after creation) layered blueprints; containers add an ephemeral writable layer. Persistent application state belongs in volumes or external services.
 
 ## Dockerfile Instructions
 
@@ -39,11 +41,15 @@ Multi-stage Dockerfiles compile/test in a tool-heavy stage and copy only runtime
 
 ## docker init
 
-`docker init` is a command-line utility that helps initialize Docker resources within a project. It creates a Dockerfile, a Compose file, and a `.dockerignore` based on the project's requirements, simplifying Docker configuration and reducing complexity. It supports Go, Python, Node.js, Rust, ASP.NET, PHP, and Java, and is available with Docker Desktop.
+`docker init` is a command-line utility that helps initialize Docker resources within a project. It creates a Dockerfile, a Compose file, and a `.dockerignore` based on the project's requirements, simplifying Docker configuration and reducing complexity.
+
+It supports Go, Python, Node.js, Rust, ASP.NET, PHP, and Java, and is available with Docker Desktop.
 
 ### How to use it
 
-Go to your project directory, then run `docker init`. It scans the project, asks you to confirm the best-matching template, and prompts for project-specific information (language/platform, version, port, entrypoint) before generating the Docker assets. You can accept the recommended defaults or provide your own values.
+Go to your project directory, then run `docker init`. It scans the project, asks you to confirm the best-matching template, and prompts for project-specific information (language/platform, version, port, entrypoint) before generating the Docker assets.
+
+You can accept the recommended defaults or provide your own values.
 
 Example — a basic Flask app:
 
@@ -127,7 +133,6 @@ It also generates a `compose.yaml` to run the app (with database service config 
 ### Why use it
 
 `docker init` makes dockerization easy, especially for newcomers. It eliminates the manual task of writing Dockerfiles and other configuration files, saving time and minimizing errors, and uses templates that follow industry best practices to tailor the setup to your application type.
-
 **Note:** At the time of writing, `docker init` is available with Docker Desktop.
 
 ## Docker Compose
@@ -167,8 +172,9 @@ What each file is for:
 - **templates/index.html** — the HTML for the Flask app.
 - **static/css/style.css** — the CSS.
 
-The `docker-compose.yml` defines two services, `app` and `db`, on the same network, with these characteristics: `app` port 5000 is exposed to host port 5000 and `db` port 5432 to host port 5432; `app` depends on `db`; a health check on `db` ensures Postgres is ready before `app` connects; a named volume persists the database; and environment variables hold the Postgres credentials and database name. A configuration matching that description:
+The `docker-compose.yml` defines two services, `app` and `db`, on the same network, with these characteristics: `app` port 5000 is exposed to host port 5000 and `db` port 5432 to host port 5432; `app` depends on `db`; a health check on `db` ensures Postgres is ready before `app` connects; a named volume persists the database; and environment variables hold the Postgres credentials and database name.
 
+A configuration matching that description:
 ```yaml
 services:
   app:
@@ -258,7 +264,9 @@ docker-compose version
 
 ### Using environment variables for credentials
 
-Instead of hardcoding credentials in `docker-compose.yml`, use a `.env` file. Create a `.env` in the same location as `docker-compose.yml`, remove the environment values from the Compose file, and put them in `.env`. Compose loads it automatically on `docker-compose up`.
+Instead of hardcoding credentials in `docker-compose.yml`, use a `.env` file. Create a `.env` in the same location as `docker-compose.yml`, remove the environment values from the Compose file, and put them in `.env`.
+
+Compose loads it automatically on `docker-compose up`.
 
 One problem: if you commit your code to GitHub, a `.env` in the repo exposes the credentials. Keep the secrets file out of the repo (e.g. `.gitignore` it) and pass a dedicated env file explicitly:
 
@@ -268,7 +276,9 @@ docker-compose --env-file db-variables.env up
 
 ## Docker Bake
 
-Docker Bake is a build orchestration tool (GA with Docker Desktop 4.38) that lets you define build stages and configuration in a declarative file instead of memorizing long `docker build` commands and flags. It leverages BuildKit's parallelization and optimization to speed up builds — think of it as "docker build as code," versioned like Terraform templates.
+Docker Bake is a build orchestration tool (GA with Docker Desktop 4.38) that lets you define build stages and configuration in a declarative file instead of memorizing long `docker build` commands and flags.
+
+It leverages BuildKit's parallelization and optimization to speed up builds — think of it as "docker build as code," versioned like Terraform templates.
 
 ### The problem it solves
 
@@ -542,7 +552,6 @@ By default Bake looks up its configuration file in a defined lookup order (e.g. 
 ### Why Docker
 
 20–30 years ago you had hardware with an installed operating system, and to run an application you compiled the code and resolved all dependencies by hand. Needing another application or more capacity meant buying new hardware and doing fresh installation and configuration.
-
 Virtualization added a layer between hardware and OS — the hypervisor — letting you run multiple isolated virtual machines, each with its own OS. But you still had to install software and dependencies on every VM, and applications were not portable: they worked on some machines and not others.
 
 ### What is Docker
@@ -616,7 +625,9 @@ docker rm -f Thor  # or force-delete a running container
 
 Docker provides multiple network types.
 
-**1. Default bridge.** When you run, say, an nginx container, the web server listens on port 80 *inside* the container. From inside the container `curl 127.0.0.1:80` returns the page (`127.0.0.1` is the loopback address for localhost), but you cannot reach it from the host by default. Inspect the container and networks:
+**1. Default bridge.** When you run, say, an nginx container, the web server listens on port 80 *inside* the container.
+
+From inside the container `curl 127.0.0.1:80` returns the page (`127.0.0.1` is the loopback address for localhost), but you cannot reach it from the host by default. Inspect the container and networks:
 
 ```bash
 docker inspect nginx-container
@@ -633,7 +644,9 @@ The default bridge network does not expose container services automatically — 
 docker run -t -d -p 5000:80 --name nginx-container nginx:latest
 ```
 
-**2. User-defined bridge network.** Docker recommends creating your own network rather than using the default bridge. It provides isolation from the host network *and* name resolution between containers (they still need port forwarding to be reached from the host).
+**2. User-defined bridge network.** Docker recommends creating your own network rather than using the default bridge.
+
+It provides isolation from the host network *and* name resolution between containers (they still need port forwarding to be reached from the host).
 
 ```bash
 docker network create blog-network
@@ -665,8 +678,9 @@ There are two syntaxes:
 - **`-v` / `--volume`** — three colon-separated fields: (1) host path (bind mount) or volume name, (2) mount path in the container, (3) optional comma-separated options such as `ro`, `z`, `Z`.
 - **`--mount`** — comma-separated key-value pairs: `type` (`bind`, `volume`, or `tmpfs`), `source`, and `target` (the mount path in the container).
 
-**Example — shared named volume across containers.** Note: `-v <name>:/path` (no leading `/`) creates a **named volume**, not a true bind mount (a bind mount requires an absolute host path like `-v /host/dir:/app/log`). That is why the shared data below is *not* visible on the host filesystem — it lives in Docker-managed storage.
+**Example — shared named volume across containers.** Note: `-v <name>:/path` (no leading `/`) creates a **named volume**, not a true bind mount (a bind mount requires an absolute host path like `-v /host/dir:/app/log`).
 
+That is why the shared data below is *not* visible on the host filesystem — it lives in Docker-managed storage.
 ```bash
 mkdir docker-bind-mount
 docker run -t -d -v docker-bind-mount:/app/log --name captain-america busybox

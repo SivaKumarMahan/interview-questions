@@ -14,7 +14,6 @@ Test-NetConnection server.example.com -Port 443
 ```
 
 `netstat -ano` is another option. I verify whether the service listens on the expected interface (`127.0.0.1`, a private IP, or all interfaces), map PID to process/service, and then check Windows Firewall, network security rules, routing, DNS, and upstream load-balancer probes.
-
 A local listening port does not prove remote reachability, so I test from the actual client network and inspect logs on both ends.
 
 ---
@@ -31,7 +30,9 @@ New-NetFirewallRule -DisplayName 'Allow HTTPS from load balancer' \
   -RemoteAddress 10.20.0.0/24 -Profile Domain
 ```
 
-Before changing production I export/review current policy and confirm the request. I test an allowed source and a denied source. Rules are deployed through Group Policy, configuration management, or IaC where possible, not unmanaged manual changes. Logging and periodic review find unused or overly broad rules.
+Before changing production I export/review current policy and confirm the request. I test an allowed source and a denied source.
+
+Rules are deployed through Group Policy, configuration management, or IaC where possible, not unmanaged manual changes. Logging and periodic review find unused or overly broad rules.
 
 ---
 
@@ -48,7 +49,9 @@ Invoke-Command -ComputerName server01 -ScriptBlock {
 }
 ```
 
-I restrict remoting with firewall scope, least-privilege groups, Just Enough Administration endpoints, logging/transcription, and secure authentication. I avoid TrustedHosts wildcards and plaintext credentials. Troubleshooting covers DNS, time/Kerberos, WinRM listener, firewall, SPNs, user permissions, and the double-hop problem.
+I restrict remoting with firewall scope, least-privilege (minimum required access) groups, Just Enough Administration endpoints, logging/transcription, and secure authentication. I avoid TrustedHosts wildcards and plaintext credentials.
+
+Troubleshooting covers DNS, time/Kerberos, WinRM listener, firewall, SPNs, user permissions, and the double-hop problem.
 
 ---
 

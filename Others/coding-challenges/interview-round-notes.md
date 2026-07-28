@@ -5,6 +5,7 @@
 ## Coding / Hands-on Challenges
 
 ### 11.1 Shell script: log rotation & system cleanup with error handling + notifications
+
 Key elements to demonstrate:
 ```bash
 #!/usr/bin/env bash
@@ -22,9 +23,10 @@ deleted=$(find "$LOG_DIR" -type f -name '*.gz' -mtime +"$RETENTION_DAYS" -print 
 find /tmp -type f -atime +7 -delete
 notify "✅ log-cleanup done: removed $deleted old archives, disk now $(df -h / | awk 'NR==2{print $5}')"
 ```
-Talk about: `set -euo pipefail`, `trap ... ERR` for error handling, idempotency, using `logrotate` in real setups, and Slack/email notification. Mention scheduling via cron/systemd timer.
+Talk about: `set -euo pipefail`, `trap ... ERR` for error handling, idempotency (safe repeat behavior), using `logrotate` in real setups, and Slack/email notification. Mention scheduling via cron/systemd timer.
 
 ### 11.2 Python: parse & analyze AWS CloudWatch metrics with visualization
+
 Key elements:
 ```python
 import boto3, datetime as dt
@@ -49,6 +51,7 @@ plt.tight_layout(); plt.savefig("cpu.png")
 Discuss: boto3 client + credentials (IAM role/OIDC), pagination for large ranges, pandas for analysis (rolling averages, anomaly detection), matplotlib/plotly for viz, and error handling.
 
 ### 11.3 Explain list comprehensions in Python & optimize a snippet
+
 - **List comprehension** = concise, faster way to build a list: `[f(x) for x in it if cond]`. It's faster than an equivalent `for`-loop with `.append()` because iteration/append happen in C. Variants: set `{}`, dict `{k:v}`, and **generator** `( … )` (lazy, memory-efficient for large/streamed data).
 - **Optimization example:**
   ```python
@@ -65,6 +68,7 @@ Discuss: boto3 client + credentials (IAM role/OIDC), pagination for large ranges
 - Other tips: use generators for large data, `sum()`/`any()`/`map` built-ins, avoid repeated attribute lookups in loops, and profile before optimizing.
 
 ### 11.4 Terraform multi-tier module (coding round)
+
 See **§6.6** — same question; cover module structure, remote state + locking, layered state, tiered networking, inputs/outputs, and scanning.
 
 ---

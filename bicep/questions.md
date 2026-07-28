@@ -2,7 +2,9 @@
 
 **Answer:**
 
-Bicep is Microsoft’s declarative language for deploying Azure Resource Manager resources. I describe the desired Azure state, and ARM handles dependency ordering and idempotent create/update operations. Bicep compiles to an ARM JSON template, so it uses the same Azure resource APIs without requiring a separate state file.
+Bicep is Microsoft’s declarative language for deploying Azure Resource Manager resources. I describe the desired Azure state, and ARM handles dependency ordering and idempotent (safe to run more than once) create/update operations.
+
+Bicep compiles to an ARM JSON template, so it uses the same Azure resource APIs without requiring a separate state file.
 
 ```bicep
 param location string = resourceGroup().location
@@ -19,7 +21,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 }
 ```
 
-I keep Bicep in Git, validate and run what-if in CI, deploy with a least-privilege identity, and verify Azure Activity Log, deployment output, policy compliance, and resource health.
+I keep Bicep in Git, validate and run what-if in CI, deploy with a least-privilege (minimum required access) identity, and verify Azure Activity Log, deployment output, policy compliance, and resource health.
 
 ## 2. Why use Bicep instead of raw ARM templates?
 
@@ -29,7 +31,9 @@ Bicep is more concise and readable than ARM JSON. It provides type checking, Int
 
 For example, referencing `storage.id` creates an implicit dependency; in raw JSON I often need verbose resource IDs and `dependsOn`. Bicep can also decompile existing ARM templates for migration.
 
-I choose Bicep for Azure-only infrastructure when the team wants native ARM integration and no external state. I consider Terraform when one workflow must manage multiple providers or when its module/provider ecosystem is required. The decision depends on scope, team skills, governance, and existing platform standards.
+I choose Bicep for Azure-only infrastructure when the team wants native ARM integration and no external state. I consider Terraform when one workflow must manage multiple providers or when its module/provider ecosystem is required.
+
+The decision depends on scope, team skills, governance, and existing platform standards.
 
 ## 3. What is the basic structure of a Bicep file?
 
@@ -75,7 +79,9 @@ module network './modules/network.bicep' = {
 }
 ```
 
-Modules can be published to a private Bicep registry in Azure Container Registry and versioned. I keep modules focused, validate parameters, document outputs, pin published versions, and test breaking changes in lower environments. I avoid one large module with many unrelated conditional resources because it becomes difficult to own and safely update.
+Modules can be published to a private Bicep registry in Azure Container Registry and versioned. I keep modules focused, validate parameters, document outputs, pin published versions, and test breaking changes in lower environments.
+
+I avoid one large module with many unrelated conditional resources because it becomes difficult to own and safely update.
 
 ## 5. How do you pass values between Bicep modules?
 
@@ -122,7 +128,9 @@ az deployment group create \
   --parameters @prod.bicepparam
 ```
 
-CI runs lint/build, validation, policy/security checks, and what-if. A reviewer approves the production diff, and a workload identity deploys. Afterward I inspect deployment operations, policy results, resource health, diagnostics, and an application smoke test.
+CI runs lint/build, validation, policy/security checks, and what-if. A reviewer approves the production diff, and a workload identity deploys.
+
+Afterward I inspect deployment operations, policy results, resource health, diagnostics, and an application smoke test.
 
 ## 7. How do you handle different environments in Bicep?
 
@@ -138,7 +146,9 @@ param skuName = 'P1v3'
 param instanceCount = 3
 ```
 
-Dev and production deploy to separate resource groups/subscriptions and use separate identities and approvals. I use conditions only for genuine optional capabilities, not to create a hard-to-understand template full of environment checks. Secrets come from Key Vault or secure deployment inputs.
+Dev and production deploy to separate resource groups/subscriptions and use separate identities and approvals. I use conditions only for genuine optional capabilities, not to create a hard-to-understand template full of environment checks.
+
+Secrets come from Key Vault or secure deployment inputs.
 
 The pipeline renders what-if per environment, checks Azure Policy, and promotes the same module version. Post-deployment checks confirm tags, networking, diagnostics, capacity, and application behavior.
 
@@ -153,9 +163,10 @@ I mark secret parameters with `@secure()` so values are not exposed in normal de
 param administratorPassword string
 ```
 
-Preferably, the workload uses managed identity and retrieves secrets from Key Vault, meaning Bicep deploys the identity, role assignment, and secret reference rather than handling the secret value. CI authenticates with workload identity federation and reads protected values only when a resource API genuinely requires them.
+Preferably, the workload uses managed identity and retrieves secrets from Key Vault, meaning Bicep deploys the identity, role assignment, and secret reference rather than handling the secret value.
 
-I check what-if, logs, parameter files, outputs, and generated templates for leakage. Key Vault access follows least privilege, private networking where required, audit logging, rotation, and recovery protection.
+CI authenticates with workload identity federation and reads protected values only when a resource API genuinely requires them.
+I check what-if, logs, parameter files, outputs, and generated templates for leakage. Key Vault access follows least privilege (only the permissions needed), private networking where required, audit logging, rotation, and recovery protection.
 
 ## 9. What is the difference between `existing` resources and new resources in Bicep?
 
@@ -172,7 +183,9 @@ resource existingVnet 'Microsoft.Network/virtualNetworks@2023-11-01' existing = 
 output hubVnetId string = existingVnet.id
 ```
 
-The deployment identity must be able to read the referenced scope. If the name or scope is wrong, deployment fails when properties are evaluated. `existing` is useful when a network or Key Vault has a separate owner/lifecycle; it does not import that resource into the current deployment for modification.
+The deployment identity must be able to read the referenced scope. If the name or scope is wrong, deployment fails when properties are evaluated.
+
+`existing` is useful when a network or Key Vault has a separate owner/lifecycle; it does not import that resource into the current deployment for modification.
 
 ## 10. What deployment scopes does Bicep support?
 
@@ -191,7 +204,9 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 }
 ```
 
-Subscription scope can create resource groups and policy assignments; management-group and tenant deployments support broader governance. I use the narrowest required scope and separate high-privilege governance deployments from application deployments. Cross-scope modules make ownership explicit.
+Subscription scope can create resource groups and policy assignments; management-group and tenant deployments support broader governance. I use the narrowest required scope and separate high-privilege governance deployments from application deployments.
+
+Cross-scope modules make ownership explicit.
 
 ## 11. How do you validate a Bicep deployment before applying it?
 
@@ -221,4 +236,6 @@ az deployment operation group list \
 
 I check error code, resource name, API version, permissions, policy denial, quota, region/SKU availability, dependency output, naming constraints, and Activity Log. I reproduce through validation/what-if with the same parameters.
 
-After fixing the root cause, I rerun what-if and confirm no unintended delete or replacement. ARM deployments can partially create resources before failure, so I inspect actual state and do not blindly redeploy or manually delete resources. I validate resource health and the dependent application after success.
+After fixing the root cause, I rerun what-if and confirm no unintended delete or replacement. ARM deployments can partially create resources before failure, so I inspect actual state and do not blindly redeploy or manually delete resources.
+
+I validate resource health and the dependent application after success.

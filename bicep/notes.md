@@ -40,4 +40,6 @@ az deployment group create \
   --parameters vaultName=<vault-name>
 ```
 
-Production considerations include supported-region and API-version validation, soft delete, immutability where required, private networking, least-privilege deployment identity, retention and cost, alerting on backup failure, and regular restore tests. A successful deployment is not proof of recoverability; I verify an actual restore into an isolated location.
+Production considerations include supported-region and API-version validation, soft delete, immutability where required, private networking, least-privilege (minimum required access) deployment identity, retention and cost, alerting on backup failure, and regular restore tests.
+
+A successful deployment is not proof of recoverability; I verify an actual restore into an isolated location.

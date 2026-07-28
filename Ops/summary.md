@@ -5,40 +5,50 @@ DevOps, GitOps, MLOps, and AIOps share automation, feedback, measurement, versio
 | Practice | Primary focus | Typical work |
 | --- | --- | --- |
 | **DevOps** | Software delivery and operations | CI/CD, IaC, configuration, observability, collaboration, reliability |
-| **GitOps** | Declarative infrastructure/application delivery | Git source of truth, pull reconciliation, drift detection, policy, rollback |
+| **GitOps** | Declarative infrastructure/application delivery | Git source of truth, pull reconciliation (making actual state match desired state), drift detection, policy, rollback |
 | **MLOps** | Machine-learning lifecycle | Data/versioning, training pipelines, registry, deployment, monitoring, drift and retraining |
-| **AIOps** | Intelligent IT operations | Event correlation, anomaly detection, root-cause assistance, forecasting, noise reduction, safe remediation |
+| **AIOps** | Intelligent IT operations | Event correlation, anomaly detection, root-cause assistance, forecasting, noise reduction, safe fix |
 
-DevOps establishes reliable delivery. MLOps extends those practices to data and models, including feature/data lineage, experiment tracking, model registry, serving, model/data drift, bias, and retraining. AIOps applies analytics/ML to operational telemetry to detect and prioritize issues; it must provide explainable evidence, human approval for risky action, feedback, and limits against unsafe automated remediation. GitOps ensures declared state remains versioned and continuously reconciled.
+DevOps establishes reliable delivery. MLOps extends those practices to data and models, including feature/data lineage, experiment tracking, model registry, serving, model/data drift, bias, and retraining.
 
-A practical learning path starts with Linux, networking, Git, cloud, security, SQL/Python, CI/CD, containers, Kubernetes, Terraform/Ansible, monitoring/logging, then adds data pipelines/model lifecycle for MLOps and statistics/event correlation/automation guardrails for AIOps. None of these practices replaces the others; together they build, deliver, operate, learn, and improve.
+AIOps applies analytics/ML to operational monitoring data to detect and prioritize issues; it must provide explainable evidence, human approval for risky action, feedback, and limits against unsafe automated fix. GitOps ensures declared state remains versioned and continuously reconciled.
+
+A practical learning path starts with Linux, networking, Git, cloud, security, SQL/Python, CI/CD, containers, Kubernetes, Terraform/Ansible, monitoring/logging, then adds data pipelines/model lifecycle for MLOps and statistics/event correlation/automation guardrails for AIOps.
+
+None of these practices replaces the others; together they build, deliver, operate, learn, and improve.
 
 ## AIOps Incident Flow: Kubernetes CPU Throttling
 
-AIOps means applying analytics and machine learning to IT operations. Its scope is operational telemetry and response, rather than the entire software-delivery lifecycle. A practical CPU-throttling flow is:
+AIOps means applying analytics and machine learning to IT operations. Its scope is operational monitoring data and response, rather than the entire software-delivery lifecycle. A practical CPU-throttling flow is:
 
 1. **Prometheus** collects container CPU usage and throttling counters.
 2. **Alerting** detects sustained throttling and attaches the service, cluster, deployment, and recent-change context.
-3. The **AIOps layer** correlates the signal with a deployment, configuration change, traffic increase, node pressure, and similar past incidents.
-4. It **recommends a bounded action** such as restoring known-good requests, scaling replicas, or rolling back a bad release.
+3. The **AIOps layer** compares the signal with a deployment, configuration change, traffic increase, node pressure, and similar past incidents.
+4. It **recommends a limited action** such as restoring known-good requests, scaling replicas, or rolling back a bad release.
 5. An **approved runbook** changes the Deployment, watches the rollout, and proves that throttling, latency, and errors return to normal.
 6. The platform **notifies the team** and stores the evidence, decision, action, and result for audit and future learning.
 
-Automatic remediation needs confidence thresholds, least-privilege identity, change limits, human approval for risky actions, rollback, and post-action verification. Increasing CPU blindly can hide inefficient code or move pressure to another dependency. Products such as PagerDuty, Datadog, Dynatrace, ManageEngine, Prometheus, Grafana, and automation platforms can participate, but AIOps is the operating approach rather than a single product.
+Automatic fix needs confidence thresholds, least-privilege (minimum required access) identity, change limits, human approval for risky actions, rollback, and post-action verification. Increasing CPU blindly can hide inefficient code or move pressure to another dependency.
+
+Products such as PagerDuty, Datadog, Dynatrace, ManageEngine, Prometheus, Grafana, and automation platforms can participate, but AIOps is the operating approach rather than a single product.
 
 ## AgentOps
 
-Production AI agents require more than an LLM call. **AgentOps** covers multi-step and tool-calling workflows, scheduling, retries, state and memory, observability, evaluation, cost, security, and human approval. An orchestration platform can run branches and retries on Kubernetes and preserve workflow state, but production controls must also include prompt/tool versioning, trace correlation, redaction, permission boundaries, quality evaluation, timeout and budget limits, safe fallback, and an auditable approval path. Python, Kubernetes, and an orchestrator such as Flyte can form an open-source learning stack; the architecture matters more than any particular tool.
+Production AI agents require more than an LLM call. **AgentOps** covers multi-step and tool-calling workflows, scheduling, retries, state and memory, observability, evaluation, cost, security, and human approval.
+
+An orchestration platform can run branches and retries on Kubernetes and preserve workflow state, but production controls must also include prompt/tool versioning, trace correlation, redaction, permission boundaries, quality evaluation, timeout and budget limits, safe fallback, and an auditable approval path.
+
+Python, Kubernetes, and an orchestrator such as Flyte can form an open-source learning stack; the architecture matters more than any particular tool.
 
 ## Managing a Large Kubernetes Fleet
 
 At tens or hundreds of clusters, the platform should treat clusters as a managed fleet:
 
 - **Cluster API** or a cloud fleet service standardizes cluster creation, upgrade, and lifecycle across accounts, subscriptions, regions, and environments.
-- **Terraform** manages cloud and cluster infrastructure through reviewed modules and separate state boundaries per ownership and blast radius.
+- **Terraform** manages cloud and cluster infrastructure through reviewed modules and separate state boundaries per ownership and scope of impact.
 - **Argo CD** or **Flux** deploys versioned desired state; **Helm** or **Kustomize** provides reusable application packaging.
 - **Vault** or an external-secret system injects secrets without committing plaintext values.
 - A **service mesh** is used only when its mTLS, policy, and traffic-control benefits justify its operational cost.
 - **Central metrics, logs, traces, dashboards, and alert routing** provide fleet visibility while retaining per-cluster isolation.
 
-Fleet operations also need version-skew policy, upgrade rings, admission policy, tenant isolation, capacity and cost reporting, backup/restore tests, and a break-glass process. The goal is repeatable control with limited blast radius, not one highly privileged system that can change every cluster without safeguards.
+Fleet operations also need version-skew policy, upgrade rings, admission policy, tenant isolation, capacity and cost reporting, backup/restore tests, and a break-glass process. The goal is repeatable control with limited scope of impact, not one highly privileged system that can change every cluster without safeguards.

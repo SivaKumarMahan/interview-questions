@@ -2,30 +2,42 @@
 
 **Answer:**
 
-AIOps means using analytics and ML to improve IT operations. Observability collects and connects metrics, logs, traces, topology and changes; AIOps uses that evidence for anomaly detection, event correlation, impact prioritization, probable-cause assistance, forecasting and guarded remediation.
+AIOps means using analytics and ML to improve IT operations. Observability collects and connects metrics, logs, traces, topology and changes; AIOps uses that evidence for anomaly detection, event correlation, impact prioritization, probable-cause assistance, forecasting and guarded fix.
+For example, instead of paging separately for Pod CPU throttling, API latency and HPA saturation (how close a resource is to its limit), AIOps can group them into one incident, compare the start with a deployment, and recommend restoring known-good CPU requests. The team still validates the evidence.
 
-For example, instead of paging separately for Pod CPU throttling, API latency and HPA saturation, AIOps can group them into one incident, correlate the start with a deployment, and recommend restoring known-good CPU requests. The team still validates the evidence. AIOps without good telemetry, ownership and runbooks only automates noisy guesses.
+AIOps without good monitoring data, ownership and runbooks only automates noisy guesses.
 
 ## 2. Describe an end-to-end AIOps incident flow.
 
 **Answer:**
 
-Collectors ingest normalized telemetry and change events with service, environment, region and ownership. Correlation groups symptoms by time, topology and dependency. Anomaly/SLO logic detects impact, and the system ranks likely causes with supporting traces, logs, metrics and recent changes. It recommends a runbook; low-risk pre-approved action may run automatically, while risky action needs approval. The platform then verifies the user transaction and SLO, rolls back if necessary, records every decision and learns from the confirmed outcome.
+Collectors ingest normalized monitoring data and change events with service, environment, region and ownership. Correlation groups symptoms by time, topology and dependency.
+
+Anomaly/SLO logic detects impact, and the system ranks likely causes with supporting traces, logs, metrics and recent changes. It recommends a runbook; low-risk pre-approved action may run automatically, while risky action needs approval.
+
+The platform then verifies the user transaction and SLO, rolls back if necessary, records every decision and learns from the confirmed outcome.
 
 During implementation I begin with one high-volume, well-understood incident class and historical evaluation. I compare it against existing rules and human decisions before allowing automation.
 
-## 3. How do you make AIOps remediation safe?
+## 3. How do you make AIOps fix safe?
 
 **Answer:**
 
-I require a specific detected condition and confidence, current-state revalidation, least-privilege identity, resource and rate limits, maximum attempts, timeout, dry-run evidence, a kill switch, rollback and immutable audit logs. Stateful deletion, broad access changes, data recovery and security incidents require human control.
+I require a specific detected condition and confidence, current-state revalidation, least-privilege (minimum required access) identity, resource and rate limits, maximum attempts, timeout, dry-run evidence, a kill switch, rollback and immutable (not changed after creation) audit logs.
 
-After every action I run the original synthetic/business transaction and check errors, latency, saturation and dependencies. If verification fails, automation stops and escalates rather than looping. I track false correlations and unsafe or ineffective actions, and expire approvals when architecture changes.
+Stateful deletion, broad access changes, data recovery and security incidents require human control.
+After every action I run the original synthetic/business transaction and check errors, latency, saturation (how close a resource is to its limit) and dependencies. If verification fails, automation stops and escalates rather than looping.
+
+I track false correlations and unsafe or ineffective actions, and expire approvals when architecture changes.
 
 ## 4. An AIOps tool reports an anomaly but users see no problem. What do you do?
 
 **Answer:**
 
-I do not remediate from the score alone. I inspect the feature and baseline, seasonality, deployment or traffic changes, missing data, label/topology changes and whether user SLIs remain healthy. It may be an early capacity signal, a legitimate new pattern or model drift.
+I do not remediate from the score alone. I inspect the feature and baseline, seasonality, deployment or traffic changes, missing data, label/topology changes and whether user SLIs remain healthy.
 
-I preserve the event as nonpaging evidence, tune segmentation/window only after analysis, and measure false-positive impact. If it predicts a real future risk, I create a capacity ticket or a lower-severity forecast alert. The model is evaluated against confirmed incidents, not rewarded merely for producing many anomalies.
+It may be an early capacity signal, a legitimate new pattern or model drift.
+
+I preserve the event as nonpaging evidence, tune segmentation/window only after analysis, and measure false-positive impact. If it predicts a real future risk, I create a capacity ticket or a lower-severity forecast alert.
+
+The model is evaluated against confirmed incidents, not rewarded merely for producing many anomalies.

@@ -18,8 +18,9 @@ So your cluster is temporarily **frozen** — workloads keep running, but no man
 
 ### Q: One of your worker nodes is not joining the cluster. How would you debug the issue?
 
-If a worker node isn't joining the cluster, I'd first check the `kubeadm join` token validity, network connectivity to the API server, and kubelet logs for authentication or connection errors. Then I'd verify kubelet and container runtime status, DNS/hostname resolution, and finally reset and rejoin the node if necessary.
+If a worker node isn't joining the cluster, I'd first check the `kubeadm join` token validity, network connectivity to the API server, and kubelet logs for authentication or connection errors.
 
+Then I'd verify kubelet and container runtime status, DNS/hostname resolution, and finally reset and rejoin the node if necessary.
 **1. Check the `kubeadm join` command output:**
 
 When you run `kubeadm join`, it provides output that can indicate issues (e.g., token expired, unable to connect to API server).
@@ -183,7 +184,7 @@ A centralized place to monitor:
 | **Prometheus (Optional)**       | **Prometheus + Azure Managed Prometheus**              | Cluster-level scraping of metrics                               | Can be federated or exported to Azure Monitor        |
 | **Log Storage**                 | **Log Analytics Workspace**                            | Stores logs from all clusters                                   | Single shared workspace                              |
 | **Alerting**                    | **Azure Monitor Alerts** + **Prometheus Alertmanager** | Alerts based on thresholds and log queries                      | Centralized alert routing                            |
-| **Event Correlation / Tracing** | **Azure Application Insights**                         | Distributed tracing, dependency maps, and custom telemetry      | Application-level observability                      |
+| **Event Correlation / Tracing** | **Azure Application Insights**                         | Distributed tracing, dependency maps, and custom monitoring data      | Application-level observability                      |
 | **Notifications**               | **Azure Action Groups / Slack / Email**                | Sends alerts to teams                                           | Unified notification routing                         |
 
 **Tools explanation:**
@@ -245,7 +246,9 @@ This approach ensures you have a robust, scalable, and centralized monitoring so
 
 ### Q: How have you upgraded a Kubernetes cluster in production in Azure? What steps did you take to ensure zero downtime?
 
-In production, I upgrade AKS clusters with zero downtime by upgrading the control plane first, followed by node pools sequentially using Azure CLI. Each node is drained gracefully, with workloads protected by readiness probes, multiple replicas, and PodDisruptionBudgets. I monitor during the process via Azure Monitor and Grafana, and test in staging beforehand. This rolling approach ensures continuous availability — users never see downtime.
+In production, I upgrade AKS clusters with zero downtime by upgrading the control plane first, followed by node pools sequentially using Azure CLI. Each node is drained gracefully, with workloads protected by readiness probes, multiple replicas, and PodDisruptionBudgets.
+
+I monitor during the process via Azure Monitor and Grafana, and test in staging beforehand. This rolling approach ensures continuous availability — users never see downtime.
 
 **Steps for a zero-downtime AKS upgrade:**
 
@@ -1069,7 +1072,7 @@ Each StatefulSet pod gets its own PVC with the naming pattern `<claim-name>-<pod
 
 ## Operations, Networking, and Security Notes
 
-- `kubelet` runs on each node and reconciles assigned Pod specifications with the container runtime. `kubectl` is the client CLI; it is not a control-plane component. Metrics Server provides resource metrics used by `kubectl top` and commonly by HPA.
+- `kubelet` runs on each node and reconciles (makes actual state match desired state) assigned Pod specifications with the container runtime. `kubectl` is the client CLI; it is not a control-plane component. Metrics Server provides resource metrics used by `kubectl top` and commonly by HPA.
 - A Service selects ready Pods by labels. `ClusterIP` is internal, `NodePort` exposes a node port, and a headless Service (`clusterIP: None`) returns Pod endpoints directly—commonly for StatefulSets. Ingress/Gateway resources define HTTP(S) routing, but an installed controller/data plane implements them.
 - Use readiness to control traffic, liveness to restart a stuck container, and startup probes to protect slow-starting applications. Use HPA for horizontal replica scaling; right-size requests/limits and use cluster/node autoscaling separately.
 - For planned node work: `kubectl cordon <node>`, drain with an appropriate PDB-aware command, perform maintenance, then `kubectl uncordon <node>`. Do not use `--ignore-daemonsets` as a substitute for understanding workload disruption.

@@ -68,7 +68,7 @@ Handling secrets management in Terraform can be done using the following approac
 4. **Avoid Hardcoding Secrets:** Never hardcode sensitive information directly in your Terraform configuration files or state files.
 5. **Encrypt State Files:** Ensure that your Terraform state files are encrypted, especially if they contain sensitive data.
 6. **Use `.tfvars` Files with Caution:** If using `.tfvars` files to store variables, ensure they are excluded from version control and encrypted if necessary.
-7. **Implement Access Controls:** Restrict access to sensitive data by implementing role-based access controls (RBAC) and least privilege principles.
+7. **Implement Access Controls:** Restrict access to sensitive data by implementing role-based access controls (RBAC) and least privilege (only the permissions needed) principles.
 8. **Rotate Secrets Regularly:** Implement a process for regularly rotating secrets to minimize the risk of exposure.
 
 By following these practices, you can effectively manage secrets in Terraform while maintaining security and compliance.
@@ -151,7 +151,7 @@ Implementing Infrastructure as Code (IaC) principles using Terraform involves th
 2. **Version Control:** Store your Terraform configuration files in a version control system (e.g., Git) to track changes, collaborate with team members, and maintain a history of modifications.
 3. **Modularization:** Break down your infrastructure into reusable modules to promote code reuse, maintainability, and organization.
 4. **Automation:** Integrate Terraform with CI/CD pipelines to automate the deployment and management of infrastructure changes.
-5. **Idempotency:** Ensure that Terraform configurations are idempotent, meaning that applying the same configuration multiple times results in the same state without unintended side effects.
+5. **Idempotency:** Ensure that Terraform configurations are idempotent (safe to run more than once), meaning that applying the same configuration multiple times results in the same state without unintended side effects.
 6. **Documentation:** Document your Terraform code and infrastructure architecture to provide clarity and facilitate onboarding for new team members.
 7. **Testing:** Implement testing strategies (e.g., unit tests, integration tests) to validate your Terraform code and ensure it behaves as expected.
 8. **State Management:** Use remote state backends and implement best practices for managing Terraform state files to ensure consistency and collaboration.
@@ -160,9 +160,9 @@ By following these IaC principles, you can effectively manage and automate your 
 
 ---
 
-### Q: How do you handle Terraform drift detection and remediation?
+### Q: How do you handle Terraform drift detection and fix?
 
-Handling Terraform drift detection and remediation involves the following steps:
+Handling Terraform drift detection and fix involves the following steps:
 
 1. **Regularly Run `terraform plan`:** Schedule regular executions of `terraform plan` to compare the current state of your infrastructure with the desired state defined in your Terraform configuration.
 2. **Use Drift Detection Tools:** Leverage tools like Driftctl or Terraform Cloud's built-in drift detection features to automate the identification of drift in your infrastructure.
@@ -297,9 +297,9 @@ By following these steps, you can effectively design blue-green or canary infras
 
 ---
 
-### Q: How do you ensure idempotency and prevent unwanted re-creations during terraform apply?
+### Q: How do you ensure idempotency (safe repeat behavior) and prevent unwanted re-creations during terraform apply?
 
-To ensure idempotency and prevent unwanted re-creations during `terraform apply`, you can follow these practices:
+To ensure idempotency (safe repeat behavior) and prevent unwanted re-creations during `terraform apply`, you can follow these practices:
 
 1. **Use Stable Resource Identifiers:** Ensure that resource names and identifiers are stable and do not change between runs, as changes can lead to resource re-creation.
 2. **Avoid Dynamic Values:** Minimize the use of dynamic values (e.g., timestamps, random IDs) in resource definitions that can trigger re-creation.
@@ -309,7 +309,7 @@ To ensure idempotency and prevent unwanted re-creations during `terraform apply`
 6. **Modularization:** Break down your configurations into reusable modules to maintain consistency and reduce the risk of unintended changes.
 7. **Maintain State Integrity:** Regularly back up and manage your Terraform state files to ensure they accurately reflect the current infrastructure state.
 
-By following these practices, you can ensure idempotency in your Terraform deployments and prevent unwanted resource re-creations during `terraform apply`.
+By following these practices, you can ensure idempotency (safe repeat behavior) in your Terraform deployments and prevent unwanted resource re-creations during `terraform apply`.
 
 ---
 
@@ -399,10 +399,16 @@ By following these steps, you can effectively integrate Terraform with CI/CD pip
 
 ## State, Replacement, Provisioners, and CIDR
 
-Keep Terraform state in an encrypted remote backend with least-privilege access, versioning/soft-delete, locking and audit logging. State can contain sensitive values, so protect read access as strongly as write access. If infrastructure is changed or deleted manually, inspect the real object and a fresh plan before applying; Terraform may propose recreation to reconcile declared state.
+Keep Terraform state in an encrypted remote backend with least-privilege access (only the permissions needed), versioning/soft-delete, locking and audit logging. State can contain sensitive values, so protect read access as strongly as write access.
 
-`terraform taint` is deprecated. Prefer an explicit reviewed replacement such as `terraform apply -replace=module.example.aws_instance.web` after confirming dependencies, downtime and rollback. Do not use replacement merely to “test” a change in production.
+If infrastructure is changed or deleted manually, inspect the real object and a fresh plan before applying; Terraform may propose recreation to reconcile (make actual state match desired state) declared state.
 
-Provisioners (`local-exec`, `remote-exec`, `file`, and destroy-time provisioners) are last-resort escape hatches, not configuration-management defaults. They are hard to make idempotent and can fail after a resource was created. Prefer cloud-init, image builds, managed services, Ansible, or provider-native resources. If one is necessary, make input/output, retry, secrets, failure handling and destroy behavior explicit.
+`terraform taint` is deprecated. Prefer an explicit reviewed replacement such as `terraform apply -replace=module.example.aws_instance.web` after confirming dependencies, downtime and rollback.
+
+Do not use replacement merely to “test” a change in production.
+
+Provisioners (`local-exec`, `remote-exec`, `file`, and destroy-time provisioners) are last-resort escape hatches, not configuration-management defaults. They are hard to make idempotent (safe to run more than once) and can fail after a resource was created.
+
+Prefer cloud-init, image builds, managed services, Ansible, or provider-native resources. If one is necessary, make input/output, retry, secrets, failure handling and destroy behavior explicit.
 
 CIDR notation such as `10.0.0.0/24` represents a network prefix: `/24` leaves 8 host bits (256 addresses before provider reservations). Plan non-overlapping ranges and future growth; never infer usable addresses from the raw mathematical count alone because cloud platforms reserve addresses.

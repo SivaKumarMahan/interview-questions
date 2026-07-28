@@ -270,9 +270,9 @@ Do not commit plaintext secrets to `values.yaml`. Prefer a dedicated secret-mana
 
 Remember that rendered manifests and release data can expose values. Restrict cluster access, CI logs, artifacts, and Helm release information.
 
-### 10.2 Chart Signing and Provenance
+### 10.2 Chart Signing and Provenance (where an artifact came from and how it was built)
 
-Helm supports provenance files and GPG-based chart verification.
+Helm supports provenance (where an artifact came from and how it was built) files and GPG-based chart verification.
 
 ```bash
 helm package ./mychart --sign --key <key-id> --keyring <keyring-path>
@@ -285,7 +285,7 @@ OCI registry signing is often handled with supply-chain tools such as Sigstore C
 
 | Helm | Operator |
 | --- | --- |
-| Packages and renders resources | Runs a controller with reconciliation logic |
+| Packages and renders resources | Runs a controller with reconciliation (making actual state match desired state) logic |
 | Strong for install, upgrade, and rollback | Strong for continuous application-specific operations |
 | Usually reacts when a user or pipeline runs Helm | Continuously watches custom resources and cluster state |
 | Suitable for most application deployments | Suitable for complex lifecycle automation such as databases |
@@ -299,10 +299,12 @@ A typical CI pipeline:
 1. Lints the chart.
 2. Validates values and renders templates.
 3. Scans images and generated manifests.
-4. Packages and publishes an immutable chart version.
+4. Packages and publishes an immutable (not changed after creation) chart version.
 5. Promotes the version after approval.
 
-In a push model, a pipeline runs Helm against the cluster. In a pull-based GitOps model, Flux or Argo CD watches Git/OCI sources and reconciles the declared release. GitOps improves drift detection and avoids giving a central CI system broad cluster credentials.
+In a push model, a pipeline runs Helm against the cluster. In a pull-based GitOps model, Flux or Argo CD watches Git/OCI sources and reconciles (makes actual state match desired state) the declared release.
+
+GitOps improves drift detection and avoids giving a central CI system broad cluster credentials.
 
 Helm commonly participates in EKS/AKS delivery with Terraform for infrastructure, Jenkins or another CI system for builds, Argo CD/Flux for deployment, and Prometheus/Grafana/AppDynamics for observability.
 
@@ -322,7 +324,7 @@ kubectl describe pod <pod>
 kubectl logs <pod> --previous
 ```
 
-Common failure causes include invalid rendered YAML, missing values, immutable-field changes, hook failures, failed readiness probes, insufficient resources, image-pull errors, RBAC restrictions, and dependency-version conflicts.
+Common failure causes include invalid rendered YAML, missing values, immutable (not changed after creation)-field changes, hook failures, failed readiness probes, insufficient resources, image-pull errors, RBAC restrictions, and dependency-version conflicts.
 
 ## 14. Interview Revision Checklist
 

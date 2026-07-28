@@ -1,9 +1,12 @@
 # AIOps Interview Summary
 
-**AIOps** applies analytics and machine learning to IT operations data so teams can detect unusual behavior, correlate related events, prioritize impact, assist diagnosis, forecast capacity and safely automate repeatable response. **Observability** supplies metrics, logs, traces, topology, deployment/configuration events and service ownership; AIOps reasons over those signals. It does **not** replace instrumentation, SRE ownership or incident command.
+**AIOps** applies analytics and machine learning to IT operations data. It helps teams detect unusual behavior, group related events, prioritize the most important impact, assist diagnosis, forecast capacity, and safely automate repeatable responses.
 
+**Observability** supplies the evidence: metrics, logs, traces, service relationships, deployment or configuration events, and service ownership. AIOps uses those signals; it does not replace them.
+
+It does **not** replace instrumentation, SRE ownership or incident command.
 ```text
-telemetry and changes -> normalize/enrich -> correlate and detect
+monitoring data and changes -> clean and add context -> group related events and detect unusual behavior
 -> rank impact/probable causes -> recommend action
 -> approval or bounded runbook -> verify -> learn
 ```
@@ -13,13 +16,15 @@ A useful result is evidence such as "latency began after version 42, affects two
 **Automation needs:**
 
 - Confidence thresholds
-- Least-privilege identity
+- Least-privilege (minimum required access) identity
 - Preconditions
 - Rate and blast-radius limits
 - Dry run
 - Approval for risky actions
 - Rollback/kill switch
-- Immutable audit evidence
+- Immutable (not changed after creation) audit evidence
 - Post-action SLO validation
 
-**Measure:** detection precision/recall, duplicate reduction, alert actionability, time to detect/acknowledge/restore, correct root-cause ranking, remediation success and unsafe-action rate. Feedback must distinguish temporary mitigation from permanent resolution so the system does not learn to restart services endlessly instead of fixing a leak.
+**Measure:** detection precision/recall, duplicate reduction, alert actionability, time to detect/acknowledge/restore, correct root-cause ranking, fix success and unsafe-action rate.
+
+Feedback must distinguish temporary mitigation from permanent resolution so the system does not learn to restart services endlessly instead of fixing a leak.

@@ -4,311 +4,352 @@
 
 ### Detailed answer
 
-Yes, I have handled Production issues involving AKS deployments, container resources, Azure Container Registry access, database connections and Application Gateway routing. I follow a consistent incident-management approach:
+Yes, I have handled Production issues involving AKS deployments, container memory, Azure Container Registry, database connections, and Application Gateway. I follow the same simple approach for each issue:
 
 ```text
-detect and acknowledge
--> assess user impact and severity
--> stop the blast radius
--> collect evidence
--> form and test a hypothesis
--> mitigate or roll back
--> verify user recovery
--> identify root cause
--> implement preventive actions
+understand the problem
+-> check logs, Events, and metrics
+-> identify the cause
+-> restore the service
+-> verify that users can access it
+-> apply a permanent fix
+-> add monitoring to prevent it happening again
 ```
 
-I do not begin by randomly restarting services. I first correlate alerts with recent deployments and configuration changes, preserve logs and Events, and assign one incident coordinator. The immediate goal is to restore service safely; detailed root-cause analysis and long-term correction follow after stabilization.
+I do not restart Pods without checking the reason for the failure. I first check recent deployments, Kubernetes Events, logs, and monitoring data. I restore the service safely, verify that it works, and then make a permanent correction.
 
-The following are five representative scenarios aligned with the Azure platform I have supported.
+The following are five simple examples from an Azure and AKS environment.
 
 ---
 
 ### Scenario 1: A new AKS release caused HTTP 502 errors
 
-#### Situation and impact
+**Interviewer:** After deploying a new application version to AKS, users started receiving HTTP 502 errors. How would you troubleshoot and fix it?
 
-After deploying a new version of a Java microservice to Production AKS, Application Gateway began returning intermittent HTTP 502 responses. The pipeline showed that the Helm deployment command completed, but several new Pods never became Ready. Because this was a rolling deployment, old and new replicas temporarily existed together, and only requests routed toward the unhealthy release were affected.
+**Candidate:**
 
-#### Investigation
+An HTTP 502 error means the gateway cannot get a valid response from the application. If it starts immediately after a deployment, I would first check whether the new Pods are healthy and ready to receive traffic.
 
-I first paused further promotion and checked the release timeline against Azure Monitor and Application Insights. The error increase started immediately after the deployment.
+Here's how I would troubleshoot it:
 
-I then inspected the workload:
-
-```bash
-kubectl get pods -n <namespace> -o wide
-kubectl rollout status deployment/<name> \
-  -n <namespace> \
-  --timeout=<approved-timeout>
-kubectl describe pod <pod> -n <namespace>
-kubectl logs <pod> -n <namespace> \
-  -c <container> --previous
-kubectl get events -n <namespace> \
-  --sort-by=.metadata.creationTimestamp
-helm history <release> -n <namespace>
-```
-
-The Kubernetes Events showed readiness failures. Application logs showed that the service required more startup time after a dependency initialization change, but the readiness/liveness configuration treated it as failed too early. As a result, the containers restarted before initialization completed and never became stable.
-
-#### Immediate mitigation
-
-I stopped the rollout and rolled the Helm release back to the previous known-good revision and ACR image digest:
+#### Check the Pods
 
 ```bash
-helm rollback <release> <known-good-revision> \
-  -n <namespace> \
-  --wait \
-  --timeout <approved-timeout>
+kubectl get pods -n <namespace>
+kubectl describe pod <pod-name> -n <namespace>
 ```
 
-I verified that all restored Pods were Ready, Application Gateway backend health recovered, smoke tests passed, and the 502 rate returned to baseline. We kept the service under observation before closing the incident.
+I would check whether the Pods are `Running` and `Ready`. The Events section may show readiness probe failures, container restarts, or configuration errors.
 
-#### Root cause and permanent fix
+#### Check the application logs
 
-The application startup behavior had changed, but the Kubernetes probes had not been updated or load-tested with the new startup time.
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
 
-I worked with the development team to:
+The logs help confirm whether the application failed to start, cannot connect to another service, or is listening on the wrong port.
 
-- Add a startup probe to protect slow initialization.
-- Keep readiness focused on whether the Pod can safely receive traffic.
-- Keep liveness focused on a genuinely stuck process rather than temporary dependency latency.
-- Tune thresholds from measured startup behavior instead of guessing.
-- Add a pipeline test that validates the health endpoints.
-- Deploy the correction through a small canary before full rollout.
-- Add an alert for unavailable replicas and repeated probe failures.
+#### Check the Service
 
-#### Interview takeaway
+```bash
+kubectl get service -n <namespace>
+kubectl get endpoints -n <namespace>
+```
 
-The important point is that I did not consider a successful Helm command to be a successful release. Kubernetes readiness, Application Gateway health, Application Insights errors and a real API test determined whether the deployment was successful.
+If the Service has no endpoints, it usually means the Pod labels do not match the Service selector or the Pods are not Ready.
+
+#### Check the rollout
+
+```bash
+kubectl rollout status deployment/<deployment-name> -n <namespace>
+```
+
+If the new release is unhealthy, I would stop further deployment and roll back to the last working Helm revision:
+
+```bash
+helm rollback <release-name> <revision> -n <namespace>
+```
+
+#### Fix the root cause
+
+Depending on the evidence, I would:
+
+- Correct the readiness probe path or port.
+- Increase the startup time if the application needs longer to start.
+- Correct the Service selector or target port.
+- Fix a missing configuration value or dependency connection.
+- Roll back the application if the new version introduced the problem.
+
+#### Example
+
+Suppose the application needs 60 seconds to start, but the health check begins after 10 seconds. The Pod is marked unhealthy before it is ready, so Application Gateway has no healthy backend and returns 502.
+
+I would add or adjust the startup probe, redeploy, and verify that the Pods become Ready.
+
+In short: I would check the Pods, logs, Service endpoints, health probes, and rollout status. I would roll back if users are affected, fix the failed configuration, and then verify the application through the external URL.
 
 ---
 
 ### Scenario 2: Java Pods were repeatedly `OOMKilled`
 
-#### Situation and impact
+**Interviewer:** Your pods are repeatedly getting OOMKilled. How would you troubleshoot and fix it?
 
-During a traffic increase, one Java service developed high latency and intermittent failures. AKS kept recreating Pods, so the service appeared to recover briefly and then fail again. Azure Monitor and Prometheus showed increasing memory usage and container restarts.
+**Candidate:**
 
-#### Investigation
+An OOMKilled error means the container used more memory than its allowed memory limit. The Linux kernel kills the process to protect the node.
 
-I checked the Pod status and last termination reason:
+Here's how I would troubleshoot it:
+
+#### Confirm the reason
 
 ```bash
-kubectl get pods -n <namespace>
-kubectl describe pod <pod> -n <namespace>
-kubectl logs <pod> -n <namespace> \
-  -c <container> --previous
-kubectl top pod -n <namespace> --containers
+kubectl describe pod <pod-name>
+```
+
+In the Events section, I would verify that the container was terminated with `Reason: OOMKilled`.
+
+#### Check memory usage
+
+```bash
+kubectl top pod <pod-name>
 kubectl top node
 ```
 
-`kubectl describe` showed `OOMKilled`, confirming that the container crossed its memory limit. I correlated:
+This helps me understand whether the Pod is actually consuming excessive memory or if the node itself is under memory pressure.
 
-- Container working-set memory.
-- Memory request and limit.
-- JVM heap and garbage-collection metrics.
-- Request rate and payload size.
-- Application Insights traces.
-- Recent application changes.
-- Node memory pressure and other workloads on the node.
+#### Review resource requests and limits
 
-The root cause was not simply “AKS needs more memory.” The JVM heap, an application cache and concurrent request volume together could exceed the container limit. Horizontal scaling also created more replicas with the same unsafe settings.
+```yaml
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+```
 
-#### Immediate mitigation
+If the limit is too low for the application, I would increase it based on the application's normal memory usage.
 
-I reduced the blast radius by routing traffic to healthy replicas and stopping further rollout of the affected version. After confirming node capacity, we temporarily adjusted replicas and memory settings to stabilize the service while preserving enough cluster headroom. If the problem was introduced by the latest release, the safer action was to restore the previous known-good digest.
+#### Check the application
 
-I avoided only increasing the memory limit without analysis because that could move the failure from the Pod to the node and affect unrelated services.
+- Look for memory leaks.
+- Verify if a recent deployment introduced higher memory consumption.
 
-#### Root cause and permanent fix
+Review application logs:
 
-The development and platform teams:
+```bash
+kubectl logs <pod-name> --previous
+```
 
-- Sized the JVM heap relative to the container limit and left room for non-heap/native memory.
-- Bounded the in-memory cache and corrected the code path retaining large objects.
-- Streamed large payloads instead of loading them completely into memory where appropriate.
-- Right-sized requests and limits using observed percentiles.
-- Load-tested the service at expected concurrency.
-- Configured HPA using meaningful demand signals while respecting downstream capacity.
-- Added alerts for memory growth, OOM termination, restart rate, throttling and node pressure.
-- Added dashboard annotations for deployments to correlate regressions quickly.
+#### Monitor over time
 
-#### Interview takeaway
+I would use monitoring tools like Prometheus and Grafana to see memory usage trends instead of relying on a single point in time.
 
-The effective fix combined application correction and platform tuning. Kubernetes restart behavior restored individual containers, but it could not fix a memory leak or unsafe JVM/container sizing.
+#### Enable autoscaling if appropriate
+
+If memory usage increases with traffic, I would configure a Horizontal Pod Autoscaler (HPA) based on memory or CPU metrics to distribute the load across more Pods.
+
+#### Example
+
+Suppose a Java application has a memory limit of `512Mi`, but during peak traffic it uses `700Mi`. Kubernetes kills the container because it exceeds the limit.
+
+I would first confirm the usage, then either increase the memory limit—for example, to `1Gi`—if justified, or optimize the application's memory consumption.
+
+In short: I would verify the OOMKilled event, check memory metrics, review resource limits, analyze application behavior, and then either optimize the application or adjust the Kubernetes resource configuration.
 
 ---
 
 ### Scenario 3: AKS Pods entered `ImagePullBackOff` after an identity change
 
-#### Situation and impact
+**Interviewer:** Your AKS Pods are showing ImagePullBackOff. How would you troubleshoot and fix it?
 
-After an identity and RBAC cleanup, a deployment created new Pods that entered `ErrImagePull` and then `ImagePullBackOff`. Existing Pods continued serving traffic, so we prevented immediate user impact, but the release could not progress and the application had reduced recovery capacity.
+**Candidate:**
 
-#### Investigation
+`ImagePullBackOff` means Kubernetes cannot download the container image. It waits and retries with an increasing delay.
 
-I checked the Pod Events rather than assuming the image was missing:
+Here's how I would troubleshoot it:
+
+#### Check the exact error
 
 ```bash
-kubectl describe pod <pod> -n <namespace>
-kubectl get events -n <namespace> \
-  --sort-by=.metadata.creationTimestamp
+kubectl describe pod <pod-name> -n <namespace>
 ```
 
-I verified:
+In the Events section, I would look for messages such as:
 
-- The registry name, repository, tag and digest.
-- That the image existed in Azure Container Registry.
-- ACR network access and private DNS resolution from the AKS network.
-- The AKS kubelet managed identity.
-- The role assignment and scope used for image pulls.
-- Whether the Pod incorrectly depended on an outdated `imagePullSecret`.
+- `not found` — the image name or tag is wrong.
+- `unauthorized` — AKS does not have permission to pull the image.
+- `connection timeout` — AKS cannot reach the registry.
 
-The Event message showed an authorization failure. During RBAC cleanup, the `AcrPull` assignment for the AKS kubelet identity had been removed.
+#### Check the image name
 
-#### Immediate mitigation
+```bash
+kubectl get deployment <deployment-name> -n <namespace> -o yaml
+```
 
-I stopped the deployment so Kubernetes would not continue creating failing replicas. After confirming the correct kubelet identity and registry scope, I restored the least-privilege `AcrPull` assignment. I waited for RBAC propagation, restarted only the affected rollout and verified that the exact approved image digest could be pulled.
+I would verify the registry name, repository, image name, and tag. I would also confirm that the image exists in Azure Container Registry.
 
-I did not work around the issue by adding registry administrator credentials to a Kubernetes Secret. That would have introduced a long-lived credential and hidden the identity problem.
+#### Check ACR permissions
 
-#### Root cause and permanent fix
+For AKS to pull an image from ACR, its kubelet identity normally needs the `AcrPull` role on the registry. If the Events show `unauthorized`, I would verify and restore the correct role assignment.
 
-The role assignment had been changed outside the complete AKS-to-ACR dependency review.
+#### Check network access
 
-Preventive actions included:
+If the registry uses a firewall or private endpoint, I would verify that the AKS network can reach ACR and resolve its DNS name.
 
-- Managing the identity and `AcrPull` assignment through Terraform/Bicep.
-- Protecting identity and RBAC changes with CODEOWNERS review.
-- Running a pre-deployment image-pull validation in a representative namespace.
-- Alerting on `ErrImagePull` and `ImagePullBackOff`.
-- Documenting the distinction between the pipeline push identity and AKS pull identity.
-- Reviewing ACR private endpoint, Private DNS and firewall paths as part of the deployment checklist.
+#### Restart the rollout
 
-#### Interview takeaway
+After correcting the image, permission, or network issue, I would restart and verify the deployment:
 
-The pipeline identity that pushes an image to ACR and the AKS kubelet identity that pulls it are different authorization paths. Verifying that distinction led to a targeted fix without weakening registry security.
+```bash
+kubectl rollout restart deployment/<deployment-name> -n <namespace>
+kubectl rollout status deployment/<deployment-name> -n <namespace>
+```
+
+#### Example
+
+Suppose a cleanup accidentally removes the `AcrPull` role from the AKS kubelet identity. New Pods cannot download their images and enter `ImagePullBackOff`, while old Pods may continue running. I would restore the `AcrPull` role and restart the rollout.
+
+In short: I would read the Pod Events, verify the image name and tag, check ACR permissions, and test network access. After fixing the cause, I would restart the deployment and confirm that all Pods are Running and Ready.
 
 ---
 
 ### Scenario 4: Azure Database for PostgreSQL connections were exhausted
 
-#### Situation and impact
+**Interviewer:** Your application is getting database connection timeout errors during peak traffic. How would you troubleshoot and fix it?
 
-A Java microservice began returning intermittent 5xx responses and database timeouts during peak traffic. AKS Pods were Running and Ready, but Application Insights dependency telemetry showed slow and failed PostgreSQL calls. Azure Database for PostgreSQL metrics showed connections approaching the safe limit.
+**Candidate:**
 
-#### Investigation
+A database connection timeout usually means the application cannot get a database connection within the allowed time. This can happen when there are too many connections, slow queries, or connections that are not closed correctly.
 
-I correlated:
+Here's how I would troubleshoot it:
 
-- Application request rate and 5xx responses.
-- Application Insights dependency duration and failures.
-- Active, idle and waiting database connections.
-- Database CPU, memory, storage and lock behavior.
-- HikariCP or application connection-pool metrics.
-- Number of AKS replicas and the maximum pool size per replica.
-- Long-running queries and connection leaks.
+#### Check the application logs
 
-The aggregate pool size had not been calculated across all replicas. When HPA added Pods, each Pod created its full connection pool, and the total approached the database limit. Some application paths also held connections longer than expected.
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
 
-#### Immediate mitigation
+I would look for errors such as `connection timeout`, `too many connections`, or repeated database failures.
 
-I paused unnecessary scaling and reduced pressure on the affected service. With the database/application owner, we identified confirmed stale or problematic sessions and avoided terminating valid transactions blindly. Where required, we temporarily adjusted capacity or traffic while restoring a safe connection budget.
+#### Check the number of Pods
 
-We did not simply keep increasing the server connection limit, because each database connection consumes memory and uncontrolled growth can create a larger performance failure.
+```bash
+kubectl get pods -n <namespace>
+kubectl get hpa -n <namespace>
+```
 
-#### Root cause and permanent fix
+Each Pod can open several database connections. When HPA adds more Pods, the total number of connections can increase quickly.
 
-We corrected the application and platform configuration by:
+#### Check database metrics
 
-- Calculating a total connection budget and dividing it across replicas.
-- Reducing pool size and setting sensible acquisition, idle and maximum-lifetime values.
-- Ensuring every code path closes connections correctly.
-- Optimizing slow queries and adding justified indexes.
-- Using bounded retries with backoff rather than retry storms.
-- Evaluating Azure Database for PostgreSQL connection pooling/PgBouncer where appropriate.
-- Aligning HPA maximum replicas with database capacity.
-- Adding alerts for connection utilization, pool wait time, query latency and failed dependencies.
-- Load-testing scaling behavior rather than testing only one Pod.
+I would use Azure Monitor to check:
 
-#### Interview takeaway
+- Active database connections.
+- Maximum allowed connections.
+- CPU and memory usage.
+- Slow or long-running queries.
 
-The issue appeared to be a Kubernetes application failure, but end-to-end telemetry showed that the real bottleneck was the combined connection behavior of all replicas and the database.
+#### Review connection settings
+
+I would check how many connections each Pod can open and make sure the total stays within the database limit. I would also verify that the application closes connections after use.
+
+#### Fix the issue
+
+Depending on the cause, I would:
+
+- Reduce the number of connections allowed per Pod.
+- Fix code that does not close connections.
+- Optimize slow database queries.
+- Set an appropriate maximum replica count in HPA.
+- Increase database capacity only when the existing limit is genuinely too small.
+
+#### Example
+
+Suppose the database safely supports 100 connections. If five Pods can each open 30 connections, they may request up to 150 connections.
+
+I would reduce each Pod to a safe value, such as 15 connections, so five Pods use at most 75 and leave capacity for other work.
+
+In short: I would check application logs, database metrics, Pod count, and connection settings. I would then reduce unnecessary connections, fix the application or queries, and make sure autoscaling does not exceed database capacity.
 
 ---
 
 ### Scenario 5: Application Gateway returned 502 after a routing/probe change
 
-#### Situation and impact
+**Interviewer:** The AKS Pods are healthy, but Azure Application Gateway is returning HTTP 502. How would you troubleshoot and fix it?
 
-After a configuration release, users received HTTP 502 errors through Azure Application Gateway, although the AKS Pods and Service appeared healthy from inside the cluster.
+**Candidate:**
 
-#### Investigation
-
-I traced the request path instead of stopping at Pod health:
+If the Pods are healthy but Application Gateway returns 502, the problem is usually between the gateway and the application backend. I would check each part of the request path.
 
 ```text
-client
--> DNS
--> Application Gateway listener and routing rule
--> backend setting and health probe
--> ingress/Service
--> Pod readiness and application port
+User
+-> Application Gateway
+-> Ingress or Service
+-> Pod
 ```
 
-I checked:
+Here's how I would troubleshoot it:
 
-- Application Gateway provisioning and operational state.
-- Listener, hostname, certificate and routing-rule priority.
-- Backend pool membership and backend health details.
-- Probe protocol, host, path, port, timeout and accepted response.
-- Application Gateway access and performance logs in Log Analytics.
-- WAF logs for blocked requests.
-- NSG, UDR, Private DNS and firewall paths.
-- Ingress, Service endpoints and Pod application logs.
-- Backend TLS hostname and certificate trust where HTTPS was used.
+#### Check the Pods and Service
 
-The backend-health details showed that the custom probe returned an unexpected response after the application health path changed. The Pods were healthy, but Application Gateway considered every backend unhealthy and therefore returned 502.
+```bash
+kubectl get pods -n <namespace>
+kubectl get service -n <namespace>
+kubectl get endpoints -n <namespace>
+```
 
-#### Immediate mitigation
+The Pods should be Ready, and the Service should have endpoints. No endpoints usually means the Service selector does not match the Pods or the Pods are not Ready.
 
-I reverted the probe/routing configuration through the controlled deployment process or temporarily restored the backward-compatible health endpoint, depending on which option had the lowest risk. After the change, I verified that Application Gateway reported healthy backends, smoke tests passed externally and the 502 rate returned to baseline.
+#### Test the application inside the cluster
 
-I avoided disabling WAF, opening broad NSG rules or changing multiple network components simultaneously because that would increase exposure and make the root cause harder to prove.
+I would call the Service from another Pod. If it works inside the cluster, the application and Service are probably healthy, and I would continue checking Application Gateway.
 
-#### Root cause and permanent fix
+#### Check backend health
 
-The application endpoint and gateway probe configuration were released independently.
+In Application Gateway, I would check whether the backend is shown as Healthy or Unhealthy. If it is Unhealthy, I would review the health probe:
 
-We prevented recurrence by:
+- Probe path, such as `/health`.
+- Protocol, HTTP or HTTPS.
+- Backend port.
+- Timeout setting.
+- Expected response code.
 
-- Versioning Application Gateway configuration through Terraform/Bicep.
-- Reviewing application and probe changes together.
-- Testing the full external path before Production promotion.
-- Keeping health endpoints backward compatible during rollout.
-- Adding an alert for unhealthy backend count and 502 rate.
-- Adding synthetic monitoring through Application Gateway rather than testing only the ClusterIP.
-- Validating backend TLS hostname/certificate and Private DNS in pre-production.
-- Requiring a targeted rollback plan for networking changes.
+#### Check routing and network access
 
-#### Interview takeaway
+I would verify that the gateway points to the correct backend and port. I would also check firewall and network rules if the gateway cannot connect to the AKS backend.
 
-“Pods are healthy” does not prove that users can reach the application. I followed the complete Layer-7 path and used Application Gateway backend-health evidence to isolate the failing hop.
+#### Check logs
+
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
+
+Application Gateway access logs and Pod logs help show whether requests reach the application and what response is returned.
+
+#### Fix the issue
+
+Depending on the evidence, I would correct the health probe, backend port, routing rule, certificate, or network access. I would then confirm that Application Gateway reports the backend as Healthy.
+
+#### Example
+
+Suppose the application health endpoint changes from `/health` to `/actuator/health`, but Application Gateway still checks `/health`. The probe receives a 404 response, marks every backend Unhealthy, and returns 502 to users.
+
+I would update the probe path and verify the application through the public URL.
+
+In short: I would check the Pods, Service endpoints, Application Gateway backend health, health probe, routing, and logs. After fixing the failed setting, I would test the complete path from the public URL to the Pod.
 
 ---
 
 ## How I handled these incidents effectively
 
-Across these scenarios, the effective practices were:
+I use these basic steps for Production issues:
 
-1. **I used evidence before action.** Deployment history, Kubernetes Events, previous container logs, Azure metrics and Application Insights traces guided the investigation.
-2. **I limited the blast radius.** I paused rollout, retained healthy replicas and used rollback or traffic control rather than allowing a bad version to continue.
-3. **I separated mitigation from root cause.** Restoring service came first; permanent code, configuration or architecture correction followed.
-4. **I verified the user journey.** Recovery required an external smoke test or business transaction, not only a green Kubernetes status.
-5. **I preserved security.** I did not solve identity failures with administrator credentials or network failures with broad access.
-6. **I automated prevention.** Fixes were moved into Terraform/Bicep, Helm, pipeline gates, dashboards, alerts and runbooks.
-7. **I documented and communicated.** Stakeholders received impact, mitigation and recovery updates, followed by a blameless RCA with owners and deadlines.
+1. **Understand the impact.** Check which application and users are affected.
+2. **Collect information.** Check Kubernetes Events, logs, metrics, and recent changes.
+3. **Restore the service.** Roll back or correct the failed setting.
+4. **Verify the result.** Test the application as a user would, not only the Pod status.
+5. **Fix the cause.** Correct the application, Kubernetes configuration, permission, or network setting.
+6. **Prevent recurrence.** Add monitoring, alerts, tests, and documentation.
 
 ## Recommended interview structure
 
@@ -319,10 +360,12 @@ For each Production incident, I use the STAR method:
 - **Action:** Evidence collected, mitigation, technical fix and coordination.
 - **Result:** How service recovery was verified and what prevention was added.
 
-I avoid saying only, “I restarted the Pod and it worked.” A strong answer explains why the Pod failed, how I proved the cause, how I restored service safely and what change prevented recurrence.
+I avoid saying only, “I restarted the Pod and it worked.” I explain what failed, how I found the cause, how I fixed it, and how I prevented it from happening again.
 
 ## Concise interview answer
 
-Yes, I have handled several Azure Production incidents. For example, after an AKS release we saw intermittent 502 errors. I correlated the deployment with Application Insights, inspected Kubernetes Events and previous logs, and found that new Pods were failing readiness because application startup time had changed. I stopped the rollout, restored the previous Helm revision and ACR digest, verified Application Gateway health and a real API transaction, and then added a proper startup probe, tuned readiness from measured behavior and introduced canary validation.
+Yes, I have handled several Production issues in AKS. These include Pods failing after a deployment, `OOMKilled` errors, `ImagePullBackOff`, database connection timeouts, and Application Gateway 502 errors.
 
-I have also handled Java Pods being `OOMKilled`, AKS image pulls failing after an ACR RBAC change, PostgreSQL connection exhaustion caused by aggregate connection pools across scaled replicas, and Application Gateway 502 errors caused by an outdated health probe. In each case, I first limited impact, used logs/metrics/traces to isolate the failing layer, applied the smallest safe mitigation, verified user recovery and then automated the permanent fix through code, pipeline gates, monitoring and runbooks.
+For every issue, I first check the Pod Events, logs, metrics, and recent changes. I identify the exact cause instead of restarting the Pod immediately.
+
+I then roll back or correct the failed setting, verify that users can access the application, and add monitoring or tests to prevent the same issue from happening again.

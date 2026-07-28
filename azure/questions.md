@@ -3,10 +3,11 @@
 **Answer:**
 
 Microsoft Azure is a cloud platform that provides compute, networking, storage, databases, identity, integration, security, monitoring, analytics, and DevOps services. It supports public cloud, hybrid, and multi-cloud scenarios through services such as Azure Arc.
+A simple application flow is: users reach Azure Front Door, traffic goes to App Service or AKS, the workload uses managed identity to read Key Vault and access Azure SQL, and monitoring data goes to Azure Monitor/Application Insights.
 
-A simple application flow is: users reach Azure Front Door, traffic goes to App Service or AKS, the workload uses managed identity to read Key Vault and access Azure SQL, and telemetry goes to Azure Monitor/Application Insights.
+Azure uses tenants for identity, management groups and subscriptions for governance/billing boundaries, resource groups for lifecycle grouping, and regions/availability zones for placement.
 
-Azure uses tenants for identity, management groups and subscriptions for governance/billing boundaries, resource groups for lifecycle grouping, and regions/availability zones for placement. In an interview I explain the actual services, availability target, security model, operations, and cost controls rather than saying only “Azure hosts applications.”
+In an interview I explain the actual services, availability target, security model, operations, and cost controls rather than saying only “Azure hosts applications.”
 
 ## 2. What is the difference between IaaS, PaaS, and serverless in Azure?
 
@@ -16,7 +17,9 @@ Azure uses tenants for identity, management groups and subscriptions for governa
 - **PaaS:** Azure also manages the OS/runtime platform; I focus on application, configuration, identity, and data. Examples: App Service and Azure SQL Database.
 - **Serverless:** Code or workflows run in response to events and can scale based on demand. Examples: Azure Functions and Logic Apps.
 
-I choose IaaS for legacy software or OS-level control, PaaS for managed web/database platforms, and Functions for event-driven tasks. I compare compliance, runtime control, scaling, latency/cold start, execution duration, networking, operational effort, and steady-state cost. “Serverless” does not mean no servers; it means the provider operates them.
+I choose IaaS for legacy software or OS-level control, PaaS for managed web/database platforms, and Functions for event-driven tasks.
+
+I compare compliance, runtime control, scaling, latency/cold start, execution duration, networking, operational effort, and steady-state cost. “Serverless” does not mean no servers; it means the provider operates them.
 
 ## 3. How do you manage infrastructure with Terraform in Azure?
 
@@ -35,9 +38,8 @@ terraform {
 provider "azurerm" { features {} }
 ```
 
-The flow is `fmt` → `validate` → lint/security/policy checks → plan → peer review → production approval → apply saved plan → smoke tests. State storage uses encryption, versioning, lease-based locking, private access where required, and least privilege.
-
-For failure I inspect Terraform state, provider error, Azure Activity Log, policy, quota, IAM, and networking. I never rerun blindly or edit state without backup and reconciliation.
+The flow is `fmt` → `validate` → lint/security/policy checks → plan → peer review → production approval → apply saved plan → smoke tests. State storage uses encryption, versioning, lease-based locking, private access where required, and least privilege (only the permissions needed).
+For failure I inspect Terraform state, provider error, Azure Activity Log, policy, quota, IAM, and networking. I never rerun blindly or edit state without backup and reconciliation (making actual state match desired state).
 
 ## 4. How do you deploy applications to Azure Kubernetes Service?
 
@@ -47,13 +49,13 @@ My delivery flow is:
 
 1. Build and test the application.
 2. Create a minimal container image, generate an SBOM, and scan it.
-3. Push an immutable tag/digest to Azure Container Registry.
+3. Push an immutable (not changed after creation) tag/digest to Azure Container Registry.
 4. Deploy to AKS using Helm/manifests or GitOps with Flux/Argo CD.
 5. Use workload identity and Key Vault CSI for Azure access/secrets.
 6. Configure requests/limits, probes, Pod security, NetworkPolicy, HPA, and PodDisruptionBudget.
 7. Wait for rollout, run smoke tests, and monitor errors/latency.
 
-For a failed rollout I check `kubectl describe`, events, current/previous logs, image pull, configuration, probes, scheduling, and dependencies. I roll back traffic/release if user impact is growing, preserve evidence, fix in lower environment, and redeploy an immutable version.
+For a failed rollout I check `kubectl describe`, events, current/previous logs, image pull, configuration, probes, scheduling, and dependencies. I roll back traffic/release if user impact is growing, preserve evidence, fix in lower environment, and redeploy an immutable (not changed after creation) version.
 
 ## 5. How do you design a secure Azure landing zone?
 
@@ -62,7 +64,7 @@ For a failed rollout I check `kubectl describe`, events, current/previous logs, 
 A landing zone is the governed foundation into which workloads are deployed. I gather regulatory, identity, connectivity, availability, ownership, and cost requirements, then design:
 
 - Management-group hierarchy and subscription boundaries
-- Entra ID groups, least-privilege RBAC, PIM, and break-glass access
+- Entra ID groups, least-privilege (minimum required access) RBAC, PIM, and break-glass access
 - Azure Policy initiatives for regions, tags, diagnostics, encryption, and public access
 - Hub-spoke or Virtual WAN connectivity, private DNS, Firewall, and DDoS controls
 - Central logs/SIEM, Defender for Cloud, budgets, naming, and tagging
@@ -86,9 +88,13 @@ I test allowed and denied operations, inspect sign-in/resource logs, and allow f
 
 **Answer:**
 
-I store secrets, keys, and certificates in Key Vault and access them with managed identity. Applications receive only the data-plane role they require. Vaults use soft delete and purge protection, logging, rotation, and private endpoints/firewall controls when necessary.
+I store secrets, keys, and certificates in Key Vault and access them with managed identity. Applications receive only the data-plane role they require.
 
-My preferred design avoids copying a secret into pipeline variables. The workload requests it at runtime or uses a Key Vault reference/CSI driver. I track owner, consumers, expiry, and rotation method. Rotation is tested so applications refresh without an outage.
+Vaults use soft delete and purge protection, logging, rotation, and private endpoints/firewall controls when necessary.
+
+My preferred design avoids copying a secret into pipeline variables. The workload requests it at runtime or uses a Key Vault reference/CSI driver.
+
+I track owner, consumers, expiry, and rotation method. Rotation is tested so applications refresh without an outage.
 
 If access fails, I distinguish management plane from data plane, check RBAC/access-policy mode, scope, identity, secret version/status, network restrictions, and logs. If exposure occurs, I rotate/revoke first, investigate access, and then remove leaked values from code, logs, and artifacts.
 
@@ -98,9 +104,9 @@ If access fails, I distinguish management plane from data plane, check RBAC/acce
 
 I use Azure Monitor as the common platform: metrics for numeric time series, diagnostic settings for platform/resource logs, Log Analytics with KQL, Application Insights for application/dependency traces, alerts with action groups, and workbooks/dashboards.
 
-I define signals from service objectives: availability, latency, errors, traffic, saturation, queue depth, failed dependencies, and capacity. Alerts must be actionable, routed to an owner, and linked to a runbook.
+I define signals from service objectives: availability, latency, errors, traffic, saturation (how close a resource is to its limit), queue depth, failed dependencies, and capacity. Alerts must be actionable, routed to an owner, and linked to a runbook.
 
-During an incident I establish time and scope, correlate recent deployments and Activity Log changes, move from user symptom to application dependency to infrastructure, and validate the fix with the original query/transaction. I tune noisy alerts and test notification routing rather than assuming configuration works.
+During an incident I establish time and scope, compare recent deployments and Activity Log changes, move from user symptom to application dependency to infrastructure, and validate the fix with the original query/transaction. I tune noisy alerts and test notification routing rather than assuming configuration works.
 
 ## 9. How do you control Azure costs?
 
@@ -117,7 +123,7 @@ I combine allocation, prevention, optimization, and review:
 - Storage tier/lifecycle policies and cleanup of unattached resources
 - Architecture review of network egress and managed-service tiers
 
-For a spike I compare cost by service/resource/tag/day, correlate deployments and usage, stop clear waste safely, and contact the owner. I validate savings against reliability and performance; deleting idle-looking resources without ownership and recovery checks is unsafe.
+For a spike I compare cost by service/resource/tag/day, compare deployments and usage, stop clear waste safely, and contact the owner. I validate savings against reliability and performance; deleting idle-looking resources without ownership and recovery checks is unsafe.
 
 ## 10. How do you enforce governance in Azure?
 
@@ -125,7 +131,9 @@ For a spike I compare cost by service/resource/tag/day, correlate deployments an
 
 I use management groups for hierarchy, subscriptions for boundaries, Entra groups and RBAC/PIM for access, Azure Policy for audit/deny/deploy settings, resource locks for critical accidental deletion, and IaC/pipeline controls for standardized deployment.
 
-Policies cover allowed regions/SKUs, mandatory tags, diagnostic settings, encryption, private connectivity, and security configuration. I roll them out as audit first, understand existing noncompliance, remediate, then move selected rules to deny. Exceptions have business justification, owner, scope, and expiry.
+Policies cover allowed regions/SKUs, mandatory tags, diagnostic settings, encryption, private connectivity, and security configuration. I roll them out as audit first, understand existing noncompliance, remediate, then move selected rules to deny.
+
+Exceptions have business justification, owner, scope, and expiry.
 
 I monitor compliance trends, failed deployments, excessive privileged roles, and policy effects. Governance is successful when it produces consistent evidence and safe self-service, not when it only adds manual approval.
 
@@ -133,8 +141,9 @@ I monitor compliance trends, failed deployments, excessive privileged roles, and
 
 **Answer:**
 
-I begin with business impact analysis and define RTO, RPO, data-loss tolerance, regional failure assumptions, dependencies, and recovery ownership. Then I select patterns per component: zones for datacenter failure, multi-region application capacity, database replication, geo-redundant storage where suitable, Azure Backup, Site Recovery for supported VM workloads, and Front Door/Traffic Manager/DNS failover.
+I begin with business impact analysis and define RTO, RPO, data-loss tolerance, regional failure assumptions, dependencies, and recovery ownership.
 
+Then I select patterns per component: zones for datacenter failure, multi-region application capacity, database replication, geo-redundant storage where suitable, Azure Backup, Site Recovery for supported VM workloads, and Front Door/Traffic Manager/DNS failover.
 A runbook covers detection, decision authority, data consistency, failover order, secret/DNS availability, smoke tests, communication, and failback. Backups are isolated and protected from deletion.
 
 I run restore tests and regional exercises, measure actual RTO/RPO, and fix gaps. Replication is not a backup: corruption or deletion can replicate. I also test failback, because recovery is incomplete until normal operations are restored safely.
@@ -143,52 +152,72 @@ I run restore tests and regional exercises, measure actual RTO/RPO, and fix gaps
 
 **Answer:**
 
-In the portal, select the VM, open **Size** under Availability + scale, choose a compatible size and apply the change; the same can be done through Azure CLI or IaC. A resize normally restarts the VM. If the requested size is unavailable on the current hardware cluster, Azure may require the VM to be stopped and deallocated first, which releases dynamic public IPs unless they are configured as static. I check application maintenance requirements, disk/network compatibility, availability-set/zone constraints, capacity, cost, backup and rollback before the change.
+In the portal, select the VM, open **Size** under Availability + scale, choose a compatible size and apply the change; the same can be done through Azure CLI or IaC. A resize normally restarts the VM.
+
+If the requested size is unavailable on the current hardware cluster, Azure may require the VM to be stopped and deallocated first, which releases dynamic public IPs unless they are configured as static.
+
+I check application maintenance requirements, disk/network compatibility, availability-set/zone constraints, capacity, cost, backup and rollback before the change.
 
 ## 13. Can an NSG be attached directly to a virtual network?
 
 **Answer:**
 
-No. A Network Security Group is associated with a subnet or a network interface, not directly with the virtual network. Effective rules are the combination of applicable subnet and NIC NSGs, evaluated with Azure's priority rules. I use the effective security rules and network watcher tools to validate the real path, and avoid relying on broad default allows.
+No. A Network Security Group is associated with a subnet or a network interface, not directly with the virtual network.
+
+Effective rules are the combination of applicable subnet and NIC NSGs, evaluated with Azure's priority rules. I use the effective security rules and network watcher tools to validate the real path, and avoid relying on broad default allows.
 
 ## 14. Can VMs in different subnets of the same VNet communicate?
 
 **Answer:**
 
-Yes, VNet routing allows communication between subnets by default. It can be restricted by NSGs, user-defined routes, Azure Firewall/NVAs, service endpoints, private endpoints, or the guest OS firewall. I validate effective routes and NSG flow, DNS and the target listener before assuming a subnet boundary is a security boundary.
+Yes, VNet routing allows communication between subnets by default. It can be restricted by NSGs, user-defined routes, Azure Firewall/NVAs, service endpoints, private endpoints, or the guest OS firewall.
+
+I validate effective routes and NSG flow, DNS and the target listener before assuming a subnet boundary is a security boundary.
 
 ## 15. Can an OS disk be removed from an Azure VM?
 
 **Answer:**
 
-The OS disk cannot simply be detached from a running VM like an ordinary data disk. Azure supports OS-disk swap for a stopped VM in supported scenarios, and a replacement VM can be created from a managed-disk snapshot or image. I take an application-consistent backup, confirm the recovery objective and use the documented swap/rebuild workflow rather than attempting a destructive detach.
+The OS disk cannot simply be detached from a running VM like an ordinary data disk. Azure supports OS-disk swap for a stopped VM in supported scenarios, and a replacement VM can be created from a managed-disk snapshot or image.
+
+I take an application-consistent backup, confirm the recovery objective and use the documented swap/rebuild workflow rather than attempting a destructive detach.
 
 ## 16. Must an Azure VM and its Recovery Services vault be in the same region for backup?
 
 **Answer:**
 
-Yes, Azure VM Backup requires the Recovery Services vault and the protected VM to be in the same Azure region. Redundancy options affect how backup data is replicated, but they do not remove that registration requirement. I select the vault region deliberately, apply retention/immutability/access controls, and perform restore tests—not merely backup-success checks.
+Yes, Azure VM Backup requires the Recovery Services vault and the protected VM to be in the same Azure region. Redundancy options affect how backup data is replicated, but they do not remove that registration requirement.
+
+I select the vault region deliberately, apply retention/immutability/access controls, and perform restore tests—not merely backup-success checks.
 
 ## 17. Do Azure tags automatically flow to child resources?
 
 **Answer:**
 
-No. Tags are not inherited automatically by child resources. Azure Policy with a `modify` effect, IaC modules, or automation can enforce/copy required tags. I require ownership, environment, cost center and data classification tags at deployment, monitor compliance and handle exceptions explicitly so cost allocation and incident ownership remain reliable.
+No. Tags are not inherited automatically by child resources.
+
+Azure Policy with a `modify` effect, IaC modules, or automation can enforce/copy required tags. I require ownership, environment, cost center and data classification tags at deployment, monitor compliance and handle exceptions explicitly so cost allocation and incident ownership remain reliable.
 
 ## 18. Can a resource belong to more than one Azure resource group?
 
 **Answer:**
 
-No. An Azure resource belongs to exactly one resource group at a time. A resource group is a management and lifecycle boundary, while resources in it can exist in different regions. I group resources by ownership, lifecycle, access and cost boundaries rather than assuming a resource group is a network boundary.
+No. An Azure resource belongs to exactly one resource group at a time.
+
+A resource group is a management and lifecycle boundary, while resources in it can exist in different regions. I group resources by ownership, lifecycle, access and cost boundaries rather than assuming a resource group is a network boundary.
 
 ## 19. Why does an Azure resource group have a location?
 
 **Answer:**
 
-The location stores the resource group's management metadata, such as deployment history, tags, locks and resource-management information. It does not force every resource in the group into that region. I choose it deliberately for governance and support considerations, while setting each resource's own location according to workload, residency and resilience needs.
+The location stores the resource group's management metadata, such as deployment history, tags, locks and resource-management information. It does not force every resource in the group into that region.
+
+I choose it deliberately for governance and support considerations, while setting each resource's own location according to workload, residency and resilience needs.
 
 ## 20. Are you charged for an Azure VM that is stopped but not deallocated?
 
 **Answer:**
 
-Yes. A VM stopped from inside the guest OS or shown as **Stopped** can still retain compute allocation and incur compute charges. **Stopped (deallocated)** releases compute allocation and stops those charges, though managed disks, snapshots, public IPs and other attached resources can still cost money. I use scheduled deallocation for nonproduction workloads and verify the actual power state and dependent-resource cost.
+Yes. A VM stopped from inside the guest OS or shown as **Stopped** can still retain compute allocation and incur compute charges. **Stopped (deallocated)** releases compute allocation and stops those charges, though managed disks, snapshots, public IPs and other attached resources can still cost money.
+
+I use scheduled deallocation for nonproduction workloads and verify the actual power state and dependent-resource cost.

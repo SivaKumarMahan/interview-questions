@@ -14,7 +14,9 @@
 
 ### 5.2 Ingress and DNS
 
-Ingress defines HTTP/HTTPS routing rules and requires an Ingress controller. CoreDNS provides cluster DNS. Troubleshoot routing from the inside out: Pod readiness, endpoint slices, Service selectors and ports, DNS, Ingress rules/controller, then load balancer and firewall.
+Ingress defines HTTP/HTTPS routing rules and requires an Ingress controller. CoreDNS provides cluster DNS.
+
+Troubleshoot routing from the inside out: Pod readiness, endpoint slices, Service selectors and ports, DNS, Ingress rules/controller, then load balancer and firewall.
 
 ### 5.3 NetworkPolicy
 
@@ -41,4 +43,6 @@ A Service gives an ephemeral Pod set a stable virtual IP/DNS name and load-balan
 - `LoadBalancer`: asks the cloud integration to provision or attach an external/internal load balancer to the Service.
 - `ExternalName`: returns a DNS CNAME and does not proxy traffic or perform health checking.
 
-Ingress is an HTTP/HTTPS routing API that requires an Ingress controller such as **NGINX**, **Traefik**, or a cloud controller. It can consolidate host/path routing and TLS for multiple Services. A LoadBalancer Service is suitable for one application or L4 protocol; Ingress is suitable for shared L7 routing. Verify controller class, listener, certificate/SNI, host/path, Service port, EndpointSlice, readiness, health probes, and network policy.
+Ingress is an HTTP/HTTPS routing API that requires an Ingress controller such as **NGINX**, **Traefik**, or a cloud controller. It can consolidate host/path routing and TLS for multiple Services.
+
+A LoadBalancer Service is suitable for one application or L4 protocol; Ingress is suitable for shared L7 routing. Verify controller class, listener, certificate/SNI, host/path, Service port, EndpointSlice, readiness, health probes, and network policy.

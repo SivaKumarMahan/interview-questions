@@ -16,7 +16,7 @@ I mitigate safely by removing bad targets, scaling, rollback, or traffic shift, 
 
 **Answer:**
 
-I track request volume, success/error ratio by status, gateway latency, backend latency, throttling, cache hit rate, policy errors, backend health, and dependency failures. Application Insights or OpenTelemetry correlates gateway requests with backend traces, while Azure Monitor/APIM diagnostics provide platform data.
+I track request volume, success/error ratio by status, gateway latency, backend latency, throttling, cache hit rate, policy errors, backend health, and dependency failures. Application Insights or OpenTelemetry links gateway requests to backend traces, while Azure Monitor and APIM diagnostics provide platform data.
 
 For increased latency I compare gateway vs. backend time, segment by API/operation/region/status, inspect recent policy/deployment changes, quotas, TLS/DNS, and backend capacity. I sample payload metadata safely without logging tokens or sensitive bodies.
 

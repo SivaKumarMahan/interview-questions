@@ -4,10 +4,10 @@
 
 Unlike the earlier design-only projects, the supplied reference folder contains an implemented Go application with a CLI, REST API, dashboard, scheduler, state readers, AWS collectors, drift engine, SQLite persistence and unit tests.
 
-However, the current code is a **deterministic Terraform drift detector**. It contains no LLM dependency, AI API call, prompt builder, retrieval system or AI-output validator. To describe it honestly in an interview:
+However, the current code is a **predictable Terraform drift detector**. It contains no LLM dependency, AI API call, prompt builder, retrieval system or AI-output validator. To describe it honestly in an interview:
 
 - I can say **“I implemented/prototyped a Terraform drift detection engine in Go.”**
-- I can say **“I designed an AI-assisted explanation and remediation layer as the next stage.”**
+- I can say **“I designed an AI-assisted explanation and fix layer as the next stage.”**
 - I should not say the supplied code already uses AI.
 - I should call it production-ready only after resolving the limitations listed below and running security, scale and live-cloud tests.
 
@@ -17,30 +17,34 @@ The Go toolchain was unavailable in the current review environment, so the exist
 
 ## One-Line Project Explanation
 
-I built a Go service that compares Terraform's expected state with live AWS resources, detects missing resources and configuration changes, stores scan history and supports CLI, API, dashboard and scheduled execution; I then designed an AI layer to explain verified drift and propose safe, reviewable remediation.
-
+I built a Go service that compares Terraform's expected state with live AWS resources, detects missing resources and configuration changes, stores scan history and supports CLI, API, dashboard and scheduled execution; I then designed an AI layer to explain verified drift and propose safe, reviewable fix.
 ---
 
 ## 30-Second Interview Answer
 
-> I developed a Terraform drift detector in Go. It reads a local, HTTP or S3 Terraform state file, extracts managed AWS resources into a common resource model, fetches their live configuration through the AWS SDK and compares expected attributes and tags with actual values. It reports missing resources, changed attributes and tag differences through a CLI, REST API and dashboard, stores scan history in SQLite, and can run scans on a cron schedule. The deterministic engine remains the source of truth. My AI extension consumes only verified findings to explain impact, rank risk and draft Terraform-based remediation, but it cannot run `terraform apply` or make cloud changes. During review I also identified important gaps, including incomplete discovery of cloud-only resources and unsafe handling of partial provider failures, which I would fix before production use.
+> I developed a Terraform drift detector in Go. It reads a local, HTTP or S3 Terraform state file, extracts managed AWS resources into a common resource model, fetches their live configuration through the AWS SDK and compares expected attributes and tags with actual values. It reports missing resources, changed attributes and tag differences through a CLI, REST API and dashboard, stores scan history in SQLite, and can run scans on a cron schedule. The predictable engine remains the source of truth. My AI extension consumes only verified findings to explain impact, rank risk and draft Terraform-based fix, but it cannot run `terraform apply` or make cloud changes. During review I also identified important gaps, including incomplete discovery of cloud-only resources and unsafe handling of partial provider failures, which I would fix before production use.
 
 ---
 
 ## Two-Minute Interview Explanation
 
 Terraform drift occurs when real infrastructure no longer matches the state Terraform expects. For example, somebody may change an EC2 instance type in the AWS console, remove a security-group rule, delete a managed resource, or alter tags outside the normal pull-request workflow.
-
 The application has two input paths:
 
 1. The state reader loads raw Terraform state from a local file, HTTP endpoint or S3 object.
 2. The AWS provider fetches the current configuration of supported resources through AWS SDK v2.
 
-The extractor converts state objects into a canonical resource containing provider, type, cloud ID, selected attributes, tags and region. The live collector produces the same shape. The comparison engine indexes resources by canonical ID, checks presence, compares normalized attributes, compares tags after applying ignore rules, and creates a structured report.
+The extractor converts state objects into a canonical resource containing provider, type, cloud ID, selected attributes, tags and region. The live collector produces the same shape.
 
-Users can run an ad-hoc scan with the Cobra CLI, call the REST API, view results in a small web dashboard, or configure cron scans. Workspaces, schedules and reports are stored in SQLite. Exit codes make the CLI useful in CI: `0` means no drift, `1` means drift and `2` means an execution error.
+The comparison engine indexes resources by canonical ID, checks presence, compares normalized attributes, compares tags after applying ignore rules, and creates a structured report.
 
-The AI portion is intentionally downstream. It never decides whether raw values differ. It takes deterministic findings and supporting context, explains operational impact, groups related changes and drafts a remediation plan. A human reviews the proposal and fixes the cause through Terraform and the normal change process.
+Users can run an ad-hoc scan with the Cobra CLI, call the REST API, view results in a small web dashboard, or configure cron scans. Workspaces, schedules and reports are stored in SQLite.
+
+Exit codes make the CLI useful in CI: `0` means no drift, `1` means drift and `2` means an execution error.
+
+The AI portion is intentionally downstream. It never decides whether raw values differ.
+
+It takes predictable findings and supporting context, explains operational impact, groups related changes and drafts a fix plan. A human reviews the proposal and fixes the cause through Terraform and the normal change process.
 
 ---
 
@@ -63,7 +67,7 @@ Continuously compare the expected infrastructure recorded in Terraform state wit
 - Detect unauthorized or accidental infrastructure changes earlier.
 - Prevent unexpected changes from appearing first during a deployment.
 - Identify possible security and compliance deviations.
-- Give the owning team clear evidence and a repeatable remediation flow.
+- Give the owning team clear evidence and a repeatable fix flow.
 - Track drift frequency, age and recurrence across workspaces.
 
 ---
@@ -138,7 +142,7 @@ cmd/driftctl/                 CLI entry point
 cmd/drift-server/            API/server entry point
 internal/state/              State readers and Terraform-state extraction
 internal/providers/aws/      AWS live-resource collectors
-internal/drift/              Deterministic comparison engine
+internal/drift/              Predictable comparison engine
 internal/scan/               End-to-end scan orchestration
 internal/store/              SQLite persistence interface/implementation
 internal/scheduler/          Cron registration and scheduled scans
@@ -267,7 +271,7 @@ instance_type = t3.small
 env tag = staging
 ```
 
-The deterministic findings are conceptually:
+The predictable findings are conceptually:
 
 ```json
 [
@@ -380,13 +384,13 @@ Pydantic, JSON Schema or Go validation rejects unsupported priorities, unknown f
 ### Appropriate AI responsibilities
 
 - explain drift in simple language
-- correlate several related findings
+- compare several related findings
 - use ownership/change context to suggest a probable cause
 - prioritize investigation based on resource criticality
 - draft a ticket, incident note or pull-request description
 - propose verification and rollback steps
 
-### Deterministic responsibilities
+### Predictable responsibilities
 
 - read and parse state
 - fetch live cloud values
@@ -397,9 +401,9 @@ Pydantic, JSON Schema or Go validation rejects unsupported priorities, unknown f
 - decide pipeline exit code
 - authorize and execute any infrastructure change
 
-### Human-controlled remediation
+### Human-controlled fix
 
-The preferred remediation is a reviewed Terraform change:
+The preferred fix is a reviewed Terraform change:
 
 ```text
 Verified drift
@@ -422,7 +426,9 @@ These limitations should be mentioned honestly if an interviewer asks what I wou
 
 ### 1. Cloud-only resources are not discovered in live scans
 
-The current AWS fetchers receive expected resources and call APIs using only those resource IDs. Therefore a resource created manually in AWS but absent from Terraform state is never fetched. Although the comparison engine supports `extra_in_cloud`, the live collector normally cannot produce that finding.
+The current AWS fetchers receive expected resources and call APIs using only those resource IDs. Therefore a resource created manually in AWS but absent from Terraform state is never fetched.
+
+Although the comparison engine supports `extra_in_cloud`, the live collector normally cannot produce that finding.
 
 **Fix:** enumerate all supported resources in the configured account/region and then compare them with state. Add explicit scope, ownership tags and ignore rules to avoid treating every unrelated account resource as drift.
 
@@ -460,7 +466,7 @@ The current helper returns critical whether or not the `env` tag is production.
 
 An API-created workspace can point to a local path or HTTP URL. Without validation this creates arbitrary-file-read and server-side request-forgery risk. State content itself may contain secrets.
 
-**Fix:** allow-list backend types and paths/hosts, block private/metadata endpoints, enforce response-size and time limits, encrypt state access, avoid logging state, and use least-privilege state credentials.
+**Fix:** allow-list backend types and paths/hosts, block private/metadata endpoints, enforce response-size and time limits, encrypt state access, avoid logging state, and use least-privilege (minimum required access) state credentials.
 
 ### 8. API authentication is prototype-level
 
@@ -470,9 +476,9 @@ One optional shared API key protects all resources. If no key is configured, all
 
 ### 9. Scans and schedules need production controls
 
-API-triggered scans are synchronous, scheduled scans use an unbounded background context, and overlapping schedules are not prevented.
+API-triggered scans are synchronous, scheduled scans use an unlimited background context, and overlapping schedules are not prevented.
 
-**Fix:** use a durable job queue, per-scan timeout/cancellation, idempotency, concurrency limits, distributed scheduling/locking, retry policy and progress/status APIs.
+**Fix:** use a durable job queue, per-scan timeout/cancellation, idempotency (safe repeat behavior), concurrency limits, distributed scheduling/locking, retry policy and progress/status APIs.
 
 ### 10. Persistence needs relational integrity and retention
 
@@ -482,7 +488,7 @@ SQLite is useful for a local prototype, but workspace deletion does not visibly 
 
 ---
 
-## Investigation and Remediation Scenarios
+## Investigation and Fix Scenarios
 
 ### Scenario 1: Resource is missing in cloud
 
@@ -509,11 +515,15 @@ I do not blindly force the cloud back to state because the manual change may hav
 
 ### Scenario 3: Security-group rule drift
 
-This may be security-sensitive. I normalize rule ordering before comparison, confirm collection completeness, identify an overly broad or missing rule, check CloudTrail and ownership, assess exposure, and follow the incident/change process. The fix belongs in Terraform so the desired security policy remains reproducible.
+This may be security-sensitive. I normalize rule ordering before comparison, confirm collection completeness, identify an overly broad or missing rule, check CloudTrail and ownership, assess exposure, and follow the incident/change process.
+
+The fix belongs in Terraform so the desired security policy remains reproducible.
 
 ### Scenario 4: Recurring tag drift
 
-I check whether another policy engine or automation owns tags. If so, Terraform and that automation have conflicting ownership. I define a single source of truth or ignore only the explicitly externally managed tag, document the exception and avoid hiding unrelated tag drift.
+I check whether another policy engine or automation owns tags. If so, Terraform and that automation have conflicting ownership.
+
+I define a single source of truth or ignore only the explicitly externally managed tag, document the exception and avoid hiding unrelated tag drift.
 
 ### Scenario 5: Scan suddenly reports many missing resources
 
@@ -534,7 +544,7 @@ I first suspect collection failure rather than mass deletion. I inspect scan err
 - Authenticate users and authorize every workspace/report.
 - Sign or version comparison policy and ignore rules.
 - Record collection errors so missing evidence is not presented as drift.
-- Keep AI and remediation credentials separate; AI receives no cloud credentials.
+- Keep AI and fix credentials separate; AI receives no cloud credentials.
 - Require reviewed Terraform plans and approvals for changes.
 - Retain an audit trail of scans, acknowledgements and exceptions.
 
@@ -564,7 +574,7 @@ These are useful unit tests, but they do not prove live AWS correctness or produ
 - permission denied, throttling, pagination and retry cases
 - HTTP backend SSRF, timeout and oversized response tests
 - authentication, authorization and cross-workspace isolation
-- scheduler overlap, cancellation and idempotency
+- scheduler overlap, cancellation and idempotency (safe repeat behavior)
 - database migration, retention and recovery
 - AI redaction, schema, hallucination and prompt-injection tests
 
@@ -627,7 +637,7 @@ Recommended policy:
 - mean time to explain and assign drift
 - percentage of resource types with verified collector coverage
 
-I would not claim that drift detection alone prevented an outage. A defensible result connects a verified finding to a reviewed remediation and measured reduction in recurrence or investigation time.
+I would not claim that drift detection alone prevented an outage. A defensible result connects a verified finding to a reviewed fix and measured reduction in recurrence or investigation time.
 
 ---
 
@@ -635,7 +645,7 @@ I would not claim that drift detection alone prevented an outage. A defensible r
 
 1. Correct collection completeness and false-missing behavior first.
 2. Enumerate all in-scope supported cloud resources to detect extras.
-3. Add pagination, retry/backoff, rate limits and typed error classes.
+3. Add pagination, retry/backoff (increasing wait between retries), rate limits and typed error classes.
 4. Add Azure and GCP providers through the registry interface.
 5. Support more AWS resources with tested canonical schemas.
 6. Add remote-state locking/version metadata and snapshot hashes.
@@ -644,7 +654,7 @@ I would not claim that drift detection alone prevented an outage. A defensible r
 9. Add notifications for Slack, email or incident/ticket systems.
 10. Add the redacted AI explanation layer with structured output.
 11. Generate reviewed Terraform pull requests, never direct applies.
-12. Correlate drift with CloudTrail and approved change records.
+12. Compare drift with CloudTrail and approved change records.
 13. Add exception ownership, justification and expiry.
 14. Use PostgreSQL/object storage for multi-user scale and retention.
 
@@ -658,11 +668,15 @@ It is a difference between Terraform's expected managed state and the real infra
 
 ### Why not just run `terraform plan`?
 
-`terraform plan` is authoritative for a configured Terraform project and should remain part of the workflow. This detector focuses on continuous centralized scanning from state and cloud APIs, history and reporting without needing every working directory at scan time. It complements rather than replaces plan.
+`terraform plan` is authoritative for a configured Terraform project and should remain part of the workflow. This detector focuses on continuous centralized scanning from state and cloud APIs, history and reporting without needing every working directory at scan time.
+
+It complements rather than replaces plan.
 
 ### Is the Terraform state file the desired configuration?
 
-It is the last recorded managed state, not always the full intended configuration. Current code, variables, provider behavior and pending changes may differ. Therefore a finding is evidence for investigation, and remediation is confirmed with the correct Terraform configuration and plan.
+It is the last recorded managed state, not always the full intended configuration. Current code, variables, provider behavior and pending changes may differ.
+
+Therefore a finding is evidence for investigation, and fix is confirmed with the correct Terraform configuration and plan.
 
 ### How do you detect resources created manually in the cloud?
 
@@ -678,7 +692,7 @@ Go provides a single deployable binary, good concurrency for regional API calls,
 
 ### Where exactly is AI used?
 
-It is not in the supplied implementation. My proposed AI layer is downstream of deterministic detection and explains impact, correlates findings and drafts remediation. It does not compare raw infrastructure or execute fixes.
+It is not in the supplied implementation. My proposed AI layer is downstream of predictable detection and explains impact, compares findings and drafts fix. It does not compare raw infrastructure or execute fixes.
 
 ### Would you automatically revert drift?
 
@@ -686,7 +700,7 @@ No. A manual change may be an approved incident action, and reverting it could c
 
 ### How do you secure Terraform state?
 
-I use encrypted remote storage, least-privilege access, short-lived credentials, audit logging and no raw-state logging. Sensitive state is never sent wholesale to an LLM.
+I use encrypted remote storage, least-privilege access (only the permissions needed), short-lived credentials, audit logging and no raw-state logging. Sensitive state is never sent wholesale to an LLM.
 
 ### What if AWS access fails during a scan?
 
@@ -699,9 +713,8 @@ I would use a job queue, horizontally scalable workers, account/region concurren
 ### What was the most important lesson from this project?
 
 Drift accuracy depends more on collection completeness and canonical modeling than on the comparison loop. A simple equality check is easy; proving that two representations refer to the same resource and that missing data is authoritative is the difficult part.
-
 ---
 
 ## Honest Closing Statement
 
-> I implemented a Go-based Terraform drift detector with state ingestion, AWS collection, normalized comparison, CLI/API/dashboard access, scheduling and scan history. The reviewed code is deterministic, not yet AI-powered. My AI design adds evidence-based explanations and remediation guidance after detection while keeping Terraform plans and human approvals in control. Before calling it production-ready, I would fix cloud-only discovery, incomplete-scan false positives, normalization gaps, state-backend security and production authentication, then validate it in an isolated live AWS environment.
+> I implemented a Go-based Terraform drift detector with state ingestion, AWS collection, normalized comparison, CLI/API/dashboard access, scheduling and scan history. The reviewed code is predictable, not yet AI-powered. My AI design adds evidence-based explanations and fix guidance after detection while keeping Terraform plans and human approvals in control. Before calling it production-ready, I would fix cloud-only discovery, incomplete-scan false positives, normalization gaps, state-backend security and production authentication, then validate it in an isolated live AWS environment.

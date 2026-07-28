@@ -26,7 +26,9 @@ terraform state mv '<old-address>' '<new-address>'
 terraform plan -refresh-only
 ```
 
-State can contain secrets. Store backups securely and confirm the exact backend/workspace before state operations. Avoid manual JSON editing. `terraform taint` is deprecated for most workflows; prefer `terraform apply -replace='<address>'` after reviewing the full plan.
+State can contain secrets. Store backups securely and confirm the exact backend/workspace before state operations.
+
+Avoid manual JSON editing. `terraform taint` is deprecated for most workflows; prefer `terraform apply -replace='<address>'` after reviewing the full plan.
 
 ## Workspaces
 
@@ -37,7 +39,7 @@ terraform workspace new <name>
 terraform workspace select <name>
 ```
 
-Workspaces are not always the right production boundary; separate root modules/state often give clearer identities and blast radius.
+Workspaces are not always the right production boundary; separate root modules/state often give clearer identities and scope of impact.
 
 ## Useful inspection
 

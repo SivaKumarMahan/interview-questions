@@ -98,7 +98,9 @@ The library is a separate Git repository with a standard structure — `vars/` f
 In the `Jenkinsfile`, we import it using `@Library('my-shared-lib')` and call shared steps like `buildApp()` or `deployApp()`.
 This ensures consistency, reduces duplication, and makes maintenance easier — if we update a function in the shared library, it's automatically reflected across all pipelines.
 
-**A:** Jenkins Shared Libraries are a powerful way to reuse code across multiple Jenkins pipelines. They allow you to define common functions, classes, and variables in a centralized repository, which can then be imported and used in your Jenkinsfiles. This promotes code reuse, maintainability, and consistency across your CI/CD pipelines.
+**A:** Jenkins Shared Libraries are a powerful way to reuse code across multiple Jenkins pipelines. They allow you to define common functions, classes, and variables in a centralized repository, which can then be imported and used in your Jenkinsfiles.
+
+This promotes code reuse, maintainability, and consistency across your CI/CD pipelines.
 
 #### Typical Structure of Jenkins Shared Libraries
 
@@ -160,7 +162,9 @@ By using Jenkins Shared Libraries, you can streamline your Jenkins pipelines, re
 
 ### Q: How does Jenkins handle artifacts?
 
-**A:** Jenkins handles artifacts through its built-in artifact management system. When a build is executed, Jenkins can archive files generated during the build process, such as binaries, reports, or logs. These archived artifacts are stored on the Jenkins server and can be accessed later for download or further processing.
+**A:** Jenkins handles artifacts through its built-in artifact management system. When a build is executed, Jenkins can archive files generated during the build process, such as binaries, reports, or logs.
+
+These archived artifacts are stored on the Jenkins server and can be accessed later for download or further processing.
 
 To archive artifacts in Jenkins, you can use the `Archive the artifacts` post-build action in a freestyle project or the `archiveArtifacts` step in a pipeline. You specify the files to be archived using patterns (e.g., `**/target/*.jar` for Java projects).
 
@@ -219,7 +223,6 @@ For scalability, Jenkins can push artifacts to:
 - Docker Registry (for container images)
 
 Once archived, artifacts can be downloaded from the Jenkins web interface, used in subsequent build steps, or deployed to external repositories. Jenkins also provides plugins for integrating with artifact repositories like Nexus or Artifactory, allowing for more advanced artifact management and distribution.
-
 ---
 
 ### Q: Your Jenkins pipeline takes 45 minutes to complete — how would you reduce the execution time?
@@ -264,16 +267,24 @@ By applying these strategies, you can effectively reduce the execution time of y
 
 ## Reusable Jobs, Triggers, and Post Actions
 
-Prefer versioned Jenkinsfiles, shared libraries, Job DSL or Configuration as Code over copying UI job configuration. Parameterized or multibranch Pipelines reduce duplication, while permissions and production credentials remain environment-specific. `$JENKINS_HOME` stores controller configuration, build metadata and plugin data; back it up consistently and test restoration rather than treating it as an artifact store.
+Prefer versioned Jenkinsfiles, shared libraries, Job DSL or Configuration as Code over copying UI job configuration. Parameterized or multibranch Pipelines reduce duplication, while permissions and production credentials remain environment-specific.
 
-Git webhooks are the preferred event-driven trigger: validate webhook signatures, use TLS and restrict the endpoint. Poll SCM or periodic cron triggers are fallbacks and consume capacity; Jenkins cron uses its own syntax and should include sensible spread (`H`) where applicable. A failed Pipeline may be restarted from a stage only when the stage is safe and required artifacts/inputs still exist; this is not a substitute for idempotent deployment design.
+`$JENKINS_HOME` stores controller configuration, build metadata and plugin data; back it up consistently and test restoration rather than treating it as an artifact store.
 
-Declarative Pipeline `post` conditions such as `success`, `failure`, `unstable`, `changed` and `always` run after the Pipeline/stage outcome. Use them for notifications, publishing reports and bounded cleanup; make cleanup safe even when an earlier stage did not create every resource.
+Git webhooks are the preferred event-driven trigger: validate webhook signatures, use TLS and restrict the endpoint. Poll SCM or periodic cron triggers are fallbacks and consume capacity; Jenkins cron uses its own syntax and should include sensible spread (`H`) where applicable.
+
+A failed Pipeline may be restarted from a stage only when the stage is safe and required artifacts/inputs still exist; this is not a substitute for idempotent (safe to run more than once) deployment design.
+
+Declarative Pipeline `post` conditions such as `success`, `failure`, `unstable`, `changed` and `always` run after the Pipeline/stage outcome. Use them for notifications, publishing reports and limited cleanup; make cleanup safe even when an earlier stage did not create every resource.
 
 ## Agents and Git Integration
 
-Jenkins agents should be treated as isolated execution environments. Static agents may connect over SSH; inbound agents use a supported agent protocol and authentication. Prefer ephemeral, least-privilege agents for untrusted or variable workloads, and never place build workloads on the controller. Monitor agent capacity, disk, workspace cleanup, tool versions and connection failures.
+Jenkins agents should be treated as isolated execution environments. Static agents may connect over SSH; inbound agents use a supported agent protocol and authentication.
 
-Git integration needs a narrowly scoped credential or GitHub App, branch protection, webhook signature validation and a defined checkout ref. `git pull` fetches and integrates changes; use explicit `fetch` plus reviewed merge/rebase workflows in automation where predictable behavior matters. A revert adds a new commit that reverses a prior commit and is generally safer than history rewriting on a protected shared branch.
+Prefer ephemeral, least-privilege (minimum required access) agents for untrusted or variable workloads, and never place build workloads on the controller. Monitor agent capacity, disk, workspace cleanup, tool versions and connection failures.
+
+Git integration needs a narrowly scoped credential or GitHub App, branch protection, webhook signature validation and a defined checkout ref. `git pull` fetches and integrates changes; use explicit `fetch` plus reviewed merge/rebase workflows in automation where predictable behavior matters.
+
+A revert adds a new commit that reverses a prior commit and is generally safer than history rewriting on a protected shared branch.
 
 ---

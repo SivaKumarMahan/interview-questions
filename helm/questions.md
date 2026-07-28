@@ -40,7 +40,6 @@ helm rollback orders 7 -n orders --wait --timeout 5m
 ```
 
 After rollback I verify Deployment status, Pods, Service endpoints, smoke tests, error rate, latency, and dependent data. `helm upgrade --atomic --wait` can automatically roll back a failed upgrade, but it cannot reverse an incompatible database migration or external side effect.
-
 I preserve the failed revision’s logs and rendered manifests for RCA, fix the chart, test in a lower environment, and then create a new version rather than repeatedly retrying production.
 
 ## 4. What are Helm hooks and how are they used?
@@ -57,7 +56,9 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 ```
 
-I make hook Jobs idempotent, give them timeouts and least-privilege ServiceAccounts, and define cleanup policy. A failed hook can block a release, so I inspect the Job, Pod logs, events, and hook resources. Critical database migration logic should have explicit compatibility and recovery design rather than assuming Helm rollback will undo it.
+I make hook Jobs idempotent (safe to run more than once), give them timeouts and least-privilege (minimum required access) ServiceAccounts, and define cleanup policy. A failed hook can block a release, so I inspect the Job, Pod logs, events, and hook resources.
+
+Critical database migration logic should have explicit compatibility and recovery design rather than assuming Helm rollback will undo it.
 
 ## 5. How do you handle multi-environment deployments using Helm?
 
@@ -72,16 +73,18 @@ values-stage.yaml
 values-prod.yaml
 ```
 
-CI lints the chart, validates its values schema, renders every supported environment, runs Kubernetes schema/policy checks, and packages an immutable chart version. The same application image digest and chart version are promoted through dev, staging, and production; only approved values differ.
+CI lints the chart, validates its values schema, renders every supported environment, runs Kubernetes schema/policy checks, and packages an immutable (not changed after creation) chart version.
 
-Production uses protected approval, `--atomic --wait`, smoke tests, monitoring, and a documented rollback. Secrets are external references. I avoid copying whole charts per environment because fixes drift. Where many applications share patterns, I use a versioned library/base chart but allow explicit service-level resource, probe, and scaling configuration.
+The same application image digest and chart version are promoted through dev, staging, and production; only approved values differ.
+Production uses protected approval, `--atomic --wait`, smoke tests, monitoring, and a documented rollback. Secrets are external references.
+
+I avoid copying whole charts per environment because fixes drift. Where many applications share patterns, I use a versioned library/base chart but allow explicit service-level resource, probe, and scaling configuration.
 
 ## 6. Explain a basic Helm chart structure and the commands used to release it.
 
 **Answer:**
 
 A chart contains `Chart.yaml` metadata, default `values.yaml`, templates under `templates/`, optional JSON schema, tests, dependencies, and documentation. `_helpers.tpl` holds reusable names and labels; templates should render valid Kubernetes objects without hiding important workload behavior.
-
 ```bash
 helm create payments
 helm dependency update ./payments
@@ -100,8 +103,8 @@ CI validates the values schema, renders all supported environments, runs Kuberne
 
 **Answer:**
 
-For a classic chart repository I package and sign with a protected OpenPGP key using `helm package --sign --key <name> --keyring <ring>`, publish the `.tgz` and provenance `.prov`, and verify with `helm verify`. Key identity, expiry, rotation, and access are managed centrally; CI receives short-lived access rather than a developer's exported private key.
+For a classic chart repository I package and sign with a protected OpenPGP key using `helm package --sign --key <name> --keyring <ring>`, publish the `.tgz` and provenance (where an artifact came from and how it was built) `.prov`, and verify with `helm verify`.
 
-For OCI registries I prefer signing the immutable chart digest with a supported supply-chain tool such as Cosign and enforce verification in CI or admission policy. I also retain source commit, build workflow identity, SBOM/provenance where applicable, and registry audit logs.
-
+Key identity, expiry, rotation, and access are managed centrally; CI receives short-lived access rather than a developer's exported private key.
+For OCI registries I prefer signing the immutable (not changed after creation) chart digest with a supported supply-chain tool such as Cosign and enforce verification in CI or admission policy. I also retain source commit, build workflow identity, SBOM/provenance (where an artifact came from and how it was built) where applicable, and registry audit logs.
 Signing proves who/what workflow produced an unchanged artifact; it does not prove the chart is safe. Linting, template/schema validation, security/policy checks, review, and controlled promotion remain required.

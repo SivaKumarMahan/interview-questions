@@ -2,14 +2,18 @@
 
 **Answer:**
 
-I model diagnostic settings/log groups, metric and log alerts, dashboards, notification routing, retention and access in Terraform modules beside the service. Service owners provide meaningful SLO signals and ownership rather than accepting generic CPU-only alerts. Policy can enforce baseline logging.
+I model diagnostic settings/log groups, metric and log alerts, dashboards, notification routing, retention and access in Terraform modules beside the service. Service owners provide meaningful SLO signals and ownership rather than accepting generic CPU-only alerts.
 
-CI validates the code and plan, applies with serialized least privilege, then generates a known event or smoke transaction to prove ingestion and notification. I monitor the monitoring resources themselves and control cardinality, retention and cost.
+Policy can enforce baseline logging.
+
+CI validates the code and plan, applies with serialized least privilege (only the permissions needed), then generates a known event or smoke transaction to prove ingestion and notification. I monitor the monitoring resources themselves and control cardinality (number of unique label combinations), retention and cost.
 
 ## 2. How do you monitor Terraform changes and drift?
 
 **Answer:**
 
-The PR pipeline records format/validation/policy results and a protected reviewed plan. Production records apply result/duration, state-lock wait and provider/API failures, then runs infrastructure and application checks. Scheduled plans or the platform's drift capability detect out-of-band changes and create a reviewable ticket or alert; they do not blindly overwrite emergency changes.
+The PR pipeline records format/validation/policy results and a protected reviewed plan. Production records apply result/duration, state-lock wait and provider/API failures, then runs infrastructure and application checks.
 
-State and full plans can contain secrets, so they remain encrypted and access-controlled rather than forwarded to ordinary logging. I correlate a failed run with cloud audit logs and reconcile state and real resources before retrying.
+Scheduled plans or the platform's drift capability detect out-of-band changes and create a reviewable ticket or alert; they do not blindly overwrite emergency changes.
+
+State and full plans can contain secrets, so they remain encrypted and access-controlled rather than forwarded to ordinary logging. I compare a failed run with cloud audit logs and reconcile (make actual state match desired state) state and real resources before retrying.

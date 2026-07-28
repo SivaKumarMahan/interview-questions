@@ -85,4 +85,3 @@ pipeline {
 ```
 
 Unlike the original draft, Trivy returns a failing exit code for policy violations, secrets are not embedded in the Jenkinsfile, and publication happens only after both gates pass. In production I also generate an SBOM, sign the image digest, archive access-controlled reports, and verify the signature at deployment.
-

@@ -2,7 +2,7 @@
 
 ## Shell Automation
 
-Useful DevOps scripts include disk-capacity monitoring, controlled log retention, service health/remediation, verified backups, and user/account workflows. Production scripts should use:
+Useful DevOps scripts include disk-capacity monitoring, controlled log retention, service health/fix, verified backups, and user/account workflows. Production scripts should use:
 
 - A clear interpreter
 - `set -Eeuo pipefail` where appropriate
@@ -68,7 +68,7 @@ retry_command() {
 }
 ```
 
-Use `local` variables inside functions, return meaningful status codes, and pass commands as arguments rather than constructing command strings for `eval`. A retry must be bounded, observable and safe for an operation that may have partially succeeded.
+Use `local` variables inside functions, return meaningful status codes, and pass commands as arguments rather than constructing command strings for `eval`. A retry must be limited, observable and safe for an operation that may have partially succeeded.
 
 ## Redirection, Pipelines and Traps
 
@@ -101,11 +101,13 @@ export APP_ENV="production"
 export APP_PORT="8080"
 ```
 
-Use environment variables for non-sensitive configuration when appropriate. Do not hardcode database passwords, API keys or default user passwords in scripts, shell history, profiles or committed `.env` files. Retrieve secrets at runtime through the approved secret manager, avoid echoing them, and unset temporary values when practical.
+Use environment variables for non-sensitive configuration when appropriate. Do not hardcode database passwords, API keys or default user passwords in scripts, shell history, profiles or committed `.env` files.
+
+Retrieve secrets at runtime through the approved secret manager, avoid echoing them, and unset temporary values when practical.
 
 ## Monitoring and cleanup
 
-**Disk monitoring** must select the intended filesystem and alert with context. **Log cleanup** must validate the directory, retention and ownership and should normally use `logrotate`/`journald` policy rather than raw deletion. **Service remediation** should validate configuration, check health after start/reload, preserve logs, limit retries, and alert rather than looping forever.
+**Disk monitoring** must select the intended filesystem and include useful details in its alert. **Log cleanup** must check the directory, retention period, and ownership, and should normally use `logrotate` or `journald` policy instead of raw deletion. A **service fix** should check configuration, verify health after start or reload, preserve logs, limit retries, and alert instead of looping forever.
 
 ## Backups
 
@@ -117,11 +119,13 @@ A backup script must:
 - Use an atomic name
 - Checksum/encrypt according to policy
 - Enforce retention
-- Copy to another failure domain
+- Copy to another failure domain (a group of resources that can fail together)
 - Regularly prove restoration
 
 A command returning zero is **not** proof that the data is recoverable.
 
 ## User provisioning
 
-User provisioning should not hardcode or echo passwords and should not automatically grant broad `sudo`. Use approved identity management, idempotent account/group/SSH-key configuration, least privilege, audit, expiry, and an offboarding path. Shell is suitable for small orchestration; use a stronger language or configuration-management tool when parsing, state, transactions, or complex error recovery grows.
+User provisioning should not hardcode or echo passwords and should not automatically grant broad `sudo`. Use approved identity management, idempotent (safe to run more than once) account/group/SSH-key configuration, least privilege (only the permissions needed), audit, expiry, and an offboarding path.
+
+Shell is suitable for small orchestration; use a stronger language or configuration-management tool when parsing, state, transactions, or complex error recovery grows.

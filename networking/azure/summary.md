@@ -3,7 +3,6 @@
 ### 4.2 Azure Front Door with a Storage Static Website
 
 Azure Front Door is a global entry point that can improve performance and availability by routing users through Microsoft's edge network. It can also provide caching, TLS termination, custom domains, health probes, and Web Application Firewall capabilities depending on configuration and tier.
-
 **Typical setup**
 
 1. Enable static website hosting and upload the site.
@@ -79,11 +78,17 @@ Typical traffic paths are:
 - **On-premises to spoke:** ExpressRoute/VPN → hub gateway → inspected/approved hub route → spoke.
 - **Spoke to PaaS:** workload → private endpoint in the private address space, with private DNS resolution.
 
-The design centralizes governance, inspection, logging, and hybrid connectivity while keeping workload ownership isolated. Validate non-overlapping CIDRs, forward and return routes, gateway transit, firewall policy, DNS resolution, asymmetric routing, and failure of each shared hub component. The architecture is not complete until routing, DNS, monitoring, and recovery are tested from the real source networks.
+The design centralizes governance, inspection, logging, and hybrid connectivity while keeping workload ownership isolated. Validate non-overlapping CIDRs, forward and return routes, gateway transit, firewall policy, DNS resolution, asymmetric routing, and failure of each shared hub component.
+
+The architecture is not complete until routing, DNS, monitoring, and recovery are tested from the real source networks.
 
 ## VNet, Subnet, and Application Delivery Patterns
 
-An Azure VNet is a private address and routing boundary. Subnets divide it by trust zone or workload role, for example ingress, web, application, data, private endpoints, and management. Plan non-overlapping CIDRs with growth capacity, then attach resources through NICs or private integration. NSGs filter allowed source, destination, protocol, and port at subnet/NIC scope; UDRs influence routing; peering connects VNets; VPN Gateway or ExpressRoute provides hybrid connectivity; private endpoints give supported PaaS services private addresses with corresponding private DNS design.
+An Azure VNet is a private address and routing boundary. Subnets divide it by trust zone or workload role, for example ingress, web, application, data, private endpoints, and management.
+
+Plan non-overlapping CIDRs with growth capacity, then attach resources through NICs or private integration.
+
+NSGs filter allowed source, destination, protocol, and port at subnet/NIC scope; UDRs influence routing; peering connects VNets; VPN Gateway or ExpressRoute provides hybrid connectivity; private endpoints give supported PaaS services private addresses with corresponding private DNS design.
 
 Avoid calling Azure subnets inherently "public" or "private." Their effective exposure depends on public IPs, load-balancer or application-gateway frontends, routes, NAT, NSGs, firewall policy, and the service itself.
 
@@ -94,18 +99,32 @@ client -> frontend IP -> listener -> routing rule
        -> HTTP settings and health probe -> backend pool
 ```
 
-Application Gateway is a regional Layer-7 HTTP/HTTPS load balancer. Listeners receive traffic, rules select a backend by host or path, backend settings define protocol, port, TLS and session behavior, and health probes remove unhealthy targets. Backend pools can include supported VM, scale-set, App Service, AKS, or IP/FQDN targets. WAF adds managed/custom web-attack rules; TLS can terminate at the gateway or be re-encrypted to the backend.
+Application Gateway is a regional Layer-7 HTTP/HTTPS load balancer. Listeners receive traffic, rules select a backend by host or path, backend settings define protocol, port, TLS and session behavior, and health probes remove unhealthy targets.
 
-Cookie-based affinity can keep a client on the same backend when an application requires session stickiness, but stateless applications are easier to scale and recover. Current v2 SKUs support autoscaling and zone redundancy where the region supports Availability Zones. For centralized certificate management, Application Gateway can retrieve supported TLS certificates from Key Vault through a managed identity with least-privilege access. Send access, performance, firewall, and health telemetry through diagnostic settings to Azure Monitor/Log Analytics and alert on unhealthy backends, failed requests, latency, capacity, and WAF events.
+Backend pools can include supported VM, scale-set, App Service, AKS, or IP/FQDN targets. WAF adds managed/custom web-attack rules; TLS can terminate at the gateway or be re-encrypted to the backend.
+
+Cookie-based affinity can keep a client on the same backend when an application requires session stickiness, but stateless applications are easier to scale and recover. Current v2 SKUs support autoscaling and zone redundancy where the region supports Availability Zones.
+
+For centralized certificate management, Application Gateway can retrieve supported TLS certificates from Key Vault through a managed identity with least-privilege access (only the permissions needed).
+
+Send access, performance, firewall, and health monitoring data through diagnostic settings to Azure Monitor/Log Analytics and alert on unhealthy backends, failed requests, latency, capacity, and WAF events.
 
 Troubleshoot the resolved frontend address, listener/SNI and certificate, WAF logs, rule priority, rewrite/redirect behavior, backend health, probe host/path/status, NSG/UDR/firewall path, backend TLS trust, and application logs. A healthy gateway does not imply a healthy backend.
 
 ### Load Balancer and secure administration
 
-Azure Load Balancer distributes Layer-4 TCP/UDP flows using a frontend, rule, backend pool, and health probe. A common path is internet -> public frontend -> load-balancing rule -> healthy VM backend. Use an internal load balancer for private tier-to-tier traffic.
+Azure Load Balancer distributes Layer-4 TCP/UDP flows using a frontend, rule, backend pool, and health probe. A common path is internet -> public frontend -> load-balancing rule -> healthy VM backend.
 
-A jump VM is a hardened administrative VM used as an intermediate access point, but it still needs patching, identity controls, logging, and network protection. Azure Bastion is a managed alternative that provides RDP or SSH access to private VMs without assigning each VM a public IP. Users commonly initiate the session through the Azure portal over HTTPS, while Bastion reaches the VM over its private address; this avoids exposing inbound TCP 22 or 3389 to the public internet. Whichever pattern is chosen, use least privilege, just-in-time access, session logging, restricted management sources, and a break-glass procedure.
+Use an internal load balancer for private tier-to-tier traffic.
+
+A jump VM is a hardened administrative VM used as an intermediate access point, but it still needs patching, identity controls, logging, and network protection. Azure Bastion is a managed alternative that provides RDP or SSH access to private VMs without assigning each VM a public IP.
+
+Users commonly initiate the session through the Azure portal over HTTPS, while Bastion reaches the VM over its private address; this avoids exposing inbound TCP 22 or 3389 to the public internet.
+
+Whichever pattern is chosen, use least privilege (only the permissions needed), just-in-time access, session logging, restricted management sources, and a break-glass procedure.
 
 ### NSG and Azure Firewall together
 
-NSGs provide distributed stateful Layer-3/4 filtering close to subnets and NICs. Azure Firewall provides centralized inspection and policy, including network/application rules, threat-intelligence capabilities, DNAT/SNAT, and centralized logs according to SKU and configuration. In a hub-and-spoke design, use UDRs to steer required traffic through the firewall and NSGs to restrict each workload boundary. Validate symmetric routing and effective rules; using both products without a deliberate traffic path does not create defense in depth automatically.
+NSGs provide distributed stateful Layer-3/4 filtering close to subnets and NICs. Azure Firewall provides centralized inspection and policy, including network/application rules, threat-intelligence capabilities, DNAT/SNAT, and centralized logs according to SKU and configuration.
+
+In a hub-and-spoke design, use UDRs to steer required traffic through the firewall and NSGs to restrict each workload boundary. Validate symmetric routing and effective rules; using both products without a deliberate traffic path does not create defense in depth automatically.

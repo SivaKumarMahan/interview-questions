@@ -1,6 +1,6 @@
 # Safe Shell Script Patterns
 
-## Service check and remediation
+## Service check and fix
 
 ```bash
 #!/usr/bin/env bash

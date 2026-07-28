@@ -12,14 +12,18 @@
 
 ## Operating Systems and Virtualization
 
-An operating system mediates between applications and hardware. It schedules processes, manages physical and virtual memory, provides filesystems and device drivers, and enforces identity and access controls. Linux is common in servers, containers, cloud platforms and automation because it is scriptable, stable and supported by a large open-source ecosystem.
+An operating system mediates between applications and hardware. It schedules processes, manages physical and virtual memory, provides filesystems and device drivers, and enforces identity and access controls.
+
+Linux is common in servers, containers, cloud platforms and automation because it is scriptable, stable and supported by a large open-source ecosystem.
 
 Virtualization lets multiple isolated virtual machines share a physical host:
 
 - A **Type 1 hypervisor** runs directly on hardware; examples include VMware ESXi and Hyper-V in its bare-metal role.
 - A **Type 2 hypervisor** runs as an application on a host OS; examples include VirtualBox and VMware Workstation.
 
-VMs provide OS-level isolation and can be snapshotted, but a snapshot is not an independent backup. Before using a VM snapshot for deployment protection, confirm application consistency, retention, storage impact and restore behavior. Production recovery still needs backups in another failure domain and tested restoration.
+VMs provide OS-level isolation and can be snapshotted, but a snapshot is not an independent backup. Before using a VM snapshot for deployment protection, confirm application consistency, retention, storage impact and restore behavior.
+
+Production recovery still needs backups in another failure domain (a group of resources that can fail together) and tested restoration.
 
 ## Linux Filesystem Hierarchy
 
@@ -51,20 +55,21 @@ Do not assume `/tmp` is always cleared on reboot, and do not manually delete unf
 
 ## Scenario Flow
 
-For **100% disk usage**, determine filesystem/inode pressure, largest directories/files, deleted-but-open files, log/journal growth, package/container caches, and application ownership. Free only confirmed safe data, restore headroom, and add retention/capacity alerts. Never copy broad `rm -rf` examples from a cheat sheet into production.
+For **100% disk usage**, determine filesystem/inode pressure, largest directories/files, deleted-but-open files, log/journal growth, package/container caches, and application ownership. Free only confirmed safe data, restore headroom, and add retention/capacity alerts.
 
-For **slowness or high CPU**, correlate load, CPU modes, memory/swap, I/O wait, disk latency, network, top processes/threads, application logs, recent changes, traffic, and dependencies. A kill or reboot is containment only after identifying the process and risk.
+Never copy broad `rm -rf` examples from a cheat sheet into production.
 
-For an **unresponsive system**, use console/out-of-band access and check load, `D` state processes, memory pressure/OOM, I/O, kernel logs, filesystem, and hardware/cloud health. For configuration changes that do not take effect, validate syntax, confirm the active path, compare rendered/live configuration, reload or restart safely, and inspect service logs.
+For **slowness or high CPU**, compare load, CPU modes, memory/swap, I/O wait, disk latency, network, top processes/threads, application logs, recent changes, traffic, and dependencies. A kill or reboot is containment only after identifying the process and risk.
+For an **unresponsive system**, use console/out-of-band access and check load, `D` state processes, memory pressure/OOM, I/O, kernel logs, filesystem, and hardware/cloud health.
 
-**User and permission changes** should use approved identity processes, least privilege, correct group/ACL ownership, and verification as the target account. Avoid scripts that embed default passwords or grant `sudo` automatically.
+For configuration changes that do not take effect, validate syntax, confirm the active path, compare rendered/live configuration, reload or restart safely, and inspect service logs.
+**User and permission changes** should use approved identity processes, least privilege (only the permissions needed), correct group/ACL ownership, and verification as the target account. Avoid scripts that embed default passwords or grant `sudo` automatically.
 
 ---
 
 ## Why Linux Matters in DevOps
 
 Linux is widely used for production servers, container hosts and cloud workloads, although Windows and other operating systems also remain important. DevOps engineers need command-line investigation skills because many servers are managed remotely without a graphical interface.
-
 Forget about memorizing 500 commands. Focus on the concepts and tools you'll use daily in production. Here are the 10 essential areas every DevOps engineer should master.
 
 ## 1. Process Management: Your Applications Under the Hood
@@ -110,7 +115,9 @@ pstree                    # Visual process tree
 pstree -p                 # Include process IDs
 ```
 
-This shows parent-child relationships. Do not assume killing a parent terminates every child: a child can handle the signal, remain alive or be re-parented. For managed applications, prefer the service manager or orchestrator so shutdown and restart policy remain consistent.
+This shows parent-child relationships. Do not assume killing a parent terminates every child: a child can handle the signal, remain alive or be re-parented.
+
+For managed applications, prefer the service manager or orchestrator so shutdown and restart policy remain consistent.
 
 ## 2. Networking: How Your Services Talk
 
@@ -487,7 +494,9 @@ du -ah /var/log | sort -rh | head -10
 tail -F /var/log/app.log | grep --line-buffered ERROR
 ```
 
-Redirection is processed by the shell before the command starts. `>` truncates an existing file, and `sudo command > /root/file` does not make the shell's redirection privileged. Quote variables and use `set -o pipefail` in scripts when an earlier pipeline command failing must fail the pipeline.
+Redirection is processed by the shell before the command starts. `>` truncates an existing file, and `sudo command > /root/file` does not make the shell's redirection privileged.
+
+Quote variables and use `set -o pipefail` in scripts when an earlier pipeline command failing must fail the pipeline.
 
 ## 9. System Monitoring: Keeping Your Finger on the Pulse
 

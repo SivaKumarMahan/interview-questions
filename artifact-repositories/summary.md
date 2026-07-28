@@ -1,6 +1,6 @@
 # Artifact Repository Summary
 
-An artifact repository stores, versions and distributes the immutable outputs of a software build. It is different from:
+An artifact repository stores, versions and distributes the immutable (not changed after creation) outputs of a software build. It is different from:
 
 - **Source control:** Stores source code and change history.
 - **CI/CD system:** Builds, tests, approves and deploys software.
@@ -55,9 +55,11 @@ source code
 -> deploy the same package version to QA and Production
 ```
 
-The application is built once. QA and Production receive the same immutable version rather than rebuilding the ZIP.
+The application is built once. QA and Production receive the same immutable (not changed after creation) version rather than rebuilding the ZIP.
 
-Feed views change package visibility; they do not create a different package binary. Packages are published to the base feed and can then be promoted. Azure Artifacts does not support demoting a package from a view, so promotion is treated as a controlled release decision.
+Feed views change package visibility; they do not create a different package binary. Packages are published to the base feed and can then be promoted.
+
+Azure Artifacts does not support demoting a package from a view, so promotion is treated as a controlled release decision.
 
 ### Universal Package example
 
@@ -202,9 +204,9 @@ Choose it when:
 
 ### Strong interview answer
 
-> Nexus Repository is a centralized repository manager that hosts internal artifacts, proxies external dependencies and exposes repository groups through stable URLs. I commonly use hosted repositories for organization-owned packages, proxy repositories for public dependencies and group repositories for developer consumption. CI publishes immutable versions, while downstream environments promote and deploy the same checksum or digest.
+> Nexus Repository is a centralized repository manager that hosts internal artifacts, proxies external dependencies and exposes repository groups through stable URLs. I commonly use hosted repositories for organization-owned packages, proxy repositories for public dependencies and group repositories for developer consumption. CI publishes immutable (not changed after creation) versions, while downstream environments promote and deploy the same checksum or digest.
 
-Nexus Repository should not be confused with separately licensed Sonatype supply-chain products. Vulnerability policy, quarantine and lifecycle capabilities must be validated against the actual Nexus/Sonatype licenses in use.
+Nexus Repository should not be confused with separately licensed Sonatype supply-chain products. Vulnerability policy, isolate and lifecycle capabilities must be validated against the actual Nexus/Sonatype licenses in use.
 
 ---
 
@@ -221,7 +223,7 @@ Common package registries include:
 - RubyGems.
 - Container/OCI packages through GitHub Container Registry.
 
-Packages can be associated with a repository, user or organization depending on the registry and permission model. Some package types inherit repository permissions, while others support more granular package permissions.
+Packages can be associated with a repository, user or organization depending on the registry and permission model. Some package types inherit repository permissions, while others support more detailed package permissions.
 
 Representative flow:
 
@@ -274,7 +276,7 @@ The selected product may call the mechanism a feed view, staging, promotion, rel
 
 ```text
 build once
--> assign immutable version
+-> assign immutable (not changed after creation) version
 -> test and scan
 -> publish once
 -> record checksum/digest
@@ -282,7 +284,7 @@ build once
 -> deploy the same bytes to every environment
 ```
 
-Promotion must not rebuild the package. For containers, promotion and deployment should preserve the immutable OCI digest.
+Promotion must not rebuild the package. For containers, promotion and deployment should preserve the immutable (not changed after creation) OCI digest.
 
 ---
 
@@ -329,8 +331,10 @@ I select an artifact repository from the organization's technology and operating
 
 For an Azure DevOps-focused organization, I use Azure Artifacts for supported package feeds and Universal Packages, while container images go to Azure Container Registry. Azure Artifact views support controlled package visibility and promotion.
 
-For a large multi-language and multi-CI/CD enterprise, I evaluate JFrog Artifactory or Sonatype Nexus Repository. Artifactory offers a broad universal-repository ecosystem with local, remote, virtual and federated models. Nexus provides hosted, proxy and group repositories and is a strong choice for self-hosting, Maven-heavy environments and centralized dependency caching.
+For a large multi-language and multi-CI/CD enterprise, I evaluate JFrog Artifactory or Sonatype Nexus Repository. Artifactory offers a broad universal-repository ecosystem with local, remote, virtual and federated models.
+
+Nexus provides hosted, proxy and group repositories and is a strong choice for self-hosting, Maven-heavy environments and centralized dependency caching.
 
 When source code and automation are primarily in GitHub, GitHub Packages can reduce the number of external tools for supported formats and container packages.
 
-Irrespective of the tool, I build once, publish an immutable version, record its checksum or digest, promote the same artifact through environments, protect publishing with least privilege and retain tested backup and recovery procedures.
+Irrespective of the tool, I build once, publish an immutable (not changed after creation) version, record its checksum or digest, promote the same artifact through environments, protect publishing with least privilege (only the permissions needed) and retain tested backup and recovery procedures.

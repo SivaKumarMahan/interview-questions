@@ -2,14 +2,16 @@
 
 ## Purpose and Architecture
 
-Grafana is a visualization, exploration and alerting platform. It normally queries telemetry where it is stored rather than storing the raw metrics, logs or traces itself. Grafana does store its own users, organizations, data-source configuration, dashboards, alert configuration and other metadata.
+Grafana is a visualization, exploration and alerting platform. It normally queries monitoring data where it is stored rather than storing the raw metrics, logs or traces itself.
+
+Grafana does store its own users, organizations, data-source configuration, dashboards, alert configuration and other metadata.
 
 Common data sources include:
 
 - Prometheus for metrics
 - Loki for logs
 - Tempo for traces
-- Azure Monitor and Log Analytics for Azure platform telemetry
+- Azure Monitor and Log Analytics for Azure platform monitoring data
 - Elasticsearch/OpenSearch and supported SQL databases
 
 Plugins can add data sources, panels and applications. Install only approved plugins and manage them like any other software dependency.
@@ -26,8 +28,8 @@ After adding a data source, test the connection and use **Explore** to validate 
 ## Building an Effective Dashboard
 
 1. Define the operational question and audience.
-2. Add variables for environment, cluster, namespace or service without creating uncontrolled query cardinality.
-3. Start with user impact: latency, traffic, errors and saturation.
+2. Add variables for environment, cluster, namespace or service without creating uncontrolled query cardinality (number of unique label combinations).
+3. Start with user impact: latency, traffic, errors and saturation (how close a resource is to its limit).
 4. Add dependency, infrastructure and business panels only when they support a decision.
 5. Set the correct units, legends, thresholds, minimum/maximum values and no-data behavior.
 6. Add deployment annotations and links to logs, traces and runbooks.
@@ -56,7 +58,9 @@ Community dashboards can accelerate setup, but imported dashboards must be revie
 
 Grafana Alerting evaluates rules, groups rule instances, and sends notifications through contact points selected by notification policies. Labels determine ownership and routing; annotations provide the human-readable summary, description and runbook.
 
-For Prometheus-only rules, Prometheus rules plus Alertmanager are often the simplest source of truth. Grafana-managed alerting is useful when a rule must query another supported data source or combine expressions. Do not maintain the same rule independently in both systems.
+For Prometheus-only rules, Prometheus rules plus Alertmanager are often the simplest source of truth. Grafana-managed alerting is useful when a rule must query another supported data source or combine expressions.
+
+Do not maintain the same rule independently in both systems.
 
 A host CPU alert must calculate a rate from the CPU counter before applying a threshold:
 
@@ -73,7 +77,7 @@ Configure a suitable pending duration, test firing and resolved behavior, and en
 ## Security and Operations
 
 - Replace bootstrap credentials immediately; never leave the default administrator password in place.
-- Use SSO, least-privilege roles, team/folder permissions and separate service accounts.
+- Use SSO, least-privilege (minimum required access) roles, team/folder permissions and separate service accounts.
 - Keep Grafana behind private access or a secured ingress with TLS; do not expose port `3000` directly to the internet.
 - Store data-source and notification credentials in a secret manager such as Azure Key Vault, not dashboard JSON or source control.
 - Restrict anonymous access, audit administrative changes, patch Grafana and approved plugins, and protect against unsafe dashboard snapshots.

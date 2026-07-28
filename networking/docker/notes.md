@@ -1,61 +1,60 @@
 # Docker Networking Notes
 
-### Q: What is the difference between EXPOSE in a Dockerfile and -p in docker run?
+## Q: What is the difference between `EXPOSE` in a Dockerfile and `-p` in `docker run`?
 
-`EXPOSE 80` --> "This container app expects traffic on port 80."
+`EXPOSE 80` documents that the application expects traffic on container port 80.
 
-The container listens on port 80 internally, but it's not accessible from outside yet.
+It does not publish the port to the host. The application must also be configured to listen on that port.
 
 ```bash
 docker build -t mynginx .
 docker run mynginx
 ```
 
-The container runs. But the port is not accessible from your host machine because you didn't publish it.
+The container runs, but the host cannot reach its port directly because no host port was published.
 
 ```bash
 docker run -p 8080:80 mynginx
 ```
 
---> "Map my host's port 8080 → container's port 80 so I can access it externally."
+`-p 8080:80` maps host port 8080 to container port 80.
 
-Access from browser: `http://localhost:8080` Works!
+Open `http://localhost:8080` to reach the application.
 
 Think of it like this:
 
-- **EXPOSE** = "The restaurant has a door."
-- **-p** = "You unlocked the door so customers can enter."
+- **`EXPOSE`:** The restaurant has a door at a known location.
+- **`-p`:** The host opens a route that customers can use to reach that door.
 
 ---
 
-### Q: How do you run NGINX on a Linux server using Docker?
+## Q: How do you run NGINX on a Linux server using Docker?
 
 ```bash
-docker pull nginx:latest
+docker pull nginx:1.27-alpine
 ```
 
---> This downloads the latest official NGINX image from Docker Hub.
+This downloads a specific NGINX image version from Docker Hub.
 
 ```bash
-docker run -d -p 80:80 --name mynginx nginx
+docker run -d -p 80:80 --name mynginx nginx:1.27-alpine
 ```
 
 - `-d` → Runs the container in detached mode (in the background).
 - `-p 80:80` → Maps port 80 of the container to port 80 on the host.
 - `--name mynginx` → Assigns a name to your container for easy reference.
-- `nginx` → The image name to run.
+- `nginx:1.27-alpine` → The image and version to run.
 
-Now if you open a browser and go to `http://<your-server-public-ip>`, you'll see the NGINX welcome
+Open `http://<your-server-public-ip>` to see the NGINX welcome page. The server firewall or cloud security rule must allow inbound port 80.
 
 ```bash
 docker run -d -p 8080:80 --name web \
   -v /home/ubuntu/website:/usr/share/nginx/html \
-  nginx
+  nginx:1.27-alpine
 ```
 
-The NGINX container starts and listens on port 80 inside the container. Docker maps that to port 8080 on your Linux host.
-Mounts your local folder (with website files) to NGINX's default HTML directory inside the container
+The container listens on port 80, and Docker maps it to host port 8080. The `-v` option mounts the host's website directory into NGINX's default content directory.
 
-`http://<your-server-ip>:8080` --> You'll see your website's homepage
+Open `http://<your-server-ip>:8080` to view the website.
 
 ---
