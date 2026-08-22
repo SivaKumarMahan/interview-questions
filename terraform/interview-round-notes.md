@@ -1,59 +1,162 @@
-# Scenario-Based Interview Notes
+# Interview Round Notes
 
-> Distributed from the former cross-topic scenario notes. Section numbering is retained where useful for interview practice.
-
-## Terraform & Infrastructure as Code
-
-### 6.1 Drift detection (incl. in a team environment) & backup strategy
-
-- **Drift** = real infrastructure differs from the Terraform state/config (someone changed it manually).
-- **Detect:** `terraform plan` (shows diffs), `terraform plan -detailed-exitcode` in CI (exit code 2 = drift) run on a schedule; tools like `driftctl`, or Terraform Cloud/Enterprise drift detection.
-- **Team environment:** use a **remote backend with state locking** (S3 + DynamoDB, or Terraform Cloud) so no two runs clobber state; enforce changes only through the pipeline (no manual console changes); scheduled drift scans that alert.
-- **Backups:** enable **S3 versioning** on the state bucket (point-in-time restore), restrict access via IAM + encryption (SSE-KMS), and keep state out of Git. Terraform Cloud keeps state history automatically.
-
-### 6.2 `terraform refresh` vs `terraform plan`
-
-- **`terraform refresh`** (now folded into `plan`/`apply` as the refresh step; standalone command deprecated): updates the **state file** to match real-world resources — it reconciles (makes actual state match desired state) state with actual infra but does **not** change infra or config.
-- **`terraform plan`:** computes and shows the **diff** between desired config and current state (it refreshes state first, then diffs). It makes **no changes**.
-- Key point: refresh mutates state to reality; plan shows what apply *would* do. Modern Terraform: use `terraform plan -refresh-only` to preview state reconciliation (making actual state match desired state).
-
-### 6.3 Structuring large Terraform projects (workspaces & modules) / organizing code & multiple environments
-
-- **Modules:** encapsulate reusable components (network, eks, rds) with clear inputs/outputs; version them (registry/Git tags). Keep root configs thin, composing modules.
-- **Environments:** prefer **separate directories/state per environment** (`envs/dev`, `envs/staging`, `envs/prod`) with their own backend/tfvars — clearer scope of impact and permissions than workspaces.
-- **Workspaces:** useful for near-identical, low-risk variations sharing one config/backend, but they hide differences behind `terraform.workspace` and share a backend — I avoid them for prod separation.
-- **Best practices:** remote state per env, DRY via modules, pin provider/module versions, use `tflint`/`terraform validate`/`fmt`, layer state (network vs app) to reduce scope of impact, and drive everything through CI with plan-on-PR + apply-on-merge.
-
-### 6.4 State locking & avoiding conflicts in remote backends
-
-- Use a backend that supports locking: **S3 + DynamoDB** table (the lock item prevents concurrent applies), Terraform Cloud, or GCS.
-- Terraform acquires the lock on `plan`/`apply` and releases it after; concurrent runs wait or fail fast rather than corrupting state.
-- Enable **S3 versioning + encryption** for recovery; restrict who can `force-unlock`. Run applies only from CI to serialize changes.
-
-### 6.5 Testing Terraform before production
-
-- **Static:** `terraform fmt -check`, `terraform validate`, `tflint`, security scanning (`tfsec`/`checkov`/Trivy) in CI.
-- **Plan review:** `terraform plan` on every PR, human-reviewed; policy-as-code gates (**OPA/Sentinel**) to enforce rules (e.g. no public S3).
-- **Unit/integration tests:** the native **`terraform test`** framework, or **Terratest** (Go) to deploy to an ephemeral env and assert real behavior, then destroy.
-- **Promotion:** apply to dev/staging first, then prod through the pipeline with approvals.
-
-### 6.6 Design a Terraform module for a multi-tier app with proper state management (coding round)
-
-Structure:
-```
-modules/
-  network/   # VPC, subnets (public/private/db), routes, NAT, IGW
-  compute/   # ASG/EKS or ECS for app tier
-  data/      # RDS (multi-AZ), ElastiCache, subnet groups
-  security/  # security groups, IAM
-envs/
-  prod/  main.tf (composes modules) + backend.tf + prod.tfvars
-```
-Key points to mention:
-- **Remote state:** S3 backend + DynamoDB locking, encrypted, versioned; separate state per environment.
-- **Layered state** (network vs app vs data) to limit scope of impact; wire dependencies with `terraform_remote_state` or module outputs.
-- **Inputs/outputs:** parameterize CIDRs, instance sizes, counts; output VPC/subnet/SG IDs and endpoints.
-- **Tiers:** public tier (ALB), private app tier (autoscaled compute), isolated DB tier (no public route); security groups reference each other rather than CIDRs.
-- Pin versions, tag everything, add `tfsec`/`checkov` in CI.
+Topics that come up again and again in Terraform interview rounds, with short answers.
 
 ---
+
+## 1. Drift detection and backups
+
+### Drift
+
+Drift means the real infrastructure is different from what the code says. Usually someone changed it in the console.
+
+### How to detect it
+
+```bash
+terraform plan -detailed-exitcode
+# 0 = no change, 1 = error, 2 = drift
+```
+
+Run it nightly in the pipeline and alert on exit code 2. Terraform Cloud has built-in drift detection, and `driftctl` is another option.
+
+### In a team
+
+- Remote backend with locking, so nobody works from a private copy
+- All changes through the pipeline, no console edits
+- Scheduled drift scans with alerts
+
+### Backups
+
+- Turn on bucket versioning or soft delete for the state file
+- Encrypt with a managed key and restrict access
+- Never keep state in Git
+- Test the restore before you need it
+
+---
+
+## 2. `terraform refresh` vs `terraform plan`
+
+| `terraform refresh` | `terraform plan` |
+|---|---|
+| Updates state to match reality | Shows the difference between code and reality |
+| Changes the state file | Changes nothing |
+| Standalone command is deprecated | Runs a refresh internally, then shows the diff |
+
+Modern replacement:
+
+```bash
+terraform plan -refresh-only     # review the drift
+terraform apply -refresh-only    # record it in state, no infrastructure change
+```
+
+### Interview answer
+
+"Refresh updates the state file to match the real world; plan shows what apply would do. Plan refreshes in memory first and then shows the difference, without changing anything. The standalone refresh command is deprecated, so I use `plan -refresh-only` to review drift and `apply -refresh-only` when I want to record it in state."
+
+---
+
+## 3. Structuring a large Terraform project
+
+### Layout
+
+```text
+modules/
+  network/
+  compute/
+  database/
+environments/
+  dev/     main.tf  backend.tf  dev.tfvars
+  staging/ main.tf  backend.tf  staging.tfvars
+  prod/    main.tf  backend.tf  prod.tfvars
+```
+
+### Rules
+
+1. Modules hold the logic. Root configs stay thin and just call modules.
+2. Version the modules and pin the version in each environment.
+3. Separate state per environment, and per layer when the project is big.
+4. Layer the state: network, platform, data, application. Smaller blast radius.
+5. Pin provider versions and commit the lock file.
+6. Run `fmt`, `validate`, `tflint`, and a security scan in CI.
+
+### Workspaces or folders?
+
+Workspaces are fine for short-lived or nearly identical copies. For long-lived dev, staging, and production, separate folders are clearer, because the credentials, backend, and approvals are visible.
+
+---
+
+## 4. State locking and avoiding conflicts
+
+1. Use a backend that supports locking: S3 with a lock file, Azure Storage blob lease, GCS, or Terraform Cloud.
+2. Terraform takes the lock during plan and apply and releases it at the end.
+3. A second run waits or fails instead of corrupting state.
+4. Enable versioning and encryption for recovery.
+5. Restrict who may run `force-unlock`.
+6. Run applies from CI only, so changes are serialized.
+
+### Stuck lock
+
+Check the lock owner and the pipeline first. Only when nothing is running:
+
+```bash
+terraform force-unlock <LOCK_ID>
+```
+
+---
+
+## 5. Testing before production
+
+| Stage | What runs |
+|---|---|
+| Static | `terraform fmt -check`, `terraform validate`, `tflint` |
+| Security | `tfsec`, `checkov`, or Trivy |
+| Plan review | Plan on every pull request, reviewed by a person |
+| Policy | OPA or Sentinel rules, for example no public storage |
+| Tests | `terraform test` or Terratest against a sandbox |
+| Promotion | Apply in dev, then staging, then production with approval |
+
+---
+
+## 6. Design a module for a multi-tier app
+
+### Structure
+
+```text
+modules/
+  network/    VPC, public/private/db subnets, routes, NAT, internet gateway
+  compute/    autoscaling group or cluster for the app tier
+  data/       database with multi-AZ, cache, subnet groups
+  security/   security groups and IAM
+environments/
+  prod/       main.tf (calls the modules), backend.tf, prod.tfvars
+```
+
+### Key points to mention
+
+1. **Remote state:** encrypted, versioned, locked, one state per environment.
+2. **Layered state:** network, application, and data separately, so a mistake has a smaller blast radius.
+3. **Wiring:** module outputs inside a root config, or `terraform_remote_state` between layers.
+4. **Inputs and outputs:** CIDRs, instance sizes, and counts as inputs; VPC ID, subnet IDs, and endpoints as outputs.
+5. **Tiers:** load balancer in the public tier, application in private subnets, database with no public route.
+6. **Security groups reference each other**, not raw CIDR ranges.
+7. Pin versions, tag everything, and run security scans in CI.
+
+### Example wiring
+
+```hcl
+module "network" {
+  source = "../../modules/network"
+  cidr   = var.vpc_cidr
+}
+
+module "data" {
+  source     = "../../modules/data"
+  subnet_ids = module.network.db_subnet_ids
+}
+
+module "compute" {
+  source        = "../../modules/compute"
+  subnet_ids    = module.network.private_subnet_ids
+  db_endpoint   = module.data.endpoint
+}
+```

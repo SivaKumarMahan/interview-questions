@@ -1,414 +1,589 @@
-# Terraform Detailed Interview Notes
+# Terraform Notes
 
-## Deployments & Rollouts
-
-### Q: How do you implement zero downtime deployments using Terraform?
-
-To implement zero downtime deployments using Terraform, you can follow these strategies:
-
-1. **Use Blue-Green Deployments:** Maintain two identical environments (blue and green). Deploy new changes to the inactive environment and switch traffic once the deployment is verified.
-2. **Implement Rolling Updates:** Update resources in batches rather than all at once. This ensures that some instances remain available while others are being updated.
-3. **Use Load Balancers:** Distribute traffic across multiple instances using load balancers. This allows you to take instances out of rotation for updates without affecting overall availability.
-4. **Leverage Terraform's `create_before_destroy` lifecycle rule:** This ensures that new resources are created before old ones are destroyed, minimizing downtime.
-5. **Monitor Health Checks:** Use health checks to ensure that new instances are healthy before routing traffic to them.
-6. **Automate Rollbacks:** Implement automated rollback mechanisms in case of deployment failures to quickly revert to the previous stable state.
-7. **Test in Staging Environments:** Always test deployments in staging environments that mirror production to catch potential issues before they affect end users.
-
-By combining these strategies, you can achieve zero downtime deployments with Terraform.
+Short revision notes. One topic per section, with the key points and a small example.
 
 ---
 
-### Q: What are some best practices for managing Terraform state files?
+## 1. Zero downtime deployments
 
-Best practices for managing Terraform state files include:
+### Ways to do it
 
-1. **Use Remote State Storage:** Store state files in remote backends like AWS S3, Azure Blob Storage, or Terraform Cloud to enable collaboration and ensure durability.
-2. **Enable State Locking:** Use backends that support state locking (e.g., DynamoDB with S3) to prevent concurrent modifications that can lead to state corruption.
-3. **Encrypt State Files:** Ensure that state files are encrypted both at rest and in transit to protect sensitive information.
-4. **Use Workspaces:** Leverage Terraform workspaces to manage multiple environments (e.g., development, staging, production) within the same configuration.
-5. **Regular Backups:** Implement regular backups of state files to recover from accidental deletions or corruption.
-6. **Limit Sensitive Data:** Avoid storing sensitive information in state files. Use environment variables or secret management tools instead.
-7. **Version Control:** Keep your Terraform configuration files in version control systems (e.g., Git) to track changes and facilitate collaboration.
-8. **Review State Changes:** Regularly review changes to the state file to ensure that they align with expected infrastructure modifications.
+1. **Create before destroy** — bring the new resource up first.
+2. **Rolling update** — replace a few instances at a time.
+3. **Blue-green** — build a second stack, switch traffic, delete the old one.
+4. **Load balancer + health checks** — no traffic until the new instance is healthy.
+5. **Test in a lower environment first.**
 
-By following these best practices, you can effectively manage Terraform state files and maintain the integrity of your infrastructure deployments.
+### Example
 
----
+```hcl
+resource "aws_autoscaling_group" "web" {
+  instance_refresh {
+    strategy = "Rolling"
 
-### Q: How do you test terraform code for logic, drift and policy compliance?
+    preferences {
+      min_healthy_percentage = 90
+    }
+  }
+}
+```
 
-Testing Terraform code for logic, drift, and policy compliance can be achieved through the following methods:
+### Remember
 
-1. **Logic Testing:**
-   - Use Terraform's built-in `terraform validate` command to check the syntax and structure of your configuration files.
-   - Implement unit tests using tools like Terratest, which allows you to write Go tests that can deploy and validate your Terraform code.
-   - Use `terraform plan` to preview changes before applying them, ensuring that the intended modifications align with your expectations.
-2. **Drift Detection:**
-   - Regularly run `terraform plan` against your deployed infrastructure to identify any discrepancies between the actual state and the desired state defined in your Terraform code.
-   - Use tools like Driftctl or Terraform Cloud's drift detection features to automate the process of identifying and reporting drift.
-   - Implement monitoring and alerting mechanisms to notify you of any unexpected changes in your infrastructure.
-3. **Policy Compliance:**
-   - Use Open Policy Agent (OPA) with Terraform to define and enforce policies on your infrastructure configurations.
-   - Leverage tools like Sentinel (available in Terraform Cloud) to create policy checks that validate your Terraform code against organizational standards.
-   - Integrate policy checks into your CI/CD pipeline to ensure that all changes comply with defined policies before being applied.
-4. **TFLint** → linter for Terraform code, provider rules.
-5. **Checkov, Tfsec, Terrascan** → detect security misconfigurations.
-
-By combining these methods, you can effectively test your Terraform code for logic, drift, and policy compliance, ensuring robust and reliable infrastructure management.
+Databases need their own plan: replica promotion, backups, and a backward-compatible migration.
 
 ---
 
-### Q: How do you handle secrets management in Terraform?
+## 2. State file best practices
 
-Handling secrets management in Terraform can be done using the following approaches:
+1. Remote backend, never a local file for team work.
+2. Locking on.
+3. Encryption at rest and in transit.
+4. Versioning or soft delete for recovery.
+5. One state key per environment and component.
+6. Only the pipeline writes to production state.
+7. Never commit state to Git.
+8. Treat state as sensitive; it can contain secret values.
 
-1. **Use Environment Variables:** Store sensitive information in environment variables and reference them in your Terraform configuration using the `var` block.
-2. **Leverage Secret Management Tools:** Integrate with secret management tools like HashiCorp Vault, AWS Secrets Manager, or Azure Key Vault to securely store and retrieve secrets.
-3. **Use Terraform Providers:** Utilize providers specifically designed for secret management, such as the Vault provider, to fetch secrets directly within your Terraform code.
-4. **Avoid Hardcoding Secrets:** Never hardcode sensitive information directly in your Terraform configuration files or state files.
-5. **Encrypt State Files:** Ensure that your Terraform state files are encrypted, especially if they contain sensitive data.
-6. **Use `.tfvars` Files with Caution:** If using `.tfvars` files to store variables, ensure they are excluded from version control and encrypted if necessary.
-7. **Implement Access Controls:** Restrict access to sensitive data by implementing role-based access controls (RBAC) and least privilege (only the permissions needed) principles.
-8. **Rotate Secrets Regularly:** Implement a process for regularly rotating secrets to minimize the risk of exposure.
-
-By following these practices, you can effectively manage secrets in Terraform while maintaining security and compliance.
-
----
-
-### Q: How do you optimize Terraform performance for large-scale infrastructure?
-
-To optimize Terraform performance for large-scale infrastructure, consider the following strategies:
-
-1. **Use Remote State Backends:** Store state files in remote backends like AWS S3 or Terraform Cloud to improve performance and enable collaboration.
-2. **Implement State Locking:** Use backends that support state locking to prevent concurrent modifications and ensure consistency.
-3. **Modularize Code:** Break down your Terraform configurations into reusable modules to improve maintainability and reduce complexity.
-4. **Use Data Sources Wisely:** Minimize the use of data sources that require frequent API calls, as they can slow down performance.
-5. **Parallelism:** Increase the parallelism setting in Terraform to allow multiple resources to be created or updated simultaneously.
-6. **Resource Targeting:** Use the `-target` flag during `terraform apply` to focus on specific resources, reducing the scope of changes.
-7. **Limit Resource Count:** Avoid creating an excessive number of resources in a single configuration. Split them into smaller, manageable chunks.
-8. **Cache Providers:** Use provider caching to reduce the overhead of downloading provider plugins repeatedly.
-9. **Monitor and Profile:** Use Terraform's built-in profiling tools to identify bottlenecks and optimize resource creation times.
-10. **Regularly Update Terraform:** Keep Terraform and its providers up to date to benefit from performance improvements and bug fixes.
-
-By implementing these strategies, you can enhance the performance of Terraform for managing large-scale infrastructure efficiently.
+```hcl
+terraform {
+  backend "s3" {
+    bucket       = "my-tf-state"
+    key          = "prod/app/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+```
 
 ---
 
-### Q: How do you manage multi-cloud deployments with Terraform?
+## 3. Testing Terraform code
 
-Managing multi-cloud deployments with Terraform involves the following practices:
+| Check | Command | Catches |
+|---|---|---|
+| Format | `terraform fmt -check` | Style |
+| Syntax | `terraform validate` | Bad references, missing arguments |
+| Lint | `tflint` | Bad instance types, unused variables |
+| Security | `tfsec .` / `checkov -d .` | Public buckets, missing encryption |
+| Drift | `terraform plan -detailed-exitcode` | Manual changes |
+| Unit test | `terraform test` / Terratest | Module actually works |
+| Policy | OPA / Conftest / Sentinel | Company rules |
 
-1. **Use Providers for Each Cloud:** Configure and use the appropriate Terraform providers for each cloud platform (e.g., AWS, Azure, GCP) in your configuration files.
-2. **Modular Architecture:** Create reusable modules for common infrastructure components that can be shared across different cloud environments.
-3. **Separate State Files:** Maintain separate state files for each cloud provider to avoid conflicts and ensure clear separation of resources.
-4. **Use Workspaces:** Leverage Terraform workspaces to manage different environments (e.g., development, staging, production) across multiple clouds.
-5. **Abstract Cloud-Specific Logic:** Use variables and conditionals to abstract cloud-specific configurations, allowing for easier management and deployment.
-6. **Centralized CI/CD Pipeline:** Implement a centralized CI/CD pipeline that can handle deployments to multiple cloud providers seamlessly.
-7. **Monitor Costs:** Use cost management tools to monitor and optimize expenses across different cloud platforms.
-8. **Documentation:** Maintain thorough documentation of your multi-cloud architecture and deployment processes to ensure clarity and consistency.
+### Native test example
 
-By following these practices, you can effectively manage multi-cloud deployments using Terraform, ensuring scalability and flexibility across different cloud environments.
+```hcl
+# tests/vpc.tftest.hcl
+run "vpc_cidr_is_correct" {
+  command = plan
 
----
-
-### Q: How do you handle resource dependencies in Terraform?
-
-Handling resource dependencies in Terraform can be achieved through the following methods:
-
-1. **Implicit Dependencies:** Terraform automatically infers dependencies based on resource references. For example, if one resource references another, Terraform understands that the referenced resource must be created first.
-2. **Explicit Dependencies:** Use the `depends_on` argument to explicitly define dependencies between resources when implicit dependencies are not sufficient.
-3. **Output Variables:** Use output variables from one module or resource as input variables for another to establish dependencies.
-4. **Module Dependencies:** When using modules, ensure that the order of module calls reflects the desired dependency relationships.
-5. **Data Sources:** Use data sources to fetch information about existing resources that other resources depend on.
-6. **Resource Graph:** Utilize Terraform's resource graph to visualize and understand dependencies between resources.
-7. **Plan and Apply:** Always run `terraform plan` to review the order of resource creation and ensure that dependencies are correctly established before applying changes.
-
-By effectively managing resource dependencies, you can ensure that your infrastructure is provisioned in the correct order, minimizing errors and ensuring stability.
+  assert {
+    condition     = aws_vpc.main.cidr_block == "10.0.0.0/16"
+    error_message = "Wrong CIDR"
+  }
+}
+```
 
 ---
 
-### Q: How do you handle versioning of Terraform modules and providers?
+## 4. Secrets management
 
-Handling versioning of Terraform modules and providers involves the following practices:
+### Rules
 
-1. **Specify Provider Versions:** Use the `required_providers` block in your Terraform configuration to specify the exact versions of providers you want to use, ensuring compatibility and stability.
-2. **Use Module Versioning:** When sourcing modules from the Terraform Registry or other repositories, specify the version using the `version` argument to ensure consistent deployments.
-3. **Semantic Versioning:** Follow semantic versioning principles for your custom modules to communicate changes clearly (e.g., major, minor, patch).
-4. **Lock File:** Use the `terraform.lock.hcl` file to lock provider versions, ensuring that the same versions are used across different environments and team members.
-5. **Regular Updates:** Periodically review and update provider and module versions to benefit from new features, bug fixes, and security patches.
-6. **Test Updates:** Before updating versions, test changes in a staging environment to ensure compatibility and prevent disruptions in production.
-7. **Document Changes:** Maintain a changelog for your modules to document updates, breaking changes, and new features.
+1. Never hardcode a secret in `.tf` or in a `.tfvars` file that is committed.
+2. Read secrets from Vault, Key Vault, or Secrets Manager at run time.
+3. Mark variables and outputs `sensitive`.
+4. Encrypt state and restrict read access.
+5. Rotate secrets regularly.
+6. Best of all: let the application read the secret at runtime with a managed identity, so Terraform never touches it.
 
-By following these practices, you can effectively manage versioning of Terraform modules and providers, ensuring stability and consistency in your infrastructure deployments.
+### Example
 
----
+```hcl
+data "azurerm_key_vault_secret" "db" {
+  name         = "db-password"
+  key_vault_id = var.key_vault_id
+}
+```
 
-### Q: How do you implement infrastructure as code (IaC) principles using Terraform?
+### Remember
 
-Implementing Infrastructure as Code (IaC) principles using Terraform involves the following practices:
-
-1. **Declarative Configuration:** Define your infrastructure using declarative configuration files, specifying the desired state rather than imperative commands.
-2. **Version Control:** Store your Terraform configuration files in a version control system (e.g., Git) to track changes, collaborate with team members, and maintain a history of modifications.
-3. **Modularization:** Break down your infrastructure into reusable modules to promote code reuse, maintainability, and organization.
-4. **Automation:** Integrate Terraform with CI/CD pipelines to automate the deployment and management of infrastructure changes.
-5. **Idempotency:** Ensure that Terraform configurations are idempotent (safe to run more than once), meaning that applying the same configuration multiple times results in the same state without unintended side effects.
-6. **Documentation:** Document your Terraform code and infrastructure architecture to provide clarity and facilitate onboarding for new team members.
-7. **Testing:** Implement testing strategies (e.g., unit tests, integration tests) to validate your Terraform code and ensure it behaves as expected.
-8. **State Management:** Use remote state backends and implement best practices for managing Terraform state files to ensure consistency and collaboration.
-
-By following these IaC principles, you can effectively manage and automate your infrastructure using Terraform, leading to more reliable and scalable deployments.
+`sensitive = true` hides the value in CLI output only. The value can still be in state.
 
 ---
 
-### Q: How do you handle Terraform drift detection and fix?
+## 5. Performance on large infrastructure
 
-Handling Terraform drift detection and fix involves the following steps:
+| Problem | Fix |
+|---|---|
+| One huge state | Split by component and environment |
+| Slow refresh | Fewer resources per state |
+| Broad data sources | Pass IDs in as variables |
+| Provider download every run | Cache or mirror providers in CI |
+| API throttling | Lower `-parallelism`, enable provider retries |
+| Extra `depends_on` | Remove it, let Terraform infer |
 
-1. **Regularly Run `terraform plan`:** Schedule regular executions of `terraform plan` to compare the current state of your infrastructure with the desired state defined in your Terraform configuration.
-2. **Use Drift Detection Tools:** Leverage tools like Driftctl or Terraform Cloud's built-in drift detection features to automate the identification of drift in your infrastructure.
-3. **Monitor Changes:** Implement monitoring and alerting mechanisms to notify you of any detected drift in real-time.
-4. **Analyze Drift:** Review the drift reports to understand the changes that have occurred outside of Terraform management.
-5. **Remediate Drift:** Use `terraform apply` to bring the infrastructure back to the desired state as defined in your Terraform configuration.
-6. **Implement Preventive Measures:** Establish policies and access controls to limit direct changes to infrastructure outside of Terraform.
-7. **Document Changes:** Maintain documentation of any manual changes made to the infrastructure to aid in future drift analysis.
-
-By following these steps, you can effectively detect and remediate Terraform drift, ensuring that your infrastructure remains consistent with your defined configurations.
-
----
-
-### Q: How do you manage Terraform configurations for different environments (e.g., dev, staging, prod)?
-
-Managing Terraform configurations for different environments can be achieved through the following methods:
-
-1. **Use Workspaces:** Leverage Terraform workspaces to create separate state files for each environment, allowing you to manage multiple environments within the same configuration.
-2. **Directory Structure:** Organize your Terraform configurations into separate directories for each environment, with shared modules stored in a common directory.
-3. **Environment-Specific Variables:** Use variable files (e.g., `dev.tfvars`, `staging.tfvars`, `prod.tfvars`) to define environment-specific settings and pass them during `terraform apply`.
-4. **Modularization:** Create reusable modules for common infrastructure components and use them across different environments to ensure consistency.
-5. **Backend Configuration:** Configure different remote backends for each environment to isolate state files and prevent conflicts.
-6. **Naming Conventions:** Implement consistent naming conventions for resources to differentiate between environments easily.
-7. **CI/CD Integration:** Set up CI/CD pipelines to automate deployments to different environments based on branch or tag strategies.
-
-By following these methods, you can effectively manage Terraform configurations for multiple environments, ensuring consistency and ease of maintenance.
+Avoid using `-target` as a normal habit. It gives an incomplete plan.
 
 ---
 
-### Q: How do you handle Terraform provider versioning and compatibility?
+## 6. Multi-cloud
 
-Handling Terraform provider versioning and compatibility involves the following practices:
+1. One provider block per cloud, with aliases for extra regions or accounts.
+2. Provider-specific modules. Do not force AWS and Azure into one generic module.
+3. Separate state per cloud, account, environment, and region.
+4. Separate identity and pipeline stage per cloud.
+5. Share the standards: naming, tags, policy checks.
 
-1. **Specify Provider Versions:** Use the `required_providers` block in your Terraform configuration to specify the exact versions of providers you want to use, ensuring compatibility and stability.
-2. **Use Version Constraints:** Implement version constraints (e.g., `>=`, `~>`) to allow for controlled updates while preventing breaking changes.
-3. **Lock File:** Utilize the `terraform.lock.hcl` file to lock provider versions, ensuring that the same versions are used across different environments and team members.
-4. **Regular Updates:** Periodically review and update provider versions to benefit from new features, bug fixes, and security patches.
-5. **Test Updates:** Before updating provider versions, test changes in a staging environment to ensure compatibility and prevent disruptions in production.
-6. **Monitor Release Notes:** Stay informed about provider updates by monitoring release notes and changelogs for any breaking changes or important updates.
-7. **Document Compatibility:** Maintain documentation of compatible provider versions for your Terraform configurations to aid in troubleshooting and onboarding.
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
 
-By following these practices, you can effectively manage Terraform provider versioning and compatibility, ensuring stability and consistency in your infrastructure deployments.
-
----
-
-### Q: How do you implement tagging and labeling strategies in Terraform for resource management?
-
-Implementing tagging and labeling strategies in Terraform for resource management involves the following practices:
-
-1. **Define Standardized Tags:** Establish a set of standardized tags (e.g., environment, project, owner) to be applied consistently across all resources.
-2. **Use Variables for Tags:** Create a variable (e.g., `common_tags`) to store common tags and reference it in your resource definitions to ensure consistency.
-3. **Apply Tags in Resource Blocks:** Include the `tags` or `labels` argument in your resource blocks to apply the defined tags to each resource.
-4. **Modular Tagging:** When using modules, pass the tagging variables to ensure that all resources created by the module are tagged appropriately.
-5. **Automate Tagging:** Implement automation in your CI/CD pipelines to enforce tagging policies during deployments.
-6. **Monitor and Audit Tags:** Use cloud provider tools to monitor and audit resource tags to ensure compliance with tagging strategies.
-7. **Document Tagging Policies:** Maintain documentation of your tagging and labeling strategies to provide clarity and facilitate adherence across teams.
-
-By following these practices, you can effectively implement tagging and labeling strategies in Terraform, enhancing resource management and organization.
+provider "azurerm" {
+  features {}
+}
+```
 
 ---
 
-### Q: How do you handle Terraform module versioning and updates?
+## 7. Resource dependencies
 
-Handling Terraform module versioning and updates involves the following practices:
+### Implicit (preferred)
 
-1. **Specify Module Versions:** When sourcing modules from the Terraform Registry or other repositories, specify the version using the `version` argument to ensure consistent deployments.
-2. **Semantic Versioning:** Follow semantic versioning principles for your custom modules to communicate changes clearly (e.g., major, minor, patch).
-3. **Use Version Constraints:** Implement version constraints (e.g., `>=`, `~>`) to allow for controlled updates while preventing breaking changes.
-4. **Regular Updates:** Periodically review and update module versions to benefit from new features, bug fixes, and security patches.
-5. **Test Updates:** Before updating module versions, test changes in a staging environment to ensure compatibility and prevent disruptions in production.
-6. **Document Changes:** Maintain a changelog for your modules to document updates, breaking changes, and new features.
-7. **Review Dependencies:** Check for any dependencies that modules may have on specific provider versions and ensure compatibility during updates.
+Terraform works out the order from references:
 
-By following these practices, you can effectively manage Terraform module versioning and updates, ensuring stability and consistency in your infrastructure deployments.
+```hcl
+resource "aws_instance" "app" {
+  subnet_id = aws_subnet.private.id   # app waits for the subnet
+}
+```
 
----
+### Explicit
 
-### Q: How do you implement monitoring and logging for Terraform-managed infrastructure?
+Only when there is no reference to infer from:
 
-Implementing monitoring and logging for Terraform-managed infrastructure involves the following steps:
+```hcl
+resource "aws_instance" "app" {
+  depends_on = [aws_iam_role_policy_attachment.app]
+}
+```
 
-1. **Use Cloud Provider Monitoring Services:** Leverage built-in monitoring services provided by cloud providers (e.g., AWS CloudWatch, Azure Monitor, Google Cloud Monitoring) to track the performance and health of your resources.
-2. **Enable Logging:** Configure logging services (e.g., AWS CloudTrail, Azure Log Analytics, Google Cloud Logging) to capture logs from your infrastructure components.
-3. **Define Alerts:** Set up alerts based on specific metrics or log patterns to notify you of potential issues or anomalies in your infrastructure.
-4. **Integrate with Third-Party Tools:** Use third-party monitoring and logging tools (e.g., Datadog, Splunk, ELK Stack) for enhanced capabilities and centralized log management.
-5. **Use Terraform to Provision Monitoring Resources:** Include monitoring and logging resources in your Terraform configurations to ensure they are consistently deployed alongside your infrastructure.
-6. **Implement Dashboards:** Create dashboards to visualize key metrics and logs for easier monitoring and analysis.
-7. **Regularly Review Logs and Metrics:** Establish a routine for reviewing logs and metrics to identify trends and potential issues proactively.
+### Tips
 
-By following these steps, you can effectively implement monitoring and logging for your Terraform-managed infrastructure, ensuring visibility and reliability.
+- Too many `depends_on` blocks slow the apply down and can cause cycles.
+- `terraform graph | dot -Tsvg > graph.svg` shows the dependency graph.
 
 ---
 
-### Q: How do you handle Terraform configuration drift in a collaborative environment?
+## 8. Versioning modules and providers
 
-Handling Terraform configuration drift in a collaborative environment involves the following practices:
+```hcl
+terraform {
+  required_version = ">= 1.6.0"
 
-1. **Use Remote State Backends:** Store state files in remote backends (e.g., AWS S3, Terraform Cloud) to enable collaboration and ensure a single source of truth.
-2. **Enable State Locking:** Use backends that support state locking to prevent concurrent modifications and ensure consistency.
-3. **Implement CI/CD Pipelines:** Use CI/CD pipelines to automate the application of Terraform changes, ensuring that all modifications go through a controlled process.
-4. **Regularly Run `terraform plan`:** Schedule regular executions of `terraform plan` to detect any drift between the actual infrastructure state and the desired state defined in your Terraform configuration.
-5. **Use Drift Detection Tools:** Leverage tools like Driftctl or Terraform Cloud's drift detection features to automate the identification of drift.
-6. **Establish Change Management Processes:** Implement change management processes to document and review infrastructure changes before they are applied.
-7. **Communicate Changes:** Foster clear communication among team members regarding infrastructure changes to minimize the risk of unintended modifications.
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.40"
+    }
+  }
+}
 
-By following these practices, you can effectively manage Terraform configuration drift in a collaborative environment, ensuring consistency and reliability in your infrastructure deployments.
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.8.1"
+}
+```
 
----
+### Rules
 
-### Q: How do you design blue-green or canary infrastructure rollouts using Terraform and pipelines?
-
-Designing blue-green or canary infrastructure rollouts using Terraform and pipelines involves the following steps:
-
-1. **Blue-Green Deployments:**
-   - Create two identical environments (blue and green) using Terraform modules.
-   - Deploy new changes to the inactive environment (e.g., green) while the active environment (e.g., blue) continues to serve traffic.
-   - Use load balancers to switch traffic between the two environments once the new deployment is verified.
-   - Implement health checks to ensure the new environment is functioning correctly before switching traffic.
-2. **Canary Deployments:**
-   - Deploy new changes to a small subset of instances (canary) using Terraform.
-   - Monitor the canary instances for performance and stability before rolling out changes to the rest of the infrastructure.
-   - Gradually increase the number of instances receiving the new changes based on predefined criteria.
-3. **CI/CD Integration:**
-   - Integrate Terraform with CI/CD pipelines to automate the deployment process for blue-green or canary rollouts.
-   - Use pipeline stages to manage the deployment, testing, and promotion of changes.
-4. **Rollback Mechanisms:**
-   - Implement automated rollback mechanisms in case of deployment failures to quickly revert to the previous stable state.
-5. **Monitoring and Alerts:**
-   - Set up monitoring and alerting to track the performance of the new deployments and detect any issues early.
-
-By following these steps, you can effectively design blue-green or canary infrastructure rollouts using Terraform and pipelines, ensuring minimal downtime and risk during deployments.
+1. Pin versions in root modules and commit `.terraform.lock.hcl`.
+2. Use semantic versioning for your own modules.
+3. Upgrade in a dedicated pull request after reading the release notes.
+4. Test the upgrade in a lower environment first.
+5. Keep a changelog for your modules.
 
 ---
 
-### Q: How do you ensure idempotency (safe repeat behavior) and prevent unwanted re-creations during terraform apply?
+## 9. Infrastructure as Code principles
 
-To ensure idempotency (safe repeat behavior) and prevent unwanted re-creations during `terraform apply`, you can follow these practices:
-
-1. **Use Stable Resource Identifiers:** Ensure that resource names and identifiers are stable and do not change between runs, as changes can lead to resource re-creation.
-2. **Avoid Dynamic Values:** Minimize the use of dynamic values (e.g., timestamps, random IDs) in resource definitions that can trigger re-creation.
-3. **Leverage `lifecycle` Blocks:** Use the `lifecycle` block with `prevent_destroy` or `ignore_changes` to control how Terraform handles specific resource attributes.
-4. **Review `terraform plan`:** Always run `terraform plan` before `terraform apply` to review the proposed changes and ensure that no unintended re-creations are planned.
-5. **Use Data Sources:** Use data sources to reference existing resources instead of recreating them.
-6. **Modularization:** Break down your configurations into reusable modules to maintain consistency and reduce the risk of unintended changes.
-7. **Maintain State Integrity:** Regularly back up and manage your Terraform state files to ensure they accurately reflect the current infrastructure state.
-
-By following these practices, you can ensure idempotency (safe repeat behavior) in your Terraform deployments and prevent unwanted resource re-creations during `terraform apply`.
+| Principle | What it means |
+|---|---|
+| Declarative | Describe the end state, not the steps |
+| Version controlled | All code in Git, reviewed through pull requests |
+| Modular | Reusable components with inputs and outputs |
+| Automated | The pipeline applies changes, not a laptop |
+| Idempotent | Running twice produces the same result |
+| Documented | README, examples, and clear variables |
+| Tested | Validate, scan, plan, and test before apply |
 
 ---
 
-### Q: How do you implement cost management and optimization strategies in Terraform deployments?
+## 10. Drift detection and fixing
 
-Implementing cost management and optimization strategies in Terraform deployments involves the following practices:
+### Detect
 
-1. **Use Cost-Effective Resource Types:** Choose resource types and sizes that align with your workload requirements while minimizing costs.
-2. **Implement Auto-Scaling:** Use auto-scaling groups to dynamically adjust resource capacity based on demand, reducing costs during low-usage periods.
-3. **Leverage Spot Instances:** Utilize spot instances or preemptible VMs for non-critical workloads to take advantage of lower pricing.
-4. **Tag Resources for Cost Allocation:** Apply standardized tags to resources to facilitate cost tracking and allocation.
-5. **Monitor Resource Usage:** Use cloud provider cost management tools to monitor resource usage and identify underutilized resources.
-6. **Schedule Resource Shutdowns:** Implement schedules to shut down non-essential resources (e.g., development environments) during off-hours.
-7. **Use Terraform to Manage Cost-Related Resources:** Include cost management resources (e.g., budgets, alerts) in your Terraform configurations to automate cost tracking.
-8. **Regularly Review Costs:** Conduct regular reviews of your cloud costs and optimize resource usage based on findings.
+```bash
+terraform plan -detailed-exitcode
+# 0 = no change, 1 = error, 2 = drift
+```
 
-By following these strategies, you can effectively manage and optimize costs in your Terraform deployments.
+### Fix
 
----
+| Case | Action |
+|---|---|
+| Manual change should stay | Update the code, then apply |
+| Manual change was wrong | Approved apply restores the code value |
+| Resource not managed at all | `terraform import` |
 
-### Q: How do you perform infra changes without downtime - especially for autoscaling or load balancers?
+### Prevent
 
-To perform infrastructure changes without downtime, especially for autoscaling groups or load balancers, you can follow these strategies:
-
-1. **Use Blue-Green Deployments:** Maintain two identical environments (blue and green). Deploy changes to the inactive environment and switch traffic once the deployment is verified.
-2. **Implement Rolling Updates:** Update instances in batches rather than all at once, ensuring that some instances remain available while others are being updated.
-3. **Leverage Load Balancers:** Use load balancers to distribute traffic across multiple instances, allowing you to take instances out of rotation for updates without affecting overall availability.
-4. **Use `create_before_destroy`:** Utilize Terraform's `create_before_destroy` lifecycle rule to ensure that new instances are created before old ones are destroyed.
-5. **Health Checks:** Implement health checks to ensure that new instances are healthy before routing traffic to them.
-6. **Gradual Traffic Shifting:** For load balancers, gradually shift traffic to new instances while monitoring performance and stability.
-7. **Automate Rollbacks:** Implement automated rollback mechanisms in case of deployment failures to quickly revert to the previous stable state.
-8. **Test in Staging Environments:** Always test deployments in staging environments that mirror production to catch potential issues before they affect end users.
-
-By combining these strategies, you can perform infrastructure changes without downtime, ensuring high availability and reliability.
+Read-only console access, policy checks, and a break-glass process where the change must be put back into code afterwards.
 
 ---
 
-### Q: How would you refactor a monolithic Terraform repo into modular stacks for scalability?
+## 11. Managing multiple environments
 
-Refactoring a monolithic Terraform repository into modular stacks for scalability involves the following steps:
+```text
+modules/                shared code
+environments/
+  dev/    backend.tf  dev.tfvars
+  test/   backend.tf  test.tfvars
+  prod/   backend.tf  prod.tfvars
+```
 
-1. **Identify Common Components:** Analyze the existing monolithic configuration to identify common infrastructure components that can be modularized (e.g., networking, compute, storage).
-2. **Create Reusable Modules:** Develop reusable Terraform modules for each identified component, encapsulating the necessary resources and variables.
-3. **Define Module Interfaces:** Establish clear input and output variables for each module to facilitate interaction and integration between modules.
-4. **Organize Directory Structure:** Create a well-organized directory structure that separates modules from environment-specific configurations (e.g., `modules/`, `environments/dev/`, `environments/prod/`).
-5. **Migrate Configurations:** Gradually migrate the existing monolithic configurations into the newly created modules, updating references and dependencies as needed.
-6. **Use Workspaces or Separate State Files:** Implement Terraform workspaces or separate state files for different environments to manage state independently.
-7. **Test Modules:** Thoroughly test each module in isolation and within the context of the overall infrastructure to ensure functionality and compatibility.
-8. **Update CI/CD Pipelines:** Modify your CI/CD pipelines to accommodate the new modular structure and automate deployments.
-9. **Document Changes:** Maintain comprehensive documentation of the new modular architecture, including module usage and dependencies.
-
-By following these steps, you can effectively refactor a monolithic Terraform repository into modular stacks, enhancing scalability, maintainability, and collaboration.
-
----
-
-### Q: How do you handle cross-region dependencies in Terraform?
-
-Handling cross-region dependencies in Terraform involves the following practices:
-
-1. **Use Data Sources:** Utilize data sources to fetch information about resources in different regions, allowing you to reference them in your configurations.
-2. **Separate State Files:** Maintain separate state files for each region to avoid conflicts and ensure clear separation of resources.
-3. **Define Provider Aliases:** Use provider aliases to configure multiple instances of the same provider for different regions within your Terraform configuration.
-4. **Modularization:** Create reusable modules that can be deployed in different regions, allowing for consistent infrastructure across regions.
-5. **Explicit Dependencies:** Use the `depends_on` argument to explicitly define dependencies between resources in different regions when necessary.
-6. **Use Outputs and Inputs:** Pass outputs from resources in one region as inputs to resources in another region to establish dependencies.
-7. **Plan and Apply Separately:** Run `terraform plan` and `terraform apply` separately for each region to manage changes independently.
-
-By following these practices, you can effectively handle cross-region dependencies in Terraform, ensuring that your infrastructure is deployed consistently and reliably across multiple regions.
+1. Separate backend key per environment.
+2. Separate credentials and approvals.
+3. Same module version, different values.
+4. Consistent naming, for example `app-dev-vpc` and `app-prod-vpc`.
+5. The pipeline picks the folder, so a job cannot mix dev code with prod credentials.
 
 ---
 
-### Q: How do you integrate Terraform with CI/CD pipelines for automated deployments in Azure and GitHub Actions?
+## 12. Provider compatibility
 
-Integrating Terraform with CI/CD pipelines for automated deployments in Azure and GitHub Actions involves the following steps:
+1. Pin with `~>` so patch updates come in but major versions do not.
+2. Commit the lock file so CI and laptops match.
+3. `terraform providers` shows which module requires which provider.
+4. Read the release notes before upgrading; providers do have breaking changes.
+5. Never delete the lock file just to make CI pass.
 
-1. **Set Up GitHub Repository:** Store your Terraform configuration files in a GitHub repository to enable version control and collaboration.
-2. **Create GitHub Actions Workflow:** Define a GitHub Actions workflow in a YAML file (e.g., `.github/workflows/terraform.yml`) to automate the deployment process.
-3. **Configure Azure Credentials:** Use GitHub Secrets to securely store Azure credentials (e.g., service principal) required for authentication during deployments.
-4. **Install Terraform:** In the GitHub Actions workflow, include steps to install Terraform on the runner.
-5. **Initialize Terraform:** Add a step to run `terraform init` to initialize the Terraform working directory.
-6. **Plan and Apply:** Include steps to run `terraform plan` to preview changes and `terraform apply` to apply the changes to your Azure infrastructure.
-7. **Use Remote State:** Configure a remote backend (e.g., Azure Storage Account) to store the Terraform state file for collaboration and state management.
-8. **Implement Approval Gates:** Optionally, add approval gates in the workflow to require manual approval before applying changes to production environments.
-9. **Monitor and Notify:** Set up notifications (e.g., via email or Slack) to inform stakeholders of deployment status and results.
+---
 
-By following these steps, you can effectively integrate Terraform with CI/CD pipelines using Azure and GitHub Actions, enabling automated and reliable infrastructure deployments.
+## 13. Tagging and labelling
 
-## State, Replacement, Provisioners, and CIDR
+### Set defaults once
 
-Keep Terraform state in an encrypted remote backend with least-privilege access (only the permissions needed), versioning/soft-delete, locking and audit logging. State can contain sensitive values, so protect read access as strongly as write access.
+```hcl
+provider "aws" {
+  default_tags {
+    tags = {
+      Environment = var.environment
+      Owner       = var.owner
+      CostCenter  = var.cost_center
+      ManagedBy   = "terraform"
+    }
+  }
+}
+```
 
-If infrastructure is changed or deleted manually, inspect the real object and a fresh plan before applying; Terraform may propose recreation to reconcile (make actual state match desired state) declared state.
+### Or merge in a module
 
-`terraform taint` is deprecated. Prefer an explicit reviewed replacement such as `terraform apply -replace=module.example.aws_instance.web` after confirming dependencies, downtime and rollback.
+```hcl
+locals {
+  tags = merge(var.common_tags, {
+    Component = "database"
+  })
+}
+```
 
-Do not use replacement merely to “test” a change in production.
+### Why it matters
 
-Provisioners (`local-exec`, `remote-exec`, `file`, and destroy-time provisioners) are last-resort escape hatches, not configuration-management defaults. They are hard to make idempotent (safe to run more than once) and can fail after a resource was created.
+Tags drive cost reports, ownership, automated cleanup, and compliance checks. Enforce them with variable validation and a policy check.
 
-Prefer cloud-init, image builds, managed services, Ansible, or provider-native resources. If one is necessary, make input/output, retry, secrets, failure handling and destroy behavior explicit.
+---
 
-CIDR notation such as `10.0.0.0/24` represents a network prefix: `/24` leaves 8 host bits (256 addresses before provider reservations). Plan non-overlapping ranges and future growth; never infer usable addresses from the raw mathematical count alone because cloud platforms reserve addresses.
+## 14. Module versioning and updates
+
+1. Tag releases: `v1.0.0`, `v1.1.0`, `v2.0.0`.
+2. Consumers pin a version.
+3. Patch = bug fix, minor = new optional input, major = breaking change.
+4. A major version needs a migration note.
+5. Test the new version in dev before other teams adopt it.
+
+```hcl
+module "vpc" {
+  source  = "git::https://github.com/myorg/tf-modules.git//vpc?ref=v1.4.0"
+}
+```
+
+---
+
+## 15. Monitoring and logging
+
+1. Create the alarms and dashboards in Terraform along with the resource, so nothing ships unmonitored.
+2. Enable cloud logging: CloudTrail, Azure Activity Log, GCP Audit Logs.
+3. Alert on drift job results and failed applies.
+4. Send apply summaries to the team channel.
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "cpu" {
+  alarm_name          = "web-high-cpu"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 80
+  evaluation_periods  = 2
+  period              = 300
+  statistic           = "Average"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+```
+
+---
+
+## 16. Drift in a team environment
+
+1. Shared remote state with locking, so nobody works from a private copy.
+2. All applies from the pipeline.
+3. Nightly drift plan for every environment.
+4. Cloud audit logs to identify who changed what.
+5. Agreed process for emergency changes.
+
+The technical controls matter, but so does the agreement that nobody edits production by hand.
+
+---
+
+## 17. Blue-green and canary rollouts
+
+### Blue-green
+
+1. Build a complete second stack (green) beside the live one (blue).
+2. Test green privately.
+3. Switch the load balancer or DNS to green.
+4. Keep blue for the rollback window, then destroy it.
+
+### Canary
+
+1. Send a small percentage of traffic to the new version.
+2. Watch error rate and latency.
+3. Increase gradually, or roll back quickly.
+
+### With Terraform
+
+Terraform builds both stacks and the routing. The traffic percentage is usually driven by a weighted target group, weighted DNS record, or a service mesh, and changed through the pipeline.
+
+---
+
+## 18. Idempotency and avoiding re-creation
+
+### Causes of unwanted recreation
+
+| Cause | Fix |
+|---|---|
+| `timestamp()` or `uuid()` in a name | Use a stable name |
+| Changing an immutable field | Check the provider docs first |
+| Switching `count` to `for_each` | Use `moved` blocks |
+| Another tool changing a field | Narrow `ignore_changes` |
+| Renaming a resource in code | Use a `moved` block, not a rename |
+
+### Habit
+
+Always read the plan for `forces replacement` before approving.
+
+---
+
+## 19. Cost management
+
+1. Right-size in dev: small instances, one node, short backup retention.
+2. Turn dev off outside working hours.
+3. Use spot or preemptible instances for non-critical workloads.
+4. Tag everything for cost allocation.
+5. Create budgets and alerts in Terraform.
+6. Run a cost estimate in the pipeline, for example with Infracost.
+
+```hcl
+variable "instance_type" {
+  type = map(string)
+
+  default = {
+    dev  = "t3.small"
+    prod = "m6i.large"
+  }
+}
+```
+
+---
+
+## 20. Changing autoscaling groups and load balancers without downtime
+
+1. A new launch template version does not replace running instances by itself.
+2. Use instance refresh with a minimum healthy percentage to roll them gradually.
+3. Keep health checks strict so bad instances never receive traffic.
+4. Use connection draining (deregistration delay) so in-flight requests finish.
+5. For load balancer changes, add the new listener or target group before removing the old one.
+
+```hcl
+resource "aws_lb_target_group" "web" {
+  deregistration_delay = 30
+}
+```
+
+---
+
+## 21. Refactoring a monolithic repo into modules
+
+### Steps
+
+1. Find the repeated blocks: network, compute, database.
+2. Create a module for each, with clear inputs and outputs.
+3. Restructure the folders:
+
+```text
+modules/
+environments/dev/
+environments/prod/
+```
+
+4. Move resources with `moved` blocks so nothing is destroyed.
+5. Do it in small pull requests, one component at a time.
+6. Each step must plan clean before the next one.
+7. Update the pipeline and the documentation.
+
+### Safety check
+
+```bash
+terraform show -json tfplan | jq -r '.resource_changes[] | select(.change.actions[] == "delete") | .address'
+```
+
+If that prints anything unexpected, stop.
+
+---
+
+## 22. Cross-region dependencies
+
+1. Use provider aliases for each region.
+2. Keep separate state per region.
+3. Pass values between regions as variables, or read them from remote state.
+4. Deploy in a defined order through the pipeline.
+
+```hcl
+provider "aws" {
+  alias  = "dr"
+  region = "us-west-2"
+}
+
+resource "aws_s3_bucket" "dr_backup" {
+  provider = aws.dr
+  bucket   = "app-backup-dr"
+}
+```
+
+### Remember
+
+Some services are global (IAM, Route 53, CloudFront). Keep those in one global stack instead of duplicating them per region.
+
+---
+
+## 23. Terraform with GitHub Actions on Azure
+
+```yaml
+name: terraform
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+      - run: terraform validate
+      - run: terraform plan -out=tfplan
+
+      - if: github.ref == 'refs/heads/main'
+        run: terraform apply tfplan
+```
+
+### Points
+
+- `id-token: write` enables OIDC, so no client secret is stored.
+- State lives in an Azure Storage account, which locks with blob leases.
+- The `environment` setting gives the approval gate.
+
+---
+
+## 24. State, replacement, and provisioners
+
+### State
+
+Keep it in an encrypted remote backend with locking, versioning, audit logs, and least-privilege access. Protect read access as strongly as write access.
+
+### Replacement
+
+`terraform taint` is deprecated. Use:
+
+```bash
+terraform apply -replace='module.app.aws_instance.web'
+```
+
+Check dependencies, data, downtime, and rollback before replacing anything.
+
+### Provisioners
+
+`local-exec`, `remote-exec`, and `file` are last-resort escape hatches, not a configuration management tool.
+
+Problems with them:
+
+- Hard to make idempotent
+- Can fail after the resource is already created
+- Errors are hard to recover from
+
+Better options: cloud-init or user data, a pre-baked image, a managed service, Ansible, or a native provider resource.
+
+---
+
+## 25. CIDR basics
+
+```text
+10.0.0.0/16   = 65,536 addresses    (a whole VPC)
+10.0.1.0/24   = 256 addresses       (a subnet)
+10.0.1.0/28   = 16 addresses        (a small subnet)
+```
+
+The number after the slash is how many bits are fixed. The remaining bits are host addresses.
+
+### Planning tips
+
+1. Plan non-overlapping ranges across environments and clouds, or peering will fail later.
+2. Leave room to grow. You cannot easily shrink or move a subnet afterwards.
+3. Cloud providers reserve some addresses in every subnet, so the usable count is lower than the raw number. AWS reserves 5 per subnet.
+
+### Useful function
+
+```hcl
+locals {
+  subnets = [for i in range(3) : cidrsubnet("10.0.0.0/16", 8, i)]
+  # 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24
+}
+```

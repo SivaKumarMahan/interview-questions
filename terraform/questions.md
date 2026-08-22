@@ -1,136 +1,393 @@
-## 1. How have you used Terraform? Give an example of what you built.
+# Terraform Interview Questions
 
-**Answer:**
-I used Terraform to build repeatable cloud environments rather than creating resources manually.
+Common Terraform interview questions with simple, easy-to-read answers.
 
-For example, I created an AWS application platform containing a VPC, public and private subnets across availability zones, route tables, security groups, an application load balancer, autoscaling instances, an RDS database, IAM roles, DNS records, and monitoring alarms.
-I separated reusable VPC, compute, and database modules from environment-specific root configurations. Code went through pull requests; CI ran formatting, validation, security checks, and a saved plan; production apply required approval and short-lived cloud credentials.
+---
 
-State was encrypted, versioned, and locked remotely. After apply I checked load-balancer health, application connectivity, alarms, and backup configuration.
+## 1. How have you used Terraform?
 
-This example shows not just syntax, but how I used Terraform safely as part of a team.
+### Short answer
 
-## 2. How would you use Terraform to create cloud resources?
+I used Terraform to build cloud environments from code instead of clicking in the console.
 
-**Answer:**
-I first gather the resource, network, security, naming, availability, cost, and ownership requirements. Then I configure the provider and remote backend, pin versions, and write resources—preferably through reviewed modules—with variables and outputs.
+### Example of what I built
 
-Authentication comes from workload identity or environment credentials, never hardcoded keys.
+An application setup on AWS with:
 
-My normal command flow is `terraform fmt -check`, `terraform init`, `terraform validate`, `terraform plan -out=tfplan`, review the complete plan, and `terraform apply tfplan`. In a team these run in CI with state locking and production approval.
+- One VPC with public and private subnets
+- Security groups
+- A load balancer
+- Auto scaling EC2 instances
+- An RDS database
+- IAM roles
+- DNS records and alarms
 
-Finally I validate the actual cloud resource and application path, because a successful apply only means provider API calls succeeded; it does not prove the service works.
+### How the work was organized
 
-## 3. What happens during `terraform init`, `plan`, and `apply`?
+```text
+modules/      # reusable code: vpc, compute, database
+environments/ # dev, test, prod values
+```
 
-**Answer:**
-`terraform init` initializes the working directory: it configures the backend, downloads modules and provider plugins, and records provider selections in `.terraform.lock.hcl`. Re-run it when backend, module, or provider requirements change.
+Every change went through a pull request. The pipeline ran `fmt`, `validate`, a security scan, and `plan`. Production apply needed an approval.
 
-`terraform plan` refreshes managed objects, evaluates configuration and dependencies, compares desired configuration with state/real provider data, and proposes create, update, replace, or destroy actions. I save and review the plan, especially replacements and deletions.
+State was kept in a remote backend that was encrypted, versioned, and locked.
 
-`terraform apply` executes that dependency graph and writes successful results to state. Applying a saved plan guarantees the reviewed actions are used; without one, Terraform creates a new plan at apply time.
+### Interview answer
 
-I still verify infrastructure and application health afterward.
+"I used Terraform to create repeatable environments. For example, I built a VPC with subnets, security groups, a load balancer, auto scaling servers, and an RDS database. I kept reusable code in modules and environment values in separate folders. All changes went through pull requests, and the pipeline ran plan first and applied only after approval."
+
+---
+
+## 2. How would you create cloud resources with Terraform?
+
+### Steps
+
+1. Collect the requirements: what resources, which region, networking, naming, cost.
+2. Configure the provider and the remote backend.
+3. Pin the Terraform and provider versions.
+4. Write the resources, preferably by calling a module.
+5. Use variables for values that change per environment.
+6. Run the normal command flow.
+7. Check the real resource in the cloud after apply.
+
+### Command flow
+
+```bash
+terraform fmt
+terraform init
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+### Interview answer
+
+"First I gather requirements, then I set the provider and remote backend and pin versions. I write resources using modules and variables. I run fmt, init, validate, plan, review the plan, and then apply the saved plan. After apply I check the resource in the cloud, because a successful apply only means the API calls worked."
+
+---
+
+## 3. What happens during init, plan, and apply?
+
+| Command | What it does |
+|---|---|
+| `terraform init` | Sets up the folder: downloads providers and modules, configures the backend, writes `.terraform.lock.hcl` |
+| `terraform plan` | Compares your code with the real infrastructure and shows what will be created, changed, or destroyed |
+| `terraform apply` | Makes the changes and saves the result in state |
+
+### Points to remember
+
+- Run `init` again when the backend, modules, or provider versions change.
+- `plan` changes nothing. It is safe to run any time.
+- `apply tfplan` applies exactly what you reviewed. `apply` without a saved plan makes a fresh plan.
+
+### Interview answer
+
+"`init` prepares the working directory and downloads providers and modules. `plan` shows the difference between my code and the real infrastructure without changing anything. `apply` performs those changes and updates the state file. In pipelines I save the plan with `-out` and apply that file, so I apply exactly what was reviewed."
+
+---
 
 ## 4. What is a Terraform backend?
 
-**Answer:**
-A backend defines where Terraform stores state and, for some backends, where operations run. Local backend writes `terraform.tfstate` on the machine; remote backends such as Azure Storage, S3, GCS, or Terraform Cloud make controlled team use possible.
+### What it is
 
-Backend configuration is initialized before normal resources, so ordinary input variables cannot be used in the same way there. I keep credentials outside the code, encrypt and version state, restrict read/write access, enable locking where supported, and separate state keys by environment/component.
+A backend is the place where Terraform stores the state file.
 
-Changing a backend requires an intentional `terraform init -migrate-state` and a verified backup.
+- **Local backend:** `terraform.tfstate` on your laptop. Default.
+- **Remote backend:** S3, Azure Storage, GCS, or Terraform Cloud.
 
-## 5. Why should you use a remote backend?
+### Example
 
-**Answer:**
-Remote state gives the team one authoritative state instead of copies on engineers’ laptops. It supports locking or controlled runs, encryption, access control, audit history, backup/version recovery, and CI access.
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "my-tf-state"
+    key    = "prod/app/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+```
 
-That prevents two applies from silently overwriting each other and reduces the chance of losing state with a workstation.
+### Points to remember
 
-It is still sensitive infrastructure data, so I give humans mostly read access and a deployment identity write access, isolate production state, enable private endpoints where required, and test version restoration.
+- The backend is set up before anything else, so you cannot use normal variables inside it. Use `-backend-config` files instead.
+- Keep one state key per environment.
+- To change backends, run `terraform init -migrate-state` and take a backup first.
 
-A remote backend reduces state risk; it does not replace pull-request review, plan review, or cloud-side policy.
+### Interview answer
 
-## 6. How do you securely store the Terraform state file?
+"A backend decides where the state file is stored. Local means the file sits on your machine, which is not good for teams. Remote backends like S3, Azure Storage, or Terraform Cloud allow shared state with encryption, versioning, and locking. Backend settings cannot use normal variables, so I pass them with a backend config file."
 
-**Answer:**
-I use an approved remote backend with encryption at rest and TLS, object versioning/soft delete, locking, audit logs, and restricted network access. Each environment/component has a separate state path and least-privilege (minimum required access) identity; production writes come only from its protected pipeline.
-State can contain passwords or private attributes even when outputs are marked `sensitive`, so I restrict read access as strongly as write access and never commit state or plan artifacts to Git. I rotate backend credentials, monitor access, retain tested recovery versions, and avoid copying state into tickets or logs.
+---
 
-Before a state operation, I take a pull/backup and confirm no apply holds the lock.
+## 5. Why use a remote backend?
 
-## 7. How do you manage secrets securely in Terraform or Terragrunt?
+### Reasons
 
-**Answer:**
-I never hardcode secrets in `.tf`, Terragrunt files, plaintext `.tfvars`, or Git. The pipeline authenticates with short-lived workload identity and reads required values from Vault, Key Vault, Secrets Manager, or the CI secret store.
+1. **One shared state** instead of a copy on every laptop.
+2. **Locking**, so two people cannot apply at the same time.
+3. **Encryption** of a file that can hold sensitive values.
+4. **Versioning**, so you can restore an older state.
+5. **Access control and audit logs.**
+6. **CI/CD can reach it**, laptops are not needed.
 
-Input variables and outputs are marked `sensitive` to prevent normal CLI display.
+### Interview answer
 
-However, `sensitive` is display protection, not state encryption; a value assigned to a managed resource can still be stored in state. Where possible, Terraform creates the secret object and grants access while a separate secure process supplies/rotates the value, or the application retrieves the secret at runtime.
+"A remote backend gives the team one shared state file with locking, encryption, versioning, and access control. Without it, everyone keeps their own copy and two applies can overwrite each other. It also lets the pipeline run Terraform instead of running it from a laptop."
 
-I also inspect plan artifacts/logs for exposure, tightly protect the backend, and rotate any value that was accidentally committed.
+---
 
-## 8. What are common challenges faced while working with Terraform?
+## 6. How do you store the state file securely?
 
-**Answer:**
-The main challenges I have seen are concurrent state access, manual drift, imports and refactors, accidental replacement/deletion, provider/API behavior, secrets in state, slow monolithic plans, and module/provider upgrade compatibility.
+### Checklist
 
-Cross-stack dependencies and ownership between application, network, and security teams also make changes harder.
-I reduce these risks with locked/versioned remote state, smaller lifecycle-based state boundaries, pinned versions, reusable tested modules, CI plans and policy checks, and production approvals.
+- Remote backend with encryption at rest and TLS in transit.
+- Versioning or soft delete turned on.
+- Locking enabled.
+- Separate state path per environment.
+- Only the pipeline identity can write to production state.
+- Never commit state or plan files to Git.
 
-For a failure I inspect the resource address, plan, dependency graph, state, provider/cloud logs, and real object before changing state.
+### Example `.gitignore`
 
-I prefer an explicit migration and verified backup over a quick `state rm` or targeted apply.
+```text
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfplan
+```
 
-## 9. What is infrastructure drift and how do you detect it?
+### Important point
 
-**Answer:**
-Drift is a difference between the declared Terraform configuration and the real infrastructure, often caused by console changes, another automation tool, incident work, or provider-side defaults.
+Even if an output is marked `sensitive`, the value can still exist inside the state file. So read access must be protected just like write access.
 
-State alone may still describe the last known value; refresh during `terraform plan` queries the provider and exposes the difference.
-I run scheduled read-only plans such as `terraform plan -detailed-exitcode`: exit 0 means no change, 2 means differences, and 1 means an error. I alert with the plan summary and compare it with cloud activity/audit logs.
+### Interview answer
 
-I do not auto-apply every drift finding because an emergency manual change might be valid and must first be understood.
+"State goes into a remote backend with encryption, versioning, locking, and restricted access. Each environment has its own state path, and only the deployment identity can write to production. State can contain secrets even when outputs are marked sensitive, so I protect read access as strongly as write access, and I never commit state to Git."
 
-## 10. How do you resolve drift in Terraform-managed infrastructure?
+---
 
-**Answer:**
-First I identify exactly what changed, who changed it, why, and whether it is the new desired state. I preserve the plan and audit evidence and check customer impact.
+## 7. How do you manage secrets in Terraform?
 
-If the manual change is correct, I update reviewed Terraform code to represent it; if it is unauthorized or temporary, an approved apply restores the declared value.
+### Rules
 
-For a real object absent from state, I write matching code and import it. I avoid `ignore_changes` unless another named system truly owns that field, because it can hide future problems.
+1. Never hardcode a secret in `.tf` files or in a plain `.tfvars` file in Git.
+2. Read secrets from a secret store at runtime.
+3. Mark variables and outputs as `sensitive`.
+4. Protect the backend, because values can land in state.
 
-After reconciliation (making actual state match desired state) I expect a clean plan and verify the service, then improve console permissions, break-glass documentation, or drift alerting to prevent recurrence.
+### Example: read from Azure Key Vault
 
-## 11. If Terraform created an S3 bucket and someone manually added a policy, how do you fix this with IaC?
+```hcl
+data "azurerm_key_vault_secret" "db_password" {
+  name         = "db-password"
+  key_vault_id = var.key_vault_id
+}
 
-**Answer:**
-I first inspect the current policy and CloudTrail to understand who added it and whether access is safe. If the policy is desired, I express it with `aws_iam_policy_document` and `aws_s3_bucket_policy`, including least-privilege (minimum required access) principals, actions, resources, and conditions.
+resource "azurerm_mssql_server" "db" {
+  name                         = "app-sql"
+  administrator_login          = "sqladmin"
+  administrator_login_password = data.azurerm_key_vault_secret.db_password.value
+}
+```
 
-If Terraform treats the policy as a separate existing object, I import it at the correct address.
+### Example: mark a variable sensitive
 
-I run a plan and compare the generated JSON semantically, because ordering can look different without changing meaning. After review and apply I test the intended allow and deny behavior and check public-access settings.
+```hcl
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+```
 
-If the manual policy is not approved, I encode the correct policy and let Terraform replace it, while preserving incident evidence if it exposed data.
+### Important point
 
-## 12. How do you manage unmanaged AWS resources in Terraform?
+`sensitive = true` only hides the value in CLI output. It does not encrypt state.
 
-**Answer:**
-I inventory the object, dependencies, tags, owners, downtime risk, and whether Terraform should really own it. Then I write a resource block at its permanent module address and pin the correct provider/account/region. I back up and lock state before import.
+### Interview answer
 
-For example, `terraform import 'module.network.aws_vpc.main' vpc-012345` associates the real VPC with that address; it does not generate a complete configuration. I inspect with `terraform state show`, fill in all important arguments, and repeat plan until there are no unintended updates or replacement.
+"I keep secrets out of Git. The pipeline logs in with a short-lived identity and reads secrets from Key Vault, Vault, or Secrets Manager. I mark variables and outputs as sensitive, but I explain that this only hides them in output, not in state, so the backend must be encrypted with restricted access. Where possible, the application reads the secret at runtime instead of Terraform passing it."
 
-Related subnets, routes, and policies are imported separately. Only then do normal pipelines manage it.
+---
+
+## 8. What challenges have you faced with Terraform?
+
+### Common challenges
+
+| Challenge | How I handle it |
+|---|---|
+| Two people applying at once | Remote backend with locking, apply only from the pipeline |
+| Manual changes in the console (drift) | Scheduled plan, restrict console write access |
+| Importing old resources | Write the code first, then import one resource at a time |
+| Accidental delete or replace | `prevent_destroy`, review the plan, approvals |
+| Secrets ending up in state | Encrypted backend, restricted access |
+| Slow plans on big projects | Split into smaller states |
+| Provider upgrades breaking code | Pin versions, commit the lock file, upgrade in a separate PR |
+
+### Interview answer
+
+"The most common ones are drift from manual changes, state conflicts when two people apply together, slow plans on large projects, accidental replacement of resources, and provider version upgrades breaking things. I handle them with locked remote state, smaller state files, pinned versions, reviewed plans, and production approvals."
+
+---
+
+## 9. What is drift and how do you detect it?
+
+### What drift is
+
+Drift means the real infrastructure is different from what your Terraform code says. It usually happens when someone changes something in the console during an incident.
+
+### How to detect it
+
+Run a plan on a schedule:
+
+```bash
+terraform plan -detailed-exitcode
+```
+
+| Exit code | Meaning |
+|---|---|
+| 0 | No changes |
+| 1 | Error |
+| 2 | Differences found (drift) |
+
+Then send an alert with the plan summary and check the cloud activity log to see who changed it.
+
+### Interview answer
+
+"Drift is when the real resource no longer matches the code, usually after a manual console change. I detect it by running `terraform plan -detailed-exitcode` on a schedule; exit code 2 means drift. I alert with the plan output and check the cloud audit log to see who changed what before deciding what to do."
+
+---
+
+## 10. How do you fix drift?
+
+### Steps
+
+1. Find out what changed, who changed it, and why.
+2. Decide with the owner: is the manual change correct?
+3. If it **is** correct, update the Terraform code to match and apply.
+4. If it is **not** correct, apply the code so Terraform puts the value back.
+5. If the resource is not in state at all, import it.
+6. Run a plan again and confirm it is clean.
+
+### What to avoid
+
+- Do not auto-revert an emergency fix before someone reviews it.
+- Do not hide drift with a wide `ignore_changes`.
+
+### Interview answer
+
+"First I find out what changed and why. If the manual change is correct, I put it into the code so the code stays the source of truth. If it is not correct, an approved apply restores the declared value. If the object is not managed at all, I import it. After that I expect a clean plan, and I reduce console write access so it does not happen again."
+
+---
+
+## 11. Terraform created an S3 bucket and someone added a policy manually. How do you fix it?
+
+### Steps
+
+1. Look at the current policy and check CloudTrail for who added it.
+2. Decide if the policy should stay.
+3. If yes, write it in code:
+
+```hcl
+data "aws_iam_policy_document" "bucket" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.app.arn}/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.app.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "app" {
+  bucket = aws_s3_bucket.app.id
+  policy = data.aws_iam_policy_document.bucket.json
+}
+```
+
+4. If Terraform sees it as an existing separate object, import it:
+
+```bash
+terraform import aws_s3_bucket_policy.app my-bucket
+```
+
+5. Run a plan and check the JSON difference. Ordering can look different without changing meaning.
+6. If the policy was not approved, let Terraform replace it and test allow and deny behaviour.
+
+### Interview answer
+
+"I check who added the policy and whether it is safe. If it should stay, I write it in Terraform using `aws_iam_policy_document` and import the existing policy so Terraform manages it. Then I plan and confirm no unexpected changes. If it was not approved, Terraform simply replaces it with the reviewed policy."
+
+---
+
+## 12. How do you bring existing (unmanaged) resources into Terraform?
+
+### Steps
+
+1. List the resource, its ID, and its dependencies.
+2. Write a resource block at the address you want to keep permanently.
+3. Back up the state.
+4. Import.
+5. Fill in the missing arguments until the plan is clean.
+
+### Example
+
+```bash
+terraform import 'module.network.aws_vpc.main' vpc-012345
+terraform state show 'module.network.aws_vpc.main'
+terraform plan
+```
+
+### Import block (Terraform 1.5+)
+
+```hcl
+import {
+  to = aws_vpc.main
+  id = "vpc-012345"
+}
+```
+
+### Important point
+
+Import only links the real object to a resource address. It does not write your configuration for you. Keep planning until Terraform shows no unwanted changes.
+
+### Interview answer
+
+"I write the resource block first, back up state, then run `terraform import` with the resource address and the real ID. Import only maps the object into state, so afterwards I run `terraform state show`, copy the important settings into my code, and keep planning until there are no unexpected updates. Related resources like subnets and routes are imported separately."
+
+---
 
 ## 13. What is the difference between `count` and `for_each`?
 
-**Answer:**
-`count` produces numeric addresses such as `aws_subnet.app[0]`; it is suitable for identical optional resources or a stable count. If it is based on a list and an item is removed from the middle, later indexes shift and Terraform may update/recreate the wrong instances.
-`for_each` uses stable keys such as `aws_subnet.app["east"]`, so it is better for named objects with different values:
+| `count` | `for_each` |
+|---|---|
+| Creates numbered instances: `aws_subnet.app[0]` | Creates named instances: `aws_subnet.app["web"]` |
+| Good for identical copies or an on/off switch | Good for named items with different values |
+| Removing a middle item shifts all later indexes | Keys stay stable when an item is removed |
+
+### `count` example
 
 ```hcl
+resource "aws_instance" "web" {
+  count         = 3
+  ami           = var.ami
+  instance_type = "t3.micro"
+}
+```
+
+### `for_each` example
+
+```hcl
+variable "subnets" {
+  type = map(object({
+    cidr = string
+    az   = string
+  }))
+}
+
 resource "aws_subnet" "app" {
   for_each          = var.subnets
   vpc_id            = aws_vpc.main.id
@@ -139,509 +396,1371 @@ resource "aws_subnet" "app" {
 }
 ```
 
-Changing from one method to the other changes addresses, so I use `moved` blocks or `terraform state mv` to avoid recreation.
+### Important point
 
-## 14. What are lifecycle blocks and real-world use cases?
+Switching from `count` to `for_each` changes resource addresses, so Terraform may want to destroy and recreate. Use a `moved` block or `terraform state mv` to avoid that.
 
-**Answer:**
-The `lifecycle` meta-argument changes how Terraform handles a resource.
+### Interview answer
 
-I use `prevent_destroy` as a guard for critical databases, `create_before_destroy` when old and new objects can coexist, `replace_triggered_by` when another change requires replacement, and narrowly scoped `ignore_changes` when an external controller owns a field.
-These are controls, not automatic safety. `prevent_destroy` does not protect a resource if its entire block is removed from configuration; cloud deletion protection and policy are also needed.
+"`count` gives numbered instances and is fine when the resources are identical. `for_each` gives named instances from a map or set, which is safer when each item has an identity, because removing one item does not shift the others. If I switch between them, I use `moved` blocks so Terraform does not recreate resources."
 
-`create_before_destroy` can fail on unique names or quotas, and broad `ignore_changes` hides real drift. I document the owner/reason and verify behavior in the plan.
+---
 
-## 15. How can you restrict resource deletion but allow init, plan, and apply?
+## 14. What is a lifecycle block?
 
-**Answer:**
-For selected critical resources I add `lifecycle { prevent_destroy = true }`, enable the provider's deletion protection, and use Sentinel/OPA/cloud policy to reject plans containing prohibited deletes.
+### The four options
 
-Production pipeline credentials can also have deletion permissions denied except through a controlled break-glass role.
-I still allow `init`, validation, and plan because they are read/evaluation operations; apply proceeds only when the reviewed plan contains allowed actions. Terraform has no single global switch meaning "apply every update but never any delete," because replacement often includes a delete.
+| Option | What it does |
+|---|---|
+| `prevent_destroy` | Terraform fails instead of deleting the resource |
+| `create_before_destroy` | Creates the new resource first, then deletes the old one |
+| `ignore_changes` | Ignores changes to listed attributes |
+| `replace_triggered_by` | Replaces this resource when another one changes |
 
-The layered approach gives a clear exception workflow, approval, backup verification, and audit trail when deletion is genuinely required.
+### Example
 
-## 16. What is `terraform taint` and `untaint`?
+```hcl
+resource "aws_db_instance" "prod" {
+  identifier = "prod-db"
 
-**Answer:**
-Taint records in state that a managed instance is unhealthy and should be replaced at the next plan/apply; untaint removes that marker. It does not repair or immediately delete the resource.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 
-Because the state mutation is easy to forget, I prefer `terraform plan -replace='address' -out=tfplan` followed by review and applying that saved plan.
+resource "aws_instance" "web" {
+  ami = var.ami
 
-Before replacement I check dependencies, data persistence, downtime, quotas, and whether create-before-destroy is possible. For a database or disk I never use replacement as casual troubleshooting.
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [tags["LastScanned"]]
+  }
+}
+```
 
-`untaint` is appropriate only after confirming the mark was accidental or the object was safely repaired and matches configuration.
+### Points to remember
 
-## 17. A Terraform resource is not updating properly. How do taint and untaint help?
+- `prevent_destroy` does not help if you delete the whole resource block from the code.
+- `create_before_destroy` can fail when names must be unique or quota is full.
+- A wide `ignore_changes` hides real drift, so keep it narrow.
 
-**Answer:**
-I first determine why it is not updating: check the plan, provider error/debug log, cloud activity log, state, real attributes, immutable (not changed after creation) fields, permissions, and whether `ignore_changes` suppresses it. A refresh or corrected configuration may solve it without replacement.
-If the object is disposable and genuinely needs recreation, I use an explicit `-replace=<address>` plan and review every dependent action. I prepare traffic draining, backups, and capacity before apply, then test the replacement.
+### Interview answer
 
-If someone tainted it by mistake and it is healthy, `terraform untaint <address>` prevents unnecessary replacement, followed by a normal plan to prove it is aligned.
+"`lifecycle` changes how Terraform handles a resource. I use `prevent_destroy` on production databases, `create_before_destroy` when the old and new resource can exist together, `ignore_changes` when another system owns a field like a tag, and `replace_triggered_by` when a change elsewhere must force a replacement. These are helpers, not full protection, so I also use cloud deletion protection and approvals."
 
-## 18. Explain stateful vs stateless resources in Terraform.
+---
 
-**Answer:**
-Terraform records both kinds in its state; "stateful" here describes the workload. Databases, persistent disks, queues, and buckets hold business data, so replacement or deletion needs backup, replication, migration, retention, deletion protection, and application-aware cutover.
+## 15. How do you allow plan and apply but block deletion?
 
-Their resource state file is not a backup of the actual data.
+### Layers of protection
 
-Stateless web instances or containers keep durable state elsewhere and can normally be replaced behind a load balancer. I design them for immutable (not changed after creation) recreation, health checks, autoscaling, and graceful drain.
+1. `lifecycle { prevent_destroy = true }` on critical resources.
+2. Deletion protection on the cloud resource itself (RDS, load balancer, storage).
+3. A policy check (Sentinel, OPA, Checkov) that fails the pipeline if the plan contains a delete.
+4. Pipeline credentials that do not have delete permission, with a separate break-glass role.
+5. Manual approval before production apply.
 
-The classification affects module boundaries, lifecycle settings, deployment approval, recovery testing, and how much evidence I require before applying a replacement.
+### Important point
 
-## 19. How did you reuse the same Terraform code for different environments?
+There is no single Terraform switch that says "allow every update but never delete", because a replacement includes a delete.
 
-**Answer:**
-I put common behavior in versioned modules and keep each environment in a small root module with its own backend, credentials, variables, and approvals. For example, dev and production call the same VPC module version but pass different CIDRs, subnet maps, flow-log retention, and NAT/high-availability settings.
-I normally use separate long-lived states for dev, staging, and production rather than relying on a developer to select the right CLI workspace. CI plans the exact environment directory and promotes a tested module version through pull requests.
+### Interview answer
 
-I avoid branching inside a module on environment names; clear variables and validation make differences intentional and visible in the plan.
+"There is no single flag for it, so I use layers. `prevent_destroy` on critical resources, deletion protection on the cloud side, a policy check that rejects plans containing deletes, and pipeline credentials without delete rights. Init, validate, and plan stay allowed because they only read. When a delete is genuinely needed, it goes through a documented break-glass approval."
 
-## 20. What is a Terraform module and why use one?
+---
 
-**Answer:**
-A module is a directory of Terraform configuration with an input/output contract. The current directory is the root module; any module called with a `module` block is a child module.
+## 16. What are `taint` and `untaint`?
 
-A good module can create a supported pattern such as a secure VPC or database without every team repeating dozens of resource blocks.
+### What they do
 
-I use modules to standardize tags, encryption, logging, security defaults, and naming. I keep them focused, validate inputs, expose useful outputs, include examples/tests, and release semantic versions in a registry or Git.
+- `terraform taint <address>` marks a resource in state as bad, so the next apply replaces it.
+- `terraform untaint <address>` removes that mark.
 
-I avoid a huge universal module with many boolean switches because it becomes hard to understand and upgrade.
+### Better way today
 
-## 21. How do you create IAM roles in Terraform? Do you use modules or templates?
+`taint` is deprecated. Use an explicit replace:
 
-**Answer:**
-I separate the trust policy—who may assume the role—from permission policies—what the role may do. `aws_iam_policy_document` produces valid JSON and supports variables/conditions better than hand-built strings:
+```bash
+terraform plan -replace='aws_instance.web' -out=tfplan
+terraform apply tfplan
+```
+
+### Before replacing anything, check
+
+- What depends on this resource
+- Whether it holds data
+- Whether downtime is acceptable
+- Whether create-before-destroy is possible
+
+### Interview answer
+
+"`taint` marks a resource in state so it gets recreated on the next apply, and `untaint` removes that mark. It is deprecated now, so I prefer `terraform apply -replace=<address>` because the replacement is visible in the plan instead of hidden in state. For databases or disks I never use replacement as a quick troubleshooting step."
+
+---
+
+## 17. A resource is not updating properly. Do taint and untaint help?
+
+### First find out why it is not updating
+
+1. Read the plan. Does Terraform even see a change?
+2. Check if the field is immutable, which forces a replacement.
+3. Check whether `ignore_changes` is hiding it.
+4. Check provider errors and permissions.
+5. Check whether another tool is changing it back.
+
+### Then decide
+
+- If the code or input was wrong, fix it and apply. No replacement needed.
+- If the resource really must be rebuilt, use `-replace` and review every dependent change.
+- If someone tainted a healthy resource by mistake, run `terraform untaint <address>` and plan again.
+
+### Interview answer
+
+"I do not start with taint. First I check the plan, the provider error, whether the field is immutable, and whether `ignore_changes` is hiding it. If the object really needs to be rebuilt, I use `apply -replace` so the change is visible in the plan. If someone tainted a healthy resource by mistake, `untaint` avoids an unnecessary replacement."
+
+---
+
+## 18. What is the difference between stateful and stateless resources?
+
+| Stateful | Stateless |
+|---|---|
+| Holds data: database, disk, storage bucket, queue | Holds no data: web server, container, VM behind a load balancer |
+| Replacement needs backup and a data plan | Can be replaced freely |
+| Delete is dangerous | Delete is normal |
+| Use `prevent_destroy` and deletion protection | Use immutable replacement and health checks |
+
+### Important point
+
+The Terraform state file is not a backup of your data. It only records resource IDs and attributes.
+
+### Interview answer
+
+"Stateful resources hold business data, like databases, disks, and buckets, so replacing them needs backups, replication, and a cutover plan. Stateless resources such as web servers keep no data and can be recreated behind a load balancer. I also mention that the Terraform state file is not a data backup; it only tracks resource details."
+
+---
+
+## 19. How do you reuse the same code for different environments?
+
+### Folder layout
+
+```text
+modules/
+  vpc/
+  compute/
+  database/
+environments/
+  dev/
+    main.tf
+    backend.tf
+    dev.tfvars
+  prod/
+    main.tf
+    backend.tf
+    prod.tfvars
+```
+
+### How it works
+
+Both environments call the same module version and pass different values.
+
+```hcl
+module "vpc" {
+  source  = "git::https://github.com/myorg/tf-modules.git//vpc?ref=v1.4.0"
+  cidr    = var.vpc_cidr
+  subnets = var.subnets
+}
+```
+
+Dev passes a small CIDR and one NAT gateway. Prod passes a bigger CIDR and one NAT gateway per zone.
+
+### Interview answer
+
+"I keep the common code in versioned modules and give each environment its own small root folder with its own backend, variables, and approvals. Dev and prod call the same module version but pass different values. I avoid writing `if environment == prod` inside modules, because that hides the differences."
+
+---
+
+## 20. What is a Terraform module and why use it?
+
+### What it is
+
+A module is just a folder of Terraform files with inputs and outputs.
+
+- **Root module:** the folder where you run `terraform apply`.
+- **Child module:** any folder called with a `module` block.
+
+### Example
+
+```hcl
+module "app_server" {
+  source        = "./modules/ec2"
+  name          = "app-server"
+  instance_type = "t3.small"
+  subnet_id     = module.vpc.private_subnet_ids[0]
+}
+```
+
+### Why use it
+
+1. Write once, use many times.
+2. Standard tags, encryption, and naming everywhere.
+3. Teams do not copy and paste dozens of resource blocks.
+4. You can version it and upgrade safely.
+
+### What to avoid
+
+One giant module with 40 boolean flags. Keep modules small and focused.
+
+### Interview answer
+
+"A module is a folder of Terraform code with defined inputs and outputs. The folder I run Terraform in is the root module, and anything I call with a `module` block is a child module. I use modules so teams do not repeat the same resource blocks and so standards like tagging and encryption are applied everywhere. I keep them small, versioned, and documented."
+
+---
+
+## 21. How do you create IAM roles in Terraform?
+
+### Two parts of a role
+
+1. **Trust policy:** who can assume the role.
+2. **Permission policy:** what the role can do.
+
+### Example
 
 ```hcl
 data "aws_iam_policy_document" "trust" {
   statement {
     actions = ["sts:AssumeRole"]
-    principals { type = "Service", identifiers = ["ec2.amazonaws.com"] }
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
   }
 }
+
 resource "aws_iam_role" "app" {
   name               = "app-role"
   assume_role_policy = data.aws_iam_policy_document.trust.json
 }
+
+resource "aws_iam_role_policy_attachment" "app_s3" {
+  role       = aws_iam_role.app.name
+  policy_arn = aws_iam_policy.app_s3.arn
+}
 ```
 
-I attach least-privilege (minimum required access) managed or inline policies and use a module for repeated role patterns with required boundaries, tags, and conditions. I avoid wildcard actions/resources, test assumed access, run policy/security checks, and review CloudTrail after rollout.
+### Good practices
 
-## 22. How do you create autoscaling groups using Terraform?
+- Use `aws_iam_policy_document` instead of hand-written JSON strings.
+- Give only the actions that are needed. Avoid `"*"`.
+- Use a module when the same role pattern repeats.
+- Test the access after apply and check CloudTrail.
 
-**Answer:**
-I create an immutable (not changed after creation) launch template containing the approved AMI, instance profile, security groups, encrypted disks, metadata settings, and bootstrap data.
+### Interview answer
 
-The autoscaling group references private subnets across availability zones and defines minimum, desired, and maximum capacity, target-group attachment, health-check grace period, and instance-refresh behavior.
-I add target-tracking or step policies based on meaningful metrics, alarms, and consistent propagated tags. Before apply I check service quotas and whether a launch-template change triggers safe rolling replacement.
+"I separate the trust policy from the permission policy. I build both with `aws_iam_policy_document` so the JSON is valid and can use variables. I keep permissions least privilege and avoid wildcards. When the same role pattern repeats, I put it in a module with required tags and boundaries, and I test the access after applying."
 
-Afterward I test scale-out, instance registration/health, graceful scale-in protection, and recovery from terminating an instance; merely seeing the ASG resource is not enough.
+---
 
-## 23. How did you set up Terraform reviews and deployments in GitHub Actions, Azure DevOps, or Jenkins?
+## 22. How do you create an autoscaling group?
 
-**Answer:**
-On a pull request the pipeline runs format, init without backend where useful, validate, lint/security/policy tests, and a read-only plan using short-lived federated credentials. The plan summary is attached to the review while the full artifact is access-controlled because plans can contain secrets.
+### Two pieces
 
-Changes to modules and environments require code-owner review.
+1. A launch template that describes the instance.
+2. An autoscaling group that runs several of them.
 
-After merge, a protected deployment stage recreates or retrieves a saved plan tied to the same commit, obtains the state lock, and requires production approval. Only that stage can apply with a least-privilege (minimum required access) identity.
+### Example
 
-I prevent concurrent deployments to one state, record logs and approvals, run smoke checks after apply, and notify/stop on unexpected drift rather than automatically retrying a partial failure.
-
-## 24. How do you run Terraform safely in CI/CD pipelines?
-
-**Answer:**
-I pin Terraform/provider/module versions, use locked/versioned remote state, isolate state and credentials by environment, and obtain short-lived cloud credentials through workload identity. PR checks run format, validate, security/policy tests, and plan.
-
-Production applies only a reviewed plan from a protected commit after approval, with one deployment allowed per state.
-
-I set timeouts and preserve logs without exposing secrets, verify backups for destructive stateful changes, and add post-apply infrastructure/application tests. If apply partially fails, the pipeline stops; it does not automatically run destroy or a blind retry.
-
-An engineer compares state and real resources, fixes the cause, and reviews a new full plan.
-
-## 25. How do you manage Terraform deployments for multiple environments?
-
-**Answer:**
-Each environment has an explicit root configuration, backend/state key, cloud account/subscription when possible, short-lived identity, variables, policy level, and deployment approval. Shared modules contain the common implementation and are versioned; environment roots pin and promote those versions.
-The pipeline maps a path to exactly one environment so an apply cannot accidentally use production credentials with dev state. Dev validates functionality, staging exercises upgrade and recovery, and production receives the same reviewed module version with intentional value differences.
-
-Cross-environment outputs are not loosely read from local files; stable interfaces such as DNS or controlled remote-state outputs are used.
-
-## 26. A team needs to provision infrastructure in 10 AWS regions simultaneously. How do you structure it?
-
-**Answer:**
-I create a reusable regional module, but keep independent state per account/environment/region so one API failure or bad change does not lock or damage all ten regions. A pipeline matrix runs plans in parallel and controls apply concurrency, with regional variables for CIDRs, AZs, quotas, and service availability.
-Provider aliases in one root can work for a small fixed list, but provider configuration cannot be generated dynamically and one state increases scope of impact. I place genuinely global resources such as IAM, Route 53, or CloudFront in separate global stacks.
-
-I validate region-specific capabilities and quotas, combine outputs through a registry/DNS, and define partial-region failure and retry behavior before simultaneous rollout.
-
-## 27. Your Terraform state file is getting too large. How do you manage it?
-
-**Answer:**
-I inspect which resources and refresh operations make plans slow and design boundaries by environment, region, ownership, security boundary, and change lifecycle—for example network, platform, data, and application stacks.
-
-The goal is independent deployability with limited scope of impact, not an arbitrary resource count.
-Moving resources is a migration: I back up/lock state, add `moved` blocks where supported or use reviewed `terraform state mv` between exact states, and ensure no object is temporarily owned by two states. Cross-stack dependencies use small stable outputs, data sources, DNS, or a configuration registry.
-
-I run a no-change plan for both old and new stacks before allowing normal deployment.
-
-## 28. You want faster Terraform runs in large projects. What optimizations would you apply?
-
-**Answer:**
-I measure where time is spent—backend initialization, module/provider download, refresh/API calls, graph evaluation, or apply. I split unrelated lifecycle domains into smaller states, replace broad discovery data sources with stable inputs, remove unnecessary `depends_on` edges, and keep modules focused.
-
-CI uses a trusted provider cache/mirror and runs independent state plans in parallel within API rate limits.
-
-I do not make `-target` the normal solution because it can ignore required changes and leave an incomplete view. I pin/test provider upgrades, tune provider parallelism only with quota awareness, and use speculative plans only for changed stacks when dependency mapping is reliable.
-
-A periodic full drift plan confirms optimization has not hidden changes.
-
-## 29. Your Terraform apply succeeded, but some resources are not behaving as expected. How do you debug?
-
-**Answer:**
-An apply success proves provider operations returned successfully, not that the end-to-end service is healthy. I start from the failed user path and check DNS, routes, firewall/security groups, identity/policies, service health, bootstrap logs, dependencies, and monitoring.
-
-I compare code, plan, `terraform state show`, and the cloud control-plane view.
-
-If the infrastructure attribute is wrong, I investigate inputs, module outputs, provider defaults/version, and external controllers. `TF_LOG` is enabled only briefly with secured output because it may expose sensitive values.
-
-I correct code or the operational dependency, run a full reviewed plan, apply, and repeat an application-level smoke test. I avoid editing state to fix a runtime configuration problem.
-
-## 30. A production deployment failed halfway, leaving some resources created and others not. How do you recover?
-
-**Answer:**
-I stop automated retries and keep the state lock until I know no other apply is running. I preserve the error, saved plan, state version, and cloud activity logs, then identify which resource operations completed and whether Terraform recorded them.
-
-I stabilize customer impact first and avoid an automatic destroy, which could remove working dependencies.
-
-If an API created an object but state was not updated, I import it at the planned address; if state records an absent object, I decide whether to recreate or remove that entry using supported state commands.
-
-After fixing the actual cause—quota, permissions, naming, network, provider issue—I run a new full plan and review it carefully.
-
-I apply, validate service and state consistency, and improve prechecks/idempotency (safe repeat behavior) for the failure mode.
-
-## 31. How do you handle state file management in Terraform?
-
-**Answer:**
-I treat state as a protected production database. It lives in an encrypted, versioned, locked remote backend with audit logs and least-privilege access (only the permissions needed).
-
-States are separated by environment, region/component, ownership, and lifecycle to limit scope of impact and lock contention.
-
-All normal changes occur through the pipeline. Before import, move, remove, backend migration, or force-unlock, I confirm the exact workspace/key, ensure no apply is active, and save `terraform state pull` securely.
-
-I use `state mv/rm`, import, and `moved` blocks instead of direct JSON edits, then require a full no-surprise plan and test backend version restoration periodically.
-
-## 32. How do you detect and resolve provider or module version issues?
-
-**Answer:**
-I inspect `required_version`, provider constraints, `.terraform.lock.hcl`, module source/version, and the exact CI Terraform version. Errors such as unsupported arguments, inconsistent lock selections, schema migrations, or unexplained plan changes often point to version mismatch.
-
-`terraform providers` shows which module requires each provider.
-
-I pin compatible ranges and commit the lock file for root modules. Upgrades are dedicated pull requests: read official migration notes, run `init -upgrade`, validate/tests/security scans, compare plans in a disposable and lower environment, then promote.
-
-I do not delete the lock file just to make CI pass; I find why local and CI selections differ and retain a rollback version/state backup.
-
-## 33. What happens if two engineers run `terraform apply` at the same time?
-
-**Answer:**
-Both runs may plan from the same old state, make conflicting API changes, and then race to write different results. This can lose state updates, duplicate resources, or leave infrastructure inconsistent.
-
-A capable remote backend lock makes the second run wait/fail instead of proceeding.
-
-I also serialize the deployment job for each state because locking protects state but does not make two planned business changes logically compatible. If a lock remains after a crashed job, I inspect its owner, CI run, processes, and cloud activity; only when no apply is active do I use the exact `force-unlock` ID.
-
-Then I run a refresh/full plan to confirm consistency.
-
-## 34. Can you edit a Terraform state file manually?
-
-**Answer:**
-Technically yes, but direct JSON editing can break lineage, serial numbers, provider addresses, dependencies, or attributes and cause destructive plans.
-
-I use supported operations: `terraform state mv` for address changes, `state rm` only to stop management without deleting the object, import to adopt an object, and `moved` blocks for reviewable refactors.
-For any state operation I lock the correct backend, pull an encrypted backup, record exact addresses, execute one change, and run a full plan. Direct `state push` is a last-resort vendor-supported recovery with peer review and tested rollback—not routine troubleshooting.
-
-State manipulation changes Terraform's knowledge; it does not change the real cloud object by itself.
-
-## 35. How do you recover from a deleted Terraform state file?
-
-**Answer:**
-I stop all applies immediately so Terraform cannot plan to recreate everything. I confirm the exact backend key/workspace and restore the latest known-good version from backend versioning, soft delete, Terraform Cloud history, or a secure backup.
-
-I compare its timestamp with cloud activity after that version and run a read-only plan.
-
-If no state copy exists, I inventory real resources from code, tags, cloud APIs, and activity logs, then import them into matching permanent addresses in small groups. I reconcile (make actual state match desired state) configuration until plans contain no unintended change.
-
-I never simply apply against empty state in production. After recovery I test retention/restore, restrict delete permissions on state, and alert on backend object changes.
-
-## 36. What is Terraform Enterprise?
-
-**Answer:**
-Terraform Enterprise is HashiCorp's self-hosted platform for centrally operating Terraform within an organization's network. It provides managed remote runs and state, workspaces, VCS integration, teams/RBAC, private module/provider access, policy enforcement, audit records, and API-driven workflows.
-Organizations choose it when they need enterprise controls and network/data residency under their own operation. It does not replace good module design or cloud IAM: workers still need carefully scoped provider credentials, private connectivity, capacity, upgrades, backup, disaster recovery, and monitoring.
-
-I distinguish it from the SaaS Terraform Cloud operational model when discussing architecture.
-
-## 37. Explain Terraform Enterprise architecture.
-
-**Answer:**
-Users, VCS webhooks, or CI call the Terraform Enterprise UI/API. The application coordinates organizations, workspaces, permissions, policies, variables, and run queues.
-
-A worker executes init/plan/apply, reaches module/provider sources and cloud APIs, and returns logs/results; state and run artifacts are stored in protected object storage while application metadata uses its database/cache components.
-
-The practical flow is commit/API request → workspace run → worker plan → policy/approval → worker apply → provider APIs → state version. I design private DNS/egress and cloud access for workers, not only the UI.
-
-Production architecture also needs TLS, secrets management, backups of state and metadata, highly available capacity where supported, monitoring, upgrade procedure, and tested disaster recovery.
-
-## 38. How do you gather requirements before writing Terraform code?
-
-**Answer:** Clarify the application architecture, environments, networking, security rules, compliance needs, naming/tagging standards, scaling requirements, backup needs, and ownership. Then convert those requirements into reusable modules and reviewed variables.
-Implementation approach:
-- I first produce a short requirements document covering resources, ownership, environments, data classification, availability, RTO/RPO, expected traffic, cost limits, and deployment permissions. I also identify resources that already exist and systems managed outside Terraform.
-- I turn repeated patterns into versioned modules, keep environment values outside the modules, and review the proposed resource graph with application, network, security, and operations teams. Before implementation, I agree on acceptance tests, state boundaries, import needs, and rollback or recovery steps.
-
-## 39. Terraform plan shows destroy and recreate for a critical database. How do you prevent downtime?
-
-**Answer:** I do not apply the plan until I understand which argument forces replacement. I inspect the plan, provider documentation, schema changes, and recent code or state changes.
-
-I save the plan and back up remote state and the database. If the requested change can be made in place through a supported database operation, I change the Terraform design accordingly or use `ignore_changes` only when another controlled process owns that setting.
-
-For a genuine replacement, `create_before_destroy` helps only if two databases can coexist and names, quotas, networking, and licensing allow it.
-
-I create the replacement, replicate or restore the data, validate users and application behavior, shift traffic using DNS, a proxy, or connection configuration, monitor it, and destroy the old database only after an agreed rollback window.
-
-For databases, application-level migration and tested backup/restore are more important than relying only on a lifecycle flag.
-
-## 40. How do you design and manage reusable Terraform modules across multiple teams and environments?
-
-**Answer:** I keep modules small and focused, with a clear input/output contract, validation rules, sensible defaults, examples, and documentation. I avoid embedding environment names or credentials.
-
-Modules are stored in a private registry or versioned Git repository and released with semantic versions.
-
-Teams pin a module version and supply environment-specific values from separate root modules. CI runs formatting, validation, linting, security checks, tests, and a plan.
-
-Breaking changes require a major version and migration guide. A platform team owns standards, but application teams contribute through pull requests and can request controlled extension points instead of copying the module.
-
-## 41. What strategies do you use for remote state locking and consistency in CI/CD pipelines?
-
-**Answer:** I use a remote backend with encryption, versioning, restricted access, audit logs, and native locking. Each environment or independently managed component has a separate state key to reduce contention and scope of impact.
-
-Only the deployment identity can write production state.
-
-The pipeline acquires the lock, creates a saved plan, requires review or approval, and applies that exact plan from the same commit. Concurrent deployments for one state are disabled.
-
-If a lock remains after a crashed job, I first confirm that no apply is running, inspect the lock owner and backend activity, and only then use `terraform force-unlock <lock-id>`. I never force-unlock simply to make a waiting job proceed.
-
-## 42. How do you handle secrets securely in Terraform without hardcoding or leaking them into state?
-
-**Answer:** I keep secrets out of Git and plaintext `.tfvars`. The pipeline authenticates through workload identity or another short-lived mechanism and retrieves secrets from Vault, Key Vault, or a cloud secret manager at runtime.
-
-Backend access is tightly restricted because values marked `sensitive` are hidden from CLI output but can still exist in state.
-
-Where possible, Terraform creates a secret container or reference while a separate process writes and rotates the secret value. I avoid secret values in resource names, outputs, logs, and plan artifacts.
-
-I encrypt and version the backend, restrict read access, redact pipeline output, rotate credentials, and verify that the plan and state exposure meet the organization's policy.
-
-## 43. What is your approach to managing drift between infrastructure and Terraform code?
-
-**Answer:** I run scheduled read-only plans and alert on unexpected changes. When drift appears, I identify who changed the resource, why it changed, and whether the manual state is the desired state.
-
-I do not automatically overwrite a valid emergency change without review.
-
-If the change should remain, I update the code and apply it so code becomes the source of truth. If it was unauthorized or temporary, I use an approved apply to restore the declared state.
-
-I import legitimate unmanaged resources when necessary. Preventive measures include limiting console writes, using policy as code, reviewing cloud activity logs, and documenting a break-glass process whose changes must later be reconciled.
-
-## 44. How do you enforce compliance such as tagging and encryption using Sentinel or custom policies?
-
-**Answer:** I enforce controls at more than one layer. CI runs static checks such as Checkov or tfsec, and Sentinel or OPA evaluates the Terraform plan before apply.
-
-Policies can require tags, approved regions and SKUs, encryption, private networking, and deletion protection. Cloud-native policies provide a final control even if someone deploys outside Terraform.
-
-I classify rules as advisory, soft mandatory, or hard mandatory and maintain an explicit, expiring exception process. Policies are versioned and tested with compliant and non-compliant sample plans.
-
-I monitor violations and tune rules to avoid blocking teams with unclear errors or impossible requirements.
-
-## 45. Explain the Terraform resource lifecycle and how `create_before_destroy` affects it.
-
-**Answer:** Terraform compares configuration, state, and provider data. It then decides whether a resource needs no change, an in-place update, creation, destruction, or replacement.
-
-Replacement normally destroys and recreates according to dependency ordering.
-
-`create_before_destroy = true` reverses replacement order so Terraform tries to create the new object first. This can reduce downtime, but it is not a guarantee: unique names, quotas, attached resources, costs, and application cutover may prevent parallel existence.
-
-Other lifecycle controls include `prevent_destroy`, `ignore_changes`, and `replace_triggered_by`. I use them deliberately and confirm their effect in the plan.
-
-## 46. How do you structure Terraform for multi-cloud or hybrid deployments?
-
-**Answer:** I use provider-specific modules behind clear root-module boundaries rather than trying to hide every cloud difference in one overly generic module. State is separated by cloud, account/subscription, environment, region, and operational lifecycle.
-
-Cross-stack information is exchanged through stable outputs, a configuration registry, DNS, or another controlled interface.
-
-Each cloud uses its own least-privilege (minimum required access) identity and pipeline stage. Common standards such as naming, tags, logging, and policy tests are shared, while networking and service choices remain provider-specific.
-
-Independent plans and approvals reduce the chance that one cloud outage or provider error blocks all infrastructure.
-
-## 47. What are the trade-offs between workspaces and separate state files per environment?
-
-**Answer:** CLI workspaces reuse one configuration and backend while selecting a different state. They are convenient for temporary or nearly identical environments, but the separation is easy to overlook and all environments often share backend configuration and code paths.
-Separate root modules and state files make credentials, backends, approvals, variables, and scope of impact explicit. They involve more structure but are usually safer for long-lived dev, staging, and production environments.
-
-I generally use separate states for production boundaries and reserve workspaces for controlled, similar deployments or Terraform Cloud workspace workflows with clear access controls.
-
-## 48. How do you debug a failed `terraform apply` in a complex module setup?
-
-**Answer:** I stop automatic retries and identify the exact resource address and provider error. I compare the saved plan with the failure, check cloud activity logs, quotas, IAM, API status, network reachability, and provider versions.
-
-I inspect module inputs and outputs using `terraform console`, and enable `TF_LOG` only temporarily because logs may expose sensitive data.
-
-Next I compare state with real resources. If the API created a resource but Terraform did not record it, I import it rather than recreating it.
-
-If state contains an object that no longer exists, I confirm the intended outcome before using state commands. I fix the root cause, rerun a full plan, review unexpected changes, apply, and verify both infrastructure and application behavior.
-
-## 49. Have you written a custom provider or used external data sources? What was the use case?
-
-**Answer:** A safe interview answer is to be honest. If I have not written a production provider, I would say so and explain that I first prefer an official provider, a REST/API provider, or a controlled external data source.
-
-I have used data sources to discover existing networks, images, secrets metadata, and account information so that modules do not hardcode IDs.
-
-I use the `external` data source only for read-only, predictable JSON input/output and avoid side effects because Terraform may evaluate it during refresh or planning.
-
-A custom provider is justified when an internal API needs typed resources, stable CRUD behavior, schema validation, import support, and lifecycle management.
-
-It should include acceptance tests, versioning, secure authentication, timeouts, and clear ownership.
-
-## 50. Terraform state is corrupted and backend versioning was not enabled. How do you recover safely?
-
-**Answer:**
-
-I stop every plan/apply and preserve the corrupt file, lock information, CI artifacts, last plans, logs, and cloud audit history.
-
-I confirm the exact backend key and workspace and look for any legitimate secondary copy: Terraform Cloud state history, CI backup, local `.terraform`/state backup from the last authorized operator, object-store recovery, or disaster-recovery backup.
-
-I never replace state with an unverified file from another environment.
-
-If no usable state exists, I treat the real cloud as evidence. I ensure configuration matches actual resources, discover IDs through provider APIs and inventory, and import resources into a new protected state in small dependency-aware groups.
-
-`terraform plan -refresh-only` and normal full plans help compare attributes, but I review every proposed create, replace, or destroy. `terraform state rm` or manual JSON editing is not a shortcut.
-
-Only after a complete no-surprise plan and service validation do I resume changes. I then enable encryption, locking, versioning/soft delete, restricted access, audit logs, separated state boundaries, scheduled backups, and a tested state-restore runbook.
-
-State recovery does not restore databases or application data, so those remain separate backup responsibilities.
-
-## 51. How do you provision an EKS cluster with Terraform, and what do the control plane and worker nodes do?
-
-**Answer:**
-
-I normally use a pinned, reviewed EKS module or explicit resources for the VPC/private subnets, cluster IAM role, managed control plane, endpoint access and logs, KMS secret encryption, workload identity, managed node groups, security groups, and essential add-ons such as VPC CNI, CoreDNS, kube-proxy, and CSI drivers.
-
-Cluster, node, and add-on upgrades are planned separately.
 ```hcl
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "<reviewed-version>"
+resource "aws_launch_template" "web" {
+  name_prefix   = "web-"
+  image_id      = var.ami_id
+  instance_type = "t3.small"
 
-  cluster_name    = "payments-prod"
-  cluster_version = "<supported-version>"
-  subnet_ids      = module.vpc.private_subnets
-  vpc_id          = module.vpc.vpc_id
+  vpc_security_group_ids = [aws_security_group.web.id]
+}
 
-  eks_managed_node_groups = {
-    general = { min_size = 3, max_size = 12, desired_size = 3 }
+resource "aws_autoscaling_group" "web" {
+  name                = "web-asg"
+  vpc_zone_identifier = module.vpc.private_subnet_ids
+  target_group_arns   = [aws_lb_target_group.web.arn]
+
+  min_size         = 2
+  desired_capacity = 2
+  max_size         = 6
+
+  health_check_type         = "ELB"
+  health_check_grace_period = 60
+
+  launch_template {
+    id      = aws_launch_template.web.id
+    version = "$Latest"
   }
 }
 ```
 
-AWS operates the managed control plane that exposes the API, persists desired state, schedules Pods, and runs controllers. Worker nodes run kubelet, container runtime, networking, and workload Pods; managed node groups handle EC2 lifecycle, but the customer still owns workload capacity, security, and upgrades.
+### After apply, test
 
-I use multiple AZs, private nodes, restricted API access, least-privilege access (only the permissions needed)/RBAC, workload identity, monitoring data, and disruption-aware node updates.
+- Scale out works
+- New instances register as healthy in the target group
+- Terminating one instance brings a new one back
 
-CI runs formatting, validation, security/policy checks, and a reviewed plan. After apply I verify API access, nodes, system Pods, CNI/DNS, storage, autoscaling, logging, and a sample workload.
+### Interview answer
 
-A successful Terraform apply alone does not prove the cluster functions.
+"I create a launch template with the approved image, security groups, and instance profile, then an autoscaling group that spreads across availability zones with min, desired, and max capacity, target group attachment, and health checks. I add a scaling policy on a real metric like CPU or request count. After apply I test scale-out and instance replacement, because seeing the resource created is not proof it works."
 
-## 52. How do you handle provider API rate limiting?
+---
 
-**Answer:**
+## 23. How did you set up Terraform in CI/CD?
 
-Use exponential backoff (increasing wait between retries) settings in the provider block (e.g., `retry_max_attempts` and `retry_mode = "exponential"`) and implement sleep intervals using the `time_sleep` resource between resource creation.
+### On a pull request
 
-You can also split infrastructure into smaller deployments to reduce concurrent API calls.
-For AWS specifically:
+```yaml
+- terraform fmt -check
+- terraform init
+- terraform validate
+- tfsec .        # or checkov
+- terraform plan -out=tfplan
+```
+
+The plan summary is posted as a PR comment. The full plan file is kept as a protected artifact, because plans can show sensitive values.
+
+### After merge
+
+1. A protected job picks up the same commit.
+2. It gets the state lock.
+3. It waits for approval on production.
+4. It runs `terraform apply tfplan`.
+5. It runs a smoke check afterwards.
+
+### Rules
+
+- Only the deployment job can apply.
+- Only one deployment at a time per state.
+- Credentials come from OIDC / workload identity, not stored secrets.
+
+### Interview answer
+
+"On a pull request the pipeline runs fmt, init, validate, a security scan, and a plan with read-only credentials, and posts the plan summary for review. After merge, a protected stage applies the reviewed plan for that same commit, with production approval and only one job per state. Credentials come from workload identity, and after apply I run a smoke test."
+
+---
+
+## 24. How do you run Terraform safely in a pipeline?
+
+### Safety list
+
+| Area | What I do |
+|---|---|
+| Versions | Pin Terraform, providers, and modules; commit the lock file |
+| State | Remote, encrypted, versioned, locked, separate per environment |
+| Credentials | Short-lived OIDC credentials, least privilege |
+| Review | Plan on PR, approval before production apply |
+| Concurrency | One apply per state |
+| Failure | Stop the pipeline. Do not auto-retry, do not auto-destroy |
+| After apply | Smoke test the application, not just the resource |
+
+### Interview answer
+
+"I pin versions, use locked remote state per environment, and get short-lived credentials from workload identity. PRs run plan and policy checks; production applies the reviewed plan after approval, one job at a time. If an apply fails halfway, the pipeline stops and an engineer compares state with the real resources instead of blindly retrying or destroying."
+
+---
+
+## 25. How do you manage deployments for multiple environments?
+
+### Rules I follow
+
+1. Each environment has its own folder, backend key, and variables file.
+2. Each environment has its own cloud account or subscription where possible.
+3. Each environment has its own identity and approval level.
+4. Shared modules are versioned, and each environment pins a version.
+5. The pipeline maps one folder to exactly one environment, so a dev job can never use prod credentials.
+
+### Promotion flow
+
+```text
+dev  -> test the change works
+test -> test upgrade and recovery
+prod -> same module version, different values, with approval
+```
+
+### Interview answer
+
+"Each environment gets its own root folder, state key, credentials, variables, and approval. The shared logic lives in versioned modules that each environment pins. The pipeline maps a folder to exactly one environment so a job cannot mix dev code with prod credentials. A change is proven in dev and test before the same module version is promoted to production."
+
+---
+
+## 26. You need infrastructure in 10 AWS regions. How do you structure it?
+
+### Approach
+
+1. Write one reusable regional module.
+2. Give each region its own state file.
+3. Use a pipeline matrix to plan all regions in parallel and control how many apply at once.
+4. Keep global resources such as IAM, Route 53, and CloudFront in a separate global stack.
+
+### Why not one big state with provider aliases?
+
+Provider aliases work for a small fixed list, but with one state:
+
+- One failed region can block all the others.
+- The blast radius is huge.
+- Plans get slow.
+
+### Interview answer
+
+"I build one regional module and give every region its own state so a failure in one region does not block the rest. A pipeline matrix runs the plans in parallel and controls apply concurrency. Region-specific values like CIDRs and availability zones come from variables. Global resources like IAM and DNS live in a separate global stack."
+
+---
+
+## 27. The state file is getting too large. What do you do?
+
+### Split it by boundary
+
+```text
+network-state    -> VPC, subnets, routes
+platform-state   -> cluster, shared services
+data-state       -> databases, buckets
+app-state        -> application resources
+```
+
+Good boundaries follow ownership, environment, and how often something changes.
+
+### How to move resources safely
+
+1. Back up and lock the state.
+2. Add `moved` blocks, or use `terraform state mv` between the exact states.
+3. Make sure no resource is owned by two states at the same time.
+4. Run a plan in both the old and the new stack. Both must show no changes.
+
+### Connecting the stacks
+
+Use small stable outputs, data sources, or DNS names, not one big shared state.
+
+### Interview answer
+
+"I split the state by lifecycle and ownership, for example network, platform, data, and application. The goal is smaller blast radius and faster plans, not a fixed resource count. Moving resources is a migration, so I back up state, use `moved` blocks or `terraform state mv`, and confirm both old and new stacks plan clean before normal deployments continue."
+
+---
+
+## 28. How do you make Terraform runs faster?
+
+### First measure where the time goes
+
+- Provider and module download
+- Refresh (API calls for every resource)
+- Data sources
+- Apply itself
+
+### Then fix
+
+| Problem | Fix |
+|---|---|
+| Too many resources in one state | Split into smaller states |
+| Broad data sources scanning everything | Pass IDs as variables instead |
+| Extra `depends_on` | Remove it and let Terraform infer dependencies |
+| Downloading providers every run | Use a provider cache or mirror in CI |
+| Slow apply | Tune `-parallelism` within API rate limits |
+
+### What to avoid
+
+Do not make `-target` your normal way to work. It produces an incomplete plan and hides changes.
+
+### Interview answer
+
+"I measure first: is the time going to provider downloads, refresh, or apply? Then I split large states, remove broad data sources and unnecessary `depends_on`, cache providers in CI, and run independent states in parallel. I avoid using `-target` routinely because it hides changes, and I keep a scheduled full plan so the speedups do not hide drift."
+
+---
+
+## 29. Apply succeeded but the resource is not working. How do you debug?
+
+### Important point
+
+A successful apply only means the cloud API accepted the request. It does not mean the service works.
+
+### Debug order
+
+1. Start from the failing user path.
+2. Check DNS, route tables, security groups, and NSG rules.
+3. Check IAM permissions.
+4. Check service health and bootstrap logs.
+5. Compare the code, the plan, and `terraform state show` with the console.
+
+### Useful commands
+
+```bash
+terraform state show aws_instance.web
+terraform output
+TF_LOG=DEBUG terraform plan   # use briefly, logs can show secrets
+```
+
+### Interview answer
+
+"A successful apply only proves the API calls worked. I start from the failing user path and check DNS, routing, security groups, IAM, and application logs. I compare my code, the plan, and `terraform state show` with what the console shows. I enable `TF_LOG` only briefly because it can expose sensitive values, and I never edit state to fix a runtime problem."
+
+---
+
+## 30. A production apply failed halfway. How do you recover?
+
+### Steps
+
+1. Stop automatic retries and keep the lock until you know nothing is running.
+2. Save the error, the plan, the state version, and the cloud activity log.
+3. Find which resources were actually created.
+4. Fix the customer impact first.
+5. Reconcile state:
+   - Resource created but not in state → import it.
+   - In state but does not exist → decide to recreate or `state rm`.
+6. Fix the real cause: quota, permission, name conflict, network, provider bug.
+7. Run a new full plan, review it, apply, and verify.
+
+### What not to do
+
+Do not run `terraform destroy` to "clean up". It can delete working dependencies.
+
+### Interview answer
+
+"Terraform records the resources that succeeded, so I stop retries, keep evidence, and find out exactly what was created. If something exists in the cloud but not in state, I import it; if state has something that no longer exists, I decide carefully before removing it. Then I fix the real cause, run a fresh full plan, review it, and apply. I never destroy everything to clean up."
+
+---
+
+## 31. How do you manage the state file day to day?
+
+### Treat state like a production database
+
+- Encrypted, versioned, locked remote backend.
+- Least privilege access, audit logs on.
+- Separate state per environment and component.
+- All normal changes go through the pipeline.
+
+### Before any state operation
+
+1. Confirm the exact backend key and workspace.
+2. Make sure no apply is running.
+3. Save a backup: `terraform state pull > backup.tfstate`.
+4. Do one change at a time.
+5. Run a full plan afterwards.
+
+### Safe commands
+
+```bash
+terraform state list
+terraform state show <address>
+terraform state mv <old> <new>
+terraform state rm <address>     # stops managing, does not delete the resource
+terraform import <address> <id>
+```
+
+### Interview answer
+
+"I treat state as a protected production database: encrypted, versioned, locked, with least-privilege access and separate states per environment. All normal changes go through the pipeline. Before any state operation I confirm the backend key, check that no apply is running, and pull a backup. I use supported commands like `state mv`, `state rm`, `import`, and `moved` blocks instead of editing the JSON."
+
+---
+
+## 32. How do you handle provider or module version problems?
+
+### Where to look
+
+```hcl
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.40"
+    }
+  }
+}
+```
+
+Also check `.terraform.lock.hcl` and the module `version` argument.
+
+### Useful command
+
+```bash
+terraform providers        # shows which module needs which provider
+terraform init -upgrade    # only when you intend to upgrade
+```
+
+### Upgrade process
+
+1. Do it in its own pull request.
+2. Read the release notes for breaking changes.
+3. Run `init -upgrade`, validate, and test.
+4. Compare the plan in a lower environment first.
+5. Then promote.
+
+### What to avoid
+
+Do not delete `.terraform.lock.hcl` just to make CI pass. Find out why local and CI picked different versions.
+
+### Interview answer
+
+"I check `required_version`, the provider constraints, the lock file, and the module version, and `terraform providers` shows which module needs what. I pin ranges and commit the lock file. Upgrades happen in their own pull request after reading the release notes, testing in a lower environment, and comparing plans. I never delete the lock file just to make the pipeline pass."
+
+---
+
+## 33. What happens if two people apply at the same time?
+
+### Without locking
+
+Both read the same old state, make conflicting changes, and the last write wins. You can end up with lost state entries, duplicate resources, or broken infrastructure.
+
+### With locking
+
+The second run waits or fails with a message like:
+
+```text
+Error: Error acquiring the state lock
+Lock Info:
+  ID:        1a2b3c
+  Operation: OperationTypeApply
+  Who:       user@host
+```
+
+### Also needed
+
+Locking protects the state file, but it does not make two different business changes compatible. So the pipeline should also allow only one deployment job per state.
+
+### If a lock is stuck after a crashed job
+
+```bash
+terraform force-unlock 1a2b3c
+```
+
+Only after you have proved nothing is running.
+
+### Interview answer
+
+"Without locking, both runs plan from the same old state and can overwrite each other, which causes lost state entries or duplicate resources. A remote backend with locking makes the second run wait or fail. I also serialize the deployment job per state, because locking protects the file but not the logic. If a lock is stuck after a crash, I confirm no apply is running before using `force-unlock` with the exact ID."
+
+---
+
+## 34. Can you edit the state file manually?
+
+### Technically yes, but do not
+
+Editing the JSON can break lineage, serial numbers, provider addresses, and dependencies, and then the next plan can be destructive.
+
+### Use supported commands instead
+
+| Need | Command |
+|---|---|
+| Rename or move a resource | `terraform state mv` |
+| Stop managing without deleting | `terraform state rm` |
+| Adopt an existing resource | `terraform import` |
+| Refactor in code, reviewable | `moved` block |
+
+### Example `moved` block
+
+```hcl
+moved {
+  from = aws_instance.web
+  to   = module.compute.aws_instance.web
+}
+```
+
+### Interview answer
+
+"You can, but I avoid it. Manual JSON edits can break lineage and dependencies and cause destructive plans. I use `state mv`, `state rm`, `import`, and `moved` blocks, always with a backup and a full plan afterwards. And I remind people that changing state does not change the real cloud resource."
+
+---
+
+## 35. How do you recover a deleted state file?
+
+### Steps
+
+1. Stop all applies immediately, or Terraform will plan to recreate everything.
+2. Confirm the exact backend key and workspace.
+3. Restore the last good version from bucket versioning, soft delete, or Terraform Cloud history.
+4. Run a read-only plan and compare with cloud activity after that version.
+
+### If no copy exists at all
+
+1. Build an inventory of the real resources from tags and cloud APIs.
+2. Make sure the code matches them.
+3. Import them in small groups.
+4. Keep planning until there are no unexpected changes.
+
+### Never do this
+
+Never run `terraform apply` against an empty state in production. It will try to create everything again.
+
+### Interview answer
+
+"First I stop all applies, because an empty state makes Terraform want to recreate everything. Then I restore the last good version from bucket versioning or the backend's history and confirm it with a read-only plan. If no copy exists, I rebuild state by importing the real resources in small groups until the plan is clean. Afterwards I turn on versioning, restrict delete permissions, and test the restore procedure."
+
+---
+
+## 36. What is Terraform Enterprise?
+
+### Simple definition
+
+Terraform Enterprise is HashiCorp's self-hosted version of Terraform Cloud. You run it inside your own network.
+
+### What it gives you
+
+| Feature | Meaning |
+|---|---|
+| Remote runs | Plan and apply run on servers, not laptops |
+| Remote state | State stored and versioned centrally |
+| Workspaces | Separate state and variables per environment |
+| VCS integration | A Git push starts a run |
+| RBAC | Control who can plan and who can apply |
+| Sentinel policies | Block runs that break the rules |
+| Private module registry | Share company modules |
+| Audit logs | Who changed what and when |
+
+### Interview answer
+
+"Terraform Enterprise is HashiCorp's self-hosted platform for running Terraform centrally. It gives remote runs, managed state, workspaces, Git integration, role-based access, policy enforcement with Sentinel, a private module registry, and audit logs. Companies use it when they need those controls inside their own network. It does not replace good module design or cloud IAM."
+
+---
+
+## 37. Explain the Terraform Enterprise architecture.
+
+### Flow
+
+```text
+Git push or API call
+        |
+Terraform Enterprise application
+  (workspaces, variables, policies, run queue)
+        |
+Worker (runs init, plan, apply)
+        |
+Cloud provider APIs
+        |
+State version + logs stored back
+```
+
+### Components
+
+- **Application layer:** UI and API, organizations, workspaces, permissions, run queue.
+- **Workers:** run Terraform, need network access to module sources and cloud APIs.
+- **Object storage:** state versions and run artifacts.
+- **Database and cache:** application metadata.
+
+### Production needs
+
+TLS, secret management, backups of state and metadata, monitoring, an upgrade plan, and tested disaster recovery.
+
+### Interview answer
+
+"A Git webhook or API call reaches the Terraform Enterprise application, which manages workspaces, variables, policies, and the run queue. A worker then runs init, plan, and apply, talking to module sources and cloud APIs, and returns logs and a new state version stored in object storage. In production I also plan for TLS, secrets, backups, monitoring, upgrades, and disaster recovery, and I make sure the workers have the network access they need, not just the UI."
+
+---
+
+## 38. How do you gather requirements before writing Terraform code?
+
+### Questions I ask
+
+| Area | Question |
+|---|---|
+| Resources | What exactly needs to be built? |
+| Environments | How many, and how are they different? |
+| Network | VPC, subnets, public or private, connectivity |
+| Security | Encryption, secrets, who gets access |
+| Naming and tags | What standard does the company use? |
+| Scale | Expected traffic, autoscaling limits |
+| Availability | Multi-AZ, backup, RTO and RPO |
+| Cost | Any budget limit |
+| Ownership | Who approves and who operates it |
+| Existing resources | Anything already created that must be imported |
+
+### Then
+
+Turn the repeated patterns into modules, keep environment values outside modules, and agree on acceptance tests and rollback before writing code.
+
+### Interview answer
+
+"I write a short requirements list first: resources, environments, networking, security, naming and tagging standards, scaling, availability, backup, cost, and ownership. I also check what already exists and must be imported. Then I turn repeated patterns into modules, keep environment values at the root, and agree on acceptance tests and a rollback plan before I start coding."
+
+---
+
+## 39. The plan wants to destroy and recreate a production database. What do you do?
+
+### Steps
+
+1. Do not apply yet.
+2. Find which argument forces the replacement. The plan shows `# forces replacement`.
+3. Check the provider docs to confirm the field is immutable.
+4. Back up the state and take a database snapshot.
+5. Decide:
+   - Can the change be made in place through the cloud console or a supported operation? Then change the Terraform design or use a narrow `ignore_changes`.
+   - Is the change unnecessary? Revert the code.
+   - Is replacement really needed? Plan a migration.
+
+### If replacement is really needed
+
+1. Create the new database beside the old one.
+2. Replicate or restore the data.
+3. Test the application against it.
+4. Move traffic through DNS or connection settings.
+5. Keep the old one for a rollback window, then delete it.
+
+### Important point
+
+`create_before_destroy` only helps if two databases can exist at once. Names, quotas, and licences may not allow it.
+
+### Interview answer
+
+"I stop and find out which argument forces the replacement, since the plan marks it. I check the provider docs to see whether the field is immutable and whether the change can be done in place instead. If a real replacement is needed, I treat it as a data migration: build the new database, replicate the data, test the application, switch traffic, keep the old one for a rollback window, and only then destroy it. A lifecycle flag alone is not a downtime plan."
+
+---
+
+## 40. How do you design modules used by many teams?
+
+### Module rules
+
+1. Small and focused. One module, one job.
+2. Clear inputs with types, defaults, and validation.
+3. Useful outputs.
+4. Secure defaults such as encryption on.
+5. No environment names or credentials inside.
+6. A README and an `examples/` folder.
+7. Semantic versioning: `v1.2.0`.
+
+### Layout
+
+```text
+modules/vpc/
+  main.tf
+  variables.tf
+  outputs.tf
+  README.md
+  examples/
+    complete/
+```
+
+### Consuming it
+
+```hcl
+module "vpc" {
+  source  = "app.terraform.io/myorg/vpc/aws"
+  version = "1.4.0"
+}
+```
+
+### Breaking changes
+
+Release a new major version with a migration note. Do not change v1 behaviour under people's feet.
+
+### Interview answer
+
+"I keep modules small with a clear input and output contract, validation, secure defaults, examples, and documentation, and no environment names or credentials inside. They live in a private registry or Git with semantic versions, and each environment pins a version. Breaking changes get a major version and a migration guide. A platform team owns the standards, but other teams contribute through pull requests instead of copying the module."
+
+---
+
+## 41. How do you handle state locking in CI/CD?
+
+### Setup
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket       = "my-tf-state"
+    key          = "prod/app/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+```
+
+Newer Terraform versions can lock with an S3 lock file. The old DynamoDB table method is legacy but still seen in projects.
+
+### Rules
+
+- One state key per environment or component, so jobs do not queue behind each other.
+- Only the deployment identity can write to production state.
+- Disable concurrent runs for the same state in the pipeline.
+
+### Stuck lock
+
+```bash
+terraform force-unlock <LOCK_ID>
+```
+
+Only after checking the pipeline and cloud logs to prove no apply is running.
+
+### Interview answer
+
+"I use a remote backend with native locking and one state key per environment or component so runs do not block each other. Only the deployment identity can write to production, and the pipeline allows one job per state. If a lock stays after a crashed job, I check the lock owner and the pipeline first, and only then run `force-unlock` with that exact ID. I never force-unlock just because a job is waiting."
+
+---
+
+## 42. How do you keep secrets out of state?
+
+### What I do
+
+1. No secrets in Git or plain `.tfvars`.
+2. Pipeline logs in with workload identity, no stored keys.
+3. Secrets come from Vault, Key Vault, or Secrets Manager.
+4. Mark variables and outputs `sensitive`.
+5. Where possible, Terraform creates the empty secret container and another process fills the value.
+6. Encrypt the backend and restrict read access.
+
+### Example: create the secret container, not the value
+
+```hcl
+resource "azurerm_key_vault_secret" "db" {
+  name         = "db-password"
+  value        = var.db_password   # supplied by pipeline, never committed
+  key_vault_id = var.key_vault_id
+}
+```
+
+Better still, the application reads the secret at runtime using its managed identity, so Terraform never touches the value.
+
+### Interview answer
+
+"Secrets never go into Git or plain tfvars. The pipeline authenticates with workload identity and pulls values from a secret manager. I mark variables and outputs sensitive, but I explain that this only hides output, so the backend must be encrypted with restricted read access. Where possible Terraform creates the secret container and grants access, while the application reads the actual value at runtime."
+
+---
+
+## 43. What is your overall approach to drift?
+
+### Three parts
+
+**Detect**
+
+```bash
+terraform plan -detailed-exitcode   # 2 means drift
+```
+
+Run it nightly and alert.
+
+**Decide**
+
+Check the cloud audit log: who changed it and why. Talk to the owner. Was it a valid emergency fix?
+
+**Fix**
+
+- Valid change → put it in the code.
+- Invalid change → approved apply restores the declared value.
+- Unmanaged resource → import it.
+
+### Prevent
+
+Limit console write access, use policy as code, and document a break-glass process where the change must be put back into code afterwards.
+
+### Interview answer
+
+"I detect drift with scheduled read-only plans and alerts, then I check the audit log to see who changed what and why. If the manual change should stay, I put it in the code. If not, an approved apply restores the declared state. I do not silently overwrite an emergency fix. To prevent it, I limit console write access, use policy checks, and require break-glass changes to be reconciled back into code."
+
+---
+
+## 44. How do you enforce tagging and encryption rules?
+
+### Enforce at more than one layer
+
+| Layer | Tool |
+|---|---|
+| Code review | Pull requests and code owners |
+| CI static scan | Checkov, tfsec, Terrascan |
+| Plan-time policy | Sentinel or OPA / Conftest |
+| Cloud-side policy | AWS SCP, Azure Policy, GCP Org Policy |
+
+### Simple OPA rule
+
+```rego
+package terraform
+
+deny[msg] {
+  r := input.resource.aws_instance[name]
+  not r.tags.Owner
+  msg := sprintf("Instance '%v' is missing the Owner tag", [name])
+}
+```
+
+### Policy levels
+
+- **Advisory:** warn only.
+- **Soft mandatory:** can be overridden with approval.
+- **Hard mandatory:** always blocks.
+
+Keep an exception process with an expiry date.
+
+### Interview answer
+
+"I enforce rules in layers. CI runs Checkov or tfsec on the code, Sentinel or OPA checks the plan before apply, and cloud-native policies catch anything created outside Terraform. Rules cover required tags, encryption, allowed regions, and private networking. I classify rules as advisory, soft mandatory, or hard mandatory, keep a time-limited exception process, and test policies with both passing and failing examples."
+
+---
+
+## 45. Explain the resource lifecycle and `create_before_destroy`.
+
+### What Terraform decides for each resource
+
+| Decision | When |
+|---|---|
+| No change | Code matches reality |
+| Update in place | Attribute can be changed |
+| Replace | Attribute is immutable |
+| Create | Resource is new |
+| Destroy | Resource removed from code |
+
+### Default replacement order
+
+1. Destroy the old resource.
+2. Create the new one.
+
+That means downtime.
+
+### With `create_before_destroy`
+
+```hcl
+lifecycle {
+  create_before_destroy = true
+}
+```
+
+1. Create the new resource.
+2. Switch references to it.
+3. Destroy the old one.
+
+### It can fail when
+
+- The name must be unique.
+- Quota does not allow two at once.
+- Something is attached to the old resource.
+
+### Interview answer
+
+"Terraform compares code, state, and reality and decides to do nothing, update in place, replace, create, or destroy. Replacement destroys first and then creates, which causes downtime. `create_before_destroy` reverses that order so the new resource comes up first. It is not a guarantee, because unique names, quotas, and attached resources can block having two at once, so I always confirm the order in the plan."
+
+---
+
+## 46. How do you structure Terraform for multi-cloud?
+
+### Approach
+
+1. Write provider-specific modules. Do not try to hide AWS and Azure behind one generic module.
+2. Separate state per cloud, account, environment, and region.
+3. Give each cloud its own identity and its own pipeline stage.
+4. Share the standards: naming, tags, policy checks, review process.
+5. Connect stacks through stable outputs or DNS, not one shared state.
+
+### Example provider setup
 
 ```hcl
 provider "aws" {
   region = "us-east-1"
-
-  retry_mode         = "exponential"
-  retry_max_attempts = 10
 }
 
-# After creating resources that often trigger rate limits
-resource "aws_iam_role_policy_attachment" "example" {
-  # ...
-}
-
-resource "time_sleep" "wait_30_seconds" {
-  depends_on      = [aws_iam_role_policy_attachment.example]
-  create_duration = "30s"
-}
-
-# Next resource that would otherwise hit rate limits
-resource "aws_instance" "example" {
-  depends_on = [time_sleep.wait_30_seconds]
-  # ...
+provider "azurerm" {
+  features {}
 }
 ```
 
-In CI/CD pipelines, also implement parallelism control with Terraform's `-parallelism=n` flag to limit concurrent API calls.
+### Interview answer
+
+"I use provider-specific modules instead of one generic module that pretends the clouds are the same, and I separate state by cloud, account, environment, and region. Each cloud gets its own least-privilege identity and pipeline stage. What I share across clouds is the standards: naming, tagging, policy checks, and review process. That way one cloud outage or provider bug does not block everything."
+
+---
+
+## 47. Workspaces or separate state files?
+
+| CLI workspaces | Separate state files |
+|---|---|
+| One config, one backend, different state per workspace | Separate folder, backend, and variables per environment |
+| Quick to create | More structure to set up |
+| Easy to forget which workspace you are in | The folder makes it obvious |
+| Shares backend and credentials | Separate credentials and approvals possible |
+| Good for short-lived or test copies | Better for long-lived dev, test, prod |
+
+### Commands
+
+```bash
+terraform workspace new dev
+terraform workspace select dev
+terraform workspace list
+```
+
+### Interview answer
+
+"Workspaces reuse one configuration and backend with a different state per workspace. They are handy for temporary or nearly identical environments, but it is easy to forget which one is selected and they share backend and credentials. For long-lived dev, test, and production I prefer separate root folders and state files, because credentials, approvals, and blast radius are then explicit."
+
+---
+
+## 48. How do you debug a failed apply in a big module setup?
+
+### Steps
+
+1. Stop retries and read the exact resource address in the error.
+2. Check the usual causes: permissions, quota, name already exists, network, API outage.
+3. Compare the saved plan with what failed.
+4. Inspect values:
+
+```bash
+terraform console
+> module.vpc.private_subnet_ids
+terraform state show module.compute.aws_instance.web
+```
+
+5. Turn on debug logs briefly:
+
+```bash
+export TF_LOG=DEBUG
+export TF_LOG_PATH=./tf.log
+```
+
+6. Compare state with the real resources. Import anything created but not tracked.
+7. Fix the cause, run a fresh full plan, apply, and verify.
+
+### Interview answer
+
+"I stop retries and find the exact resource address and provider error, then check permissions, quotas, name conflicts, network, and provider version. I use `terraform console` and `state show` to inspect module inputs and outputs, and I enable `TF_LOG` only briefly because logs can contain sensitive data. If the API created something Terraform did not record, I import it instead of recreating it. Then I fix the cause, run a full plan, and verify the application, not just the resource."
+
+---
+
+## 49. Have you written a custom provider or used external data sources?
+
+### Honest answer
+
+If you have not written a provider, say so, and explain what you would do instead.
+
+### Order of preference
+
+1. Official provider.
+2. Community or REST/HTTP provider.
+3. `external` data source for simple read-only lookups.
+4. Custom provider only when nothing else fits.
+
+### Example: external data source
+
+```hcl
+data "external" "config" {
+  program = ["python3", "${path.module}/get_config.py"]
+}
+
+resource "aws_instance" "app" {
+  ami           = data.external.config.result.ami_id
+  instance_type = "t3.small"
+}
+```
+
+Keep it read-only and predictable. Terraform may run it during refresh and planning.
+
+### When a custom provider is justified
+
+An internal API that needs proper create, read, update, delete behaviour, schema validation, and import support.
+
+### Interview answer
+
+"I have not written a production provider, and I would be honest about that. I first look for an official provider, then a REST or HTTP provider, then a read-only `external` data source. I have used data sources to look up existing networks, images, and account details so modules do not hardcode IDs. A custom provider is worth it only for an internal API that needs proper CRUD, validation, and import support, plus tests and ownership."
+
+---
+
+## 50. State is corrupted and versioning was never enabled. How do you recover?
+
+### Steps
+
+1. Stop every plan and apply.
+2. Keep the corrupt file, the lock info, the CI logs, and the last plans as evidence.
+3. Look for any legitimate copy:
+   - Terraform Cloud state history
+   - CI artifacts
+   - A local `.terraform` or `terraform.tfstate.backup` from the last operator
+   - Object storage recovery or a disaster-recovery backup
+4. If nothing exists, rebuild:
+   - Make sure the code matches the real resources.
+   - List the real resource IDs from the cloud.
+   - Import them in small dependency-aware groups.
+   - Plan after each group.
+5. Only resume normal changes when a full plan shows no surprises.
+
+### Never do this
+
+- Never copy a state file from another environment.
+- Never use `state rm` as a shortcut to make errors go away.
+
+### Fix it for next time
+
+Turn on encryption, versioning or soft delete, locking, restricted access, audit logs, separate states, and test the restore procedure.
+
+### Interview answer
+
+"I stop all runs and preserve the evidence, then hunt for any legitimate copy: Terraform Cloud history, CI artifacts, a local backup file, or object-store recovery. If nothing exists, I rebuild state by making the code match reality and importing resources in small groups, planning after each group until nothing unexpected appears. I never copy state from another environment. Afterwards I enable versioning, locking, restricted access, and a tested restore procedure."
+
+---
+
+## 51. How do you create an EKS cluster with Terraform?
+
+### What you need
+
+1. VPC with private subnets
+2. IAM roles for the cluster and the nodes
+3. The EKS cluster itself
+4. Managed node groups
+5. Add-ons: VPC CNI, CoreDNS, kube-proxy, EBS CSI driver
+
+### Example
+
+```hcl
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.8.4"
+
+  cluster_name    = "payments-prod"
+  cluster_version = "1.29"
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  eks_managed_node_groups = {
+    general = {
+      min_size     = 3
+      desired_size = 3
+      max_size     = 12
+    }
+  }
+}
+```
+
+### Control plane vs worker nodes
+
+| Control plane (managed by AWS) | Worker nodes (yours) |
+|---|---|
+| API server | kubelet |
+| etcd, stores cluster state | Container runtime |
+| Scheduler | Runs your pods |
+| Controllers | Networking agents |
+
+### After apply, check
+
+API access, node status, system pods, DNS, storage class, autoscaling, and a test workload.
+
+### Interview answer
+
+"I use a pinned EKS module with a VPC, private subnets, cluster and node IAM roles, managed node groups, and the core add-ons. AWS runs the control plane, which is the API server, etcd, scheduler, and controllers, while worker nodes run kubelet and my pods. I plan cluster, node, and add-on upgrades separately. After apply I check API access, node readiness, system pods, DNS, and a sample workload, because a successful apply alone does not prove the cluster works."
+
+---
+
+## 52. How do you handle provider API rate limits?
+
+### Options
+
+1. Lower parallelism:
+
+```bash
+terraform apply -parallelism=5
+```
+
+2. Use provider retry settings:
+
+```hcl
+provider "aws" {
+  region             = "us-east-1"
+  retry_mode         = "adaptive"
+  max_retries        = 10
+}
+```
+
+3. Add a small wait between heavy resources:
+
+```hcl
+resource "time_sleep" "wait" {
+  depends_on      = [aws_iam_role_policy_attachment.app]
+  create_duration = "30s"
+}
+```
+
+4. Split the configuration into smaller states so fewer calls happen at once.
+
+### Interview answer
+
+"I reduce `-parallelism`, turn on the provider's retry and backoff settings, and split large configurations into smaller states so fewer API calls happen at the same time. If one specific resource type always triggers throttling, I add a short `time_sleep` between the stages. I also check whether a quota increase is the real fix."
+
+---
 
 ## 53. How do you recover from a corrupted state file?
 
-**Answer:**
+### If you have a backup
 
-If you have a backup state file (from version control or a backup system), simply replace the corrupted state file with the backup. If using remote state storage like S3, you can restore from a previous version.
+Restore the previous version from the bucket, or use `terraform.tfstate.backup`.
 
-If no backup exists:
+```bash
+aws s3api list-object-versions --bucket my-tf-state --prefix prod/terraform.tfstate
+aws s3api get-object --bucket my-tf-state --key prod/terraform.tfstate --version-id <id> restored.tfstate
+```
 
-- Run `terraform refresh` to update state with real infrastructure state.
-- Use `terraform import` to bring existing resources back under Terraform management.
-- Systematically verify each resource and import them one by one.
+### If you have no backup
 
-**Pro tip:** Always enable versioning on your remote state storage (like S3) and maintain regular backups to prevent data loss in such scenarios.
+1. Make sure the code matches the real infrastructure.
+2. Import the resources one by one.
+3. Run a plan and confirm nothing unexpected appears.
 
-When encountering this in production, a combination of the AWS CLI and custom scripts can generate a resource inventory that you systematically import back into Terraform control.
+### Prevention
+
+Turn on bucket versioning, keep locking on, and test the restore once in a while.
+
+### Interview answer
+
+"If versioning is on, I restore the previous state version from the bucket and confirm it with a read-only plan. If there is no backup, I rebuild state by importing resources one at a time until the plan is clean. The real fix is prevention: versioning, locking, restricted access, and a restore procedure that has actually been tested."
+
+---
 
 ## 54. How do you migrate from one backend to another?
 
-**Answer:**
+### Steps
 
-To migrate the backend or upgrade provider/Terraform versions:
+```bash
+# 1. Back up the current state
+terraform state pull > backup.tfstate
 
-- Pull the current state: `terraform state pull > terraform.tfstate`.
-- Update the backend config or version constraints in code.
-- Run `terraform init -upgrade -migrate-state` and confirm when prompted.
+# 2. Change the backend block in code
 
-The `-upgrade` flag ensures all providers are updated to the latest versions meeting your constraints, while `-migrate-state` handles backend migration.
+# 3. Migrate
+terraform init -migrate-state
 
-In enterprise environments, also document the migration process, perform it during maintenance windows, and create snapshots of the original backend before migration as additional safety measures.
+# 4. Confirm
+terraform plan   # must show no changes
+```
 
-## 55. How do you ensure you don't accidentally delete something in Terraform?
-
-**Answer:**
-
-Use `prevent_destroy = true` in lifecycle blocks to protect critical resources from accidental deletion. Always run `terraform plan` before applying and carefully review the planned changes, especially deletions.
-
-For critical infrastructure, use separate state files and implement strict access controls through IAM roles. Set up mandatory code reviews in your CI/CD pipeline for any infrastructure changes.
-
-In practice, implement a multi-layered approach:
+### Example: local to S3
 
 ```hcl
-resource "aws_rds_cluster" "production" {
-  # ... configuration ...
+terraform {
+  backend "s3" {
+    bucket  = "my-tf-state"
+    key     = "prod/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
+  }
+}
+```
+
+### Points to remember
+
+- Do it in a maintenance window.
+- Make sure no one else is running Terraform.
+- Keep the old state until the new one is proven.
+
+### Interview answer
+
+"I back up the state with `terraform state pull`, update the backend block, run `terraform init -migrate-state`, and confirm the migration by running a plan that shows no changes. I do it when nobody else is running Terraform, and I keep the old copy until the new backend is proven working."
+
+---
+
+## 55. How do you avoid deleting something by accident?
+
+### Layers
+
+1. Always read the plan, especially the destroy section.
+2. `prevent_destroy` on critical resources.
+3. Cloud-side deletion protection.
+4. Separate state files so a mistake has a smaller blast radius.
+5. Pipeline credentials without delete permission.
+6. Approval before production apply.
+7. Backups that have actually been restored once.
+
+### Example
+
+```hcl
+resource "aws_rds_cluster" "prod" {
+  cluster_identifier  = "prod-db"
+  deletion_protection = true
 
   lifecycle {
     prevent_destroy = true
@@ -649,82 +1768,135 @@ resource "aws_rds_cluster" "production" {
 }
 ```
 
-For the most critical infrastructure, implement a "breakglass" procedure where emergency changes require approval from multiple team leads, and changes are tracked in a dedicated audit system.
+### Quick habit
 
-## 56. How do you handle state drift in Terraform?
+Search the plan output for `destroy` before approving:
 
-**Answer:**
+```bash
+terraform show -json tfplan | jq '.resource_changes[] | select(.change.actions[] == "delete") | .address'
+```
 
-Regularly run `terraform plan` in your CI/CD pipeline to detect differences between code and actual infrastructure. When manual changes are made, use `terraform import` to bring resources under Terraform management, or `terraform refresh` to update state.
+### Interview answer
 
-Set up automated drift detection and alerts for unauthorized changes. Always document emergency manual changes and have a process to sync them back to code.
+"I never approve a plan without reading the destroy section. On top of that I use `prevent_destroy` and cloud deletion protection on critical resources, separate state files to limit blast radius, pipeline credentials without delete rights, and mandatory approval for production. For the most critical systems there is a break-glass procedure with two approvers and tested backups."
 
-A weekly automated drift detection job can:
+---
 
-- Run `terraform plan` against all environments.
-- Send reports of any drift to the infrastructure team.
-- Generate Jira tickets for reconciliation (making actual state match desired state) of any manual changes.
-- Track drift metrics over time to identify problematic areas.
+## 56. How do you handle state drift?
 
-This helps maintain the "infrastructure as code" single source of truth while accommodating real-world operational needs.
+### Detect
 
-## 57. What are the benefits of organizing a Terraform project using modules and workspaces?
+Run a scheduled plan in the pipeline:
 
-**Answer:**
+```bash
+terraform plan -detailed-exitcode -no-color > drift.txt
+```
 
-Modules enable code reuse by creating standardized infrastructure templates that can be shared across teams and projects. Workspaces help manage multiple environments (dev, staging, prod) with the same code while keeping their states separate — reducing duplication and ensuring consistency.
+Exit code 2 means drift. Send the report to the team.
 
-This structure makes it easier to maintain large infrastructure, enforce standards, and make global changes efficiently. The combination also improves collaboration, as teams can work on different modules independently.
+### Fix
 
-A typical module structure:
+| Case | Action |
+|---|---|
+| The manual change was correct | Update the code, then apply |
+| The manual change was wrong | Approved apply restores the code value |
+| The resource is not managed | `terraform import` |
+
+### A weekly drift job can
+
+- Run plan on all environments
+- Post a summary to Slack or Teams
+- Create a ticket for each real difference
+
+### Interview answer
+
+"I run scheduled plans to detect drift and alert on exit code 2. Then I check the audit log and decide with the owner whether the manual change should stay. If it should, I update the code; if not, an approved apply restores it. Unmanaged resources get imported. A weekly drift job that posts a summary and opens a ticket keeps this from piling up."
+
+---
+
+## 57. What are the benefits of modules and workspaces?
+
+### Modules
+
+- Reuse the same tested code everywhere
+- Standard tags, encryption, and naming
+- Teams do not copy and paste
+- Change one module, upgrade many projects
+
+### Workspaces
+
+- Same code, separate state per environment
+- Quick to create for short-lived copies
+
+### Typical layout
 
 ```text
 terraform/
-├── modules/
-│   ├── networking/
-│   ├── database/
-│   └── compute/
-├── environments/
-│   ├── dev/
-│   ├── staging/
-│   └── production/
-└── global/
-    ├── iam/
-    └── dns/
+  modules/
+    networking/
+    database/
+    compute/
+  environments/
+    dev/
+    test/
+    prod/
+  global/
+    iam/
+    dns/
 ```
 
-## 58. How do you manage secrets in Terraform?
+### Interview answer
 
-**Answer:**
+"Modules give reuse and consistency, so every team gets the same tagging, encryption, and naming without copying code. Workspaces let the same configuration hold separate state per environment. Together they reduce duplication, but for long-lived production boundaries I still prefer separate folders and state files over workspaces, because permissions and blast radius are clearer."
 
-Use a combination of approaches:
+---
 
-**External secret storage:** Use HashiCorp Vault or AWS Secrets Manager to store sensitive values, retrieving them at runtime using data sources:
+## 58. How do you use a secret manager with Terraform?
+
+### Vault example
 
 ```hcl
-data "vault_generic_secret" "db_credentials" {
-  path = "secret/database/credentials"
+data "vault_generic_secret" "db" {
+  path = "secret/database/app"
 }
 
-resource "aws_db_instance" "database" {
-  username = data.vault_generic_secret.db_credentials.data["username"]
-  password = data.vault_generic_secret.db_credentials.data["password"]
+resource "aws_db_instance" "app" {
+  identifier = "app-db"
+  username   = data.vault_generic_secret.db.data["username"]
+  password   = data.vault_generic_secret.db.data["password"]
 }
 ```
 
-- **Encrypted state:** Ensure remote state is encrypted at rest using server-side encryption in S3 and transmitted over TLS.
-- **Sensitive marking:** Use the `sensitive = true` attribute for outputs containing sensitive data.
-- **CI/CD integration:** The pipeline securely injects secrets during deployment without persisting them.
+### AWS Secrets Manager example
 
-For truly sensitive environments, implement a "partial Terraform" approach where certain highly sensitive values are managed outside Terraform entirely.
+```hcl
+data "aws_secretsmanager_secret_version" "db" {
+  secret_id = "prod/app/db"
+}
 
-## 59. How do you implement multi-region, multi-account architecture in Terraform?
+locals {
+  db = jsondecode(data.aws_secretsmanager_secret_version.db.secret_string)
+}
+```
 
-**Answer:**
+### Remember
 
-For enterprise-scale multi-region, multi-account architectures:
+Any value used in a resource can end up in state, so:
 
-**Provider aliases handle multiple regions:**
+- Encrypt state
+- Restrict read access
+- Rotate secrets regularly
+- Mark outputs `sensitive`
+
+### Interview answer
+
+"I keep the secret in Vault, Key Vault, or Secrets Manager and read it with a data source at run time, so nothing is hardcoded. I mark outputs sensitive and encrypt the backend, because the value can still end up in state. For the most sensitive values I prefer that Terraform only grants access and the application reads the secret at runtime."
+
+---
+
+## 59. How do you handle multiple regions and multiple accounts?
+
+### Multiple regions: provider alias
 
 ```hcl
 provider "aws" {
@@ -735,318 +1907,334 @@ provider "aws" {
   alias  = "west"
   region = "us-west-2"
 }
+
+resource "aws_s3_bucket" "backup" {
+  provider = aws.west
+  bucket   = "app-backup-west"
+}
 ```
 
-**Assume-role functionality manages multiple accounts:**
+### Multiple accounts: assume role
 
 ```hcl
 provider "aws" {
+  alias  = "prod"
   region = "us-east-1"
+
   assume_role {
-    role_arn = "arn:aws:iam::ACCOUNT_ID:role/OrganizationAccountAccessRole"
+    role_arn = "arn:aws:iam::111122223333:role/TerraformRole"
   }
 }
 ```
 
-**Remote state references enable cross-account dependencies:**
+### Sharing values between stacks
 
 ```hcl
 data "terraform_remote_state" "network" {
   backend = "s3"
+
   config = {
-    bucket = "tf-remote-state"
+    bucket = "my-tf-state"
     key    = "network/terraform.tfstate"
     region = "us-east-1"
   }
 }
-```
 
-Organize code with separate state files per account/region but maintain shared modules to ensure consistent implementation across the organization. Custom modules can standardize cross-account access patterns.
-
-## 60. How do you test Terraform code effectively?
-
-**Answer:**
-
-A comprehensive testing strategy includes:
-
-**Static analysis** with tools like `tflint`, `tfsec`, and `checkov` to catch issues early:
-
-```bash
-tflint --recursive
-tfsec .
-checkov -d .
-```
-
-**Unit testing** with Terratest or kitchen-terraform for module validation:
-
-```go
-// Terratest example
-func TestTerraformAwsVpc(t *testing.T) {
-  terraformOptions := &terraform.Options{
-    TerraformDir: "../examples/vpc",
-    Vars: map[string]interface{}{
-      "cidr_block": "10.0.0.0/16",
-    },
-  }
-
-  defer terraform.Destroy(t, terraformOptions)
-  terraform.InitAndApply(t, terraformOptions)
-
-  vpcID := terraform.Output(t, terraformOptions, "vpc_id")
-  // Additional assertions...
+resource "aws_instance" "app" {
+  subnet_id = data.terraform_remote_state.network.outputs.private_subnet_ids[0]
 }
 ```
 
-- **Integration testing** in isolated sandbox environments with real resources.
-- **Compliance testing** with tools like Open Policy Agent or Sentinel.
+### Interview answer
 
-The CI/CD pipeline should require passing all test layers before allowing a merge to main branches.
+"For multiple regions I use provider aliases, and for multiple accounts I use a provider with `assume_role` into a Terraform role in the target account. I keep separate state per account and region but share the same modules so everything is built the same way. Stacks exchange values through remote state outputs or stable interfaces like DNS."
 
-## 61. How do you implement zero-downtime infrastructure updates with Terraform?
+---
 
-**Answer:**
+## 60. How do you test Terraform code?
 
-Achieving zero-downtime updates requires several techniques:
+### Layers of testing
 
-**Create-before-destroy pattern:**
+| Layer | Tool | What it catches |
+|---|---|---|
+| Format | `terraform fmt -check` | Style |
+| Syntax | `terraform validate` | Bad references, missing arguments |
+| Lint | `tflint` | Wrong instance types, unused variables |
+| Security | `tfsec`, `checkov` | Public buckets, missing encryption |
+| Plan review | `terraform plan` | Unexpected destroys |
+| Unit test | `terraform test` or Terratest | Module actually works |
+| Policy | OPA, Sentinel | Company rules |
+
+### Native test example (Terraform 1.6+)
 
 ```hcl
-resource "aws_instance" "web" {
-  # ... configuration ...
+# tests/vpc.tftest.hcl
+run "creates_vpc" {
+  command = plan
 
+  variables {
+    cidr = "10.0.0.0/16"
+  }
+
+  assert {
+    condition     = aws_vpc.main.cidr_block == "10.0.0.0/16"
+    error_message = "VPC CIDR is wrong"
+  }
+}
+```
+
+### Terratest example
+
+```go
+func TestVpc(t *testing.T) {
+  opts := &terraform.Options{TerraformDir: "../examples/vpc"}
+  defer terraform.Destroy(t, opts)
+  terraform.InitAndApply(t, opts)
+
+  vpcID := terraform.Output(t, opts, "vpc_id")
+  assert.NotEmpty(t, vpcID)
+}
+```
+
+### Interview answer
+
+"I test in layers: `fmt` and `validate` for basics, `tflint` for lint, `tfsec` or `checkov` for security, and a reviewed plan on every pull request. For modules I use the native `terraform test` framework or Terratest to deploy into a sandbox, assert the outputs, and destroy. Policy checks with OPA or Sentinel run before apply, and the pipeline blocks a merge if any layer fails."
+
+---
+
+## 61. How do you get zero-downtime updates?
+
+### Techniques
+
+1. **Create before destroy**
+
+```hcl
+resource "aws_launch_template" "web" {
   lifecycle {
     create_before_destroy = true
   }
 }
 ```
 
-**Health checks and deployment verification** with the `local-exec` provisioner:
+2. **Rolling update with instance refresh**
 
 ```hcl
-provisioner "local-exec" {
-  command = "curl -s http://${self.public_ip}/health | grep 'ok'"
-}
-```
+resource "aws_autoscaling_group" "web" {
+  instance_refresh {
+    strategy = "Rolling"
 
-- **Blue-green deployments** using weighted DNS routing or load balancer target groups.
-- For databases, implement read replicas that can be promoted, or use managed services with automatic failover.
-
-**State manipulation in complex scenarios:**
-
-```bash
-terraform state mv aws_instance.web aws_instance.web_old
-# Apply new resources
-terraform apply -target=aws_instance.web_new
-# Migrate traffic, then destroy old resources
-terraform destroy -target=aws_instance.web_old
-```
-
-These techniques enable platform upgrades with no user-visible downtime, even for complex stateful services.
-
-## 62. How do you implement custom validation for input variables in Terraform?
-
-**Answer:**
-
-Custom validation for input variables helps prevent deployment errors by checking values before execution. In Terraform 0.13+, implement `validation` blocks within variable declarations:
-
-```hcl
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
-  default     = "t3.micro"
-
-  validation {
-    condition     = can(regex("^t[23]\\.", var.instance_type)) || can(regex("^m[45]\\.", var.instance_type))
-    error_message = "Only t2, t3, m4, or m5 instance types are allowed."
+    preferences {
+      min_healthy_percentage = 90
+    }
   }
 }
+```
 
+3. **Blue-green** — build the new stack beside the old one, move traffic with DNS or the load balancer, then delete the old stack.
+
+4. **Health checks** — do not send traffic until the new instance passes.
+
+5. **Databases** — use a replica that can be promoted, or a managed service with failover.
+
+### Interview answer
+
+"For stateless tiers I use immutable replacement: a new launch template version, an autoscaling instance refresh with a minimum healthy percentage, and health checks before traffic is sent. For bigger changes I use blue-green, so traffic moves only after the new stack is verified and rollback is just switching back. Databases need their own plan with replicas, backups, and application-level migration."
+
+---
+
+## 62. How do you validate input variables?
+
+### Simple validation
+
+```hcl
 variable "environment" {
-  description = "Deployment environment"
   type        = string
+  description = "Deployment environment"
 
   validation {
-    condition     = contains(["dev", "staging", "prod"], var.environment)
-    error_message = "Environment must be one of: dev, staging, prod."
+    condition     = contains(["dev", "test", "prod"], var.environment)
+    error_message = "Environment must be dev, test, or prod."
+  }
+}
+
+variable "instance_type" {
+  type    = string
+  default = "t3.micro"
+
+  validation {
+    condition     = can(regex("^t3\\.", var.instance_type))
+    error_message = "Only t3 instance types are allowed."
   }
 }
 ```
 
-For complex validations, create custom validation modules that leverage the `terraform_data` resource (formerly `null_resource`) with precondition checks. This enforces organization-specific rules and ensures infrastructure consistency by failing early when inputs don't meet requirements.
-
-## 63. How do you implement cross-account resource access and provisioning in Terraform?
-
-**Answer:**
-
-Use a combination of provider configuration with `assume_role`, IAM role trust relationships, and resource policies:
+### Typed objects
 
 ```hcl
-# Provider configuration for the primary account
+variable "subnets" {
+  type = map(object({
+    cidr = string
+    az   = string
+  }))
+}
+```
+
+### Preconditions
+
+```hcl
+resource "aws_instance" "app" {
+  lifecycle {
+    precondition {
+      condition     = var.environment != "prod" || var.instance_type != "t3.micro"
+      error_message = "Production cannot use t3.micro."
+    }
+  }
+}
+```
+
+### Interview answer
+
+"I use `validation` blocks in variable declarations so bad input fails immediately with a clear message, for example only allowing dev, test, or prod, or only approved instance types. I also use strong types like `map(object({...}))` instead of plain strings, and `precondition` blocks when the rule depends on more than one value. Failing early is much cheaper than failing during apply."
+
+---
+
+## 63. How do you provision resources across two accounts?
+
+### Example
+
+```hcl
 provider "aws" {
+  alias  = "app"
   region = "us-east-1"
-  alias  = "primary"
 }
 
-# Provider configuration for the secondary account
 provider "aws" {
+  alias  = "logs"
   region = "us-east-1"
-  alias  = "secondary"
 
   assume_role {
-    role_arn     = "arn:aws:iam::${var.secondary_account_id}:role/TerraformExecutionRole"
-    session_name = "TerraformCrossAccountSession"
+    role_arn = "arn:aws:iam::${var.logs_account_id}:role/TerraformRole"
   }
 }
 
-# Create S3 bucket in secondary account
+# Bucket in the logging account
 resource "aws_s3_bucket" "logs" {
-  provider = aws.secondary
-  bucket   = "application-logs-${var.environment}"
+  provider = aws.logs
+  bucket   = "app-logs-${var.environment}"
 }
 
-# Create role in primary account with access to the bucket
-resource "aws_iam_role" "app_role" {
-  provider = aws.primary
-  name     = "application-role"
+# Role in the app account
+resource "aws_iam_role" "app" {
+  provider = aws.app
+  name     = "app-role"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow",
-      Principal = { Service = "ec2.amazonaws.com" },
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
       Action    = "sts:AssumeRole"
     }]
   })
 }
 
-# Bucket policy in secondary account allowing access from primary
-resource "aws_s3_bucket_policy" "logs_access" {
-  provider = aws.secondary
+# Bucket policy allowing the app account role
+resource "aws_s3_bucket_policy" "logs" {
+  provider = aws.logs
   bucket   = aws_s3_bucket.logs.id
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow",
-      Principal = { AWS = "arn:aws:iam::${var.primary_account_id}:role/application-role" },
-      Action    = "s3:*",
-      Resource  = [
-        aws_s3_bucket.logs.arn,
-        "${aws_s3_bucket.logs.arn}/*"
-      ]
+      Effect    = "Allow"
+      Principal = { AWS = aws_iam_role.app.arn }
+      Action    = ["s3:PutObject"]
+      Resource  = "${aws_s3_bucket.logs.arn}/*"
     }]
   })
 }
 ```
 
-For enterprise architectures, implement a dedicated "management account" with cross-account roles specifically for Terraform, adhering to the principle of least privilege (only the permissions needed). Store remote state in a centralized state account with appropriate access controls.
+### Interview answer
 
-## 64. How do you handle large-scale refactoring of resources without downtime?
+"I define one provider alias per account, with `assume_role` pointing at a Terraform role in the target account, then set `provider = aws.<alias>` on each resource. The trust and resource policies together allow cross-account access. In larger setups there is a management account holding the Terraform roles and a separate account for state, all with least-privilege permissions."
 
-**Answer:**
+---
 
-Large-scale refactoring requires careful planning and execution:
+## 64. How do you refactor a lot of resources without downtime?
 
-**State management operations** to rename or move resources:
-
-```bash
-# Move a resource to a module
-terraform state mv aws_iam_role.lambda module.lambda_function.aws_iam_role.lambda
-
-# Rename a resource
-terraform state mv aws_instance.app aws_instance.application
-```
-
-**Import and adopt existing resources** into new configurations:
-
-```bash
-# Import existing resource into new structure
-terraform import module.vpc.aws_subnet.private[1] subnet-0a9fcbce2e2bf8eac
-```
-
-**Targeted applies** to control the scope of changes:
-
-```bash
-terraform apply -target=module.networking -target=module.security
-```
-
-**State manipulation with precise plan verification** for high-risk refactorings:
-
-```bash
-# Extract current state
-terraform state pull > current-state.json
-
-# Perform refactoring in code
-
-# Verify changes won't destroy critical resources
-terraform plan -out=refactor.plan
-terraform show -json refactor.plan | jq '.resource_changes[] | select(.change.actions[] | contains("delete"))'
-
-# Apply with state manipulation if needed
-```
-
-Also make progressive changes by splitting refactoring into multiple non-destructive PRs. A monolithic Terraform configuration can be refactored into a modular structure across 200+ resources without any service downtime by combining these techniques with a comprehensive testing strategy.
-
-## 65. How do you implement dynamic resource creation based on external data sources?
-
-**Answer:**
-
-Dynamic resource creation often requires combining external data sources with Terraform's `for_each` or `count`:
+### Preferred way: `moved` blocks
 
 ```hcl
-# Fetch external data
-data "external" "user_config" {
-  program = ["python", "${path.module}/scripts/get_config.py"]
+moved {
+  from = aws_instance.app
+  to   = module.compute.aws_instance.app
 }
+```
 
-# Parse data
+Terraform shows the move in the plan, and reviewers can see nothing is being destroyed.
+
+### Older way: state commands
+
+```bash
+terraform state mv aws_instance.app module.compute.aws_instance.app
+```
+
+### Safety checks
+
+```bash
+terraform state pull > backup.tfstate
+terraform plan -out=refactor.plan
+terraform show -json refactor.plan | jq '.resource_changes[] | select(.change.actions[] == "delete") | .address'
+```
+
+If that command prints anything unexpected, stop.
+
+### Do it in small pull requests
+
+Move one module or one group at a time, each with a clean plan.
+
+### Interview answer
+
+"I prefer `moved` blocks, because the move is visible in the plan and reviewable, instead of a state command that someone has to remember to run. I back up state first, then check the plan JSON to confirm no deletes are hiding in it. I split the refactor into small pull requests, one group at a time, and each must plan clean before the next one starts."
+
+---
+
+## 65. How do you create resources from external data?
+
+### Example: create users from a JSON file
+
+```hcl
 locals {
-  user_data = jsondecode(data.external.user_config.result.users)
+  users = jsondecode(file("${path.module}/users.json"))
 
-  # Transform for use with for_each
-  users_map = {
-    for user in local.user_data :
-    user.username => user
-  }
+  users_map = { for u in local.users : u.username => u }
 }
 
-# Create resources dynamically
 resource "aws_iam_user" "team" {
   for_each = local.users_map
 
   name = each.key
+
   tags = {
     Department = each.value.department
-    Role       = each.value.role
   }
-}
-
-resource "aws_iam_user_policy_attachment" "user_permissions" {
-  for_each = local.users_map
-
-  user       = aws_iam_user.team[each.key].name
-  policy_arn = "arn:aws:iam::aws:policy/${each.value.policy}"
 }
 ```
 
-For more complex scenarios, integrate with external systems using the HTTP provider or custom data sources:
+### Example: from an API
 
 ```hcl
-data "http" "active_services" {
-  url = "https://service-registry.example.com/api/services"
-
-  request_headers = {
-    Authorization = "Bearer ${var.api_token}"
-  }
+data "http" "services" {
+  url = "https://registry.example.com/services"
 }
 
 locals {
-  services = jsondecode(data.http.active_services.response_body).items
+  services = jsondecode(data.http.services.response_body).items
 }
 
-# Create load balancer target groups dynamically
 resource "aws_lb_target_group" "services" {
-  for_each = { for svc in local.services : svc.name => svc }
+  for_each = { for s in local.services : s.name => s }
 
   name     = each.key
   port     = each.value.port
@@ -1055,435 +2243,270 @@ resource "aws_lb_target_group" "services" {
 }
 ```
 
-This approach allows infrastructure to adapt automatically to changing requirements without manual intervention, while maintaining the declarative nature of Terraform.
+### Warning
 
-## 66. How do you implement custom providers or extend existing Terraform providers?
+If the external data changes between runs, your plan changes too. Keep the source stable and read-only.
 
-**Answer:**
+### Interview answer
 
-When standard providers can't meet specific requirements, use custom providers or provider extensions:
+"I read the data with `jsondecode(file(...))`, the `http` data source, or an `external` data source, turn it into a map in `locals`, and drive `for_each` from that map so each item has a stable key. The important warning is that the plan now depends on outside data, so the source must be stable and read-only, otherwise every run produces a different plan."
 
-**Creating custom providers** involves developing a Go application using the Terraform Plugin Framework:
+---
 
-```go
-package main
+## 66. How do you extend Terraform when no provider exists?
 
-import (
-    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-    "github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-)
+### Options from easiest to hardest
 
-func main() {
-    plugin.Serve(&plugin.ServeOpts{
-        ProviderFunc: Provider,
-    })
-}
+1. **Existing provider** — check the registry first.
+2. **`http` data source** — read-only calls to a REST API.
+3. **`external` data source** — run a small script that returns JSON.
+4. **`terraform_data` with a provisioner** — last resort for a one-off action.
+5. **Custom provider** — write it in Go with the Terraform Plugin Framework.
 
-func Provider() *schema.Provider {
-    return &schema.Provider{
-        ResourcesMap: map[string]*schema.Resource{
-            "custom_resource": resourceCustomResource(),
-        },
-        DataSourcesMap: map[string]*schema.Resource{
-            "custom_data_source": dataSourceCustomData(),
-        },
-    }
-}
-
-// Resource and data source implementations...
-```
-
-**Provider wrappers** use existing providers with custom pre/post processing:
+### External data source example
 
 ```hcl
-module "aws_resource_wrapper" {
-  source = "./modules/resource_wrapper"
-
-  resource_config = {
-    type = "aws_instance"
-    attributes = {
-      ami           = "ami-0c55b159cbfafe1f0"
-      instance_type = "t2.micro"
-    }
-  }
-
-  pre_create_hook  = "scripts/pre_create.sh"
-  post_create_hook = "scripts/post_create.sh"
-}
-```
-
-**External data sources** extend functionality without full provider development:
-
-```hcl
-data "external" "custom_processor" {
-  program = ["python", "${path.module}/scripts/custom_logic.py"]
+data "external" "cmdb" {
+  program = ["python3", "${path.module}/lookup.py"]
 
   query = {
-    input_param = var.parameter
+    app_name = var.app_name
   }
-}
-
-resource "aws_instance" "example" {
-  ami           = data.external.custom_processor.result.ami_id
-  instance_type = data.external.custom_processor.result.instance_type
 }
 ```
 
-In enterprise environments, custom providers are developed for internal systems where no public provider exists, such as proprietary CMDB systems or custom deployment platforms.
+The script reads JSON from stdin and prints a flat JSON object.
 
-## 67. How do you implement safe database schema migrations with Terraform?
+### When to build a real provider
 
-**Answer:**
+Your internal system needs full create, read, update, delete behaviour, schema validation, and import support. Then you also need tests, versioning, and an owner.
 
-Database schema migrations require special handling to avoid data loss:
+### Interview answer
 
-**Separate database instance provisioning from schema management:**
+"First I check whether an official or community provider already exists. For simple read-only needs I use the `http` or `external` data source. A custom provider written in Go with the Plugin Framework is worth it only when an internal API needs real CRUD support, schema validation, and import, and when someone will own and test it long term."
+
+---
+
+## 67. How do you handle database schema changes?
+
+### Separate the two jobs
+
+| Terraform | Migration tool |
+|---|---|
+| Creates the database server, network, backups, users | Creates tables and changes schema |
+
+Terraform is declarative and does not track table versions. Use Flyway, Liquibase, Alembic, or your application's migration framework for schema.
+
+### Terraform side
 
 ```hcl
-# Terraform manages the database instance
-resource "aws_db_instance" "main" {
-  identifier        = "app-database"
-  allocated_storage = 20
-  engine            = "postgres"
-  engine_version    = "13.4"
-  instance_class    = "db.t3.medium"
-  # ...
+resource "aws_db_instance" "app" {
+  identifier              = "app-db"
+  engine                  = "postgres"
+  instance_class          = "db.t3.medium"
+  allocated_storage       = 20
+  backup_retention_period = 7
+  skip_final_snapshot     = false
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
-# Output connection information
 output "db_endpoint" {
-  value     = aws_db_instance.main.endpoint
+  value     = aws_db_instance.app.endpoint
   sensitive = true
 }
 ```
 
-**Use dedicated schema migration tools triggered by Terraform:**
+### Pipeline side
 
-```hcl
-resource "null_resource" "db_migrations" {
-  triggers = {
-    db_instance    = aws_db_instance.main.id
-    migration_hash = filemd5("${path.module}/migrations/")
-  }
-
-  provisioner "local-exec" {
-    command = "PGPASSWORD=${var.db_password} flyway -url=jdbc:postgresql://${aws_db_instance.main.endpoint}:5432/${aws_db_instance.main.name} -user=${var.db_username} -locations=filesystem:${path.module}/migrations migrate"
-  }
-
-  depends_on = [aws_db_instance.main]
-}
+```text
+1. Take a snapshot
+2. Run the migration tool
+3. Deploy the application version that matches the schema
+4. Keep the migration backward compatible so rollback is possible
 ```
 
-**For critical production databases, implement blue/green database deployments:**
+### Interview answer
 
-```hcl
-# Create a read replica
-resource "aws_db_instance" "replica" {
-  replicate_source_db = aws_db_instance.main.id
-  instance_class      = "db.t3.medium"
-  # ...
-}
+"I keep them separate: Terraform creates the database instance, networking, backups, and users, and a dedicated migration tool like Flyway or Liquibase handles the schema through the deployment pipeline. Before a migration the pipeline takes a snapshot, and migrations are written to be backward compatible so the previous application version still works if we need to roll back."
 
-# Apply schema changes to replica
-resource "null_resource" "schema_migration" {
-  # migration commands to replica
-}
+---
 
-# Promote replica to primary (handled outside Terraform or with custom logic)
-```
+## 68. How do you set up state locking for a team?
 
-**Implement comprehensive backup procedures before migrations:**
-
-```hcl
-resource "null_resource" "pre_migration_backup" {
-  provisioner "local-exec" {
-    command = "aws rds create-db-snapshot --db-instance-identifier ${aws_db_instance.main.id} --db-snapshot-identifier pre-migration-$(date +%Y%m%d-%H%M%S)"
-  }
-}
-```
-
-This approach separates concerns appropriately, leveraging Terraform's strengths for infrastructure while using specialized tools for schema migrations, minimizing risk to data.
-
-## 68. How do you implement proper Terraform state locking in a team environment?
-
-**Answer:**
-
-State locking prevents concurrent executions from corrupting the state file. In a team environment:
-
-**Remote backend with native locking:**
+### S3 backend
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "terraform-states"
-    key            = "myapp/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-lock"
+    bucket       = "my-tf-state"
+    key          = "prod/app/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 ```
 
-**Custom locking mechanisms** for backends without native support:
+### Azure backend
 
 ```hcl
-resource "null_resource" "acquire_lock" {
-  provisioner "local-exec" {
-    command = "./scripts/acquire_lock.sh ${var.environment}"
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "tfstate-rg"
+    storage_account_name = "tfstateprod"
+    container_name       = "tfstate"
+    key                  = "prod/app.tfstate"
   }
-}
-
-# Terraform resources...
-
-resource "null_resource" "release_lock" {
-  provisioner "local-exec" {
-    command = "./scripts/release_lock.sh ${var.environment}"
-  }
-
-  depends_on = [null_resource.acquire_lock, aws_instance.app]
 }
 ```
 
-**CI/CD integration** with queue-based execution:
+Azure Storage uses blob leases for locking automatically.
+
+### Serialize the pipeline too
 
 ```yaml
-# GitLab CI example
+# GitLab CI
 terraform_apply:
-  stage: deploy
   script:
-    - terraform init
-    - terraform apply -auto-approve
+    - terraform apply -auto-approve tfplan
   resource_group: terraform-${CI_ENVIRONMENT_NAME}
 ```
 
-**Force-unlock procedures** for emergency situations:
+### Interview answer
 
-```bash
-#!/bin/bash
-# Script for authorized force-unlock
-if [[ $(aws dynamodb get-item --table-name terraform-lock --key '{"LockID":{"S":"myapp/terraform.tfstate"}}' --query 'Item.Info.S' --output text) == *"${LAST_OPERATOR}"* ]]; then
-  terraform force-unlock -force $LOCK_ID
-  echo "Lock forcibly removed"
-else
-  echo "Not authorized to remove lock created by another operator"
-  exit 1
-fi
+"I use a backend with native locking: S3 with a lock file, Azure Storage with blob leases, GCS, or Terraform Cloud. On top of that the pipeline allows one apply job per state so two changes cannot queue into each other. I also monitor for locks that stay too long, since that usually means a job crashed, and force-unlock is a controlled procedure, not something anyone can run."
+
+---
+
+## 69. How do you run a GitOps workflow with Terraform?
+
+### The idea
+
+Git is the source of truth. Nothing is applied by hand.
+
+### Flow
+
+```text
+Pull request  -> plan + checks, posted for review
+Merge to main -> apply with approval
+Nightly job   -> drift plan, alert if the cloud differs from Git
 ```
 
-To enhance team workflow, also implement pre-commit hooks for Terraform formatting and validation, as well as automated state-lock monitoring that alerts if locks persist for too long (potentially indicating a failed run).
-
-## 69. How do you implement GitOps workflows with Terraform?
-
-**Answer:**
-
-GitOps with Terraform combines infrastructure as code with Git-based workflows:
-
-**Branch-based environments with automated workflows:**
+### GitHub Actions example
 
 ```yaml
-# GitHub Actions workflow
-name: Terraform GitOps
+name: terraform
 
 on:
-  push:
-    branches:
-      - main
-      - staging
-      - development
   pull_request:
-    branches:
-      - main
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
 
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          else
-            echo "environment=development" >> $GITHUB_OUTPUT
-          fi
+      - run: terraform init
+      - run: terraform plan -out=tfplan
 
-      - name: Terraform Init
-        run: terraform init -backend-config=${{ steps.env.outputs.environment }}.backend.hcl
-
-      - name: Terraform Plan
-        run: terraform plan -var-file=${{ steps.env.outputs.environment }}.tfvars -out=tfplan
-
-      - name: Terraform Apply
-        if: github.event_name == 'push'
+      - name: Apply
+        if: github.ref == 'refs/heads/main'
         run: terraform apply tfplan
 ```
 
-**Drift detection** for ensuring state matches Git:
+### Drift job
 
 ```bash
-#!/bin/bash
-# Run in scheduled pipeline
-terraform plan -detailed-exitcode
-if [ $? -eq 2 ]; then
-  # Drift detected
-  gh issue create --title "Infrastructure drift detected" \
-    --body "Terraform detected differences between current state and configuration in Git."
-fi
+terraform plan -detailed-exitcode || \
+  gh issue create --title "Infrastructure drift detected"
 ```
 
-**Approval workflows** for production changes (e.g., with Atlantis):
+### Tools
 
-```yaml
-# Atlantis configuration
-repos:
-- id: /.*/
-  workflow: production
-workflows:
-  production:
-    plan:
-      steps:
-      - init
-      - plan
-    apply:
-      steps:
-      - apply
-      requires:
-      - approved
-```
+Atlantis and Spacelift do this pull-request workflow for you, including plan comments and approval before apply.
 
-This approach ensures all infrastructure changes go through Git, maintaining a clear audit trail and enabling code review before infrastructure changes take effect.
+### Interview answer
 
-## 70. How do you implement effective Terraform module testing?
+"Git holds the desired state and nothing is applied by hand. A pull request triggers plan and policy checks and posts the result for review, and merging to main triggers the apply with approval. A nightly drift job compares reality with Git and opens an issue if they differ. Tools like Atlantis or Spacelift give this workflow out of the box with plan comments and approvals."
 
-**Answer:**
+---
 
-Comprehensive module testing ensures reliability and reusability:
+## 70. How do you test a module before releasing it?
 
-**Unit testing with Terratest:**
-
-```go
-package test
-
-import (
-    "testing"
-    "github.com/gruntwork-io/terratest/modules/terraform"
-    "github.com/stretchr/testify/assert"
-)
-
-func TestVpcModule(t *testing.T) {
-    terraformOptions := &terraform.Options{
-        TerraformDir: "../modules/vpc",
-        Vars: map[string]interface{}{
-            "cidr_block":  "10.0.0.0/16",
-            "environment": "test",
-        },
-    }
-
-    defer terraform.Destroy(t, terraformOptions)
-    terraform.InitAndApply(t, terraformOptions)
-
-    vpcId := terraform.Output(t, terraformOptions, "vpc_id")
-    privateSubnets := terraform.OutputList(t, terraformOptions, "private_subnet_ids")
-
-    assert.NotEmpty(t, vpcId)
-    assert.Equal(t, 3, len(privateSubnets))
-}
-```
-
-**Static analysis** using multiple tools:
-
-```yaml
-# CI pipeline
-terraform_check:
-  script:
-    - tflint --recursive
-    - terraform validate
-    - checkov -d .
-    - terraform-docs markdown . > README.md
-```
-
-**Example-based testing** with reference implementations:
+### Checklist for the module repo
 
 ```text
-modules/
-  vpc/
-    main.tf
-    variables.tf
-    outputs.tf
-    README.md
-    examples/
-      complete/
-        main.tf      # Reference implementation
-        outputs.tf
-        terraform.tfvars.example
-        README.md
+modules/vpc/
+  main.tf
+  variables.tf
+  outputs.tf
+  README.md
+  examples/
+    complete/      # a working example anyone can run
+  tests/
+    vpc.tftest.hcl
 ```
 
-**Integration testing** in ephemeral environments:
+### CI for the module
+
+```bash
+terraform fmt -check -recursive
+terraform validate
+tflint --recursive
+checkov -d .
+terraform test
+terraform-docs markdown . > README.md
+```
+
+### Release
+
+Tag it with a semantic version:
+
+```bash
+git tag v1.4.0
+git push origin v1.4.0
+```
+
+Consumers pin it:
 
 ```hcl
-provider "aws" {
-  region = "us-east-1"
-  default_tags {
-    tags = {
-      Environment = "test"
-      Temporary   = "true"
-      AutoDestroy = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
-    }
-  }
+module "vpc" {
+  source  = "git::https://github.com/myorg/tf-modules.git//vpc?ref=v1.4.0"
 }
 ```
 
-**Compliance testing** using OPA (Open Policy Agent):
+### Interview answer
 
-```rego
-# policy.rego
-package terraform
+"Each module has a README, a working example, and tests. CI runs fmt, validate, tflint, a security scan, and `terraform test` or Terratest against the example, then generates the docs. Releases are tagged with semantic versions and consumers pin a version, so a change to the module cannot break every team at once. A breaking change means a new major version with a migration note."
 
-deny[msg] {
-    resource := input.resource.aws_instance[name]
-    not resource.tags.Owner
-    msg := sprintf("EC2 instance '%v' is missing required Owner tag", [name])
-}
-```
+---
 
-Combining these approaches ensures modules work correctly in isolation and as part of larger systems, automatically catches issues before deployment, and maintains consistent quality across all infrastructure components.
+## 71. How do you handle dependencies between separate stacks?
 
-## 71. How do you implement effective dependency management between Terraform stacks?
-
-**Answer:**
-
-Managing dependencies between Terraform stacks while maintaining separation of concerns requires careful design:
-
-**Remote state data sources** for explicit dependencies:
+### Option 1: remote state (simple, but couples the stacks)
 
 ```hcl
-# In network stack outputs
-output "vpc_id" {
-  value = aws_vpc.main.id
-}
-
-output "private_subnet_ids" {
-  value = aws_subnet.private[*].id
-}
-
-# In application stack
 data "terraform_remote_state" "network" {
   backend = "s3"
+
   config = {
-    bucket = "terraform-states"
+    bucket = "my-tf-state"
     key    = "network/terraform.tfstate"
     region = "us-east-1"
   }
@@ -1491,87 +2514,52 @@ data "terraform_remote_state" "network" {
 
 resource "aws_instance" "app" {
   subnet_id = data.terraform_remote_state.network.outputs.private_subnet_ids[0]
-  # ...
 }
 ```
 
-**Dependency inversion** with input variables:
+### Option 2: pass values in as variables (looser)
 
 ```hcl
-# Application module
 variable "vpc_id" {
-  description = "ID of the VPC where resources will be created"
-  type        = string
-}
-
-# In root module
-module "network" {
-  source = "./modules/network"
-}
-
-module "application" {
-  source = "./modules/application"
-  vpc_id = module.network.vpc_id
-
-  depends_on = [module.network]
+  type = string
 }
 ```
 
-**Output stability contracts** to prevent breaking changes:
+The pipeline supplies the value. The application stack does not need read access to the network state.
+
+### Option 3: look it up by tag
 
 ```hcl
-# Versioned outputs
-output "vpc_info_v1" {
-  value = {
-    id         = aws_vpc.main.id
-    cidr_block = aws_vpc.main.cidr_block
-    # Additional attributes...
+data "aws_vpc" "main" {
+  tags = {
+    Name = "prod-vpc"
   }
 }
 ```
 
-**Explicit dependency management tools** like Terragrunt:
+### Option 4: Terragrunt
 
 ```hcl
-# terragrunt.hcl
-terraform {
-  source = "git::https://example.com/terraform-aws-modules/application.git?ref=v1.0.0"
-}
-
 dependency "vpc" {
   config_path = "../vpc"
-}
-
-dependency "database" {
-  config_path = "../database"
 }
 
 inputs = {
   vpc_id     = dependency.vpc.outputs.vpc_id
   subnet_ids = dependency.vpc.outputs.private_subnets
-  db_host    = dependency.database.outputs.db_endpoint
 }
 ```
 
-**Asynchronous dependency resolution** through CI/CD pipelines for enterprise environments:
+### Pipeline order
 
-```yaml
-# CI/CD pipeline stages
-stages:
-  - network
-  - data_stores
-  - applications
-  - monitoring
-
-network_job:
-  stage: network
-  # ...
-
-database_job:
-  stage: data_stores
-  needs:
-    - network_job
-  # ...
+```text
+network -> data -> application -> monitoring
 ```
 
-These approaches maintain stack independence while ensuring proper deployment order and data flow between components. The key is to create clear contracts between stacks, implement versioning for stability, and automate dependency resolution through tooling.
+### Keep outputs stable
+
+Once another stack depends on an output, treat it like a public interface. Do not rename or remove it without a version bump and a migration note.
+
+### Interview answer
+
+"I connect stacks through a small number of stable outputs. The simplest way is a `terraform_remote_state` data source, but that gives the application stack read access to the network state, so I often prefer passing values in as variables from the pipeline or looking resources up by tag. Terragrunt can wire dependencies automatically. The main rule is to treat those outputs as a public interface and deploy the stacks in a defined order."
