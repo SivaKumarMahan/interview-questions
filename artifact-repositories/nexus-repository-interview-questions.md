@@ -19,7 +19,7 @@ Nexus Repository stores and distributes build inputs and outputs. Azure DevOps, 
 
 **Answer:**
 
-Sonatype Nexus Repository is a repository manager for storing, proxying, organizing and distributing software components such as Maven packages, npm packages, NuGet packages, Python packages, Helm charts and container images.
+Sonatype Nexus Repository is a repository manager. It stores, proxies, organizes and distributes software components such as Maven packages, npm packages, NuGet packages, Python packages, Helm charts and container images.
 
 In CI/CD, I use it as the controlled system of record for dependencies and build outputs:
 
@@ -49,7 +49,7 @@ It provides:
 - A stable artifact URL independent of one pipeline run.
 - Integration points for vulnerability policy and supply-chain governance.
 
-Nexus should store immutable (not changed after creation) build artifacts, not source code. Git remains the source-code system, and the CI/CD platform remains responsible for building, testing, approving and deploying.
+Nexus should store build artifacts that are immutable, meaning they never change once created. It should not store source code. Git stays the source-code system. The CI/CD platform stays responsible for building, testing, approving and deploying.
 
 ---
 
@@ -92,7 +92,7 @@ A proxy cache is controlled by component and metadata cache-age settings. Nexus 
 
 A group simplifies client configuration, but member order matters. If two members contain the same coordinate, the first matching repository wins.
 
-I put trusted internal sources and proxies in a deliberate order and use routing rules/content governance to reduce dependency-confusion risk.
+I put trusted internal sources and proxies in a deliberate order. I also use routing rules and content governance to cut the risk of dependency confusion, where a malicious public package with the same name could get pulled in instead of the internal one.
 
 Permissions on a group endpoint allow users to consume member content through that group. They do not automatically grant direct access to every member URL.
 
@@ -104,7 +104,7 @@ Permissions on a group endpoint allow users to consume member content through th
 
 For a Maven project, I configure:
 
-1. A least-privilege (minimum required access) Nexus CI service account.
+1. A least-privilege Nexus CI service account — one that only gets the access it actually needs, nothing more.
 2. A hosted snapshots repository and hosted releases repository.
 3. `distributionManagement` in `pom.xml`.
 4. A Maven `settings.xml` whose server ID matches the POM repository ID.
@@ -186,9 +186,9 @@ stages:
               NEXUS_PASSWORD: $(nexus-ci-password)
 ```
 
-In a real pipeline I prefer one Maven invocation such as `mvn clean deploy` after all required gates, or I deliberately preserve the exact tested workspace/artifact. I do not accidentally compile different bytes during the publish step.
+In a real pipeline I prefer one Maven invocation, such as `mvn clean deploy`, run after all required gates pass. Alternatively I deliberately preserve the exact tested workspace and artifact. Either way, I make sure the publish step never accidentally recompiles and ships different bytes than what was tested.
 
-The CI identity receives `add/edit` only on the required hosted repository. It does not receive Nexus administration or delete permission. Pull-request pipelines do not receive publishing credentials.
+The CI identity gets `add/edit` only on the required hosted repository. It does not get Nexus administration or delete permission. Pull-request pipelines never get publishing credentials at all.
 
 ---
 
@@ -238,7 +238,7 @@ client requests package
 -> later clients reuse cache
 ```
 
-Nexus uses component and metadata maximum-age settings to decide when cached data should be revalidated. Negative-cache behavior can also affect how quickly a newly published remote component becomes visible after an earlier 404.
+Nexus uses maximum-age settings on components and metadata to decide when cached data needs revalidating. It also has a negative cache: if a request 404s, Nexus remembers that for a while, so a component published to the remote right after can take a bit longer to show up.
 
 Benefits include:
 
@@ -287,14 +287,15 @@ Current Nexus Repository documentation lists formats including:
 
 The **Raw** format stores arbitrary files when no native package format applies.
 
-Format availability and supported hosted/proxy/group capabilities can differ by Nexus edition and release. In an interview, I explain the formats relevant to the project—Maven, npm, NuGet, Docker and Helm—then verify the exact product/version matrix instead of claiming every format supports every repository type.
+Which formats support hosted, proxy and group repositories can differ by Nexus edition and release. In an interview, I talk about the formats relevant to the project — Maven, npm, NuGet, Docker and Helm — and then check the exact version matrix rather than assuming every format supports every repository type.
+
 ---
 
 ## 8. How do you upload Docker images to Nexus Repository?
 
 **Answer:**
 
-I first create a Docker hosted repository, configure a supported connector or subdomain endpoint, enable the Docker Bearer Token Realm, apply TLS and grant the CI user upload privileges.
+First I create a Docker hosted repository and set up a connector or subdomain endpoint for it. Then I enable the Docker Bearer Token Realm, apply TLS, and grant the CI user upload privileges.
 
 Representative commands:
 
@@ -336,7 +337,7 @@ Important controls:
 - Do not use `--password` on the command line.
 - Give the pipeline write permission only to the hosted repository.
 - Scan before publication and continuously rescan stored images.
-- Use immutable (not changed after creation) version tags/digests; do not rely on `latest`.
+- Use immutable version tags or digests; do not rely on `latest`.
 - Enable the Docker Bearer Token Realm.
 - Separate pull endpoints/groups from write endpoints unless an approved Pro writable-group design is used.
 
@@ -383,11 +384,11 @@ I use a documented version strategy appropriate to the package format:
 - Semantic version: `MAJOR.MINOR.PATCH`.
 - Pre-release: `2.5.0-rc.1`.
 - Docker readable tag: release version and/or Git commit.
-- Docker immutable (not changed after creation) identity: digest.
+- Docker immutable identity: digest.
 
 Release rules:
 
-1. The source commit is immutable (not changed after creation) and reviewed.
+1. The source commit is immutable and reviewed.
 2. CI generates the version from the release process.
 3. Tests, quality and security gates complete.
 4. CI publishes once to the correct hosted repository.
@@ -398,7 +399,8 @@ Release rules:
 
 I avoid overwriting a released coordinate. If `2.4.0` is incorrect, I publish `2.4.1`; I do not silently replace `2.4.0`.
 
-For Pro deployments, staging/build-promotion features can formalize the process. In other editions, the pipeline can implement controlled publication/promotion using supported repository APIs, but it must verify that the source and destination bytes/checksums are identical.
+Nexus Pro's staging and build-promotion features can formalize this process. On other editions, the pipeline can do controlled publication and promotion itself through the repository APIs. Either way, it must verify that the source and destination bytes and checksums are identical.
+
 ---
 
 ## 11. How would you configure authentication and authorization in Nexus Repository?
@@ -492,7 +494,7 @@ withCredentials([
 }
 ```
 
-The credential is folder-scoped, the job runs on an isolated agent and command tracing is disabled around secret use. Jenkins masking is not treated as protection from malicious pipeline code.
+The credential is folder-scoped. The job runs on an isolated agent. Command tracing is turned off around the secret use. I do not rely on Jenkins's log masking as protection against malicious pipeline code — masking hides a secret from the log, it does not stop a script from misusing it.
 
 ### GitHub Actions
 
@@ -507,7 +509,7 @@ The credential is folder-scoped, the job runs on an isolated agent and command t
     mvn -B --settings .ci/settings.xml clean deploy
 ```
 
-I use a protected GitHub Environment for release publishing, restrict reviewers/branches and pin actions to reviewed commits.
+For release publishing, I use a protected GitHub Environment. I restrict which reviewers and branches can trigger it, and I pin actions to reviewed commits.
 
 If Nexus is integrated with an enterprise identity/token broker, I prefer short-lived credentials. Otherwise I rotate the dedicated Nexus token/password through Azure Key Vault and keep its repository permissions minimal.
 
@@ -517,19 +519,19 @@ If Nexus is integrated with an enterprise identity/token broker, I prefer short-
 
 **Answer:**
 
-Snapshots represent work in progress. Releases represent approved immutable (not changed after creation) versions.
+Snapshots represent work in progress. Releases represent approved, immutable versions.
 
 | Property | Snapshot | Release |
 | --- | --- | --- |
 | Example | `2.4.0-SNAPSHOT` | `2.4.0` |
-| Stability | May change as development continues | Must remain immutable (not changed after creation) |
+| Stability | May change as development continues | Must remain immutable |
 | Retention | Aggressive cleanup is normal | Retain according to deployment/compliance policy |
 | Redeploy | Often permitted by snapshot policy | Normally disabled |
 | Consumer | Development/test | Controlled release consumers |
 
-Maven can translate a snapshot into timestamped snapshot artifacts while retaining the logical `-SNAPSHOT` version.
+Maven can turn a snapshot into timestamped snapshot artifacts internally, while the logical `-SNAPSHOT` version stays the same.
 
-Separation prevents unstable builds from being mistaken for releases and allows different retention, write access and deployment policies. Production should not resolve an unpinned snapshot.
+Keeping them separate stops an unstable build from being mistaken for a release. It also lets each side have its own retention, write access and deployment policy. Production should never resolve an unpinned snapshot.
 
 ---
 
@@ -565,7 +567,7 @@ proxy repository:
   remove components not downloaded for the approved cache period
 ```
 
-Cleanup initially soft-deletes content; blob-store compaction permanently reclaims space. I never schedule compaction without tested backup/recovery and policy review.
+Cleanup only soft-deletes content at first. Blob-store compaction is the step that permanently reclaims the space. I never schedule compaction without a tested backup, a recovery plan, and a policy review first.
 
 Nexus Pro offers additional retention controls such as retaining selected versions. Exact criteria depend on format and product version.
 
@@ -583,7 +585,8 @@ A valid backup must protect the matching set of:
 - Encryption/secret material required to restore the instance.
 - License and deployment configuration where applicable.
 
-For an embedded H2 deployment, I use the supported database backup task and back up the other required data consistently. For PostgreSQL, I use a supported PostgreSQL backup/PITR process and coordinate it with blob-store backup/snapshots according to Sonatype guidance.
+For an embedded H2 deployment, I use the supported database backup task, and I back up the other required data at the same time so everything stays consistent. For PostgreSQL, I use a supported PostgreSQL backup or point-in-time-recovery process, coordinated with blob-store backups or snapshots, following Sonatype's guidance.
+
 High-level restore:
 
 1. Declare an outage/recovery window and stop writes.
@@ -596,9 +599,9 @@ High-level restore:
 8. Run only supported integrity/repair procedures when required, preferably with Sonatype Support for data inconsistency.
 9. Confirm clients/pipelines and monitoring.
 
-I test restore regularly and measure actual RPO/RTO. A backup job reporting success is not proof that the system can be recovered.
+I test restore regularly and measure the actual recovery point and recovery time objectives (RPO/RTO). A backup job reporting success is not proof the system can actually be recovered.
 
-I avoid taking an uncoordinated live filesystem copy because database metadata and blob content can become inconsistent.
+I avoid taking an uncoordinated live filesystem copy. If the database metadata and the blob content are captured at slightly different moments, they can end up inconsistent with each other.
 
 ---
 
@@ -633,7 +636,7 @@ Plan:
 
 Configuration, permissions, virtual/group order, properties and metadata do not necessarily migrate one-to-one. Component counts and storage sizes may also differ because repository managers store indexes/metadata differently.
 
-I do not redirect every URL blindly; I update clients to explicit Nexus endpoints and verify behavior.
+I do not just blindly redirect every URL. I update clients to point at explicit Nexus endpoints and verify the behavior works.
 
 ---
 
@@ -641,8 +644,9 @@ I do not redirect every URL blindly; I update clients to explicit Nexus endpoint
 
 **Answer:**
 
-The historically named OSS offering is presented in current documentation as **Community Edition**, while the licensed enterprise offering is **Professional Edition**. Exact packaging and entitlement can change, so I confirm the version-specific feature matrix during design.
-Community Edition provides the core repository-manager capabilities needed to host, proxy and group supported formats.
+The offering historically called OSS is now called **Community Edition** in the current documentation. The licensed enterprise offering is **Professional Edition**. Exact packaging and entitlement can change over time, so I confirm the version-specific feature matrix during design rather than assuming.
+
+Community Edition provides the core repository-manager capabilities needed to host, proxy and group the supported formats.
 
 Professional Edition adds enterprise capabilities that currently include areas such as:
 
@@ -659,9 +663,9 @@ Professional Edition adds enterprise capabilities that currently include areas s
 - Writable group deployment for selected formats.
 - Enterprise support.
 
-Sonatype Repository Firewall/Lifecycle/IQ supply-chain policy capabilities may be separate products or licenses. I do not describe every vulnerability/isolate feature as automatically included in Nexus Pro.
+Sonatype's Repository Firewall, Lifecycle and IQ supply-chain policy tools may be separate products or licenses. I do not assume every vulnerability or quarantine feature is automatically included in Nexus Pro.
 
-The choice depends on availability objectives, identity, storage, promotion, support and compliance requirements—not merely artifact count.
+The choice comes down to availability targets, identity needs, storage, promotion workflow, support and compliance requirements. It is not just about how many artifacts you store.
 
 ---
 
@@ -675,18 +679,18 @@ I apply defense in depth:
 - Restricted network exposure through private connectivity/firewalls/reverse proxy.
 - Anonymous access disabled unless explicitly justified.
 - Enterprise SSO/MFA where supported.
-- Least-privilege (minimum required access) roles and content selectors.
+- Least-privilege roles and content selectors.
 - Separate identities for humans, CI readers, CI publishers and administrators.
 - Secrets stored in Azure Key Vault, not pipeline YAML or client project files.
 - Encryption at rest through the database/blob-storage design.
-- Immutable (not changed after creation) release coordinates and disabled redeploy.
+- Immutable release coordinates and disabled redeploy.
 - Audit/security logging and alerts for unusual download/upload/delete behavior.
 - Supported Nexus/Java/OS versions and timely patching.
 - Routing rules to constrain namespace/source behavior.
 - Artifact scanning, SBOM, signing and checksum verification in the supply-chain process.
 - Tested backups with restricted access.
 
-If an artifact is confidential, I also prevent it from appearing in a broadly readable group and restrict backup/support-bundle access. The name and metadata themselves may be sensitive even when the binary is encrypted.
+If an artifact is confidential, I also keep it out of any broadly readable group and restrict who can access backups and support bundles. Even when the binary itself is encrypted, the name and metadata around it can still be sensitive.
 
 I never run Nexus as the operating-system root account.
 
@@ -753,13 +757,13 @@ In Azure, I send host/container and Nexus logs to Azure Monitor/Log Analytics an
 - Status/read/write failure.
 - HTTP 5xx or latency increase.
 - Blob-store/disk thresholds and rapid growth.
-- PostgreSQL failures or saturation (how close a resource is to its limit).
+- PostgreSQL failures or saturation.
 - JVM memory/GC pressure.
 - Cleanup/backup/task failure.
 - Certificate nearing expiry.
 - Authentication failures and unusual artifact deletion/download.
 
-I create capacity forecasts rather than waiting for a disk-full outage. Repository size shown in the UI may not include every metadata/index/storage overhead, so underlying blob-store metrics are also required.
+I forecast capacity rather than waiting for a disk-full outage. The repository size shown in the UI may not include all of the metadata, index and storage overhead, so I also watch the underlying blob-store metrics directly.
 
 ---
 
@@ -799,7 +803,7 @@ I use:
 - Periodic access reviews.
 - Immediate leaver/service-account cleanup.
 
-Group repository read permission can expose content of its members through the group, so I do not place restricted artifacts in a broadly readable group.
+Read permission on a group can expose the content of all its members through that group. So I never put restricted artifacts inside a broadly readable group.
 
 ---
 
@@ -918,7 +922,7 @@ I verify the Nexus repository's NuGet API version and endpoint. Version 3 group 
 
 **Answer:**
 
-Nexus caches external dependencies near developers and build agents. The first request may go to the remote source; later builds reuse the cached component.
+Nexus caches external dependencies near developers and build agents. The first request may still go out to the remote source, but later builds reuse the cached copy instead.
 
 Performance improvements come from:
 
@@ -941,7 +945,7 @@ I measure:
 - Network throughput.
 - Client concurrency.
 
-A proxy can also make builds slower if Nexus is undersized, has slow blob/database storage, excessive remote checks or high network latency. Cache settings must balance freshness and performance.
+A proxy can also make builds slower. That happens if Nexus is undersized, its blob or database storage is slow, it does too many remote checks, or network latency is high. Cache settings need to balance freshness against performance.
 
 ---
 
@@ -959,7 +963,7 @@ My Production checklist includes:
 - Use TLS and restrict network exposure.
 - Put a supported reverse proxy/load balancer in front where required.
 - Disable or tightly control anonymous access.
-- Integrate enterprise identity and least-privilege (minimum required access) roles.
+- Integrate enterprise identity and least-privilege roles.
 - Separate hosted release, snapshot, proxy and group repositories.
 - Disable release redeploy.
 - Configure routing rules and approved external remotes.
@@ -969,7 +973,7 @@ My Production checklist includes:
 - Monitor application, JVM, database, blob and infrastructure.
 - Patch in a tested maintenance process.
 - Pin pipeline clients/endpoints and protect their credentials in Azure Key Vault.
-- Scan, sign and retain SBOM/provenance (where an artifact came from and how it was built) for important releases.
+- Scan, sign and retain an SBOM and provenance record for important releases — provenance meaning where the artifact came from and how it was built.
 - Document ownership, RPO, RTO, escalation and support procedures.
 
 I test representative restore, download, publish and client builds before declaring the service production-ready.
@@ -1002,7 +1006,8 @@ Requirements include:
 - Monitoring of nodes, database, blob storage and inter-service latency.
 - Tested node-failure and upgrade procedures.
 
-I do not stretch one HA cluster across distant regions because database/blob latency and consistency risk can make it unsupported or unsafe. Cross-region disaster recovery is designed separately through supported backups, replication/content-replication capabilities and a documented failover process.
+I do not stretch one HA cluster across distant regions. The database and blob latency between regions creates consistency risk that can make the setup unsupported or unsafe. Cross-region disaster recovery is designed separately, using supported backups, replication or content-replication features, and a documented failover process.
+
 DR plan:
 
 1. Define RPO/RTO.
@@ -1015,7 +1020,7 @@ DR plan:
 8. Switch DNS/traffic through an approved process.
 9. Test regularly.
 
-HA reduces node downtime; it does not replace backup or regional DR.
+HA reduces node downtime. It does not replace backup or regional disaster recovery.
 
 ---
 
@@ -1030,10 +1035,10 @@ It helps establish:
 - Which external sources builds may use.
 - Which internal artifact coordinate is authoritative.
 - Who uploaded and downloaded components.
-- Which immutable (not changed after creation) artifact was promoted/deployed.
+- Which immutable artifact was promoted/deployed.
 - Central dependency inventory and usage visibility.
 - An enforcement point for routing, access and retention.
-- Integration with scanning, policy, SBOM, signatures and provenance (where an artifact came from and how it was built).
+- Integration with scanning, policy, SBOM, signatures and provenance.
 
 Representative flow:
 
@@ -1043,7 +1048,7 @@ approved source
 -> reproducible build
 -> SAST/SCA/tests
 -> artifact and SBOM
--> sign immutable (not changed after creation) checksum/digest
+-> sign immutable checksum/digest
 -> Nexus hosted/staging repository
 -> approval/promotion
 -> deployment verifies identity and digest
@@ -1084,14 +1089,14 @@ For critical dependencies, I ensure release inputs are pinned, cached/hosted acc
 
 **Answer:**
 
-I promote an immutable (not changed after creation) artifact; I do not rebuild it for every environment.
+I promote one immutable artifact through the environments. I do not rebuild it for each one.
 
 Flow:
 
 ```text
 build exact commit
 -> test and scan
--> publish immutable (not changed after creation) candidate
+-> publish immutable candidate
 -> record coordinate/checksum/digest
 -> deploy candidate to Development
 -> integration/UAT/security evidence
@@ -1104,7 +1109,7 @@ build exact commit
 The promotion pipeline validates:
 
 - Source coordinate exists.
-- Source is immutable (not changed after creation).
+- Source is immutable.
 - Test/security policy passed.
 - Approver is authorized.
 - Destination coordinate does not already contain different bytes.
@@ -1115,7 +1120,7 @@ With Nexus Pro, I use supported staging/build-promotion capabilities when they m
 
 It then downloads or queries the destination to verify equality.
 
-For Maven, snapshot and release coordinates differ. I do not simply rename a mutable snapshot and assume it is the tested release; the release workflow must establish the exact immutable (not changed after creation) release bytes and provenance (where an artifact came from and how it was built).
+For Maven, snapshot and release coordinates are different things. I do not just rename a mutable snapshot and call it the tested release. The release workflow has to establish the exact immutable release bytes and their provenance in its own right.
 
 ---
 
@@ -1127,7 +1132,7 @@ For Maven, snapshot and release coordinates differ. I do not simply rename a mut
 
 Symptoms: `401` or `403`.
 
-I verify credential expiry/token, realm, anonymous policy, user role, repository-view privilege, content selector and whether the request targets the group or a member directly.
+I check the credential or token expiry, the auth realm, the anonymous-access policy, the user's role, the repository-view privilege, the content selector, and whether the request even hits the group or goes to a member repository directly.
 
 ### Release cannot be uploaded
 
@@ -1139,11 +1144,11 @@ I check:
 - CI user has read but not add/edit.
 - Invalid package metadata.
 
-I publish a new version instead of enabling overwrite for an immutable (not changed after creation) release.
+I publish a new version instead of enabling overwrite for an immutable release.
 
 ### Dependency exists remotely but Nexus returns not found
 
-I check proxy remote URL, remote availability, routing rule, negative cache, metadata/component cache age and repository group membership/order. I invalidate the appropriate cache only with evidence; I do not repeatedly delete all caches.
+I check the proxy's remote URL, remote availability, routing rule, negative cache, metadata and component cache age, and the repository group's membership and order. I only invalidate a cache when I have evidence it's the cause. I do not repeatedly wipe every cache and hope.
 
 ### Docker login/push fails
 
@@ -1185,19 +1190,20 @@ recent configuration/deployment changes
 server, database and blob-store health
 ```
 
-Then I reproduce with the same client from the same network using a non-secret verbose mode, compare Nexus/reverse-proxy logs and fix the root cause. I avoid deleting caches, changing permissions to wildcard or restarting Nexus repeatedly without evidence.
+Then I reproduce the problem with the same client, on the same network, using a non-secret verbose mode. I compare Nexus and reverse-proxy logs and fix the root cause. I avoid deleting caches, opening up permissions to a wildcard, or restarting Nexus repeatedly without evidence that any of that will help.
 
 ---
 
 ## Concise interview summary
 
-Sonatype Nexus Repository is a centralized repository manager used to host internal build artifacts, proxy public dependencies and expose multiple repositories through group endpoints.
+Sonatype Nexus Repository is a centralized repository manager. It hosts internal build artifacts, proxies public dependencies, and exposes multiple repositories through group endpoints.
 
-In my Azure CI/CD flow, Maven, npm, NuGet or Docker clients download through a Nexus group; only protected main/release pipelines publish versioned artifacts to hosted repositories.
-I separate snapshots from immutable (not changed after creation) releases, disable release redeployment, capture checksums/digests and promote the same tested artifact rather than rebuilding it.
+In my Azure CI/CD flow, Maven, npm, NuGet and Docker clients all download through a Nexus group. Only protected main or release pipelines publish versioned artifacts to hosted repositories. I keep snapshots separate from immutable releases, disable release redeployment, capture checksums and digests, and promote the same tested artifact instead of rebuilding it for each environment.
 
-Azure DevOps, Jenkins and GitHub Actions use dedicated least-privilege (minimum required access) Nexus identities whose credentials are protected through Azure Key Vault or the CI/CD platform's protected secret mechanism.
-For Production, I secure Nexus with TLS, private network access, enterprise authentication where available, RBAC/content selectors, logging, cleanup policies, capacity monitoring and coordinated database/blob-store backups.
+Azure DevOps, Jenkins and GitHub Actions each use a dedicated least-privilege Nexus identity, and its credentials are protected through Azure Key Vault or the platform's own protected secret mechanism.
 
-Nexus Pro is selected when the project requires capabilities such as supported HA, Azure Blob Store, enterprise SSO, staging/promotion or repository import/export.
-When troubleshooting, I start with the HTTP status, exact repository type/URL and artifact coordinate, then check authentication, privilege, release/snapshot and redeploy policies, client configuration, TLS/network, database, blob storage and Nexus logs.
+For Production, I secure Nexus with TLS, private network access, enterprise authentication where it's available, RBAC and content selectors, logging, cleanup policies, capacity monitoring, and coordinated database and blob-store backups.
+
+Nexus Pro comes into play when the project needs capabilities such as supported HA, Azure Blob Store, enterprise SSO, staging and promotion, or repository import and export.
+
+When troubleshooting, I start with the HTTP status, the exact repository type and URL, and the artifact coordinate. From there I check authentication, privilege, release/snapshot and redeploy policies, client configuration, TLS and network, the database, blob storage, and the Nexus logs.

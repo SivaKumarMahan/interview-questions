@@ -1,16 +1,48 @@
 # Azure Monitoring Summary
 
-**Azure Monitor** is the umbrella platform for Azure metrics, logs, traces, alerts, workbooks and integrations. Platform metrics provide numeric time series.
+Azure Monitor is the umbrella platform for Azure metrics, logs, traces, alerts, workbooks, and integrations. Platform metrics give you numeric time series for each resource.
 
-Diagnostic settings route supported resource logs and metrics to Log Analytics, Storage, Event Hubs or partner destinations. **Application Insights** provides application requests, dependencies, exceptions, traces, availability tests and distributed correlation, commonly through workspace-based storage and OpenTelemetry.
-**Log Analytics** workspaces store and query data with **KQL**. Workspace boundaries should reflect access, residency, retention, ownership and cost.
+## Core Building Blocks
 
-Data Collection Rules and diagnostic settings must be deployed consistently through IaC or Policy, then verified by generating a known event. An enabled setting without confirmed ingestion is not complete monitoring.
+| Component | What it does |
+| --- | --- |
+| Diagnostic settings | Route a resource's logs and metrics to Log Analytics, Storage, Event Hubs, or a partner tool |
+| Log Analytics | Stores and queries log data using KQL (Kusto Query Language) |
+| Application Insights | Captures application requests, dependencies, exceptions, traces, and availability tests, usually through OpenTelemetry |
+| Alerts and action groups | Fire notifications or trigger automation when a condition is met |
+| Workbooks | Build reusable dashboards and reports on top of the data above |
 
-A **production alert** has a user-relevant signal, threshold or dynamic condition, evaluation window, severity, owner, action group and runbook. Test firing and resolved delivery.
+Workspace boundaries should reflect who needs access, data residency rules, retention requirements, ownership, and cost.
 
-During an incident, start with the affected transaction, compare Application Insights requests/dependencies with resource metrics, Log Analytics data, deployment markers and Azure Activity Log changes, then prove recovery using the same transaction.
+## Deploying Monitoring Correctly
 
-For **multiple AKS clusters**, use Azure Monitor managed/container monitoring data as required, Azure Managed Prometheus or self-managed Prometheus for Kubernetes metrics, Azure Managed Grafana or Grafana for shared views, and centralized but access-controlled Log Analytics workspaces.
+Data Collection Rules and diagnostic settings need to be deployed consistently, through IaC or Policy rather than by hand. After deployment, generate a known event and confirm it actually arrives. An enabled setting with no confirmed data flowing through it is not real monitoring.
 
-Include cluster, subscription, region and environment labels without creating high-cardinality (number of unique label combinations) dimensions.
+## What a Good Alert Looks Like
+
+A production alert needs:
+
+- A signal that matters to users
+- A threshold or dynamic condition
+- An evaluation window
+- A severity level
+- An owner
+- An action group
+- A linked runbook
+
+Test both the firing notification and the resolved notification before you trust the alert.
+
+## Investigating an Incident
+
+Start with the affected transaction. Compare Application Insights requests and dependencies against resource metrics, Log Analytics data, deployment markers, and Azure Activity Log changes. Confirm recovery by running the same transaction again.
+
+## Monitoring Multiple AKS Clusters
+
+For several AKS clusters, use:
+
+- Azure Monitor container insights data where it's needed
+- Azure Managed Prometheus, or self-managed Prometheus, for Kubernetes metrics
+- Azure Managed Grafana, or Grafana, for shared views across clusters
+- Centralized but access-controlled Log Analytics workspaces
+
+Add cluster, subscription, region, and environment labels, but avoid high-cardinality dimensions — labels with too many unique values, such as raw user or request IDs, which drive up cost and slow down queries.

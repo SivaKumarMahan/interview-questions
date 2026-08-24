@@ -1,18 +1,46 @@
 # CI/CD and DevOps Delivery Summary
 
-An end-to-end delivery system turns a reviewed commit into a verified running service:
+An end-to-end delivery pipeline turns a reviewed commit into a verified, running service. Here's how the pieces fit together.
 
-1. Developer writes and reviews code in GitHub/GitLab/Azure Repos.
-2. **GitHub Actions**, **Jenkins**, or another CI system triggers on pull request or protected merge.
-3. Unit/integration tests, **SonarQube**/static analysis, dependency/IaC/secret checks, and **Trivy**/container scanning provide fast evidence.
-4. The build creates one immutable (not changed after creation) package or Docker image, generates an SBOM/provenance (where an artifact came from and how it was built), signs it, and pushes it to **ECR** or another approved registry.
-5. **Terraform** provisions infrastructure; **Ansible** configures machines when that model applies.
-6. **Helm/Kustomize** manifests describe Kubernetes resources. A GitOps repository records the desired digest and **Argo CD/Flux** reconciles (makes actual state match desired state) it to EKS/AKS/other clusters.
-7. Service/Ingress/load balancer routes users only to ready workloads.
-8. **Prometheus**, **Grafana**, logs, traces, **Dynatrace**/other APM, **Alertmanager**, **Slack**, and **PagerDuty** support verification and operations.
+## The Flow
 
-Build once and promote the same digest across environments. Keep environment configuration versioned and secrets external.
+1. A developer writes code and gets it reviewed in GitHub, GitLab, or Azure Repos.
+2. A CI system, such as **GitHub Actions** or **Jenkins**, triggers on a pull request or a protected merge.
+3. Unit and integration tests, static analysis (**SonarQube**), and dependency, IaC, secret, and container scans (**Trivy**) run to give fast feedback.
+4. The build produces one package or Docker image that never changes once it's built. It generates an SBOM and provenance data — a record of where the artifact came from and how it was built — signs the image, and pushes it to a registry like **ECR**.
+5. **Terraform** provisions the infrastructure. **Ansible** configures machines, where that model is used.
+6. **Helm** or **Kustomize** manifests describe the Kubernetes resources. A GitOps repository records the desired image digest, and **Argo CD** or **Flux** reconciles it — meaning it keeps adjusting the cluster until it matches what's in Git — across clusters like EKS or AKS.
+7. A Service, Ingress, or load balancer only routes users to workloads that are actually ready.
+8. **Prometheus**, **Grafana**, logs, traces, an APM tool like **Dynatrace**, **Alertmanager**, **Slack**, and **PagerDuty** support verification and day-to-day operations.
 
-Production uses protected identity/approval, progressive delivery, health and SLO gates, and independent rollback. **CI** proves artifact quality; **CD** controls promotion and verifies the real application.
+## Key Principles
 
-**DevOps** is the culture and practice of collaboration, automation, measurement, and continuous improvement. **CI** integrates and tests changes frequently; **continuous delivery** keeps an approved artifact deployable, while **continuous deployment** automatically releases every passing change within defined risk controls.
+- **Build once, promote everywhere.** The same digest moves through every environment — nothing gets rebuilt along the way.
+- **Keep configuration external.** Environment differences and secrets live outside the artifact, in version control or a secret manager.
+- **Protect production.** Use protected identities and approvals, progressive delivery, health and SLO gates, and a rollback path that's independent of the deploy path.
+- **CI proves quality, CD controls promotion.** CI's job is to prove the artifact is good. CD's job is to move it forward safely and confirm the real application works.
+
+## Tools by Stage
+
+| Stage | Typical tools |
+| --- | --- |
+| Source control | GitHub, GitLab, Azure Repos |
+| CI orchestration | GitHub Actions, Jenkins |
+| Code quality | SonarQube |
+| Security scanning | Trivy, plus dependency/IaC/secret scanners |
+| Infrastructure | Terraform, Ansible |
+| Kubernetes packaging | Helm, Kustomize |
+| GitOps delivery | Argo CD, Flux |
+| Target clusters | EKS, AKS |
+| Observability | Prometheus, Grafana, Dynatrace |
+| Alerting & notifications | Alertmanager, Slack, PagerDuty |
+
+## CI vs. Continuous Delivery vs. Continuous Deployment
+
+**DevOps** is the broader culture and practice: collaboration, automation, measurement, and continuous improvement. CI/CD sits inside that.
+
+| Term | What it means |
+| --- | --- |
+| Continuous Integration (CI) | Integrate and test changes frequently, so problems surface early |
+| Continuous Delivery | Always keep an approved artifact ready to deploy, with a human deciding when to release it |
+| Continuous Deployment | Automatically release every change that passes, within defined risk controls |

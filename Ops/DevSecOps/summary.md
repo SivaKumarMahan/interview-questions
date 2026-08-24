@@ -1,26 +1,26 @@
 # DevSecOps Summary
 
-**DevSecOps** integrates security evidence and controls throughout delivery instead of treating security as a final scan.
+**DevSecOps** builds security checks and evidence into every stage of delivery, instead of running one big security scan at the end.
 
 ## Secure CI and GitOps Delivery Flow
 
 ```text
 pull request -> tests and quality checks -> dependency/SAST/secret/IaC scans
--> image build -> container scan, SBOM, signing -> immutable (not changed after creation) registry
--> reviewed GitOps manifest update -> Argo CD/Flux reconciliation (making actual state match desired state)
+-> image build -> container scan, SBOM, signing -> registry (image never changes once pushed)
+-> reviewed GitOps manifest update -> Argo CD/Flux reconciliation (making the cluster match Git)
 -> Kubernetes admission/runtime controls -> observability and response
 ```
 
-- **OWASP Dependency-Check** or an equivalent tool identifies known vulnerable third-party dependencies.
-- **SonarQube** analyzes maintainability, bugs, and configured security rules; its quality gate is one signal, not proof that code is secure.
-- **Trivy** or an equivalent scanner examines filesystems, dependencies, IaC, and container images according to the selected mode.
-- CI publishes an immutable (not changed after creation) image digest only after required evidence passes; exceptions are risk-owned, approved, time-limited, and tracked.
-- CI updates the reviewed deployment repository, while **Argo CD** or **Flux** pulls desired state into Kubernetes. CI does not need broad cluster credentials in this model.
-- **Prometheus**, **Grafana**, and centralized logs and traces verify the release; alert routing creates an operational feedback loop.
+- **OWASP Dependency-Check**, or a similar tool, flags third-party dependencies with known vulnerabilities.
+- **SonarQube** checks maintainability, bugs, and configured security rules. Its quality gate is one useful signal, not proof the code is secure.
+- **Trivy**, or a similar scanner, checks filesystems, dependencies, IaC, and container images depending on the mode you run it in.
+- CI only publishes an image once it has passed the required checks, and once published that image digest never changes. Any exception needs an owner, approval, a time limit, and tracking.
+- CI updates the reviewed deployment repository, and **Argo CD** or **Flux** pulls the desired state into Kubernetes from there. CI itself doesn't need broad cluster credentials in this setup.
+- **Prometheus**, **Grafana**, and centralized logs and traces confirm the release is healthy, and alert routing closes the feedback loop.
 
-Pin pipeline dependencies, protect credentials through short-lived identity, generate and retain an SBOM and provenance (where an artifact came from and how it was built), sign artifacts, enforce admission policy, separate duties, and regularly test rollback and incident response.
+Pin your pipeline's dependencies, protect credentials with short-lived identities, generate and keep an SBOM along with proof of how each artifact was built, sign artifacts, enforce admission policy, separate duties between people, and regularly test rollback and incident response.
 
-Scanners reduce risk but do not replace threat modeling, secure design, patching, runtime hardening, or human review.
+Scanners reduce risk, but they don't replace threat modeling, secure design, patching, runtime hardening, or a human review.
 
 ## Azure Secure Container Delivery Example
 
@@ -29,7 +29,7 @@ GitHub protected branch and pull request
   -> GitHub Actions build, tests, SAST, dependency and secret scans
   -> build image and generate SBOM
   -> Trivy policy scan
-  -> sign and publish immutable (not changed after creation) digest to ACR
+  -> sign and publish the image digest to ACR (it won't change after this)
   -> Azure DevOps protected production environment
   -> approval, branch/policy/health checks
   -> deploy digest to AKS
@@ -37,25 +37,25 @@ GitHub protected branch and pull request
   -> verify, promote or roll back
 ```
 
-This is defense in depth:
+This is defense in depth — several independent layers of protection:
 
-- **Trivy in CI** gives fast feedback before promotion and can fail the build according to an agreed severity and exception policy.
-- **ACR** stores the immutable (not changed after creation) image and associated supply-chain evidence.
-- **Azure DevOps approvals and checks** protect the production resource independently of pipeline YAML.
-- **Azure Key Vault and workload identity** prevent application and deployment credentials from being stored in code or images.
-- **Defender for Containers** adds registry/running-image vulnerability assessment, posture recommendations and runtime security signals according to the enabled plan and extensions.
-- **AKS controls** such as least-privilege (minimum required access) RBAC, network policy, workload identity, restrictive security contexts and image/admission policy limit runtime exposure.
+- **Trivy in CI** gives fast feedback before promotion, and can fail the build based on an agreed severity level and exception policy.
+- **ACR** stores the image, which never changes after it's pushed, along with its supply-chain evidence.
+- **Azure DevOps approvals and checks** protect the production environment independently of the pipeline's YAML.
+- **Azure Key Vault and workload identity** keep application and deployment credentials out of code and images entirely.
+- **Defender for Containers** adds vulnerability assessment for the registry and running images, posture recommendations, and runtime security signals, depending on the plan and extensions enabled.
+- **AKS controls** such as RBAC scoped to only what's needed, network policy, workload identity, restrictive security contexts, and image/admission policy all limit what can go wrong at runtime.
 
-Do not scan only `latest`: deploy and scan the same digest. A new vulnerability database finding after deployment also requires continuous reassessment, ownership, fix deadlines and a tested emergency release path.
+Don't just scan `latest` — deploy and scan the exact same digest. A new vulnerability found after deployment also needs ongoing reassessment, a clear owner, a fix deadline, and a tested emergency release path.
 
 ## Common DevSecOps Scanners
 
-- **TFLint** validates Terraform style/provider rules and catches common IaC mistakes.
-- **Checkov** evaluates IaC against security and compliance policies.
-- **SonarQube** performs static code analysis for bugs, vulnerabilities and maintainability issues.
-- **Trivy** scans container images, filesystems, SBOMs and supported IaC for vulnerabilities/misconfiguration.
-- **OWASP Dependency-Check** identifies known-vulnerable third-party libraries.
-- **Gitleaks** detects committed secrets; it should run pre-commit and in CI, but exposed credentials must still be revoked and rotated.
-- **Snyk** provides code, dependency, container and IaC vulnerability monitoring.
+- **TFLint** checks Terraform style and provider rules, and catches common IaC mistakes.
+- **Checkov** checks IaC against security and compliance policies.
+- **SonarQube** does static code analysis for bugs, vulnerabilities, and maintainability issues.
+- **Trivy** scans container images, filesystems, SBOMs, and supported IaC for vulnerabilities and misconfiguration.
+- **OWASP Dependency-Check** flags third-party libraries with known vulnerabilities.
+- **Gitleaks** detects committed secrets. Run it pre-commit and in CI, but remember: a caught secret still needs to be revoked and rotated, not just deleted.
+- **Snyk** covers code, dependency, container, and IaC vulnerability monitoring.
 
-Pin scanner versions and policy baselines, scan pull requests and release artifacts, triage findings by exploitability and business context, and define an exception expiry/owner. A passing scan is a control signal—not proof that a release is secure.
+Pin your scanner versions and policy baselines, scan both pull requests and release artifacts, triage findings by how exploitable and how business-critical they are, and give every exception an owner and an expiry date. A passing scan is one signal — it doesn't prove a release is secure.

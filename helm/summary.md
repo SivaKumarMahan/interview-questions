@@ -270,22 +270,22 @@ Do not commit plaintext secrets to `values.yaml`. Prefer a dedicated secret-mana
 
 Remember that rendered manifests and release data can expose values. Restrict cluster access, CI logs, artifacts, and Helm release information.
 
-### 10.2 Chart Signing and Provenance (where an artifact came from and how it was built)
+### 10.2 Chart Signing and Provenance
 
-Helm supports provenance (where an artifact came from and how it was built) files and GPG-based chart verification.
+Helm can generate a provenance file — a record of where a chart came from and how it was built — and verify charts using GPG signatures.
 
 ```bash
 helm package ./mychart --sign --key <key-id> --keyring <keyring-path>
 helm verify mychart-1.0.0.tgz
 ```
 
-OCI registry signing is often handled with supply-chain tools such as Sigstore Cosign, depending on the organization's delivery standard.
+For charts published to OCI registries, signing is often handled instead with a supply-chain tool such as Sigstore Cosign, depending on the organization's delivery standard.
 
 ## 11. Helm vs. Kubernetes Operators
 
 | Helm | Operator |
 | --- | --- |
-| Packages and renders resources | Runs a controller with reconciliation (making actual state match desired state) logic |
+| Packages and renders resources | Runs a controller that continuously reconciles the cluster — keeping its actual state matched to the desired state |
 | Strong for install, upgrade, and rollback | Strong for continuous application-specific operations |
 | Usually reacts when a user or pipeline runs Helm | Continuously watches custom resources and cluster state |
 | Suitable for most application deployments | Suitable for complex lifecycle automation such as databases |
@@ -299,10 +299,10 @@ A typical CI pipeline:
 1. Lints the chart.
 2. Validates values and renders templates.
 3. Scans images and generated manifests.
-4. Packages and publishes an immutable (not changed after creation) chart version.
+4. Packages and publishes a fixed chart version that won't change afterward.
 5. Promotes the version after approval.
 
-In a push model, a pipeline runs Helm against the cluster. In a pull-based GitOps model, Flux or Argo CD watches Git/OCI sources and reconciles (makes actual state match desired state) the declared release.
+In a push model, a pipeline runs Helm against the cluster directly. In a pull-based GitOps model, Flux or Argo CD watches Git or OCI sources instead, and continuously reconciles the cluster to match the declared release.
 
 GitOps improves drift detection and avoids giving a central CI system broad cluster credentials.
 
@@ -324,7 +324,7 @@ kubectl describe pod <pod>
 kubectl logs <pod> --previous
 ```
 
-Common failure causes include invalid rendered YAML, missing values, immutable (not changed after creation)-field changes, hook failures, failed readiness probes, insufficient resources, image-pull errors, RBAC restrictions, and dependency-version conflicts.
+Common causes of failure: invalid rendered YAML, missing values, an attempt to change a field that can't be changed after creation, a failed hook, a failed readiness probe, insufficient resources, an image-pull error, an RBAC restriction, or a dependency-version conflict.
 
 ## 14. Interview Revision Checklist
 

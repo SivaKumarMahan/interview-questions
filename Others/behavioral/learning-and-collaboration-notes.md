@@ -2,21 +2,21 @@
 
 ## How do you approach learning a new tool?
 
-I first define the problem the tool is expected to solve and learn its architecture, security model, and normal failure modes from official documentation. I compare alternatives using maturity, integration, operational burden, cost, and team skills, then build a time-boxed proof of concept in a sandbox.
+First I figure out what problem the tool is actually supposed to solve, then learn its architecture, security model, and normal failure modes from the official docs. I compare alternatives on maturity, integration, operational burden, cost, and how well it fits the team's skills, then build a time-boxed proof of concept in a sandbox.
 
-The POC includes deployment, observability, upgrade, backup/recovery, and one failure scenario—not only a happy-path demo. I document results, get team feedback, adopt gradually with success criteria and rollback, and share a small runbook or reusable example.
+The POC covers deployment, observability, upgrades, backup and recovery, and at least one failure scenario — not just a happy-path demo. I write up the results, get feedback from the team, roll it out gradually with clear success criteria and a rollback plan, and share a small runbook or reusable example.
 
 ## How do you handle disagreement about a cloud design?
 
-I restate the shared outcome and constraints, then make assumptions measurable: availability, security, latency, compliance, delivery time, cost, and ownership. Each option is compared in a short decision record or POC.
+I start by restating the shared goal and constraints, then turn assumptions into measurable things: availability, security, latency, compliance, delivery time, cost, and ownership. I compare each option in a short decision record or a POC.
 
-I listen for requirements I missed, involve the accountable security/network/application owner, and disagree with the design rather than the person. If consensus is impossible, the documented decision owner chooses with known trade-offs.
+I listen for requirements I might have missed, bring in whoever owns security, network, or the application, and make sure I'm disagreeing with the design, not the person. If we can't reach consensus, the person who owns the decision picks, with the trade-offs written down clearly.
 
-After implementation I review real metrics and change the decision if evidence proves it wrong.
+After it's built, I look at real metrics, and I'll change the decision if the evidence shows it was wrong.
 
 ## How do you enforce standards while meeting team needs?
 
-I provide a supported paved road—versioned modules, pipeline templates, policies, examples, and self-service automation—with secure defaults and useful extension points. Hard controls protect non-negotiable risks; legitimate exceptions are scoped, approved, owned, and expire.
+I build a supported paved road: versioned modules, pipeline templates, policies, examples, and self-service automation, with secure defaults and room to extend it. Hard controls protect the things that really can't be compromised, and any legitimate exception is scoped, approved, owned by someone, and set to expire.
 
-I measure adoption, exceptions, failure rate, and developer feedback. When teams repeatedly bypass a standard, I investigate whether the control is unclear or the platform is missing a real capability instead of responding only with more restrictions.
+I track adoption, exceptions, failure rate, and what developers actually think. If a team keeps bypassing a standard, I look into whether the control is unclear or the platform is just missing something they genuinely need, instead of just adding more restrictions.
 

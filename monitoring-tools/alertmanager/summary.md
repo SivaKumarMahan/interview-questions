@@ -2,7 +2,7 @@
 
 ## Role in the Alerting Flow
 
-Prometheus evaluates PromQL alert rules. When a rule becomes firing, Prometheus sends the alert to Alertmanager. Alertmanager does not evaluate PromQL; it manages alert delivery.
+Prometheus evaluates PromQL alert rules. When a rule fires, Prometheus sends the alert to Alertmanager. Alertmanager doesn't evaluate PromQL itself — its job is managing how those alerts get delivered.
 
 ```text
 Prometheus rule evaluation
@@ -14,13 +14,15 @@ Alertmanager
         └── routes by labels to receivers
 ```
 
-- **Grouping** combines related alerts into a manageable notification.
-- **Deduplication** prevents repeated copies of the same alert.
-- **Routing** selects a receiver using labels such as team, service, environment and severity.
-- **Inhibition** suppresses symptom alerts when a known parent alert is active.
-- **Silence** temporarily suppresses matching notifications, usually for approved maintenance or investigation.
+| Feature | What it does |
+| --- | --- |
+| Grouping | Combines related alerts into one manageable notification |
+| Deduplication | Stops repeated copies of the same alert going out |
+| Routing | Picks a receiver based on labels like team, service, environment, and severity |
+| Inhibition | Suppresses symptom alerts when a known parent alert is already firing |
+| Silence | Temporarily suppresses matching alerts, usually during planned maintenance |
 
-Alertmanager can deliver to email, webhooks, incident-management platforms and controlled chat integrations. Critical alerts should use an on-call system with acknowledgement and escalation rather than relying only on chat.
+Alertmanager can deliver to email, webhooks, incident-management platforms, and controlled chat integrations. For critical alerts, use an on-call system with acknowledgement and escalation — don't rely on chat alone, since messages can be missed.
 
 ## Prometheus Connection
 
@@ -80,16 +82,18 @@ receivers:
       - url_file: /run/secrets/on_call_webhook_url
 ```
 
-Receiver credentials belong in Kubernetes Secrets or an external secret manager such as Azure Key Vault. Do not commit webhook URLs, API tokens or SMTP passwords.
+Keep receiver credentials in Kubernetes Secrets or an external secret manager such as Azure Key Vault. Never commit webhook URLs, API tokens, or SMTP passwords to the repo.
 
 ## Testing and Best Practices
 
-- Alert on sustained, actionable symptoms or SLO burn, not every instantaneous threshold.
-- Use stable ownership labels and consistent severity definitions.
-- Include observed impact, current value, start time, dashboard and runbook in the notification.
-- Test a safe firing condition, the intended route, grouping, template rendering, acknowledgement/escalation and resolved notification.
-- Test silences and maintenance processes without leaving broad or permanent suppressions.
-- Monitor Alertmanager health, notification errors, queue behavior and configuration reloads.
-- For high availability, run supported clustered replicas and test failure of an instance and a notification receiver.
+- Alert on sustained, actionable problems or SLO burn — not on every brief threshold breach.
+- Use stable ownership labels and consistent severity levels across the board.
+- Include the observed impact, current value, start time, a dashboard link, and a runbook link in every notification.
+- Test a safe firing condition end to end: the right route, grouping, template rendering, acknowledgement, escalation, and the resolved notification.
+- Test silences and maintenance windows, and don't leave broad or permanent suppressions sitting in place afterward.
+- Monitor Alertmanager itself: its health, notification failures, queue behavior, and config reloads.
+- For high availability, run Alertmanager as a supported cluster, and actually test what happens when one instance or one receiver fails.
 
-Grafana can add a Prometheus Alertmanager data source to inspect alerts and manage silences. With that integration, Alertmanager contact points, policies and templates remain managed in Alertmanager rather than being edited as Grafana-managed alerting configuration.
+## Grafana Integration
+
+Grafana can add Prometheus Alertmanager as a data source to inspect alerts and manage silences from its UI. With that setup, the contact points, policies, and templates stay managed inside Alertmanager itself — they aren't edited as Grafana's own alerting configuration.

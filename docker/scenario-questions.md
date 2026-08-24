@@ -1,68 +1,30 @@
-## 1. How do you ensure Docker container security at runtime?
+# Scenario-Based Interview Notes
 
-**Answer:** Use Falco/AquaSec → Restrict root access → Apply AppArmor/SELinux profiles.
+> Distributed from the former cross-topic scenario notes. Section numbering is retained where useful for interview practice.
 
-**Detailed interview approach:**
-I inspect the image, runtime configuration, and host separately. Builds use multi-stage Dockerfiles, pinned small trusted bases, `.dockerignore`, dependency cache ordering, and non-root runtime users.
+## Docker
 
-CI scans dependencies/image, generates an SBOM, signs the immutable (not changed after creation) digest, and pushes through TLS to a least-privilege (minimum required access) registry; deployment verifies that digest.
+### 2.1 What is Docker?
 
-At runtime I drop capabilities, use seccomp/AppArmor/SELinux, read-only filesystems, limits, no privileged Docker socket, and restricted networking.
+Docker is a containerization platform. It packages an application together with its dependencies, libraries, and configuration into a portable **image**, which then runs as an isolated **container**.
 
-For slow startup or push failures I measure layer size/cache, registry DNS/auth/TLS, disk and application initialization rather than repeatedly retrying. Rebuild from patched bases and verify functionality/security findings.
+Containers share the host machine's kernel instead of booting a full guest operating system, using two Linux features — namespaces for isolation and cgroups for resource limits. That's what makes them lightweight and able to start in milliseconds. It also solves the classic "works on my machine" problem, because the same image runs the same way everywhere, from a developer's laptop to production.
 
-## 2. How do you ensure Docker image immutability?
+### 2.2 How is Docker useful and how do you use it in a pipeline?
 
-**Answer:** Tag images with version/commit hash → Push immutable (not changed after creation) tags to registry → Prevent latest usage in pipelines.
+- **Consistency:** the same image runs in CI, staging, and production.
+- **Isolation and density:** you can run many containers on one host, each with its resource usage capped by cgroups.
+- **Fast, reliable deploys:** once an image is built and tagged, that exact build never changes — you ship an image tag, and rolling back just means re-deploying the previous tag.
+- **In a pipeline:** build the image, run unit and integration tests inside it, scan it for vulnerabilities (with a tool like Trivy or Grype), push it to a registry (like ECR or GHCR) under a fixed tag, then deploy it to Kubernetes or ECS. Multi-stage builds keep the final image small and free of build tools.
 
-**Detailed interview approach:**
-I inspect the image, runtime configuration, and host separately. Builds use multi-stage Dockerfiles, pinned small trusted bases, `.dockerignore`, dependency cache ordering, and non-root runtime users.
+### 2.3 Can Docker containers be used as CI/CD agents?
 
-CI scans dependencies/image, generates an SBOM, signs the immutable (not changed after creation) digest, and pushes through TLS to a least-privilege (minimum required access) registry; deployment verifies that digest.
+Yes — this is standard practice:
 
-At runtime I drop capabilities, use seccomp/AppArmor/SELinux, read-only filesystems, limits, no privileged Docker socket, and restricted networking.
+- **Jenkins:** the Docker and Kubernetes plugins spin up a fresh container for each build. You get a clean, reproducible environment that's thrown away afterward.
+- **GitLab CI:** each job runs inside a container defined by `image:`.
+- **GitHub Actions:** `container:` runs job steps inside a container, and you can also run service containers alongside it.
 
-For slow startup or push failures I measure layer size/cache, registry DNS/auth/TLS, disk and application initialization rather than repeatedly retrying. Rebuild from patched bases and verify functionality/security findings.
+The benefits are isolation, reproducibility, no "snowflake" build agents that drift out of sync, and easy control over which tool versions each job uses.
 
-## 3. How do you secure Docker containers in CI/CD pipelines?
-
-**Answer:** Run image scans (Trivy/Anchore) → Use non-root users → Apply resource limits → Keep images updated.
-
-**Detailed interview approach:**
-I inspect the image, runtime configuration, and host separately. Builds use multi-stage Dockerfiles, pinned small trusted bases, `.dockerignore`, dependency cache ordering, and non-root runtime users.
-
-CI scans dependencies/image, generates an SBOM, signs the immutable (not changed after creation) digest, and pushes through TLS to a least-privilege (minimum required access) registry; deployment verifies that digest.
-
-At runtime I drop capabilities, use seccomp/AppArmor/SELinux, read-only filesystems, limits, no privileged Docker socket, and restricted networking.
-
-For slow startup or push failures I measure layer size/cache, registry DNS/auth/TLS, disk and application initialization rather than repeatedly retrying. Rebuild from patched bases and verify functionality/security findings.
-
-## 4. How do you debug slow Docker container startup?
-
-**Answer:** Check image size → Optimize Dockerfile → Preload dependencies → Monitor entrypoint logs.
-
-**Detailed interview approach:**
-I inspect the image, runtime configuration, and host separately. Builds use multi-stage Dockerfiles, pinned small trusted bases, `.dockerignore`, dependency cache ordering, and non-root runtime users.
-
-CI scans dependencies/image, generates an SBOM, signs the immutable (not changed after creation) digest, and pushes through TLS to a least-privilege (minimum required access) registry; deployment verifies that digest.
-
-At runtime I drop capabilities, use seccomp/AppArmor/SELinux, read-only filesystems, limits, no privileged Docker socket, and restricted networking.
-
-For slow startup or push failures I measure layer size/cache, registry DNS/auth/TLS, disk and application initialization rather than repeatedly retrying. Rebuild from patched bases and verify functionality/security findings.
-
-## 5. How do you reduce Docker image size for faster deployments?
-
-**Answer:** • Use smaller base images (alpine).
-• Multi-stage builds.
-• Remove unused packages and cache.
-• Push to private registry for caching.
-
-**Detailed interview approach:**
-I inspect the image, runtime configuration, and host separately. Builds use multi-stage Dockerfiles, pinned small trusted bases, `.dockerignore`, dependency cache ordering, and non-root runtime users.
-
-CI scans dependencies/image, generates an SBOM, signs the immutable (not changed after creation) digest, and pushes through TLS to a least-privilege (minimum required access) registry; deployment verifies that digest.
-
-At runtime I drop capabilities, use seccomp/AppArmor/SELinux, read-only filesystems, limits, no privileged Docker socket, and restricted networking.
-
-For slow startup or push failures I measure layer size/cache, registry DNS/auth/TLS, disk and application initialization rather than repeatedly retrying. Rebuild from patched bases and verify functionality/security findings.
-
+---

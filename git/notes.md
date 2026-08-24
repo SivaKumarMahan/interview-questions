@@ -43,4 +43,4 @@ git revert <sha>                   # safely undo a shared commit
 git restore --staged <file>        # unstage without deleting work
 ```
 
-`git reset` rewrites the current branch and can discard local work depending on mode, while `git revert` creates a new inverse commit and is normally safer after a commit has been shared.
+`git reset` rewrites the current branch. Depending on the mode used, it can discard local work. `git revert` creates a new commit that undoes an earlier one instead. Revert is normally safer once a commit has been shared with others.

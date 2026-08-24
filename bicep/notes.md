@@ -1,13 +1,13 @@
 # Azure File Share Backup Automation with Bicep
 
-The project provisions and protects an Azure File Share using repeatable infrastructure code:
+This project sets up and protects an Azure File Share using repeatable infrastructure code. The steps are:
 
 1. Create or reference a Storage Account and File Share.
 2. Create a Recovery Services vault in a supported region.
 3. Register the Storage Account with the vault.
-4. Define an Azure Files backup policy with the required schedule and retention.
-5. Create the protected item that associates the File Share with the policy.
-6. Deploy with Azure CLI and verify both protection status and a restore point.
+4. Define an Azure Files backup policy with the schedule and retention you need.
+5. Create the protected item that links the File Share to the policy.
+6. Deploy with Azure CLI, then check both the protection status and that a restore point exists.
 
 A minimal vault resource is:
 
@@ -40,6 +40,6 @@ az deployment group create \
   --parameters vaultName=<vault-name>
 ```
 
-Production considerations include supported-region and API-version validation, soft delete, immutability where required, private networking, least-privilege (minimum required access) deployment identity, retention and cost, alerting on backup failure, and regular restore tests.
+Before this goes to production, I check a few things: the region and API version are supported, soft delete is on, immutability is set where it's required, networking is private, and the deployment identity has only the access it needs. I also plan for retention and cost, set up alerts for backup failures, and run restore tests on a regular schedule.
 
-A successful deployment is not proof of recoverability; I verify an actual restore into an isolated location.
+A successful deployment doesn't prove the backup can actually be restored. I always test a real restore into an isolated location to be sure.

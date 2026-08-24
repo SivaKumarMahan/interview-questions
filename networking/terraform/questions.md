@@ -4,13 +4,15 @@
 
 **Answer:**
 
-I need the exact account, region, VPC ID, CIDR and IPv6 settings, DNS attributes, tenancy, tags, ownership, and dependency inventory. The provider alias and credentials must point to that account/region, and a matching resource block/module address must exist.
+I gather the exact details first: account, region, VPC ID, CIDR and IPv6 settings, DNS attributes, tenancy, tags, ownership, and what depends on it. The provider alias and credentials must point at that account and region, and a matching resource block or module address must already exist in code.
 
-I also confirm the VPC is not already managed in another state.
+I also confirm the VPC is not already managed in another state file.
 
-Before import I lock and back up remote state and decide separate addresses for subnets, route tables, gateways, ACLs, endpoints, and peering—importing a VPC does not automatically import them. I import, use `state show`, update configuration to match without replacement, review a full plan, and test connectivity.
+Importing a VPC does not automatically import the things inside it. Subnets, route tables, gateways, ACLs, endpoints, and peering connections each need their own import and their own address. Before I start, I lock and back up the remote state and decide those addresses up front.
 
-This prevents an adoption exercise from accidentally changing production networking.
+Then I import, run `state show` to see what Terraform recorded, and update the configuration to match without triggering a replacement. I review a full plan and test connectivity afterward.
+
+This process keeps an adoption exercise from accidentally changing production networking.
 
 ---
 
@@ -18,11 +20,15 @@ This prevents an adoption exercise from accidentally changing production network
 
 **Answer:**
 
-I do not pass VPC configuration arguments in the import command. Import only maps a provider resource ID to an existing Terraform address, for example `terraform import aws_vpc.prod vpc-0123456789`.
+You don't. Import only maps a provider resource ID to an existing Terraform address — it does not take configuration arguments. For example:
 
-CIDR, DNS settings, tenancy, and tags belong in the `aws_vpc` resource block and can be supplied there through variables. After import I inspect `terraform state show aws_vpc.prod` and run plan, then adjust code until it represents the live VPC without unexpected changes.
+```bash
+terraform import aws_vpc.prod vpc-0123456789
+```
 
-Newer import blocks can make the mapping reviewable in code, but they still do not replace the resource configuration.
+CIDR, DNS settings, tenancy, and tags belong in the `aws_vpc` resource block, and can be supplied there through variables. After import, I check `terraform state show aws_vpc.prod` and run a plan, then adjust the code until it matches the live VPC with no unexpected changes.
+
+Newer import blocks make the mapping reviewable in code, but they still don't replace writing the resource configuration.
 
 ---
 
@@ -30,7 +36,7 @@ Newer import blocks can make the mapping reviewable in code, but they still do n
 
 **Answer:**
 
-I use data sources when the VPC is owned by another stack and has stable, unique discovery tags. I validate that the query cannot silently choose the wrong environment. For example:
+I use a data source when the VPC is owned by another stack and has a stable, unique tag to search on. I also make sure the query can't accidentally match the wrong environment. For example:
 
 ```hcl
 data "aws_vpc" "selected" {
@@ -59,21 +65,22 @@ resource "aws_instance" "app" {
 }
 ```
 
-For production I would normally select a subnet by a stable map/key rather than `[0]`, because list ordering can change, and add the instance role, security groups, encrypted root disk, tags, and IMDSv2 requirement.
+For production I'd pick the subnet by a stable key instead of `[0]`, since list ordering can change. I'd also add the instance role, security groups, an encrypted root disk, tags, and a requirement for IMDSv2 (the safer, token-based way instances fetch metadata).
 
-If the VPC is created in the same root module, I reference its resource/module output directly; data-source discovery is unnecessary and creates a weaker implicit contract.
+If the VPC is created in the same root module, I just reference its resource or module output directly. A data source isn't needed, and it would only add a weaker, implicit link between the two.
+
 ---
 
 ### 4. What dependencies are needed for an IP address or networking resource?
 
 **Answer:**
 
-It depends on the address type and traffic path. A public EC2 path can require a VPC, subnet with public-IP behavior, internet gateway and route, network ACL, security group, and Elastic IP association.
+It depends on the address type and the traffic path.
 
-A private address may require route tables, NAT/egress, DNS, peering/transit, or load-balancer frontend configuration.
+A public-facing EC2 instance typically needs a VPC, a subnet that assigns public IPs, an internet gateway with a route, a network ACL, a security group, and an Elastic IP association.
 
-Terraform infers ordering when one argument references another, such as `subnet_id = aws_subnet.public.id`; that is preferable because it documents the data dependency.
+A private address may need route tables, NAT or another egress path, DNS, peering or transit routing, or a load balancer in front of it.
 
-I use `depends_on` only for a real behavior dependency not represented by an attribute, such as waiting for a policy attachment before a service API call.
+Where one resource references another, like `subnet_id = aws_subnet.public.id`, Terraform works out the order on its own. I prefer that over `depends_on`, because the reference also documents the real relationship between the resources. I only reach for `depends_on` when there's a dependency Terraform can't see from an attribute — for example, waiting for a policy attachment to finish before a service calls an API.
 
-After apply I verify route selection, ACL/security-group behavior, DNS, and the application port from the actual source.
+After apply, I check the real thing: that routing works, ACLs and security groups behave as expected, DNS resolves, and the application port responds from the actual source.

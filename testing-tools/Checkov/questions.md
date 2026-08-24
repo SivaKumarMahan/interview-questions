@@ -10,31 +10,31 @@ It can detect patterns such as public storage, unrestricted security rules, miss
 checkov --directory ./terraform --framework terraform
 ```
 
-I combine it with `terraform fmt -check`, `validate`, a reviewed plan, provider/cloud policy and post-deployment verification. Static scanning cannot see every runtime value, external resource or business requirement, so a pass is evidence—not proof of complete security.
+I combine it with `terraform fmt -check`, `validate`, a reviewed plan, provider/cloud policy, and post-deployment verification. Static scanning can't see every runtime value, external resource, or business requirement. A pass is evidence, not proof of complete security.
 
 ## 2. How do you integrate Checkov into a CI/CD pipeline?
 
 **Answer:**
 
-The pipeline uses a pinned Checkov version, checks out the reviewed commit, scans the correct root modules and variable/plan context, writes a machine-readable report where required, and blocks on the organization's agreed policy.
+The pipeline uses a pinned Checkov version and checks out the reviewed commit. It scans the correct root modules and variable/plan context, writes a machine-readable report where required, and blocks based on the organization's agreed policy.
 
-The job has no cloud credentials when scanning source does not need them, and report/artifact access is restricted because findings can reveal architecture.
+The job has no cloud credentials when scanning the source doesn't need them. Access to the report and its artifacts is restricted, because findings can reveal how the infrastructure is built.
 ```yaml
 - name: Scan Terraform with Checkov
   run: checkov --directory infrastructure --framework terraform
 ```
 
-I keep the same configuration locally and in CI, exclude generated/vendor directories deliberately, and make the result visible on the pull request. After tool/policy upgrades I test representative repositories before enforcement so a new rule set does not unexpectedly block every team.
+I keep the same configuration locally and in CI, deliberately exclude generated and vendor directories, and make the result visible on the pull request. After a tool or policy upgrade, I test it against representative repositories before enforcing it, so a new rule set doesn't unexpectedly block every team.
 
 ## 3. Checkov fails a Terraform pipeline. How do you investigate and fix it?
 
 **Answer:**
 
-I capture the check ID, resource address, file/line, evaluated attribute and guideline. I inspect the complete module and variable path to distinguish a real insecure value, unknown/dynamic value, generated configuration or false positive.
+I capture the check ID, resource address, file and line, the evaluated attribute, and the guideline it's checking. Then I trace the full module and variable path, to tell apart a real insecure value from an unknown or dynamic value, a generated configuration, or a false positive.
 
-I read the policy and provider behavior, then change the Terraform to the secure design—for example private access, encryption, diagnostic logging or a restricted CIDR—and rerun Checkov plus Terraform validation/plan.
+I read the policy and the provider's behavior, then fix the Terraform to the secure design — for example private access, encryption, diagnostic logging, or a restricted CIDR. I rerun Checkov plus Terraform validate/plan to confirm.
 
-If an exception is genuinely required, I document threat, compensating control, owner, approval and expiry against the exact check/resource. I do not use a broad `--skip-check` or suppress the repository.
+If an exception is genuinely needed, I document the threat, the compensating control, the owner, the approval, and the expiry, against the exact check and resource. I don't use a broad `--skip-check` or suppress it repo-wide.
 
 After deployment, cloud policy/configuration evidence verifies that the intended control exists.
 
@@ -51,18 +51,18 @@ resource "aws_s3_bucket" "audit_archive" {
 }
 ```
 
-The syntax alone does not make the exception acceptable. Review verifies the reason, compensating evidence, scope and expiry. Exceptions are inventoried and periodically rechecked.
+The syntax alone doesn't make the exception acceptable. Review still checks the reason, the compensating evidence, the scope, and the expiry. Exceptions are logged in an inventory and rechecked periodically.
 
-For an organization-specific rule, I create a versioned external check, add positive/negative unit fixtures and load it with the supported external-check mechanism. I first report findings without blocking, measure false positives, document fix and ownership, then enforce it.
+For an organization-specific rule, I write a versioned external check, add positive and negative unit fixtures, and load it through the supported external-check mechanism. I run it in report-only mode first, measure false positives, document the fix and its owner, then turn on enforcement.
 
-Policy code receives the same review and release discipline as infrastructure modules.
+Policy code gets the same review and release discipline as infrastructure modules do.
 
 ## 5. Should you scan Terraform source or the Terraform plan?
 
 **Answer:**
 
-Source scanning is fast and provides file-level feedback before credentials or planning, but some values remain unknown or are created through modules. Plan scanning can evaluate more resolved configuration but requires a safely generated JSON plan and may contain sensitive values.
+Source scanning is fast. It gives file-level feedback before you need credentials or a plan, but some values stay unknown, or only appear once modules resolve. Plan scanning can evaluate more of the resolved configuration, but it needs a safely generated JSON plan, and that plan may contain sensitive values.
 
-I often scan source on every pull request and add a protected plan scan for high-risk production workflows.
+I usually scan the source on every pull request, and add a protected plan scan for high-risk production workflows.
 
-Plan and state artifacts are encrypted, access-controlled and never printed indiscriminately. Neither mode replaces review of destructive changes, state security, runtime cloud policy or application testing.
+Plan and state artifacts are encrypted, access-controlled, and never printed without care. Neither mode replaces reviewing destructive changes, securing state, enforcing runtime cloud policy, or testing the application itself.

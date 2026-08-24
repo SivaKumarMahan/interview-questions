@@ -1,15 +1,43 @@
 # CI/CD Monitoring Summary
 
-**Pipeline monitoring data** should cover queue time, stage duration, success/failure/retry rate, flaky tests, agent saturation (how close a resource is to its limit), artifact size/time, deployment frequency, lead time, change-failure rate and recovery time.
+Pipeline monitoring should cover the full delivery path, not just whether a build passed.
 
-Jenkins can expose metrics through a maintained Prometheus integration; Azure DevOps metrics and APIs can feed the selected observability backend.
+## What to Track
 
-Grafana or another dashboard shows trends by pipeline, branch, agent pool and environment.
+| Area | Signals |
+| --- | --- |
+| Pipeline health | Queue time, stage duration, success/failure/retry rate, flaky tests |
+| Agent capacity | Agent saturation — how close agents are to running out of capacity |
+| Artifacts | Artifact size and transfer time |
+| Delivery performance | Deployment frequency, lead time, change-failure rate, recovery time |
 
-Tag application dashboards with commit, artifact digest and deployment time. A **post-deployment gate** checks error rate, latency, saturation (how close a resource is to its limit) and a real smoke/business transaction before promotion.
+Jenkins can expose metrics through a maintained Prometheus integration. Azure DevOps has its own metrics and APIs that can feed whatever observability backend you use.
 
-Automatic rollback must be limited, authorized, recorded and verified; it must not conceal a recurring root cause.
+Grafana, or another dashboard tool, should show these trends broken down by pipeline, branch, agent pool, and environment.
 
-**Alerts** should identify environment, commit, failed stage, owner and runbook. Page only for urgent production impact or a blocked critical delivery path; ordinary build failures normally notify the responsible team without waking on-call staff.
+## Tagging and Correlation
 
-Never expose credentials through pipeline logs or high-cardinality (number of unique label combinations) labels.
+Tag application dashboards with the commit, artifact digest, and deployment time. This lets you trace a production issue back to the exact build that caused it.
+
+## Deployment Gates
+
+A post-deployment gate should check error rate, latency, saturation, and a real smoke or business transaction before allowing promotion to continue.
+
+Automatic rollback must be:
+
+- Limited in scope
+- Authorized
+- Recorded
+- Verified afterward
+
+A rollback that fires automatically should never hide a recurring root cause — someone still needs to investigate why it triggered.
+
+## Alerting
+
+Alerts should identify the environment, commit, failed stage, owner, and runbook.
+
+Page someone only for urgent production impact or a blocked critical delivery path. Ordinary build failures should just notify the responsible team, not wake up on-call.
+
+## Security Note
+
+Never expose credentials in pipeline logs. Also avoid high-cardinality labels — labels with too many unique values, like raw usernames or request IDs, that make metrics expensive to store and slow to query.

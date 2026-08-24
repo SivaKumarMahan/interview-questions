@@ -19,7 +19,7 @@ User
 
 ### Identity and access
 
-I follow least privilege (only the permissions needed): users and applications receive only the permissions they need.
+I follow least privilege: users and applications receive only the permissions they need.
 
 - Use Microsoft Entra ID for user and administrator access.
 - Use managed identity or workload identity for applications.
@@ -235,6 +235,6 @@ The password is not stored in Git, the image, or the pipeline.
 
 ### In short
 
-I use layered security: least-privilege (minimum required access) identity, Key Vault for secrets, restricted networks, secure coding, CI/CD scans, non-root containers, Kubernetes policies, encryption, patching, and monitoring.
+I use layered security: least-privilege identity, Key Vault for secrets, restricted networks, secure coding, CI/CD scans, non-root containers, Kubernetes policies, encryption, patching, and monitoring.
 
 I test these controls regularly and respond quickly when a vulnerability or secret leak is detected.

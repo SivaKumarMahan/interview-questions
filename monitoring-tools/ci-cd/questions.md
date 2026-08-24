@@ -2,20 +2,22 @@
 
 **Answer:**
 
-I export supported platform/plugin/API metrics to Prometheus or the chosen backend and graph queue time, stage duration, result, retries, flaky tests, agent capacity, artifact transfer, deployment frequency, lead time, change-failure rate and recovery time.
+I export whatever platform, plugin, or API metrics are available to Prometheus or the chosen backend. Then I graph queue time, stage duration, result, retries, flaky tests, agent capacity, artifact transfer time, deployment frequency, lead time, change-failure rate, and recovery time.
 
-Labels are limited; commit hashes belong in deployment annotations/logs rather than long-lived metric labels.
-An alert includes pipeline, environment, failed stage, owner and runbook. Normal build failure notifies the team; production deployment failure or a blocked critical path may page.
+I keep labels limited. Commit hashes belong in deployment annotations or logs, not in long-lived metric labels.
 
-I compare trends with agent image/tool changes and fix the flaky or constrained stage rather than adding unlimited retries.
+An alert should include the pipeline, environment, failed stage, owner, and runbook. A normal build failure notifies the team; a production deployment failure, or a blocked critical path, may page someone.
+
+I compare trends against agent image or tool changes, and fix the flaky or constrained stage instead of just adding more retries.
 
 ## 2. How do you integrate observability into deployment gates?
 
 **Answer:**
 
-I deploy one immutable (not changed after creation) artifact, annotate dashboards with its digest/commit, route a controlled traffic amount, and query error rate, latency, saturation (how close a resource is to its limit) plus a smoke/business transaction.
+I deploy one immutable artifact — meaning it's never changed after it's built — and annotate dashboards with its digest and commit. I route a controlled amount of traffic to it, then check error rate, latency, saturation (how close the system is to its limit), and a smoke or business transaction.
 
-The gate uses a defined observation window and minimum traffic so empty or insufficient data cannot pass silently.
-If thresholds fail, promotion stops and a controlled rollback or traffic shift runs, followed by the same verification. The action is authorized, limited and logged.
+The gate uses a fixed observation window and a minimum amount of traffic, so an empty or thin sample can't pass silently.
 
-Teams can override only through an audited approval path because automatic health checks can themselves be incomplete.
+If the thresholds fail, promotion stops. A controlled rollback or traffic shift runs, followed by the same verification. That action is authorized, limited in scope, and logged.
+
+Teams can only override the gate through an audited approval path, because automated health checks can be wrong too.

@@ -6,11 +6,11 @@
 
 **Answer:**
 
-Azure VMs are IaaS compute resources. Azure operates physical infrastructure/hypervisor; I manage guest OS, patches, software, configuration, identity, disks, and workload recovery. VMs attach network interfaces to a VNet and use managed disks.
+Azure VMs are infrastructure-as-a-service compute. Azure runs the physical hardware and the hypervisor; I manage the guest OS, patches, software, configuration, identity, disks, and recovery of the workload itself. VMs attach network interfaces to a VNet and use managed disks for storage.
 
-I choose VMs for legacy software, OS/kernel control, unsupported runtimes, or lift-and-shift. Production uses Availability Zones/sets as required, load balancing, backups, monitoring, patch management, managed identity, and IaC. One VM is a failure point.
+I reach for VMs when I need legacy software, control over the OS or kernel, an unsupported runtime, or a straightforward lift-and-shift. In production I use Availability Zones or sets as needed, load balancing, backups, monitoring, patch management, managed identity, and infrastructure-as-code. A single VM is a single point of failure.
 
-When diagnosing, I check Azure resource/boot diagnostics and Activity Log, then guest CPU/memory/disk/network/service logs. I distinguish Azure platform health from OS/application failure before rebooting.
+When something's wrong, I start with Azure's own resource and boot diagnostics and the Activity Log, then move into guest-level CPU, memory, disk, network, and service logs. I always separate "Azure itself has a problem" from "the OS or app has a problem" before I reach for a reboot.
 
 ---
 
@@ -18,13 +18,13 @@ When diagnosing, I check Azure resource/boot diagnostics and Activity Log, then 
 
 **Answer:**
 
-I keep VMs private and access them through Bastion, VPN/ExpressRoute, or controlled jump access; I do not expose RDP/SSH broadly. NSGs/firewalls allow only required flows. Entra login/managed identity and least-privilege (minimum required access) RBAC reduce stored credentials.
+I keep VMs private and reach them through Bastion, VPN, ExpressRoute, or another controlled jump path. I never expose RDP or SSH to the open internet. Network security groups and firewalls only allow the traffic that's actually needed. Signing in through Entra with managed identity, plus RBAC scoped to the minimum needed, cuts down on stored credentials.
 
-I use hardened images, patch/update management, disk encryption, Secure Boot/vTPM where supported, endpoint protection/Defender, vulnerability assessment, backups, and centralized logs. Secrets come from Key Vault.
+I use hardened images, keep patches and updates current, encrypt disks, turn on Secure Boot and vTPM where supported, run endpoint protection or Defender, scan for vulnerabilities, take backups, and send logs somewhere central. Secrets come from Key Vault, not from the VM itself.
 
-I monitor privileged sign-ins, NSG changes, public IP creation, malware alerts, and patch compliance. Recovery is tested.
+I watch for privileged sign-ins, changes to network security group rules, new public IPs, malware alerts, and patch compliance. I also test that recovery actually works.
 
-If compromise is suspected, I isolate network access, preserve evidence/snapshot according to procedure, rotate reachable credentials, rebuild from trusted image, and investigate—not merely reboot.
+If I suspect a VM has been compromised, I cut off its network access, preserve evidence following the incident procedure, rotate any credentials it could reach, rebuild from a trusted image, and investigate properly — I don't just reboot it and hope.
 
 ---
 
@@ -32,9 +32,11 @@ If compromise is suspected, I isolate network access, preserve evidence/snapshot
 
 **Answer:**
 
-A Storage Account is the Azure namespace/security/configuration boundary for Blob, Files, Queue, and Table services (depending on kind). It controls region, redundancy, performance tier, networking, encryption, identity/RBAC, lifecycle, and protection settings.
-I select GPv2 in most cases, choose LRS/ZRS/GRS based on failure/RPO needs, disable public/anonymous access unless required, prefer Entra ID/managed identity, enforce HTTPS, use private endpoints/firewalls, and enable logs, soft delete/versioning/lifecycle based on workload.
-I monitor capacity, transactions, latency, availability, throttling, and egress. Recovery features and backup are selected per service; replication alone does not protect from every deletion/corruption.
+A Storage Account is Azure's namespace, security, and configuration boundary for Blob, Files, Queue, and Table services, depending on the account type. It controls region, redundancy, performance tier, networking, encryption, identity and RBAC, lifecycle rules, and protection settings.
+
+I pick general-purpose v2 in most cases, choose LRS, ZRS, or GRS based on what failure and recovery-point needs the workload actually has, turn off public or anonymous access unless it's genuinely required, prefer Entra ID and managed identity over keys, enforce HTTPS, use private endpoints or firewalls, and turn on logs, soft delete, versioning, or lifecycle rules depending on the workload.
+
+I keep an eye on capacity, transactions, latency, availability, throttling, and data leaving the account. Recovery features and backup get chosen per service — replication by itself doesn't protect against every kind of deletion or corruption.
 
 ---
 
@@ -42,13 +44,13 @@ I monitor capacity, transactions, latency, availability, throttling, and egress.
 
 **Answer:**
 
-Blob Storage is object storage for unstructured data such as images, logs, backups, artifacts, static content, and data-lake files. Containers hold block, append, or page blobs; access tiers trade retrieval cost/latency against storage cost.
+Blob Storage is object storage for unstructured data — images, logs, backups, build artifacts, static content, data-lake files, that kind of thing. Containers hold block, append, or page blobs, and access tiers let you trade retrieval speed and cost against storage cost.
 
-Applications use SDK/REST with managed identity and scoped data roles. I use lifecycle rules to tier/delete by policy, immutable (not changed after creation) storage for regulated retention where required, and versioning/soft delete for recovery.
+Applications use the SDK or REST API with managed identity and roles scoped to just the data they need. I use lifecycle rules to move data to cheaper tiers or delete it on a schedule, immutable storage (which can't be altered or deleted before its retention period ends) for regulated data that must be retained, and versioning or soft delete for recovery.
 
-Large uploads use blocks and retries/idempotency (safe repeat behavior).
+Large uploads go in blocks, with retries designed to be safe even if the same block gets uploaded twice.
 
-I choose Blob over Azure Files when object semantics and HTTP access fit; Files suits SMB/NFS shares. Monitoring covers request errors, latency, capacity, throttling, and egress.
+I choose Blob over Azure Files when the workload fits object access over HTTP; Files is the better fit for SMB or NFS shares. Monitoring covers request errors, latency, capacity, throttling, and outbound data.
 
 ---
 
@@ -56,11 +58,11 @@ I choose Blob over Azure Files when object semantics and HTTP access fit; Files 
 
 **Answer:**
 
-I use several layers of protection. I disable anonymous Blob access, restrict or disable public network access, use private endpoints and private DNS, require secure transfer/TLS, prefer Microsoft Entra managed identities and data-level RBAC, protect and rotate account keys, and issue short-lived SAS tokens with only the permissions needed.
+I stack several layers of protection rather than relying on one setting. I turn off anonymous blob access, restrict or disable public network access, use private endpoints and private DNS, require HTTPS for all transfers, prefer Entra managed identities and data-level RBAC over account keys, protect and rotate any keys that are still in use, and issue SAS tokens that are short-lived and carry only the permissions they need.
 
-Azure encrypts the data at rest. I use customer-managed keys or infrastructure encryption when the requirement calls for them. I also enable Defender and logging, use versioning, soft delete, or immutability where appropriate, and apply policies that prevent insecure settings.
+Azure encrypts data at rest by default. I add customer-managed keys or infrastructure-level encryption when the requirement calls for it. I also turn on Defender and logging, use versioning, soft delete, or immutability where it makes sense, and apply policies that stop insecure settings from being created in the first place.
 
-I test allowed and denied identity/network access. On exposure I restrict access, revoke SAS/rotate keys, preserve logs, assess downloaded/changed data, restore if required, and correct policy/architecture.
+I test that allowed access actually works and denied access actually fails. If there's an exposure, I lock down access, revoke SAS tokens or rotate keys, keep the logs, check what was downloaded or changed, restore data if needed, and fix the underlying policy or architecture.
 
 ---
 
@@ -68,11 +70,11 @@ I test allowed and denied identity/network access. On exposure I restrict access
 
 **Answer:**
 
-Key Vault stores secrets, cryptographic keys, and certificates. Management-plane permissions configure the vault; data-plane permissions access stored objects. A subscription Owner does not automatically have secret-reading permission.
+Key Vault stores secrets, cryptographic keys, and certificates. Management-plane permissions control the vault's configuration; data-plane permissions control access to what's stored inside it. A subscription Owner doesn't automatically get to read secrets — those are two separate permission systems.
 
-Applications use managed identity and narrow roles such as Key Vault Secrets User. I enable soft delete/purge protection, logging, rotation/expiry ownership, and private networking where required. I avoid outputting secret values through pipelines/IaC.
+Applications use managed identity with a narrow role, like Key Vault Secrets User. I turn on soft delete and purge protection, enable logging, assign clear ownership for rotation and expiry, and use private networking where it's needed. I never let a secret's value get printed out through a pipeline or an infrastructure-as-code run.
 
-Troubleshooting checks identity principal, RBAC vs. access-policy mode, role/scope/propagation, object version/state, token audience, firewall/private DNS, and audit logs. Rotation is tested with consumers.
+When troubleshooting, I check the identity making the request, whether the vault uses RBAC or the older access-policy model, the role and its scope, whether the role assignment has actually propagated yet, the object's version and state, the token's audience, firewall and private DNS settings, and the audit logs. I test rotation with the actual consumers of the secret, not just in isolation.
 
 ---
 
@@ -80,11 +82,11 @@ Troubleshooting checks identity principal, RBAC vs. access-policy mode, role/sco
 
 **Answer:**
 
-Managed Identity is an Entra identity for an Azure resource. System-assigned identity follows that resource; user-assigned identity is independent/reusable. Azure manages credentials and the workload requests short-lived tokens.
+Managed Identity gives an Azure resource its own Entra identity. A system-assigned identity lives and dies with that one resource; a user-assigned identity is independent and can be reused across resources. Azure manages the credentials behind the scenes, and the workload just requests short-lived tokens.
 
-Example: Function has a user-assigned identity granted Blob Data Reader on one container/account and Key Vault Secrets User on one vault. Code uses `DefaultAzureCredential`; no client secret exists in configuration.
+For example: a Function has a user-assigned identity that's been granted Blob Data Reader on one container and Key Vault Secrets User on one vault. The code uses `DefaultAzureCredential`, and there's no client secret sitting in configuration anywhere.
 
-I scope roles narrowly and separate identities when workloads have different permissions. Failed access investigation checks attached identity, principal/client ID selection, token audience, RBAC data role/scope, propagation, and network restrictions.
+I scope roles as narrowly as I can, and I use separate identities when workloads need different levels of access. When access fails, I check which identity is attached, whether the right principal or client ID was selected, the token's audience, the RBAC role and its scope, whether the assignment has propagated, and any network restrictions.
 
 ---
 
@@ -92,12 +94,13 @@ I scope roles narrowly and separate identities when workloads have different per
 
 **Answer:**
 
-Microsoft Entra ID is Microsoft’s cloud identity and access-management service for users, groups, applications/service principals, managed identities, devices, authentication, Conditional Access, and tokens.
+Microsoft Entra ID is Microsoft's cloud identity service. It handles users, groups, applications and service principals, managed identities, devices, authentication, Conditional Access, and tokens.
 
-It is distinct from Azure RBAC: Entra authenticates identities; Azure RBAC authorizes actions on Azure resources.
-I use groups instead of direct user assignments, MFA/Conditional Access, PIM for privileged roles, workload identity instead of secrets, access reviews, break-glass accounts, and sign-in/audit monitoring.
+It's a different system from Azure RBAC: Entra ID authenticates who someone is, while Azure RBAC decides what they're allowed to do to Azure resources.
 
-For authentication failure I check tenant, identity state, credentials/federation, Conditional Access, token audience/scopes, consent, and sign-in logs. Authorization failure then moves to target roles/policies.
+I use groups instead of assigning access to individual users, turn on MFA and Conditional Access, use Privileged Identity Management for privileged roles, prefer workload identity over stored secrets, run access reviews, keep break-glass accounts ready, and watch sign-in and audit logs.
+
+When authentication fails, I check the tenant, the identity's state, credentials or federation, Conditional Access rules, the token's audience and scopes, consent, and the sign-in logs. Once authentication is confirmed, authorization failures point me to roles and policies instead.
 
 ---
 
@@ -105,11 +108,11 @@ For authentication failure I check tenant, identity state, credentials/federatio
 
 **Answer:**
 
-ACR is a private OCI registry for container images and related artifacts. It supports repositories, geo-replication on suitable tiers, tasks/builds, webhooks, retention/isolate features, and Azure identity integration.
+ACR is a private registry for container images and related artifacts. It supports repositories, geo-replication on the right tiers, build tasks, webhooks, retention and isolation features, and integration with Azure identity.
 
-CI builds/scans an image, pushes immutable (not changed after creation) tag/digest using workload identity, signs it, and deployment references digest. AKS pulls through managed identity with `AcrPull`; administrators do not share the admin password.
+CI builds and scans an image, pushes it with a digest (a fixed reference that always points to that exact image) using workload identity, signs it, and deployments reference that digest directly. AKS pulls it through managed identity with the `AcrPull` role — nobody shares the registry's admin password.
 
-I restrict public/network access as required, apply repository permissions, retention, audit, and vulnerability workflows. `ImagePullBackOff` investigation checks image/tag/digest, registry login/role, network/private DNS, node architecture, and events.
+I restrict public and network access where needed, apply repository permissions, retention rules, auditing, and a vulnerability-scanning workflow. When I see `ImagePullBackOff`, I check the image tag and digest, the registry login and role, network and private DNS settings, node architecture, and the pod's events.
 
 ---
 
@@ -117,11 +120,11 @@ I restrict public/network access as required, apply repository permissions, rete
 
 **Answer:**
 
-App Service is PaaS hosting for web apps and APIs. Azure manages OS/runtime infrastructure; teams deploy code/container and configure plan, scaling, domains/TLS, identity, networking, diagnostics, and application behavior.
+App Service is a managed platform for hosting web apps and APIs. Azure runs the OS and runtime; teams deploy their code or container and configure the plan, scaling, domains and TLS, identity, networking, diagnostics, and application behavior.
 
-Production uses multiple instances/zones where available, health check, autoscale, managed identity/Key Vault references, VNet integration/private endpoints as needed, deployment slots, and Application Insights.
+In production I use multiple instances or zones where they're available, a health check, autoscale, managed identity with Key Vault references, VNet integration or private endpoints as needed, deployment slots, and Application Insights.
 
-I deploy to a slot, warm/test it, then swap with production; database changes remain backward-compatible. For failure I check deployment logs, app logs, instance health, config, identity, DNS/network, dependencies, and platform metrics before rollback/swap.
+I deploy to a slot, warm it up and test it, then swap it into production — keeping database changes backward-compatible so the swap doesn't break anything. When something fails, I check deployment logs, app logs, instance health, configuration, identity, DNS and networking, dependencies, and platform metrics before I roll back or swap.
 
 ---
 
@@ -129,10 +132,11 @@ I deploy to a slot, warm/test it, then swap with production; database changes re
 
 **Answer:**
 
-Azure Functions runs event-driven code triggered by HTTP, timer, queue, blob, Event Grid, Service Bus, and other events. Bindings simplify service input/output. Hosting plan controls scaling, cold-start, networking, duration, and cost characteristics.
+Azure Functions runs code in response to events — HTTP requests, timers, queues, blobs, Event Grid, Service Bus, and more. Bindings handle a lot of the input and output plumbing for you. The hosting plan you pick determines scaling, cold-start behavior, networking, run duration, and cost.
 
-Example: Blob upload emits work, Function validates/processes it, writes status to a database, and sends failure to a poison/dead-letter path. The function is idempotent (safe to run more than once) because events may repeat; retries are limited and external operations use correlation IDs.
-I configure managed identity, Key Vault, Application Insights, timeout, concurrency, alerts, and failure handling. Durable Functions suits orchestrated/stateful workflows.
+For example: a blob upload triggers a Function that validates and processes it, writes a status to a database, and sends failures to a dead-letter path. Because events can be delivered more than once, the function is written so that running it twice causes no harm, and any external calls it makes use limited retries and correlation IDs.
+
+I configure managed identity, Key Vault access, Application Insights, timeouts, concurrency, alerts, and failure handling. Durable Functions is the right tool when the workflow needs orchestration or state.
 
 ---
 
@@ -140,11 +144,11 @@ I configure managed identity, Key Vault, Application Insights, timeout, concurre
 
 **Answer:**
 
-Azure SQL Database is managed SQL Server-compatible PaaS. Azure handles platform patching, backups, and built-in availability; I manage schema, queries/indexes, users, data protection, performance tier, networking, recovery policy, and application resiliency.
+Azure SQL Database is a managed, SQL Server-compatible database. Azure handles platform patching, backups, and built-in availability; I manage schema, queries and indexes, users, data protection, performance tier, networking, recovery policy, and how resilient the application is to hiccups.
 
-I use Entra authentication/managed identity, firewall/private endpoint, TLS, auditing/Defender, least privilege (only the permissions needed), and monitoring. Point-in-time restore and geo-replication/failover groups are selected from RPO/RTO.
+I use Entra authentication or managed identity, a firewall or private endpoint, TLS, auditing and Defender, access scoped to only what's needed, and monitoring. Point-in-time restore and geo-replication or failover groups get chosen based on how much data loss and downtime the business can actually tolerate.
 
-For slowness I inspect query performance, waits, blocking, CPU/data IO/log IO, connection pool, indexes/plans, and recent changes. Scaling may mitigate but does not replace query/root-cause correction.
+When the database is slow, I look at query performance, wait stats, blocking, CPU and IO, the connection pool, indexes and query plans, and any recent changes. Scaling up can help in the moment, but it doesn't replace actually fixing the query or the root cause.
 
 ---
 
@@ -152,11 +156,11 @@ For slowness I inspect query performance, waits, blocking, CPU/data IO/log IO, c
 
 **Answer:**
 
-Service Bus is enterprise messaging with queues and topics/subscriptions. It supports competing consumers, publish-subscribe, locks, dead-letter queues, scheduled messages, duplicate detection, sessions/ordering, and transactions in supported scenarios.
+Service Bus is enterprise messaging built around queues and topics with subscriptions. It supports multiple consumers competing for work, publish-subscribe patterns, message locks, dead-letter queues, scheduled messages, duplicate detection, ordered sessions, and transactions in some scenarios.
 
-Producer sends durable message; consumer receives under a lock, processes idempotently, and completes. Failure abandons/retries; poison messages dead-letter after policy. I monitor active/dead-letter counts, age, throttling, and processing latency.
+A producer sends a durable message; a consumer picks it up under a lock, processes it in a way that's safe even if it runs twice, and marks it complete. On failure, the message is abandoned and retried, and after enough failed attempts it goes to the dead-letter queue. I keep an eye on active and dead-letter message counts, message age, throttling, and processing latency.
 
-Managed identity and scoped sender/receiver roles protect access. I choose Service Bus when reliable command/message processing is required, not simply notification that an event occurred.
+Managed identity and roles scoped to just sending or just receiving protect access. I choose Service Bus when messages genuinely need to be processed reliably — not just when I need to announce that something happened.
 
 ---
 
@@ -164,13 +168,13 @@ Managed identity and scoped sender/receiver roles protect access. I choose Servi
 
 **Answer:**
 
-Event Grid routes events from Azure/custom sources to handlers such as Functions, Logic Apps, webhooks, Service Bus, or Event Hubs. It is designed for reactive notification/fan-out with filters and at-least-once delivery.
+Event Grid routes events from Azure or custom sources to handlers like Functions, Logic Apps, webhooks, Service Bus, or Event Hubs. It's built for fast, reactive fan-out with filtering, and it delivers each event at least once.
 
-Example: Blob-created event triggers metadata processing and notification. Handler validates event, is idempotent (safe to run more than once), returns promptly, and uses retries/dead-letter destination.
+For example: a blob-created event triggers metadata processing and a notification. The handler validates the event, is written to tolerate being run twice, responds quickly, and relies on retries and a dead-letter destination for failures.
 
-Event payload usually describes what happened; consumer retrieves authoritative data if needed.
+The event payload usually just describes what happened; the consumer goes and fetches the real data separately if it needs to.
 
-I monitor delivery failures/dead-letter events and secure webhook validation/identity. Event Grid is not a replacement for enterprise command queue semantics.
+I monitor delivery failures and dead-lettered events, and secure webhook validation and identity. Event Grid isn't a substitute for the richer guarantees of a real command queue.
 
 ---
 
@@ -178,11 +182,11 @@ I monitor delivery failures/dead-letter events and secure webhook validation/ide
 
 **Answer:**
 
-Azure Policy evaluates resource configuration at assigned scopes. Effects can audit, deny, modify, append, or deploy required settings depending on definition. Initiatives group policies; exemptions document controlled exceptions.
+Azure Policy checks resource configuration against rules at whatever scope you assign it. Depending on the policy's effect, it can audit, deny, modify, append to, or deploy required settings. Initiatives group related policies together, and exemptions document any approved exceptions.
 
-Example: audit storage public access, deploy diagnostic settings, then deny insecure new storage after fix. I roll out audit first, inspect false positives/existing impact, remediate, then enforce. Policies and assignments are version-controlled.
+For example: audit storage accounts for public access, deploy diagnostic settings automatically, then deny new insecure storage accounts once the existing ones are fixed. I roll out audit mode first, look at false positives and the impact on existing resources, fix what needs fixing, then switch to enforcement. Policies and their assignments are version-controlled like code.
 
-I test compliant/non-compliant deployments, monitor compliance, and give exceptions owner/justification/expiry. Policy is governance; RBAC controls who can act.
+I test both compliant and non-compliant deployments, watch the compliance trend, and require exceptions to have an owner, a justification, and an expiry date. Policy is about governance — RBAC is what actually controls who can act.
 
 ---
 
@@ -190,12 +194,13 @@ I test compliant/non-compliant deployments, monitor compliance, and give excepti
 
 **Answer:**
 
-Service Bus carries commands/messages that consumers reliably process from queues/topics, with locks, completion, dead-letter, sessions, and richer broker semantics. Event Grid announces events—something happened—and routes them quickly to subscribers with filtering/fan-out.
-Use Service Bus for order processing where each message needs controlled completion/retry/order. Use Event Grid to notify multiple handlers that a blob or resource changed.
+Service Bus carries commands and messages that a consumer needs to reliably process from a queue or topic, with locks, completion tracking, dead-lettering, sessions, and richer broker features. Event Grid just announces that something happened, and routes that announcement quickly to subscribers with filtering and fan-out.
 
-They can combine: Event Grid detects an event and routes important work into Service Bus for controlled processing.
+I use Service Bus for something like order processing, where each message needs controlled completion, retry, and ordering. I use Event Grid to tell several different handlers that a blob or resource just changed.
 
-I decide using delivery semantics, ordering, transaction, retention, throughput, consumer model, retry, and payload needs.
+The two can work together: Event Grid spots an event and routes the important work into Service Bus for controlled processing.
+
+I decide between them based on delivery guarantees, ordering, transactions, retention, throughput, how consumers are structured, retry behavior, and what the payload needs to carry.
 
 ---
 
@@ -203,13 +208,13 @@ I decide using delivery semantics, ordering, transaction, retention, throughput,
 
 **Answer:**
 
-App Service hosts continuously available web apps/APIs with an application process and plan. Functions organizes code around triggers/events and can scale execution based on events. Both are managed platforms and share some underlying capabilities/plans.
+App Service hosts a web app or API that runs continuously, with its own application process and plan. Functions organizes code around triggers and events, and can scale execution up or down based on those events. Both are managed platforms, and they share some capabilities and plans under the hood.
 
-Choose App Service for a full web application/API with predictable always-on behavior, routing, slots, and longer request lifecycle. Choose Functions for queue/timer/blob/event handlers or small APIs where trigger-based scaling fits.
+I choose App Service for a full web application or API that needs to always be on, with routing, slots, and longer-lived requests. I choose Functions for queue, timer, blob, or event handlers, or a small API where scaling by trigger makes sense.
 
-Consider cold start, duration, state, networking, runtime, throughput, and cost.
+I weigh cold start, run duration, state, networking, runtime, throughput, and cost.
 
-An architecture can use both: App Service serves API; queue-triggered Functions process asynchronous work.
+An architecture can use both at once: App Service serves the API, while queue-triggered Functions handle the asynchronous work behind it.
 
 ---
 
@@ -217,13 +222,13 @@ An architecture can use both: App Service serves API; queue-triggered Functions 
 
 **Answer:**
 
-I enable managed identity, grant a narrow Key Vault data role, configure network access/private DNS, then use Key Vault references in app settings or SDK access with `DefaultAzureCredential`.
+I turn on managed identity, grant it a narrow Key Vault data role, set up network access and private DNS, then use a Key Vault reference in app settings, or access it directly through the SDK with `DefaultAzureCredential`.
 
-The setting contains a reference URI, not secret value. I plan refresh/rotation behavior and avoid pinning a secret version when automatic rotation is desired unless controlled versioning is required.
+The app setting holds a reference URI, not the actual secret value. I plan out how refresh and rotation should behave, and I avoid pinning to a specific secret version if I want rotation to happen automatically, unless controlled versioning is actually the goal.
 
-I test startup and rotation, allowed/denied identity, slot identity/settings, and failure behavior. Troubleshooting checks reference status, identity selection, role/scope, RBAC propagation, vault network, DNS, secret expiry/state, and logs.
+I test startup and rotation, both allowed and denied identities, slot-specific identity and settings, and how the app behaves on failure. When troubleshooting, I check the reference's status, which identity got selected, the role and its scope, whether RBAC has propagated, the vault's network settings, DNS, the secret's expiry and state, and the logs.
 
-No secret is printed in diagnostics.
+No secret value ever gets printed in diagnostics.
 
 ---
 
@@ -231,10 +236,10 @@ No secret is printed in diagnostics.
 
 **Answer:**
 
-I enable platform metrics, diagnostic settings to Log Analytics/Event Hub/Storage as required, Application Insights/OpenTelemetry for application traces, alerts/action groups, workbooks, and service-specific health signals.
+I turn on platform metrics, diagnostic settings pointed at Log Analytics, Event Hub, or Storage as needed, Application Insights or OpenTelemetry for application traces, alerts with action groups, workbooks, and whatever health signals the service itself provides.
 
-Monitoring is driven by SLOs: availability, latency, errors, traffic, saturation (how close a resource is to its limit), dependency failures, queue age, capacity, and security changes. Each alert has owner/runbook and is tested.
+Monitoring is driven by what actually matters to the business: availability, latency, errors, traffic, how close resources are to their limits, dependency failures, queue age, capacity, and security-relevant changes. Every alert has an owner, a runbook, and gets tested.
 
-During investigation I establish time/scope, compare Activity Log/deployments with metrics, follow a request through dependencies using correlation/trace ID, mitigate, then validate the original user transaction.
+When investigating an issue, I pin down the time window and scope, compare the Activity Log and recent deployments against the metrics, follow a request through its dependencies using a correlation or trace ID, fix the immediate problem, then confirm the original user-facing transaction actually works again.
 
-Retention, access, sampling, cardinality (number of unique label combinations), and ingestion cost are designed—not left at defaults.
+Retention, access control, sampling, how many unique label combinations get tracked, and ingestion cost all get designed deliberately — not left at whatever the defaults happen to be.

@@ -1,6 +1,6 @@
 # Artifact Repository Summary
 
-An artifact repository stores, versions and distributes the immutable (not changed after creation) outputs of a software build. It is different from:
+An artifact repository stores, versions, and distributes the outputs of a software build. Once a version is published, it doesn't change. It is different from:
 
 - **Source control:** Stores source code and change history.
 - **CI/CD system:** Builds, tests, approves and deploys software.
@@ -21,7 +21,7 @@ GitHub-native packages/images     -> GitHub Packages
 
 ## 1. Azure Artifacts
 
-Azure Artifacts is normally the best choice when the organization is strongly centered on Azure DevOps and needs package feeds without operating a separate repository platform.
+Azure Artifacts is usually the best choice when the organization is built around Azure DevOps and needs package feeds without running a separate repository platform.
 
 It supports:
 
@@ -55,7 +55,7 @@ source code
 -> deploy the same package version to QA and Production
 ```
 
-The application is built once. QA and Production receive the same immutable (not changed after creation) version rather than rebuilding the ZIP.
+The application is built once. QA and Production receive that same unchanging version rather than a rebuilt ZIP.
 
 Feed views change package visibility; they do not create a different package binary. Packages are published to the base feed and can then be promoted.
 
@@ -116,7 +116,7 @@ Repository types include:
 - **Local:** Stores internally produced artifacts.
 - **Remote:** Proxies and caches an external repository.
 - **Virtual:** Aggregates compatible local and remote repositories behind one client URL.
-- **Federated:** Synchronizes repository content and metadata across multiple Artifactory deployments according to the supported topology.
+- **Federated:** Synchronizes content and metadata across multiple Artifactory deployments, following whichever topology is supported.
 
 Representative design:
 
@@ -143,9 +143,9 @@ Choose it when:
 
 ### Strong interview answer
 
-> For a large enterprise with multiple technologies and delivery platforms, I would consider JFrog Artifactory because it provides a central repository for many artifact formats, hosted and proxied dependencies, unified client endpoints, metadata, traceability and security integration. I would still validate licensing, supported formats, availability requirements and operational cost against Nexus and managed cloud alternatives.
+> For a large enterprise with multiple technologies and delivery platforms, I would consider JFrog Artifactory. It gives you one central repository for many artifact formats, both hosted and proxied dependencies, unified client endpoints, metadata, and traceability and security integration. I'd still check licensing, supported formats, availability requirements, and operational cost against Nexus and managed cloud alternatives before deciding.
 
-Artifactory is not automatically the best option only because it supports many formats. The decision must include scale, team skills, high availability, disaster recovery, security, support and total cost.
+Supporting many formats doesn't automatically make Artifactory the right choice. The decision also has to weigh scale, team skills, high availability, disaster recovery, security, support, and total cost.
 
 ---
 
@@ -204,9 +204,9 @@ Choose it when:
 
 ### Strong interview answer
 
-> Nexus Repository is a centralized repository manager that hosts internal artifacts, proxies external dependencies and exposes repository groups through stable URLs. I commonly use hosted repositories for organization-owned packages, proxy repositories for public dependencies and group repositories for developer consumption. CI publishes immutable (not changed after creation) versions, while downstream environments promote and deploy the same checksum or digest.
+> Nexus Repository is a centralized repository manager. It hosts internal artifacts, proxies external dependencies, and exposes repository groups through stable URLs. I typically use hosted repositories for organization-owned packages, proxy repositories for public dependencies, and group repositories for developer consumption. CI publishes versions that never change afterward, and downstream environments promote and deploy that same checksum or digest.
 
-Nexus Repository should not be confused with separately licensed Sonatype supply-chain products. Vulnerability policy, isolate and lifecycle capabilities must be validated against the actual Nexus/Sonatype licenses in use.
+Don't confuse Nexus Repository with the separately licensed Sonatype supply-chain products. Check vulnerability policy, isolation, and lifecycle capabilities against the actual Nexus/Sonatype licenses in use, not against what the product line as a whole can do.
 
 ---
 
@@ -247,7 +247,7 @@ Choose it when:
 - The team wants fewer external platforms.
 - GitHub permissions, billing, retention and networking meet enterprise requirements.
 
-GitHub Packages is less suitable when the organization requires a broad universal repository manager, extensive proxy/group behavior across many ecosystems, or repository services shared equally by several unrelated source-control platforms.
+GitHub Packages is less suitable when the organization needs a broad universal repository manager, extensive proxy/group behavior across many ecosystems, or repository services shared equally across several unrelated source-control platforms.
 
 ---
 
@@ -276,7 +276,7 @@ The selected product may call the mechanism a feed view, staging, promotion, rel
 
 ```text
 build once
--> assign immutable (not changed after creation) version
+-> assign a version that will not change
 -> test and scan
 -> publish once
 -> record checksum/digest
@@ -284,7 +284,7 @@ build once
 -> deploy the same bytes to every environment
 ```
 
-Promotion must not rebuild the package. For containers, promotion and deployment should preserve the immutable (not changed after creation) OCI digest.
+Promotion must never rebuild the package. For containers, promotion and deployment should preserve the same OCI digest all the way through.
 
 ---
 
@@ -337,4 +337,4 @@ Nexus provides hosted, proxy and group repositories and is a strong choice for s
 
 When source code and automation are primarily in GitHub, GitHub Packages can reduce the number of external tools for supported formats and container packages.
 
-Irrespective of the tool, I build once, publish an immutable (not changed after creation) version, record its checksum or digest, promote the same artifact through environments, protect publishing with least privilege (only the permissions needed) and retain tested backup and recovery procedures.
+Whatever tool is involved, the approach stays the same: build once, publish a version that won't change, record its checksum or digest, promote that same artifact through every environment, protect publishing with only the permissions people actually need, and keep backup and recovery procedures tested.

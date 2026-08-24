@@ -8,7 +8,7 @@ Docker and other container runtimes run containers on a host. Kubernetes orchest
 | --- | --- |
 | Runs containers | Orchestrates containerized workloads |
 | Usually scoped to one host | Coordinates multiple nodes |
-| Container lifecycle is managed directly | Controllers continuously reconcile (make actual state match desired state) desired state |
+| Container lifecycle is managed directly | Controllers continuously reconcile — bring the actual state in line with the desired state |
 | Networking and scaling are configured manually | Provides service discovery, rollout, and scaling APIs |
 
 Kubernetes still needs a CRI-compatible runtime such as containerd. Kubernetes is not a replacement for container images or runtimes.
@@ -20,7 +20,7 @@ Kubernetes still needs a CRI-compatible runtime such as containerd. Kubernetes i
 - **kube-apiserver:** Front end for Kubernetes API requests and the main communication hub.
 - **etcd:** Strongly consistent key-value store containing cluster state.
 - **kube-scheduler:** Assigns unscheduled Pods to suitable nodes.
-- **kube-controller-manager:** Runs controllers that reconcile (make actual state match desired state) resources such as nodes, Deployments, and Jobs.
+- **kube-controller-manager:** Runs controllers that reconcile resources such as nodes, Deployments, and Jobs.
 - **cloud-controller-manager:** Integrates supported cloud-provider capabilities.
 
 ### 2.2 Worker Node
@@ -252,7 +252,7 @@ A Job maintains the requested parallelism and continues creating Pods until it r
 
 Use layered controls:
 
-- Strong identity integration and least-privilege (minimum required access) RBAC
+- Strong identity integration and least-privilege RBAC
 - Namespaces, quotas, and tenancy boundaries
 - Pod Security Admission
 - Non-root containers and restrictive security contexts
@@ -318,7 +318,7 @@ Velero can back up Kubernetes resources and coordinate supported volume snapshot
 
 Managed Kubernetes providers protect their control plane, but customers remain responsible for workload data and configuration recovery.
 
-Multi-region recovery normally uses separate clusters, replicated data, independently deployable configuration, and DNS or global traffic management. One stretched control plane creates a large failure domain (a group of resources that can fail together).
+Multi-region recovery normally uses separate clusters, replicated data, independently deployable configuration, and DNS or global traffic management. One stretched control plane creates a large failure domain — a single group of resources that can all fail together.
 
 ## 15. Monitoring and Observability
 
@@ -328,12 +328,12 @@ Common stacks include Prometheus, Grafana, Alertmanager, cloud-native container 
 
 ## 16. CI/CD and GitOps
 
-A typical delivery flow builds and scans an image, publishes it to a registry, validates manifests or Helm charts, deploys to a lower environment, runs tests, and promotes an immutable (not changed after creation) version.
+A typical delivery flow builds and scans an image, publishes it to a registry, validates manifests or Helm charts, deploys to a lower environment, runs tests, and promotes an immutable version — one that is never changed after it is created, only replaced.
 
 - **Push deployment:** CI credentials apply changes to the cluster.
-- **Pull-based GitOps:** Argo CD or Flux reconciles (makes actual state match desired state) cluster state from Git/OCI sources.
+- **Pull-based GitOps:** Argo CD or Flux reconciles cluster state from Git/OCI sources.
 
-GitOps provides continuous reconciliation (making actual state match desired state) and drift visibility. Projects that combine Terraform, EKS/AKS, Helm, Jenkins, Argo CD/Flux, Prometheus, and Grafana demonstrate the full infrastructure-to-observability lifecycle.
+GitOps provides continuous reconciliation and drift visibility. Projects that combine Terraform, EKS/AKS, Helm, Jenkins, Argo CD/Flux, Prometheus, and Grafana demonstrate the full infrastructure-to-observability lifecycle.
 
 ## Production Microservices Design Checklist
 
@@ -367,11 +367,11 @@ Be ready to reason through:
 12. Job replacement Pods and failure limits
 13. Requests, limits, OOM kills, and eviction
 14. Default-deny egress NetworkPolicies
-15. Shared storage failure domains (groups of resources that can fail together)
+15. Shared storage failure domains
 
 ## 18. Interview Revision Checklist
 
-- Kubernetes architecture and reconciliation (making actual state match desired state)
+- Kubernetes architecture and reconciliation
 - Pods and workload controllers
 - Manifests, ConfigMaps, Secrets, and ServiceAccounts
 - Service types, Ingress, DNS, and NetworkPolicy
@@ -403,14 +403,14 @@ The detailed scenario answers are consolidated in `questions.txt`. For quick rev
 
 ### 19.3 Security and Compliance
 
-- Use identity-based least privilege (only the permissions needed), separate service accounts, Pod Security Admission, non-root/read-only containers, seccomp, approved signed images, default-deny network controls, encrypted secrets, and audit/runtime monitoring.
+- Use identity-based least privilege, separate service accounts, Pod Security Admission, non-root/read-only containers, seccomp, approved signed images, default-deny network controls, encrypted secrets, and audit/runtime monitoring.
 - A leaked secret must be revoked and rotated immediately; removing it from a log or Git file is not fix. Investigate access, update consumers through an overlap period, verify the new value, and then revoke the old value.
 - Certificate incidents require identifying the exact endpoint and owner, checking expiry, SAN, SNI, issuer, chain, and consumer reload. Automate renewal and alert well before expiry.
 - Multi-tenant and multi-cluster designs need explicit isolation boundaries, quotas, policy enforcement, centralized identity and audit, and separate clusters where the risk boundary requires it.
 
 ### 19.4 Delivery, Scaling, and Cost
 
-- Zero-downtime delivery depends on immutable (not changed after creation) versions, realistic readiness/startup probes, adequate surge capacity, graceful shutdown, compatible database changes, rollout monitoring, and a tested rollback—not only `RollingUpdate` settings.
+- Zero-downtime delivery depends on immutable versions, realistic readiness/startup probes, adequate surge capacity, graceful shutdown, compatible database changes, rollout monitoring, and a tested rollback — not only `RollingUpdate` settings.
 - Canary and blue-green strategies promote releases using health and business metrics. Keep the old version available during the validation window and automate rollback when thresholds fail.
 - HPA scales Pods, a node autoscaler supplies schedulable capacity, and event-driven scaling handles queue or custom demand. Validate metric freshness, resource requests, min/max limits, stabilization windows, dependency capacity, and scale-down behavior.
 - Cost optimization combines usage evidence, right-sizing, autoscaling, appropriate node pools, spot capacity for tolerant workloads, log retention, storage lifecycle, quotas, schedules, and SLO verification after each change.
@@ -419,7 +419,7 @@ The detailed scenario answers are consolidated in `questions.txt`. For quick rev
 
 - Stateful failover must cover data replication, quorum, storage topology, fencing, leader election, DNS or traffic switching, and application consistency. StatefulSets alone do not provide database replication.
 - For failed PV mounts, inspect PVC/PV/StorageClass, CSI Events and logs, access mode, topology, attachment state, quota, identity, and filesystem health. Do not force-detach or delete state until ownership and backups are verified.
-- Disaster recovery begins with business-approved RTO/RPO. Protect manifests, cluster state, persistent data, secrets, certificates, DNS, identity, dependencies, and runbooks in another failure domain (a group of resources that can fail together), then prove them through restore and failover exercises.
+- Disaster recovery begins with business-approved RTO/RPO. Protect manifests, cluster state, persistent data, secrets, certificates, DNS, identity, dependencies, and runbooks in another failure domain, then prove them through restore and failover exercises.
 - Multi-region and multi-cloud recovery must control write ownership to avoid split brain and use tested weighted traffic or DNS cutover with an explicit rollback window.
 
 ### 19.6 Observability, Chaos, and Continuous Improvement
@@ -513,11 +513,11 @@ A CRD adds a declarative resource type to the Kubernetes API with group, names, 
 
 A CRD alone does not create workload or cloud resources.
 
-A custom controller watches desired custom objects and reconciles (makes actual state match desired state) actual state through an idempotent (safe to run more than once) loop.
+A custom controller watches desired custom objects and reconciles actual state to match them, through a loop that is idempotent — safe to run again and again without causing harm.
 
-It manages owned resources or external APIs, records `status.observedGeneration` and Conditions, handles deletion through carefully designed finalizers, and retries temporary failures with limited backoff (increasing wait between retries).
+It manages owned resources or external APIs, records `status.observedGeneration` and Conditions, handles deletion through carefully designed finalizers, and retries temporary failures with limited backoff.
 
-Production design requires schema/version migration, least-privilege (minimum required access) RBAC, leader election, metrics/logs/events, conflict handling, idempotent (safe to run more than once) external operations and tests for restart, duplicate events, partial failure and deletion.
+Production design requires schema/version migration, least-privilege RBAC, leader election, metrics/logs/events, conflict handling, idempotent external operations, and tests for restart, duplicate events, partial failure, and deletion.
 
 ## 23. The Building Blocks Story: Why Each Concept Exists
 
@@ -989,7 +989,7 @@ kubectl describe pod -n <namespace> <pod>
 kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
 ```
 
-`kubectl logs` is not durable centralized storage. In EKS, deploy the Amazon CloudWatch Observability add-on or an approved Fluent Bit/OpenTelemetry logging pipeline with Pod Identity or another least-privilege (minimum required access) workload identity.
+`kubectl logs` is not durable centralized storage. In EKS, deploy the Amazon CloudWatch Observability add-on or an approved Fluent Bit/OpenTelemetry logging pipeline with Pod Identity or another least-privilege workload identity.
 
 Route structured application logs with Kubernetes metadata to CloudWatch Logs, OpenSearch, Loki, or the organization’s platform; set retention, filtering, multiline parsing, redaction, cost controls, dashboards, and alerts.
 
@@ -999,7 +999,7 @@ Enable EKS control-plane log types separately when required, and distinguish app
 
 Helm charts define the workload, Service, ingress/Gateway routes, configuration, resource limits, probes and policy-compatible metadata.
 
-Store chart templates separately from environment values; promote an immutable (not changed after creation) chart version and image digest rather than rebuilding for each environment.
+Store chart templates separately from environment values; promote an immutable chart version and image digest rather than rebuilding for each environment.
 
 A typical release validates with `helm lint` and `helm template`, runs policy/security checks, deploys with limited `--wait`/`--atomic` behavior where suitable, then proves health through real requests and observability. Helm release success alone is not application success.
 
@@ -1015,6 +1015,6 @@ kubectl get pods -n qa
 kubectl get pods -n production
 ```
 
-Namespaces are not strong security boundaries by themselves. Pods can normally communicate across namespaces through Services such as `api.payments.svc.cluster.local`; use enforced ingress and egress NetworkPolicies, workload identity and least-privilege (minimum required access) RBAC to allow only the required paths.
+Namespaces are not strong security boundaries by themselves. Pods can normally communicate across namespaces through Services such as `api.payments.svc.cluster.local`; use enforced ingress and egress NetworkPolicies, workload identity and least-privilege RBAC to allow only the required paths.
 
 Cluster-scoped objects such as Nodes, PersistentVolumes and StorageClasses are not namespaced.

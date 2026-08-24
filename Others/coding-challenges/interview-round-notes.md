@@ -23,7 +23,7 @@ deleted=$(find "$LOG_DIR" -type f -name '*.gz' -mtime +"$RETENTION_DAYS" -print 
 find /tmp -type f -atime +7 -delete
 notify "✅ log-cleanup done: removed $deleted old archives, disk now $(df -h / | awk 'NR==2{print $5}')"
 ```
-Talk about: `set -euo pipefail`, `trap ... ERR` for error handling, idempotency (safe repeat behavior), using `logrotate` in real setups, and Slack/email notification. Mention scheduling via cron/systemd timer.
+Talk about: `set -euo pipefail`, `trap ... ERR` for error handling, making the script safe to rerun, using `logrotate` in real setups, and Slack/email notification. Mention scheduling via cron or a systemd timer.
 
 ### 11.2 Python: parse & analyze AWS CloudWatch metrics with visualization
 
@@ -52,7 +52,7 @@ Discuss: boto3 client + credentials (IAM role/OIDC), pagination for large ranges
 
 ### 11.3 Explain list comprehensions in Python & optimize a snippet
 
-- **List comprehension** = concise, faster way to build a list: `[f(x) for x in it if cond]`. It's faster than an equivalent `for`-loop with `.append()` because iteration/append happen in C. Variants: set `{}`, dict `{k:v}`, and **generator** `( … )` (lazy, memory-efficient for large/streamed data).
+- A **list comprehension** is a short, faster way to build a list: `[f(x) for x in it if cond]`. It's faster than a `for`-loop with `.append()` because the iteration and appending happen in C under the hood. Variants: set `{}`, dict `{k:v}`, and a **generator** `( … )`, which is lazy and doesn't build the whole list in memory — good for large or streamed data.
 - **Optimization example:**
   ```python
   # slower

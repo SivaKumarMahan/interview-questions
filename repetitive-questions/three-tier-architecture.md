@@ -768,7 +768,7 @@ If the interviewer says *"Explain the 3-tier architecture you have worked on"*, 
 >
 > When the backend needs data, it connects to the database over private networking. For example, Azure SQL can be accessed through a Private Endpoint. The database isn't exposed to the Internet.
 >
-> We use NSGs to control traffic between the tiers. The web tier can receive traffic from the Application Gateway, the application tier accepts only required traffic from the web tier, and the database accepts only the required database traffic from the application tier. For outbound connectivity from private resources, we use NAT Gateway, and for centralized network inspection we can use Azure Firewall.
+> We use NSGs to control traffic between the tiers. The web tier can receive traffic from the Application Gateway. The application tier accepts only required traffic from the web tier. The database accepts only the required database traffic from the application tier. For outbound connectivity from private resources, we use NAT Gateway, and for centralized network inspection we can use Azure Firewall.
 >
 > For high availability, we run multiple web and application instances across availability zones where supported. Application Gateway distributes traffic and health probes remove unhealthy instances from rotation.
 >

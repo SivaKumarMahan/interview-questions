@@ -1,37 +1,54 @@
 # Git Interview Summary
 
-## Git and DevOps
+## Core Concepts
 
 Git stores project history as **commits**.
 
-A **branch** is a movable reference, a **remote** is another repository location, `clone` creates a local copy, `fetch` downloads references, `pull` combines fetch with integration, `push` publishes commits, `merge` combines histories, `rebase` reapplies commits, `stash` temporarily saves work, and **tags** identify releases.
+| Term | What it means |
+| --- | --- |
+| Branch | A movable pointer to a commit |
+| Remote | Another copy of the repository, usually on a server |
+| Clone | Creates a local copy of a remote repository |
+| Fetch | Downloads new commits and branches from a remote, without touching your files |
+| Pull | A fetch followed by merging or rebasing the result into your branch |
+| Push | Sends your commits to a remote |
+| Merge | Combines two branch histories |
+| Rebase | Replays your commits on top of a new base, keeping history linear |
+| Stash | Temporarily sets aside uncommitted work |
+| Tag | Marks a specific commit, usually a release |
 
-## Typical reviewed flow
+## Typical Reviewed Flow
 
-1. Update local `main`
-2. Create a short-lived branch
-3. Make small commits
-4. Push
-5. Pull request with tests/review
-6. Merge through protected controls
-7. Tag or promote an immutable (not changed after creation) artifact
+1. Update local `main`.
+2. Create a short-lived branch.
+3. Make small, focused commits.
+4. Push the branch.
+5. Open a pull request with tests and a review.
+6. Merge through protected branch controls.
+7. Tag or promote a build that will not change after it is created.
 
-Prefer `git switch`/`git restore` for clear branch/file operations and `git revert` to undo published shared history. Rebase/force-push only on owned branches and use `--force-with-lease`.
+Use `git switch` and `git restore` for clear branch and file operations. Use `git revert` to undo a commit that has already been shared, rather than rewriting history. Only rebase or force-push a branch you own, and use `--force-with-lease` instead of a plain force push.
 
-## Git and DevOps integration
+## Git and DevOps
 
-Git supports DevOps by triggering automated build, test, and scan jobs; versioning infrastructure and pipeline code; and recording deployment configuration. **CI** publishes an immutable artifact, meaning a version that is not changed after creation. **CD** promotes that same artifact through Development, QA, Staging, and Production, while monitoring and rollback refer to the same commit or digest.
+Git supports DevOps in three ways:
 
-## Best practices
+- It triggers automated build, test, and scan jobs when code changes.
+- It versions infrastructure and pipeline code the same way it versions application code.
+- It records deployment configuration, so changes to what gets deployed are tracked too.
 
-- Clear commits
-- Pull requests/`CODEOWNERS`
-- Protected `main`
-- Secret scanning
-- `.gitignore`
-- Signed tags/commits where required
-- Branch cleanup
-- Reproducible builds
-- No direct production changes
+CI publishes a build artifact that does not change once it is created. CD then promotes that same artifact through Development, QA, Staging, and Production. Monitoring and rollback always refer back to the same commit or image digest, so everyone knows exactly what is running where.
 
-A committed secret must be revoked immediately; rewriting history alone does **not** make it safe.
+## Best Practices
+
+- Write clear, focused commit messages.
+- Use pull requests and `CODEOWNERS` for review.
+- Protect `main` from direct pushes.
+- Run secret scanning on every commit.
+- Keep a proper `.gitignore`.
+- Sign tags and commits where required.
+- Clean up merged branches.
+- Keep builds reproducible.
+- Never make changes directly in production.
+
+If a secret is ever committed, revoke it immediately. Rewriting history alone does not make a leaked secret safe again.

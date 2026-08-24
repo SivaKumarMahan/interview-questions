@@ -593,7 +593,7 @@ For the prototype it was simple, familiar and easy to demonstrate. The trade-off
 
 ### Is this a Kubernetes operator?
 
-No. An operator continuously watches desired state and reconciles (makes actual state match desired state) it. This system runs only when an authenticated user requests an investigation and primarily reads evidence.
+No. An operator continuously watches desired state and reconciles it. This system runs only when an authenticated user requests an investigation and primarily reads evidence.
 
 ### How do you prevent hallucination?
 
@@ -605,7 +605,7 @@ The evidence collector still works. The API returns the structured investigation
 
 ### How do you secure Kubernetes access?
 
-Read-only least-privilege (minimum required access) RBAC, allowed cluster/namespace scope, short-lived identity, command allow-list, no shell execution, timeouts, audit logs and no Secret-value collection.
+Read-only least-privilege RBAC, allowed cluster/namespace scope, short-lived identity, command allow-list, no shell execution, timeouts, audit logs and no Secret-value collection.
 
 ### How do you validate the confidence score?
 

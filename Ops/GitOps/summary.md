@@ -2,57 +2,61 @@
 
 ## 1. Push-based deployment
 
-In a push model, the CI/CD system authenticates to the target environment and sends the change directly, for example by running `helm upgrade` or `kubectl apply` against a Kubernetes cluster.
+In a push model, the CI/CD system logs into the target environment and sends the change directly — for example, by running `helm upgrade` or `kubectl apply` against a Kubernetes cluster.
 
 **Advantages:**
 
 - The pipeline can inject the exact image version it just built.
-- Helm deployments and imperative migration steps are straightforward.
-- Secrets can remain in the CI/CD secret store instead of Git.
+- Helm deployments and one-off migration steps are straightforward.
+- Secrets can stay in the CI/CD secret store instead of Git.
 
 **Trade-offs:**
 
 - The CI/CD system needs network access and write permission to the cluster.
 - Cluster credentials and configuration become part of the delivery system's security boundary.
-- Deployment behavior is coupled to the pipeline implementation.
+- Deployment behavior is tied to how the pipeline is written.
 
-I secure this model with short-lived workload identity, a least-privilege (minimum required access) deployment `ServiceAccount`, protected environments, approval and policy gates, immutable (not changed after creation) artifacts, and post-deployment verification.
+I secure this model with short-lived workload identity, a deployment `ServiceAccount` that has only the access it needs, protected environments, approval and policy gates, artifacts that don't change after they're built, and verification after every deployment.
 
 ## 2. Pull-based deployment
 
-In a pull model, an in-cluster GitOps controller such as **Argo CD** or **Flux** reads desired state from Git and continuously reconciles (makes actual state match desired state) the cluster with that state.
+In a pull model, an in-cluster GitOps controller such as **Argo CD** or **Flux** reads the desired state from Git and continuously reconciles the cluster to match it — meaning it keeps correcting the live cluster until it looks like what's in Git.
 
-CI builds and publishes an artifact, then updates the desired version in the configuration repository; it does not need direct cluster write access.
+CI builds and publishes an artifact, then updates the desired version in the configuration repository. It never needs direct write access to the cluster.
+
 **Advantages:**
 
-- Git provides reviewable desired state and deployment history.
-- The controller continuously detects and corrects drift.
-- External CI systems do not need broad cluster credentials.
+- Git gives you a reviewable desired state and a full deployment history.
+- The controller continuously detects and fixes drift on its own.
+- External CI systems don't need broad cluster credentials.
 - One GitOps platform can manage multiple clusters and tenants with clear repository and project boundaries.
 
 **Trade-offs:**
 
-- Secret delivery needs an additional design such as External Secrets Operator, Vault, SOPS, or Sealed Secrets; plaintext secrets must never be committed.
-- Controller, repository, and multi-tenant permissions must be carefully isolated.
-- A bad desired-state commit can be repeatedly reconciled until it is reverted or synchronization is paused.
+- Secret delivery needs extra design — something like External Secrets Operator, Vault, SOPS, or Sealed Secrets. Plaintext secrets must never be committed.
+- Controller, repository, and multi-tenant permissions need careful isolation.
+- A bad commit to the desired state keeps getting reapplied until it's reverted or sync is paused.
 
 ## 3. Choosing between them
 
-I choose based on security boundaries, auditability, network reachability, rollback, operational ownership, and workload needs. A common production design uses CI for build, test, scanning, signing, and artifact publication, then GitOps for deployment and drift reconciliation (making actual state match desired state).
-Rollback in GitOps is normally a reviewed Git revert to the last known-good image or configuration, followed by reconciliation (making actual state match desired state) and application health checks. Emergency manual changes must be captured back into Git or the controller will correctly treat them as drift.
+I choose based on security boundaries, auditability, network reachability, rollback needs, who owns operations, and what the workload actually needs. A common production setup uses CI for build, test, scanning, signing, and publishing the artifact, then GitOps for deployment and correcting drift.
+
+Rollback in GitOps is usually a reviewed Git revert to the last known-good image or configuration, followed by reconciliation and a health check. Any emergency manual change has to be captured back into Git, or the controller will correctly treat it as drift and undo it.
+
 ---
 
 ## Argo CD Architecture and Workflow
 
 **Argo CD** is a pull-based GitOps continuous-delivery controller for Kubernetes.
 
-The API server provides UI/CLI, authentication, and RBAC; the repository server fetches Git/Helm/Kustomize content and renders manifests; the application controller compares desired and live state and reconciles (makes actual state match desired state) differences; Redis caches state; Dex or external OIDC can provide SSO; and `ApplicationSet` generates multiple Applications.
-Application states include **Synced**/**OutOfSync** and health states such as **Healthy**, **Progressing**, **Degraded**, **Missing**, **Unknown**, or **Suspended**. Automatic sync can enable self-heal and pruning, but pruning should be protected because deleting an object from Git can delete it from the cluster.
+It's made up of a few pieces: the API server handles the UI, CLI, authentication, and RBAC; the repository server fetches Git/Helm/Kustomize content and renders the manifests; the application controller compares the desired state with the live state and reconciles any difference; Redis caches state; Dex or an external OIDC provider can add SSO; and `ApplicationSet` generates multiple Applications at once.
 
-Argo CD renders Helm templates; it does not operate releases by running `helm install` in the cluster.
+An application's sync state is either **Synced** or **OutOfSync**, and its health state is one of **Healthy**, **Progressing**, **Degraded**, **Missing**, **Unknown**, or **Suspended**. Automatic sync can also enable self-heal and pruning, but pruning needs protection — deleting an object from Git will delete it from the cluster too.
 
-The end-to-end flow is developer change -> CI tests/scans/builds and signs an image -> registry stores the immutable (not changed after creation) digest -> reviewed GitOps repository updates manifests/chart values -> Argo CD detects the commit -> compares and syncs -> Kubernetes reconciles (makes actual state match desired state) -> health/SLO verification.
+Argo CD renders Helm templates itself; it doesn't run releases by calling `helm install` inside the cluster.
 
-Rollback is a Git revert or controlled Argo CD rollback followed by verification.
+The end-to-end flow looks like this: a developer makes a change, CI tests, scans, builds, and signs an image, the registry stores that image (the digest never changes after this point), the reviewed GitOps repository gets its manifests or chart values updated, Argo CD detects the commit, compares it to the live state and syncs, Kubernetes reconciles the difference, and then health and SLOs get verified.
 
-Public repositories need no credential but still require provenance (where an artifact came from and how it was built) controls; private repositories should use a scoped deploy key, GitHub App, or token stored in Argo CD's protected secret mechanism.
+Rollback is either a Git revert or a controlled Argo CD rollback, followed by verification.
+
+Public repositories don't need credentials, but you still want to verify where the content came from. Private repositories should use a scoped deploy key, a GitHub App, or a token stored in Argo CD's protected secret mechanism.

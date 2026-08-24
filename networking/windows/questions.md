@@ -13,8 +13,9 @@ Get-Process -Id <pid>
 Test-NetConnection server.example.com -Port 443
 ```
 
-`netstat -ano` is another option. I verify whether the service listens on the expected interface (`127.0.0.1`, a private IP, or all interfaces), map PID to process/service, and then check Windows Firewall, network security rules, routing, DNS, and upstream load-balancer probes.
-A local listening port does not prove remote reachability, so I test from the actual client network and inspect logs on both ends.
+`netstat -ano` works too. I check whether the service is listening on the interface I expect — `127.0.0.1`, a private IP, or all interfaces — map the PID to its process or service, and then check Windows Firewall, network security rules, routing, DNS, and any load-balancer probes upstream.
+
+A port listening locally doesn't prove it's reachable remotely, so I test from the actual client network and check the logs on both ends.
 
 ---
 
@@ -22,7 +23,7 @@ A local listening port does not prove remote reachability, so I test from the ac
 
 **Answer:**
 
-I create narrowly scoped, documented rules by protocol, port, direction, profile, program/service, and remote address.
+I write narrow, documented rules scoped by protocol, port, direction, profile, program or service, and remote address.
 
 ```powershell
 New-NetFirewallRule -DisplayName 'Allow HTTPS from load balancer' \
@@ -30,9 +31,9 @@ New-NetFirewallRule -DisplayName 'Allow HTTPS from load balancer' \
   -RemoteAddress 10.20.0.0/24 -Profile Domain
 ```
 
-Before changing production I export/review current policy and confirm the request. I test an allowed source and a denied source.
+Before touching production I export and review the current policy and confirm exactly what was requested. Then I test with both an allowed source and a denied source.
 
-Rules are deployed through Group Policy, configuration management, or IaC where possible, not unmanaged manual changes. Logging and periodic review find unused or overly broad rules.
+I deploy rules through Group Policy, configuration management, or infrastructure-as-code wherever possible, rather than making unmanaged manual changes. Logging and a periodic review help catch rules that are unused or too broad.
 
 ---
 
@@ -40,7 +41,7 @@ Rules are deployed through Group Policy, configuration management, or IaC where 
 
 **Answer:**
 
-PowerShell remoting runs commands on remote systems, commonly through WinRM using Kerberos in a domain or HTTPS/certificate-based configuration where appropriate.
+PowerShell remoting runs commands on a remote system, usually over WinRM — using Kerberos inside a domain, or HTTPS with certificates where that fits better.
 
 ```powershell
 Test-WSMan server01
@@ -49,9 +50,9 @@ Invoke-Command -ComputerName server01 -ScriptBlock {
 }
 ```
 
-I restrict remoting with firewall scope, least-privilege (minimum required access) groups, Just Enough Administration endpoints, logging/transcription, and secure authentication. I avoid TrustedHosts wildcards and plaintext credentials.
+I restrict it with firewall scoping, groups that only get the access they need, Just Enough Administration endpoints, logging and transcription, and secure authentication. I avoid TrustedHosts wildcards and plaintext credentials.
 
-Troubleshooting covers DNS, time/Kerberos, WinRM listener, firewall, SPNs, user permissions, and the double-hop problem.
+When troubleshooting, I look at DNS, time sync and Kerberos, the WinRM listener, the firewall, SPNs, user permissions, and the double-hop problem.
 
 ---
 
@@ -59,13 +60,13 @@ Troubleshooting covers DNS, time/Kerberos, WinRM listener, firewall, SPNs, user 
 
 **Answer:**
 
-I separate network, service, authentication, and capacity causes:
+I treat network, service, authentication, and capacity as separate things to check:
 
 1. Resolve the correct IP and test TCP 3389 from the client.
-2. Check cloud NSG/security group, Windows Firewall, VPN/routes, and NAT.
+2. Check the cloud security group, Windows Firewall, VPN/routes, and NAT.
 3. Confirm Remote Desktop Services is running and listening.
-4. Verify the user is allowed, account is not locked, and NLA/time/domain trust are healthy.
-5. Check TerminalServices and Security event logs and current sessions.
-6. Use Bastion or serial/console access for recovery rather than opening RDP broadly.
+4. Verify the user is allowed to connect, the account isn't locked, and NLA, time sync, and domain trust are all healthy.
+5. Check the TerminalServices and Security event logs, and see who's currently connected.
+6. Use Bastion or a serial/console connection for recovery, rather than opening RDP up broadly.
 
-After fixing, I remove temporary access, verify normal approved connectivity, and keep RDP private behind VPN/Bastion with MFA and monitoring.
+Once it's fixed, I remove any temporary access I opened, confirm normal approved connections still work, and keep RDP private behind a VPN or Bastion with MFA and monitoring.

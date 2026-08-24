@@ -50,13 +50,13 @@ Restrict exporter endpoints to the monitoring network because infrastructure met
 up{job="node"} == 0
 ```
 
-For custom batch jobs or machine-local facts that cannot expose an HTTP endpoint, the Node Exporter textfile collector can read atomically written Prometheus metric files. It should not be used to export high-cardinality (number of unique label combinations) application events.
+For batch jobs or machine-local facts that can't expose an HTTP endpoint, the Node Exporter textfile collector can read metric files that were written atomically. Don't use it to export application events with a large number of unique label combinations (high cardinality) — it's meant for host-level facts, not application telemetry.
 
 ## Container Monitoring
 
-cAdvisor provides container CPU, memory, filesystem and network usage. It often needs sensitive host mounts and privileges, so review its permissions carefully.
+cAdvisor reports container CPU, memory, filesystem, and network usage. It often needs sensitive host mounts and elevated privileges, so review what access it's actually granted.
 
-In AKS, prefer supported kubelet/cAdvisor scraping through the cluster monitoring solution instead of deploying a broadly privileged standalone container without review. Use kube-state-metrics separately for Kubernetes object state; it does not provide actual container resource consumption.
+In AKS, prefer the supported kubelet/cAdvisor scraping built into the cluster monitoring solution, rather than deploying your own broadly privileged container without review. Use kube-state-metrics separately for Kubernetes object state — it reports things like desired vs. available replicas, not actual container resource usage.
 
 ## Investigation Flow
 
@@ -69,10 +69,10 @@ For a target-down alert:
 5. Review resource exhaustion and exporter logs.
 6. Restore service and confirm multiple successful scrapes and alert resolution.
 
-For **high CPU**, compare user, system, I/O wait and steal time, then identify the responsible process or container. For **memory**, distinguish cache from real pressure and examine swap, OOM events and growth.
+For **high CPU**, compare user, system, I/O wait, and steal time to find the responsible process or container. For **memory**, tell cache usage apart from real memory pressure, and check swap, OOM events, and growth trend.
 
-For **disk**, separate capacity, inode and latency problems.
+For **disk**, separate capacity, inode, and latency problems.
 
-Service monitoring should verify the process, listening port, dependencies and a real health transaction instead of restarting a failed process forever. Alert on sustained actionable conditions and forecasted exhaustion.
+Service monitoring should check the process, the listening port, its dependencies, and a real health-check transaction, not just restart a failed process forever. Alert on conditions that are sustained and actionable, and on forecasted exhaustion, not every brief blip.
 
 After fix, confirm application latency and errors as well as the host metric.

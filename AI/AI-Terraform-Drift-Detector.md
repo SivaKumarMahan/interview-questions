@@ -574,7 +574,7 @@ These are useful unit tests, but they do not prove live AWS correctness or produ
 - permission denied, throttling, pagination and retry cases
 - HTTP backend SSRF, timeout and oversized response tests
 - authentication, authorization and cross-workspace isolation
-- scheduler overlap, cancellation and idempotency (safe repeat behavior)
+- scheduler overlap, cancellation and idempotency
 - database migration, retention and recovery
 - AI redaction, schema, hallucination and prompt-injection tests
 
@@ -700,7 +700,7 @@ No. A manual change may be an approved incident action, and reverting it could c
 
 ### How do you secure Terraform state?
 
-I use encrypted remote storage, least-privilege access (only the permissions needed), short-lived credentials, audit logging and no raw-state logging. Sensitive state is never sent wholesale to an LLM.
+I use encrypted remote storage, least-privilege access, short-lived credentials, audit logging and no raw-state logging. Sensitive state is never sent wholesale to an LLM.
 
 ### What if AWS access fails during a scan?
 

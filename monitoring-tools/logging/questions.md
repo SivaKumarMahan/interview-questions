@@ -2,109 +2,107 @@
 
 **Answer:**
 
-An ELK-style flow uses Logstash/Fluent Bit to send parsed records to Elasticsearch/OpenSearch and Kibana, enabling rich full-text and field search but requiring careful index/shard/lifecycle management.
+An ELK-style setup sends parsed log records through Logstash or Fluent Bit into Elasticsearch or OpenSearch, with Kibana on top. It gives rich full-text and field search, but it takes real effort to manage indices, shards, and lifecycle policies well.
 
-Loki primarily indexes labels and stores compressed log chunks, often reducing index cost when labels are controlled; Grafana queries it.
+Loki takes a different approach: it indexes only the labels attached to a log stream and stores the actual log lines as compressed chunks. When labels are kept small and controlled, this usually costs less to index. Grafana is the usual way to query it.
 
-Choice depends on search needs, volume, retention, operations, tenant/security requirements and cost.
+Which one I pick depends on the kind of search needed, log volume, retention requirements, how much operational effort the team can spend, tenant and security requirements, and cost.
 
 ## 2. How do you handle a sudden log explosion?
 
 **Answer:**
 
-I identify the service, version, logger and event pattern causing growth; check collector queues, dropped events, backend storage and ingestion limits; and protect the platform from cascading failure.
+First I find the cause: which service, version, logger, and event pattern is driving the growth. Then I check collector queues, dropped events, backend storage, and ingestion limits, because the real risk is the logging platform itself falling over and taking other services' visibility down with it.
 
-I reduce debug verbosity or sample a proven repetitive event through reviewed configuration while preserving security/audit evidence.
+If I need to act fast, I reduce debug verbosity or sample a known repetitive event, but only through a reviewed configuration change, and only after making sure I'm not throwing away anything needed for security or audit purposes. I never just delete logs to make the problem go away.
 
-I do not delete logs blindly.
-
-Then I fix the cause, set rate/size limits, structured levels, buffer/backpressure and tiered retention, and alert on bytes/events, queue age, drops and forecasted capacity. I verify that essential troubleshooting and compliance logs remain available.
+Once things are stable, I fix the root cause: rate and size limits, structured log levels, buffering with backpressure, and tiered retention. I add alerts on log volume, queue age, dropped records, and forecasted capacity, and I confirm the logs actually needed for troubleshooting and compliance are still available.
 
 ## 3. What information should structured logs contain?
 
 **Answer:**
 
-Timestamp, severity, event name, service, environment, version, instance/Pod, trace or correlation ID and relevant limited business/error fields. They must not contain passwords, tokens, private keys or unnecessary personal data.
+A structured log line should carry a timestamp, severity, event name, service, environment, version, instance or Pod, and a trace or correlation ID, plus whatever limited business or error fields are relevant. It should never contain passwords, tokens, private keys, or unnecessary personal data.
 
-Clock synchronization and W3C trace context allow correlation. Request IDs belong in logs/traces, not metric labels.
+Clock synchronization and the W3C trace context standard are what actually let you correlate these across services. Request IDs belong in logs and traces, not as metric labels — a unique value per request would blow up a metrics system.
 
 ## 4. How do you find the ten largest files under `/var/log`?
 
 **Answer:**
 
-I first confirm which filesystem contains `/var/log` with `df -hT /var/log`, then run a read-only search:
+First I check which filesystem `/var/log` lives on with `df -hT /var/log`. Then I run a read-only search:
 
 ```bash
 sudo find /var/log -xdev -type f -exec du -h -- {} + 2>/dev/null \
   | sort -hr | head -n 10
 ```
 
-`-xdev` prevents the search from unexpectedly crossing into another mounted filesystem. `du` reports allocated disk space, which is normally what matters during a capacity incident. For logical byte size I can use GNU `find` with `%s`:
+`-xdev` stops the search from wandering onto another mounted filesystem by accident. I use `du` because it reports actual disk space used, which is what matters during a capacity incident. If I need the logical byte size instead, GNU `find` can print it directly:
 
 ```bash
 sudo find /var/log -xdev -type f -printf '%s\t%p\n' 2>/dev/null \
   | sort -nr | head -n 10
 ```
 
-I compare `df` and `du`, and run `sudo lsof +L1` because a deleted log still held open by a process consumes space but no longer appears in `find`. I identify the writing service with `lsof` or `fuser`, check its logging configuration and preserve incident/audit evidence.
+I compare the `df` and `du` numbers, and I also run `sudo lsof +L1`. A deleted log file that a process still has open keeps using disk space even though `find` can no longer see it. I identify the process writing to it with `lsof` or `fuser`, check its logging configuration, and preserve anything needed for an incident or audit.
 
-The safe fix is usually correct log level, rotation, compression, retention or capacity—not blindly deleting the largest file.
+The real fix is almost always the log level, rotation, compression, or retention settings — not deleting the largest file and hoping it doesn't come back.
 
 ## 5. How do you find all `.log` files larger than 100 MB?
 
 **Answer:**
 
-For `/var/log` I use:
+For `/var/log` specifically:
 
 ```bash
 sudo find /var/log -xdev -type f -name '*.log' -size +100M -print
 ```
 
-`-type f` excludes directories and devices, `-name '*.log'` matches the suffix case-sensitively, and `-size +100M` means files larger than 100 units of 1,048,576 bytes. If uppercase extensions matter I use `-iname`. To include useful details:
+`-type f` skips directories and devices. `-name '*.log'` matches the suffix case-sensitively — I'd use `-iname` if uppercase extensions matter. `-size +100M` means larger than 100 units of 1,048,576 bytes. To get more detail:
 
 ```bash
 sudo find /var/log -xdev -type f -name '*.log' -size +100M \
   -printf '%s bytes\t%u:%g\t%TY-%Tm-%Td %TH:%TM\t%p\n' | sort -nr
 ```
 
-This does not match rotated names such as `app.log.1` or `app.log.2.gz`, so I broaden the approved pattern when investigating total retention. I also remember that a large active log may be legitimate.
-
-I check its growth rate, writer, log level, rotation policy and available disk time before taking action.
+This pattern won't catch rotated files like `app.log.1` or `app.log.2.gz`, so I widen it when I need to see total retention. A large active log file can also be completely normal — I check its growth rate, what's writing to it, its log level, its rotation policy, and how much disk time is left before I touch anything.
 
 ## 6. How do you delete `.log` files older than 30 days safely?
 
 **Answer:**
 
-I never begin with deletion. First I preview the exact matches:
+I never start with deletion. First I preview exactly what would match:
 
 ```bash
 sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -print
 ```
 
-I confirm application ownership, compliance and incident-retention requirements, backup/central-log availability, and whether any matched file is open using `lsof`. `-mtime +30` uses file modification time in completed 24-hour periods; it does not inspect timestamps inside the log.
+I confirm the application owner is fine with it, check compliance and incident-retention requirements, make sure a backup or central log copy exists, and check with `lsof` whether any matched file is still open. `-mtime +30` is based on file modification time in full 24-hour periods — it has nothing to do with timestamps written inside the log content, and it won't match common rotated names like `.log.1` or `.gz` unless I explicitly include them.
 
-The pattern also does not include common rotated files such as `.log.1` or `.gz` unless explicitly configured.
-
-The preferred permanent solution is the service's retention setting, `logrotate`, or journald configuration. I test logrotate safely with:
+The real long-term fix is the service's own retention setting, `logrotate`, or journald configuration. I test a logrotate config safely first:
 
 ```bash
 sudo logrotate -d /etc/logrotate.conf
 ```
 
-Only after approval and review would I run the same verified expression with deletion:
+Only after review and approval would I run the same expression with deletion:
 
 ```bash
 sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -delete
 ```
 
-I avoid deleting the active log because a process may keep writing to its old file descriptor and disk space may not be released. After cleanup I verify `df -hT`, the service is still logging, rotation works, central logs remain searchable, and alerts/retention prevent recurrence.
+I avoid deleting the log a process is actively writing to, since it can keep writing to the old file handle without freeing any disk space. Afterward I check `df -hT`, confirm the service is still logging, confirm rotation works, confirm central logs are still searchable, and make sure alerts and retention policy prevent this from happening again.
 
 ## 7. Prometheus versus Splunk, and what is an SPL search?
 
 **Answer:**
 
-Prometheus stores numeric time-series metrics and evaluates PromQL rules; it is suited to rates, latency percentiles, capacity and alerting. Splunk indexes/searches logs and events, with metrics and traces available in some products; it is suited to forensic event search and log correlation.
+Prometheus stores numeric time-series metrics and runs PromQL rules against them. It's built for rates, latency percentiles, capacity planning, and alerting.
 
-They are complementary, not substitutes. SPL is Splunk Processing Language: a typical safe investigation narrows time and source first, then filters and aggregates, for example `index=prod service=payments level=ERROR | stats count by error_code | sort - count`.
+Splunk indexes and searches logs and events — some of its products also handle metrics and traces — and it's built for forensic search and correlating events across logs. The two are complementary, not substitutes for each other.
 
-I avoid unlimited all-time searches and ensure sensitive fields are masked before ingestion.
+SPL is Splunk's query language, Search Processing Language. A safe investigation narrows the time range and source first, then filters and aggregates — for example:
+
+`index=prod service=payments level=ERROR | stats count by error_code | sort - count`
+
+I avoid unlimited all-time searches, and I make sure sensitive fields are masked before the data is even ingested.

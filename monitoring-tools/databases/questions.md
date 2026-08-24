@@ -2,22 +2,26 @@
 
 **Answer:**
 
-Availability, transaction/query rate, P95/P99 latency, error ratio, connections and pool wait, CPU/memory/cache, disk capacity/latency, lock/deadlock count, replication lag, failover status, backup age/result and a real read/write transaction where safe.
+I'd track availability, transaction and query rate, P95/P99 latency, error ratio, connection count and pool wait time, CPU/memory/cache usage, disk capacity and latency, lock and deadlock count, replication lag, failover status, backup age and result, and — where it's safe — a real read/write transaction.
 
-I segment by database, operation and application without using unlimited query/user labels.
+I segment these by database, operation, and application, but I avoid unlimited query or user labels, since that drives up cardinality and cost.
 
 ## 2. How do you investigate database connection failures?
 
 **Answer:**
 
-I distinguish refused, timeout, TLS, authentication and pool exhaustion, then compare application and database logs by time/source. I check endpoint/DNS/network, listener/availability, secret version and identity, certificate, max connections/pool leak, replication/failover and recent changes.
+First I figure out what kind of failure it is: refused, timeout, TLS, authentication, or pool exhaustion. Then I compare application and database logs by time and source.
 
-I fix the proven layer and verify an appropriate real transaction, latency, pool recovery and denied unauthorized access.
+I check the endpoint and DNS, the network path, the listener's availability, the secret version and identity being used, the certificate, max connections or a pool leak, replication or failover state, and any recent changes.
+
+I fix the layer that's actually proven to be the cause, then confirm with a real transaction, latency, pool recovery, and that unauthorized access is still denied.
 
 ## 3. How do monitoring and alerts support a safe database migration?
 
 **Answer:**
 
-Beforehand I establish backup/restore evidence and baseline latency, error, locks, capacity and replication. During expand-and-contract or blue-green work I watch migration progress, lock duration, replication lag, application versions, read/write correctness and SLOs; abort thresholds and owner are predefined.
+Before the migration, I confirm backup and restore actually work, and I record baseline latency, error rate, locks, capacity, and replication lag.
 
-After cutover I verify data and business transactions through a stability window before removing the old schema or environment.
+During an expand-and-contract or blue-green migration, I watch migration progress, lock duration, replication lag, application versions, read/write correctness, and SLOs. Abort thresholds and the owner responsible for that call are agreed on beforehand.
+
+After cutover, I verify data and business transactions through a stability window before removing the old schema or environment.

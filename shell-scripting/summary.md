@@ -2,17 +2,17 @@
 
 ## Shell Automation
 
-Useful DevOps scripts include disk-capacity monitoring, controlled log retention, service health/fix, verified backups, and user/account workflows. Production scripts should use:
+Common DevOps scripts handle things like disk-capacity monitoring, controlled log cleanup, restarting or fixing a service, verified backups, and user-account workflows. A production script should have:
 
-- A clear interpreter
-- `set -Eeuo pipefail` where appropriate
+- A clear interpreter line
+- `set -Eeuo pipefail` where it makes sense
 - Quoted variables
 - Input validation
 - Safe temporary files
 - Meaningful exit codes
-- Logging without secrets
-- Locks for concurrency
-- Cleanup traps
+- Logging that never includes secrets
+- A lock so it can't run twice at once
+- A cleanup trap
 
 ## Script Structure and Inputs
 
@@ -39,14 +39,14 @@ else
 fi
 ```
 
-- `$0` is the invoked script name.
-- `$1`, `$2`, and so on are positional arguments.
-- `$#` is the argument count.
-- `"$@"` expands to all arguments while preserving their boundaries.
-- `$(command)` captures command output; always consider its exit status and trailing-newline behavior.
-- `read -r variable` reads input without treating backslashes as escapes.
+- `$0` is the script's own name.
+- `$1`, `$2`, and so on are the arguments passed in.
+- `$#` is how many arguments were passed.
+- `"$@"` expands to all the arguments, keeping each one intact.
+- `$(command)` captures a command's output — always think about its exit status and whether it has a trailing newline.
+- `read -r variable` reads input without treating backslashes as escape characters.
 
-Quote expansions unless intentional word splitting or glob expansion is required. Use `[[ ... ]]` for Bash conditionals, arithmetic contexts such as `(( count += 1 ))` for numbers, and `case` for multiple string alternatives.
+Quote your expansions unless you actually want word splitting or globbing to happen. Use `[[ ... ]]` for conditionals, `(( count += 1 ))` for arithmetic, and `case` when you have several string options to match.
 
 ## Loops and Functions
 
@@ -68,7 +68,7 @@ retry_command() {
 }
 ```
 
-Use `local` variables inside functions, return meaningful status codes, and pass commands as arguments rather than constructing command strings for `eval`. A retry must be limited, observable and safe for an operation that may have partially succeeded.
+Use `local` variables inside functions, return a meaningful status code, and pass commands as arguments rather than building command strings for `eval`. A retry has to be limited, visible in the logs, and safe to run again on something that may have already partly succeeded.
 
 ## Redirection, Pipelines and Traps
 
@@ -88,44 +88,48 @@ fi
 consumer <"$temporary_file"
 ```
 
-`>` replaces a file, `>>` appends, `2>` redirects standard error, and `|` connects one command's standard output to the next command's standard input. With `set -o pipefail`, a pipeline is unsuccessful when any component fails, not only the last one.
+`>` overwrites a file, `>>` appends to it, `2>` redirects standard error, and `|` connects one command's output to the next command's input. With `set -o pipefail`, the whole pipeline counts as failed if any command in it fails, not just the last one.
 
-`set -e` is not complete error handling: its behavior has contextual exceptions. Check expected failures explicitly, use traps for cleanup, and test failure paths. Run `shellcheck` during development and CI.
+`set -e` is not complete error handling on its own — it has exceptions depending on context. Check for expected failures explicitly, use traps for cleanup, and actually test what happens when things go wrong. Run `shellcheck` during development and in CI.
 
 ## Environment and Secret Handling
 
-An exported variable is inherited by child processes:
+An exported variable is passed down to any child process:
 
 ```bash
 export APP_ENV="production"
 export APP_PORT="8080"
 ```
 
-Use environment variables for non-sensitive configuration when appropriate. Do not hardcode database passwords, API keys or default user passwords in scripts, shell history, profiles or committed `.env` files.
+Environment variables are fine for regular, non-sensitive configuration. Don't hardcode database passwords, API keys, or default passwords in scripts, shell history, profile files, or committed `.env` files.
 
-Retrieve secrets at runtime through the approved secret manager, avoid echoing them, and unset temporary values when practical.
+Pull secrets at runtime from an approved secret manager, never echo them, and unset temporary values once you're done with them.
 
-## Monitoring and cleanup
+## Monitoring and Cleanup
 
-**Disk monitoring** must select the intended filesystem and include useful details in its alert. **Log cleanup** must check the directory, retention period, and ownership, and should normally use `logrotate` or `journald` policy instead of raw deletion. A **service fix** should check configuration, verify health after start or reload, preserve logs, limit retries, and alert instead of looping forever.
+| Task | What matters |
+|---|---|
+| Disk monitoring | Watch the right filesystem, and put useful detail in the alert. |
+| Log cleanup | Check the directory, retention period, and ownership. Use `logrotate` or `journald` policy instead of deleting files by hand. |
+| Fixing a service | Check its config, verify it's healthy after start/reload, keep the logs, limit retries, and alert instead of looping forever. |
 
 ## Backups
 
-A backup script must:
+A backup script should:
 
-- Create destination safely
-- Preserve permissions where needed
-- Avoid recursively backing up its own output
-- Use an atomic name
-- Checksum/encrypt according to policy
-- Enforce retention
-- Copy to another failure domain (a group of resources that can fail together)
-- Regularly prove restoration
+- Create its destination safely
+- Preserve permissions where that matters
+- Never back up its own output into itself
+- Write to a temporary name and rename it into place once complete
+- Checksum or encrypt the backup, per policy
+- Enforce a retention period
+- Copy the backup somewhere that won't fail along with the original
+- Get restored occasionally to prove it actually works
 
-A command returning zero is **not** proof that the data is recoverable.
+A command returning exit code zero is not proof that the data can be recovered.
 
-## User provisioning
+## User Provisioning
 
-User provisioning should not hardcode or echo passwords and should not automatically grant broad `sudo`. Use approved identity management, idempotent (safe to run more than once) account/group/SSH-key configuration, least privilege (only the permissions needed), audit, expiry, and an offboarding path.
+User provisioning scripts should never hardcode or print passwords, and should never hand out broad `sudo` access automatically. Use your organization's approved identity tooling, make account/group/SSH-key setup safe to run more than once, grant only the access someone actually needs, log what happened, set an expiry, and have a clear offboarding path.
 
-Shell is suitable for small orchestration; use a stronger language or configuration-management tool when parsing, state, transactions, or complex error recovery grows.
+Shell scripting is a good fit for small tasks. Once you're dealing with heavier parsing, state, transactions, or complex error recovery, reach for a proper language or a configuration-management tool instead.

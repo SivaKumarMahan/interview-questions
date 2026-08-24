@@ -1,9 +1,11 @@
 # Multi-Environment Helm Deployment
 
-One chart version is promoted through Dev, Staging, and Production with separate reviewed values such as `values-dev.yaml`, `values-staging.yaml`, and `values-prod.yaml`. Values contain non-secret environment differences; secrets come from an external secret manager.
-The pipeline validates and renders the chart, deploys the same immutable (not changed after creation) image digest to Dev, runs tests, then promotes the chart/image combination through protected environments and approvals.
+The idea is simple: one chart version gets promoted through Dev, Staging, and Production, with a separate, reviewed values file for each — `values-dev.yaml`, `values-staging.yaml`, `values-prod.yaml`. Those files only hold non-secret differences between environments; actual secrets come from an external secret manager.
 
-Each release has a distinct namespace and Helm release name, explicit timeout, history, and post-deployment health check.
+The pipeline validates and renders the chart, deploys the exact same image build to Dev, runs tests, and only then promotes that same chart-and-image combination through the later environments, each behind its own approval.
+
+Every release gets its own namespace and Helm release name, an explicit timeout, a history you can look back at, and a health check after it deploys.
+
 ```bash
 helm lint ./chart
 helm template app ./chart -f values-prod.yaml > rendered.yaml
@@ -14,7 +16,6 @@ helm upgrade --install app ./chart \
   --atomic --wait --timeout 10m
 ```
 
-This prevents overwritten values, manual environment drift, and untraceable releases. Rollback uses the previous known-good image/chart revision only after checking database and external configuration compatibility.
+This setup stops values from getting silently overwritten, stops environments from drifting apart, and keeps every release traceable back to what was actually deployed. If a rollback is needed, I go back to the last known-good image and chart combination — but only after checking that the database and any external configuration are still compatible with that older version.
 
-GitOps can replace the direct Helm command while keeping the same promotion, policy, and verification principles.
-
+GitOps can replace running the Helm command directly, while keeping the same promotion steps, policy checks, and verification.

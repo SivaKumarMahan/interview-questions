@@ -446,7 +446,7 @@ resource "aws_instance" "web" {
 
 ### Interview answer
 
-"`lifecycle` changes how Terraform handles a resource. I use `prevent_destroy` on production databases, `create_before_destroy` when the old and new resource can exist together, `ignore_changes` when another system owns a field like a tag, and `replace_triggered_by` when a change elsewhere must force a replacement. These are helpers, not full protection, so I also use cloud deletion protection and approvals."
+"`lifecycle` changes how Terraform handles a resource. I use `prevent_destroy` on production databases, and `create_before_destroy` when the old and new resource can exist together. I use `ignore_changes` when another system owns a field like a tag, and `replace_triggered_by` when a change elsewhere must force a replacement. These are helpers, not full protection, so I also use cloud deletion protection and approvals."
 
 ---
 
@@ -707,7 +707,7 @@ resource "aws_autoscaling_group" "web" {
 
 ### Interview answer
 
-"I create a launch template with the approved image, security groups, and instance profile, then an autoscaling group that spreads across availability zones with min, desired, and max capacity, target group attachment, and health checks. I add a scaling policy on a real metric like CPU or request count. After apply I test scale-out and instance replacement, because seeing the resource created is not proof it works."
+"I create a launch template with the approved image, security groups, and instance profile. Then I add an autoscaling group that spreads across availability zones, with min, desired, and max capacity, target group attachment, and health checks. I add a scaling policy on a real metric like CPU or request count. After apply I test scale-out and instance replacement, because seeing the resource created is not proof it works."
 
 ---
 
@@ -2562,4 +2562,4 @@ Once another stack depends on an output, treat it like a public interface. Do no
 
 ### Interview answer
 
-"I connect stacks through a small number of stable outputs. The simplest way is a `terraform_remote_state` data source, but that gives the application stack read access to the network state, so I often prefer passing values in as variables from the pipeline or looking resources up by tag. Terragrunt can wire dependencies automatically. The main rule is to treat those outputs as a public interface and deploy the stacks in a defined order."
+"I connect stacks through a small number of stable outputs. The simplest way is a `terraform_remote_state` data source, but that gives the application stack read access to the network state. I often prefer passing values in as variables from the pipeline instead, or looking resources up by tag. Terragrunt can wire dependencies automatically. The main rule is to treat those outputs as a public interface and deploy the stacks in a defined order."

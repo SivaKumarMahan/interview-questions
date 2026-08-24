@@ -2,18 +2,19 @@
 
 **Answer:**
 
-I identify the exact client, database endpoint, port, environment, error, and start time. “Connection refused,” timeout, TLS error, authentication failure, and pool exhaustion are different failures.
+First I pin down the exact client, database endpoint, port, environment, error message, and when it started. "Connection refused," a timeout, a TLS error, an authentication failure, and pool exhaustion are all different problems with different causes.
 
-From the affected runtime I test DNS, route, TCP, and TLS, then use a safe database client with the same identity where approved.
+From the affected runtime, I test DNS, routing, TCP, and TLS, then connect with a safe database client using the same identity, if that's approved.
 
-I do not print the password or open the database publicly.
+I never print the password or expose the database publicly to test it.
 
-I inspect application connection-string source and secret version, certificate/CA and hostname, security-group/firewall/NetworkPolicy, proxy or private endpoint, database listener and availability, user status/expiry/permissions, max connections, pool settings, replication/failover state, and recent deploy/schema/network/credential changes.
+I check the app's connection-string source and secret version, the certificate/CA and hostname, security-group/firewall/NetworkPolicy rules, any proxy or private endpoint, whether the database listener is up, the user's status/expiry/permissions, max connections, pool settings, replication/failover state, and any recent deploy, schema, network, or credential change.
 
-Database and application logs are correlated by timestamp and connection source.
-I fix the proven layer: DNS/route/rule, listener, rotated secret consumption, certificate, account, connection leak/pool, or database health. I verify a real read/write transaction as appropriate, latency, pool recovery, denied unauthorized access, and failover.
+I correlate database and application logs by timestamp and connection source.
 
-Preventive controls include managed identity or rotated secrets, private connectivity, TLS, pool metrics, connection SLOs, and tested credential/failover changes.
+Then I fix whatever layer I've actually confirmed is broken: DNS/routing, the listener, a secret that didn't rotate properly, a certificate, an account, a connection leak or pool issue, or the database's own health. I verify with a real read/write transaction, check latency, confirm the pool recovers, confirm unauthorized access is still denied, and check failover.
+
+To prevent it happening again: managed identity or properly rotated secrets, private connectivity, TLS, pool metrics, connection SLOs, and testing credential and failover changes before they ship.
 
 ## 2. Write a query to find the fifth-highest salary.
 
@@ -30,22 +31,22 @@ FROM (
 WHERE salary_rank = 5;
 ```
 
-`DENSE_RANK` treats equal salaries as one rank. If the question instead means the fifth row after sorting, use `ROW_NUMBER`; clarify the requirement and index/limit the query appropriately for a large table.
+`DENSE_RANK` treats equal salaries as one rank. If the question actually means the fifth row after sorting instead, use `ROW_NUMBER`. Either way, clarify what's meant and make sure the query is indexed and limited properly on a large table.
 
 ## 3. What is the difference between clustered and non-clustered indexes?
 
 **Answer:**
 
-A clustered index determines the physical or ordered storage of table rows, so a table normally has one. A non-clustered index is a separate structure containing indexed keys plus a row location or included columns; a table can have several.
+A clustered index determines the physical, ordered storage of the table's rows, so a table normally has only one. A non-clustered index is a separate structure holding the indexed keys plus a pointer to the row (or some included columns) — a table can have several of these.
 
-Indexes improve selected read patterns but add write, storage, and maintenance cost. I choose them from real query plans and column cardinality (the number of distinct values), not by indexing every column.
+Indexes speed up specific read patterns, but they cost extra on writes, storage, and maintenance. I choose which columns to index based on real query plans and how many distinct values a column has, not by just indexing everything.
 
 ## 4. A database partition is full and the production application is down. What do you do?
 
 **Answer:**
 
-I declare the incident, confirm the full filesystem/tablespace and customer impact, stop nonessential writes or shift traffic if the runbook permits, and protect backups/evidence.
+I declare the incident, confirm the filesystem or tablespace is actually full and how customers are affected, stop non-essential writes or shift traffic if the runbook allows it, and make sure backups and evidence are protected.
 
-I identify the growth source—logs, temporary data, runaway job, retention failure, WAL/binlogs, index rebuild or data load—then use the approved path to extend capacity, archive/purge only validated data, or fail over.
+I figure out what's actually growing — logs, temporary data, a runaway job, a retention failure, WAL/binlogs, an index rebuild, or a data load — then use the approved path to add capacity, archive or purge only data I've confirmed is safe to remove, or fail over.
 
-I do not delete unknown database files. After recovery I validate transactions and replication, then fix retention/capacity alerts, growth forecasting and the responsible workload.
+I never delete a database file I don't recognize. Once it's fixed, I validate transactions and replication, then fix the retention and capacity alerts, growth forecasting, and whatever workload actually caused it.

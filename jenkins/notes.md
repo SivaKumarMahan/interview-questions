@@ -267,24 +267,24 @@ By applying these strategies, you can effectively reduce the execution time of y
 
 ## Reusable Jobs, Triggers, and Post Actions
 
-Prefer versioned Jenkinsfiles, shared libraries, Job DSL or Configuration as Code over copying UI job configuration. Parameterized or multibranch Pipelines reduce duplication, while permissions and production credentials remain environment-specific.
+Avoid copying job configuration between jobs in the UI. Use versioned Jenkinsfiles, shared libraries, Job DSL, or Configuration as Code instead. Parameterized or multibranch Pipelines cut down on duplication, while permissions and production credentials still stay specific to each environment.
 
-`$JENKINS_HOME` stores controller configuration, build metadata and plugin data; back it up consistently and test restoration rather than treating it as an artifact store.
+`$JENKINS_HOME` stores the controller's configuration, build metadata, and plugin data. Back it up regularly and actually test that you can restore it — don't treat it as a place to store build artifacts.
 
-Git webhooks are the preferred event-driven trigger: validate webhook signatures, use TLS and restrict the endpoint. Poll SCM or periodic cron triggers are fallbacks and consume capacity; Jenkins cron uses its own syntax and should include sensible spread (`H`) where applicable.
+Git webhooks are the preferred way to trigger a build, because they fire on the actual event instead of polling. Validate the webhook signature, use TLS, and restrict who can hit the endpoint. Poll SCM and periodic cron triggers are fallback options — they use up capacity by checking on a schedule instead of reacting to a real push. Jenkins cron has its own syntax, and you should spread jobs out with `H` so they don't all fire at the same minute.
 
-A failed Pipeline may be restarted from a stage only when the stage is safe and required artifacts/inputs still exist; this is not a substitute for idempotent (safe to run more than once) deployment design.
+A failed Pipeline can be restarted from a specific stage, but only when that stage is safe to rerun and the artifacts or inputs it needs still exist. This is a convenience, not a substitute for actually designing your deployment to be safe to run more than once.
 
-Declarative Pipeline `post` conditions such as `success`, `failure`, `unstable`, `changed` and `always` run after the Pipeline/stage outcome. Use them for notifications, publishing reports and limited cleanup; make cleanup safe even when an earlier stage did not create every resource.
+Declarative Pipeline `post` conditions — `success`, `failure`, `unstable`, `changed`, and `always` — run after the Pipeline or stage finishes. Use them for notifications, publishing reports, and light cleanup. Make sure cleanup doesn't break if an earlier stage never got far enough to create every resource it normally would.
 
 ## Agents and Git Integration
 
-Jenkins agents should be treated as isolated execution environments. Static agents may connect over SSH; inbound agents use a supported agent protocol and authentication.
+Treat every Jenkins agent as an isolated execution environment. Static agents can connect over SSH. Inbound agents connect using a supported agent protocol with their own authentication.
 
-Prefer ephemeral, least-privilege (minimum required access) agents for untrusted or variable workloads, and never place build workloads on the controller. Monitor agent capacity, disk, workspace cleanup, tool versions and connection failures.
+For untrusted or variable workloads, prefer ephemeral agents that only get the access they actually need, and never run builds on the controller itself. Keep an eye on agent capacity, disk space, workspace cleanup, tool versions, and connection failures.
 
-Git integration needs a narrowly scoped credential or GitHub App, branch protection, webhook signature validation and a defined checkout ref. `git pull` fetches and integrates changes; use explicit `fetch` plus reviewed merge/rebase workflows in automation where predictable behavior matters.
+Git integration needs a narrowly scoped credential or a GitHub App, branch protection, webhook signature validation, and a clearly defined ref to check out. `git pull` fetches changes and merges them in one step. In automation, it's better to run an explicit `fetch` and then a reviewed merge or rebase, so the behavior stays predictable.
 
-A revert adds a new commit that reverses a prior commit and is generally safer than history rewriting on a protected shared branch.
+A revert adds a new commit that undoes a prior commit. It's generally safer than rewriting history on a shared, protected branch.
 
 ---

@@ -375,7 +375,7 @@ The AI helps summarize and compare the data, but the numerical delta and saving 
 | Azure CLI missing | Fail health/readiness check with installation guidance |
 | Azure session expired | Return an authentication-specific error; do not expose raw tokens |
 | Invalid or unauthorized Resource Group | Return 404/403 without leaking other scopes |
-| CLI timeout or throttling | Limited retry with backoff (increasing wait between retries) and correlation ID |
+| CLI timeout or throttling | Limited retry with increasing wait between attempts, plus a correlation ID |
 | Partial provider data | Store partial status and show which evidence is missing |
 | OpenAI timeout/rate limit | Retry with limits, then preserve inventory and mark analysis incomplete |
 | Invalid AI JSON | Schema validation, one repair attempt, then controlled failure |

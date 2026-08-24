@@ -4,9 +4,9 @@
 
 "In Linux, we attach a file system by mounting it with the `mount` command — for example, `mount /dev/sdb1 /mnt/data`. To detach it, we use `umount /mnt/data`.
 
-For persistent mounting, we configure it in `/etc/fstab`. I also check usage with `df -h` and handle busy mounts using `lsof` or `fuser`."
+For a mount that should survive a reboot, we set it up in `/etc/fstab`. I also check usage with `df -h` and handle busy mounts using `lsof` or `fuser`."
 
-When you "attach" a file system in Linux, you're **mounting** it — linking the file system (from a device, partition, or volume) into your system's directory tree.
+When you "attach" a file system in Linux, you're mounting it — linking a device, partition, or volume into your system's directory tree.
 
 ```bash
 # 1. Create a directory (mount point)
@@ -23,15 +23,15 @@ sudo mount /dev/sdb1 /mnt/mydata
 df -h | grep mydata
 ```
 
-Now your file system is attached — you can access files under `/mnt/mydata`.
+Now the file system is attached, and you can access files under `/mnt/mydata`.
 
-When you "detach" a file system, you're **unmounting** it — safely removing access to that device.
+When you "detach" a file system, you're unmounting it — safely removing access to that device.
 
 ```bash
 sudo umount /mnt/mydata
 ```
 
-If the file system is busy (e.g., some process is using it), you'll get an error like:
+If the file system is busy, for example because a process is using it, you'll get an error like:
 
 ```
 umount: /mnt/mydata: target is busy
@@ -45,15 +45,15 @@ sudo lsof +f -- /mnt/mydata
 sudo fuser -vm /mnt/mydata
 ```
 
-Then stop/kill the process and try again.
+Then stop or kill that process and try again.
 
 ---
 
 ## System Logging Notes
 
-Linux log locations vary by distribution and service manager. With systemd, query services and the kernel with `journalctl`; traditional files may be under `/var/log/` such as `syslog`, `messages`, `auth.log` or application-specific logs.
+Log locations vary by Linux distribution and by which service manager it uses. With systemd, you query services and the kernel with `journalctl`. Older-style files usually live under `/var/log/`, such as `syslog`, `messages`, `auth.log`, or logs specific to an application.
 
-`tail -n 4 /var/log/messages` prints the last four lines where that file exists. Centralized logging should preserve timestamps, host/service identity and access controls, and `logrotate` should manage retention, compression and safe rotation of large files.
+`tail -n 4 /var/log/messages` prints the last four lines of that file, if it exists. For centralized logging, keep timestamps, host and service identity, and access controls intact, and let `logrotate` handle retention, compression, and safely rotating large files.
 
 ### Q: How do you print the last 15 lines of a file in Linux?
 
@@ -72,7 +72,7 @@ tail -n 15 /var/log/syslog
 tail -f filename.txt
 ```
 
-If you want to view the last 15 lines of a command's output:
+If you want the last 15 lines of a command's output instead of a file:
 
 ```bash
 dmesg | tail -n 15
@@ -82,29 +82,29 @@ dmesg | tail -n 15
 
 ### Q: How would you view the last few lines of a huge log file that's continuously updated?
 
-"I'd use `tail -f logfile.log` to stream the last lines in real-time."
+"I'd use `tail -f logfile.log` to stream the last lines in real time."
 
 ---
 
 ### Q: You have hosted an application on a Linux server - how would you migrate it to a serverless architecture in azure?
 
-To migrate an application from a Linux server to a serverless architecture, I would follow these steps:
+To migrate an application from a Linux server to a serverless setup in Azure, I'd follow these steps:
 
-1. **Assess the Application:** Understand the application architecture, dependencies, and components to identify which parts can be migrated to serverless services.
-2. **Choose Azure Serverless Services:** Identify suitable Azure services such as `Azure Functions` for compute, `Azure Logic Apps` for workflows, and `Azure Blob Storage` for static content.
-3. **Refactor the Application:** Modify the application code to fit the serverless model, breaking it into smaller functions or services as needed.
-4. **Set Up Azure Environment:** Create necessary resources in Azure, including Function Apps, Storage Accounts, and any other required services.
-5. **Deploy the Application:** Use Azure DevOps or other CI/CD tools to deploy the refactored application to Azure.
-6. **Test and Optimize:** Thoroughly test the application in the serverless environment and optimize for performance and cost.
-7. **Monitor and Maintain:** Set up monitoring using `Azure Monitor` and `Application Insights` to ensure the application runs smoothly.
+1. **Assess the application.** Understand its architecture, dependencies, and components to see which parts can move to serverless.
+2. **Choose the Azure services.** For example, `Azure Functions` for compute, `Azure Logic Apps` for workflows, and `Azure Blob Storage` for static content.
+3. **Refactor the application.** Change the code to fit the serverless model, breaking it into smaller functions where needed.
+4. **Set up the Azure environment.** Create the Function Apps, Storage Accounts, and any other resources you need.
+5. **Deploy the application.** Use Azure DevOps or another CI/CD tool to deploy the refactored app.
+6. **Test and optimize.** Test it thoroughly in the serverless environment and tune it for performance and cost.
+7. **Monitor and maintain.** Set up `Azure Monitor` and `Application Insights` so you can see the application is running smoothly.
 
 ---
 
 ### Q: log file processing - using tools like grep to extract IP addresses and count occurrences?
 
-**A:** You can use `grep` along with other command-line tools like `awk`, `sort`, and `uniq` to extract IP addresses from log files and count their occurrences. Here's a step-by-step approach:
+**A:** You can combine `grep` with `awk`, `sort`, and `uniq` to pull IP addresses out of log files and count how often each one appears. Here's the approach step by step:
 
-1. **Extract IP Addresses:**
+1. **Extract the IP addresses.**
 
    Use `grep` with a regular expression to find IP addresses in the log file.
 
@@ -114,16 +114,16 @@ To migrate an application from a Linux server to a serverless architecture, I wo
    grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' logfile.log
    ```
 
-   Explanation:
+   What each part does:
 
    - `grep`
-   - `-E` → enables extended regex
-   - `-o` → prints only the matching IPs
-   - `'([0-9]{1,3}\.){3}[0-9]{1,3}'` → matches IPv4 format (e.g., `10.0.0.5`)
+   - `-E` turns on extended regex
+   - `-o` prints only the matching text, not the whole line
+   - `'([0-9]{1,3}\.){3}[0-9]{1,3}'` matches an IPv4 address (like `10.0.0.5`)
 
-2. **Count Occurrences:**
+2. **Count how often each one appears.**
 
-   Pipe the output to `sort` and `uniq` to count how many times each IP address appears.
+   Pipe the output through `sort` and `uniq` to count each unique IP.
 
    Example:
 
@@ -131,15 +131,15 @@ To migrate an application from a Linux server to a serverless architecture, I wo
    grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' logfile.log | sort | uniq -c | sort -nr
    ```
 
-   - `sort` → sorts the IPs
-   - `uniq -c` → counts occurrences of each unique IP
-   - `sort -nr` → sorts the counts in descending order
+   - `sort` puts the IPs in order so identical lines sit next to each other
+   - `uniq -c` counts how many times each unique IP shows up
+   - `sort -nr` sorts those counts from highest to lowest
 
-   This command will give you a list of IP addresses along with their occurrence counts, sorted in descending order.
+   This gives you a list of IP addresses with their occurrence counts, highest first.
 
-3. **Save Results to a File:**
+3. **Save the results to a file.**
 
-   You can redirect the output to a file for further analysis.
+   You can redirect the output to a file for later analysis.
 
    Example:
 
@@ -147,9 +147,9 @@ To migrate an application from a Linux server to a serverless architecture, I wo
    grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' logfile.log | sort | uniq -c | sort -nr > ip_counts.txt
    ```
 
-4. **If you know the IP is always the first field:**
+4. **If the IP is always the first field on the line:**
 
-   You can simplify the extraction using `awk`.
+   You can simplify the extraction with `awk` instead.
 
    Example:
 

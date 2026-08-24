@@ -12,18 +12,18 @@
 
 ## Operating Systems and Virtualization
 
-An operating system mediates between applications and hardware. It schedules processes, manages physical and virtual memory, provides filesystems and device drivers, and enforces identity and access controls.
+An operating system sits between applications and hardware. It schedules processes, manages physical and virtual memory, provides filesystems and device drivers, and enforces identity and access controls.
 
 Linux is common in servers, containers, cloud platforms and automation because it is scriptable, stable and supported by a large open-source ecosystem.
 
-Virtualization lets multiple isolated virtual machines share a physical host:
+Virtualization lets multiple isolated virtual machines share one physical host:
 
-- A **Type 1 hypervisor** runs directly on hardware; examples include VMware ESXi and Hyper-V in its bare-metal role.
-- A **Type 2 hypervisor** runs as an application on a host OS; examples include VirtualBox and VMware Workstation.
+- A **Type 1 hypervisor** runs directly on hardware. Examples include VMware ESXi and Hyper-V in its bare-metal role.
+- A **Type 2 hypervisor** runs as an application on a host OS. Examples include VirtualBox and VMware Workstation.
 
-VMs provide OS-level isolation and can be snapshotted, but a snapshot is not an independent backup. Before using a VM snapshot for deployment protection, confirm application consistency, retention, storage impact and restore behavior.
+VMs give OS-level isolation and can be snapshotted, but a snapshot is not an independent backup. Before relying on a VM snapshot for deployment protection, confirm application consistency, retention, storage impact and restore behavior.
 
-Production recovery still needs backups in another failure domain (a group of resources that can fail together) and tested restoration.
+Production recovery still needs backups kept somewhere that would not fail along with the primary system, plus tested restoration.
 
 ## Linux Filesystem Hierarchy
 
@@ -40,7 +40,7 @@ Production recovery still needs backups in another failure domain (a group of re
 | `/usr` | Most user-space programs, libraries and shared data |
 | `/var` | Variable data such as logs, queues, caches and databases |
 
-Modern distributions may merge `/bin`, `/sbin` and `/lib` into `/usr` through symbolic links. Common local filesystems include ext4, XFS and Btrfs, but the best choice depends on distribution support, workload, recovery, snapshot and operational requirements.
+Modern distributions often merge `/bin`, `/sbin` and `/lib` into `/usr` using symbolic links. Common local filesystems include ext4, XFS and Btrfs. The best choice depends on distribution support, workload, and your recovery and snapshot requirements.
 
 Inspect mounts and devices with:
 
@@ -55,26 +55,27 @@ Do not assume `/tmp` is always cleared on reboot, and do not manually delete unf
 
 ## Scenario Flow
 
-For **100% disk usage**, determine filesystem/inode pressure, largest directories/files, deleted-but-open files, log/journal growth, package/container caches, and application ownership. Free only confirmed safe data, restore headroom, and add retention/capacity alerts.
+| Scenario | What to check |
+|---|---|
+| Disk at 100% | Filesystem and inode pressure, the largest directories and files, files that are deleted but still held open by a process, log or journal growth, package or container caches, and which application owns the growth. Free only data you've confirmed is safe to remove, restore some headroom, then add retention and capacity alerts. |
+| Slowness or high CPU | Load average, CPU mode breakdown, memory and swap, I/O wait, disk latency, network, the top processes and threads, application logs, recent changes, traffic, and dependencies. Only kill a process or reboot after identifying the cause and the risk — treat it as containment, not a fix. |
+| Unresponsive system | Use console or out-of-band access. Check load, processes stuck in `D` state, memory pressure and OOM events, I/O, kernel logs, the filesystem, and hardware or cloud platform health. |
+| Configuration change not taking effect | Validate syntax, confirm which config path is actually active, compare the rendered configuration against the live one, reload or restart safely, then check service logs. |
+| User or permission change | Use approved identity processes, grant only the permissions actually needed, set correct group and ACL ownership, and verify as the target account. Avoid scripts that embed default passwords or grant `sudo` automatically. |
 
-Never copy broad `rm -rf` examples from a cheat sheet into production.
-
-For **slowness or high CPU**, compare load, CPU modes, memory/swap, I/O wait, disk latency, network, top processes/threads, application logs, recent changes, traffic, and dependencies. A kill or reboot is containment only after identifying the process and risk.
-For an **unresponsive system**, use console/out-of-band access and check load, `D` state processes, memory pressure/OOM, I/O, kernel logs, filesystem, and hardware/cloud health.
-
-For configuration changes that do not take effect, validate syntax, confirm the active path, compare rendered/live configuration, reload or restart safely, and inspect service logs.
-**User and permission changes** should use approved identity processes, least privilege (only the permissions needed), correct group/ACL ownership, and verification as the target account. Avoid scripts that embed default passwords or grant `sudo` automatically.
+Never copy broad `rm -rf` examples from a cheat sheet straight into production.
 
 ---
 
 ## Why Linux Matters in DevOps
 
-Linux is widely used for production servers, container hosts and cloud workloads, although Windows and other operating systems also remain important. DevOps engineers need command-line investigation skills because many servers are managed remotely without a graphical interface.
-Forget about memorizing 500 commands. Focus on the concepts and tools you'll use daily in production. Here are the 10 essential areas every DevOps engineer should master.
+Linux is widely used for production servers, container hosts and cloud workloads, although Windows and other operating systems also remain important. DevOps engineers need command-line investigation skills because most servers are managed remotely without a graphical interface.
+
+The sections below cover the areas that come up daily in production: process management, networking, filesystem navigation, permissions, disk usage, search and filtering, package management, system configuration, monitoring, and service management.
 
 ## 1. Process Management: Your Applications Under the Hood
 
-When your application crashes, consumes too much CPU, or becomes unresponsive, you need to understand processes.
+When an application crashes, consumes too much CPU, or stops responding, you need to look at its processes.
 
 ### The commands you'll actually use
 
@@ -87,7 +88,7 @@ top                       # Real-time view (like Task Manager)
 htop                      # Enhanced version (install it everywhere)
 ```
 
-When running `ps aux` on a production server, look for high CPU usage processes (`%CPU` column), memory hogs (`%MEM` column), and processes that shouldn't be running.
+When you run `ps aux` on a production server, check the `%CPU` and `%MEM` columns for outliers, and look for any process that shouldn't be running at all.
 
 Kill misbehaving processes:
 
@@ -105,7 +106,7 @@ kill -9 1234
 pkill -TERM -x nginx
 ```
 
-**Pro tip:** Always try `kill` before `kill -9`. The gentle kill allows the process to clean up properly.
+Try a plain `kill` before `kill -9`. A plain `kill` sends `SIGTERM`, which asks the process to shut down cleanly. `kill -9` sends `SIGKILL`, which ends it immediately with no chance to clean up.
 
 ### Process hierarchy matters
 
@@ -115,13 +116,13 @@ pstree                    # Visual process tree
 pstree -p                 # Include process IDs
 ```
 
-This shows parent-child relationships. Do not assume killing a parent terminates every child: a child can handle the signal, remain alive or be re-parented.
+This shows parent-child relationships. Do not assume killing a parent process also ends its children — a child can catch the signal, keep running, or get re-parented to another process.
 
-For managed applications, prefer the service manager or orchestrator so shutdown and restart policy remain consistent.
+For managed applications, use the service manager or orchestrator instead of killing processes directly, so shutdown and restart behavior stays consistent.
 
 ## 2. Networking: How Your Services Talk
 
-In a microservices world, everything is connected. When networking breaks, everything breaks.
+Services depend on the network to reach each other. When networking breaks, everything built on top of it breaks too.
 
 ### Network interface management
 
@@ -178,7 +179,7 @@ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT  # Allow HTTPS
 
 ## 3. File System Navigation
 
-You'll spend countless hours navigating server file systems. Efficiency here saves hours daily.
+You'll spend a lot of time navigating server filesystems, so knowing these commands well saves real time.
 
 ### Navigation
 
@@ -207,7 +208,7 @@ rm filename                          # Delete file
 rm -rf directory                     # Delete directory and contents (DANGEROUS!)
 ```
 
-**Safety tip:** Always use `ls` to verify what you're about to delete.
+Run `ls` first to confirm exactly what a delete command will affect, before running `rm`.
 
 ### File viewing techniques
 
@@ -278,17 +279,19 @@ sudo usermod -aG application-team username
 sudo userdel --remove username
 ```
 
-Review the distribution's account-management policy before creating or deleting users. `useradd` defaults vary, and removing a home directory can destroy data. Central identity management is preferable at scale.
+Check your distribution's account-management policy before creating or deleting users. `useradd` defaults vary between distributions, and removing a home directory can destroy data. At scale, prefer a central identity system over local accounts.
 
-Important account files are `/etc/passwd`, `/etc/shadow` and `/etc/group`. Password hashes in `/etc/shadow` require privileged access. UID ranges for system and regular users are distribution-configurable; do not assume a universal `0–999` boundary.
+The key account files are `/etc/passwd`, `/etc/shadow` and `/etc/group`. Password hashes live in `/etc/shadow`, which only privileged users can read. UID ranges for system versus regular users are distribution-configurable, so don't assume a universal `0–999` boundary.
 
-Special mode bits are:
+There are also three special permission bits, set as an extra digit before the normal three:
 
-- **setuid (`4000`)**: an executable runs with the file owner's effective identity.
-- **setgid (`2000`)**: an executable uses the file group's effective identity; on a directory, new children inherit its group.
-- **sticky bit (`1000`)**: on a shared directory, deletion/renaming is restricted to appropriate owners or privileged users.
+| Bit | Value | Effect |
+|---|---|---|
+| setuid | `4000` | An executable runs with the file owner's identity, not the identity of whoever ran it. |
+| setgid | `2000` | An executable runs with the file's group identity. On a directory, new files inherit that directory's group. |
+| sticky bit | `1000` | On a shared directory, only a file's owner or a privileged user can delete or rename it. |
 
-Audit these bits carefully because setuid/setgid executables can create privilege-escalation risk.
+Audit these bits carefully. Executables with setuid or setgid set can be used to escalate privileges if misconfigured.
 
 ## 5. File System Usage: Avoiding the Disk Space Disaster
 
@@ -320,7 +323,7 @@ find /tmp -type f -mtime +30              # Files older than 30 days
 
 ## 6. Search and Filter: Finding Needles in Haystacks
 
-Efficient searching separates good DevOps engineers from frustrated ones.
+Being able to search and filter quickly saves real time when you're troubleshooting a production issue.
 
 ### File finding
 
@@ -408,7 +411,7 @@ sudo dnf install podman               # Install container runtime
 sudo dnf search kubernetes            # Search for packages
 ```
 
-**Production tip:** Always run `apt update` before `apt install` to ensure you get the latest package versions.
+Run `apt update` before `apt install` so you install from the current package list rather than a stale cached one.
 
 ## 8. System Configuration: Making Your Environment Work
 
@@ -458,7 +461,7 @@ echo $HOME                            # Home directory
 export APP_ENV="development"
 ```
 
-Environment variables are inherited by child processes and can leak through debugging, crash output, CI logs or process inspection. Do not store long-lived secrets in shell profiles or committed `.env` files; use an approved secret manager and short-lived identity.
+Environment variables pass down to child processes, and they can leak through debugging output, crash reports, CI logs, or process inspection. Don't store long-lived secrets in shell profiles or committed `.env` files. Use an approved secret manager and short-lived credentials instead.
 
 ### Vim essentials
 
@@ -477,7 +480,7 @@ gg / G           first / last line
 0 / $            start / end of line
 ```
 
-Validate a service configuration before reloading it, and preserve a recoverable copy or manage configuration in version control.
+Validate a service's configuration before reloading it. Keep a recoverable copy, or better, manage the configuration in version control.
 
 ### Pipes and redirection
 
@@ -528,7 +531,7 @@ cat /proc/swaps                       # Swap usage details
 free -h                               # Memory and swap summary
 ```
 
-High swap use alone does not prove current memory pressure or a leak. Check swap-in/swap-out activity, available memory, OOM events, page-fault behavior and per-process growth before deciding whether to tune the workload or add RAM.
+High swap usage alone doesn't prove there's memory pressure or a leak. Check swap-in/swap-out activity, available memory, OOM events, page-fault behavior, and per-process growth before deciding whether to tune the workload or add RAM.
 
 ## 10. Service Management: Controlling Your Applications
 
@@ -634,7 +637,7 @@ find /var/log -name "*.log" -size +100M  # Large log files
    find /tmp -name "*.tmp" -type f -delete
    ```
 
-3. **Manage configuration through reviewed version control or configuration management.** Avoid casually initializing a Git repository across `/etc`; it can capture secrets and misleading generated state. Tools such as Ansible or a carefully configured `etckeeper` workflow are safer patterns.
+3. **Manage configuration through reviewed version control or configuration management.** Avoid casually running `git init` across `/etc` — it can capture secrets and misleading generated state. Tools such as Ansible, or a carefully configured `etckeeper` setup, are safer patterns.
 
 4. **Monitor logs in real-time during deployments.**
 

@@ -2,18 +2,22 @@
 
 **Answer:**
 
-It groups alerts from the same incident, deduplicates repeated notifications, routes by labels, inhibits lower-level symptoms when a parent failure is active, and supports silences for maintenance. I use stable team/service/environment/severity labels and design the route tree around ownership.
+Alertmanager cuts noise in a few ways. It groups alerts from the same incident together, deduplicates repeated notifications, routes alerts by their labels, inhibits lower-priority alerts when a parent failure is already firing, and lets you silence alerts during planned maintenance.
 
-I review alerts that never lead to action and remove or demote them rather than merely increasing repeat intervals.
+I use stable labels for team, service, environment, and severity, and I design the routing tree around who actually owns each alert.
+
+I also regularly review alerts that never lead to any action. If an alert doesn't drive a response, I remove it or demote it, rather than just spacing out how often it repeats.
 
 ## 2. How do you integrate Alertmanager with Slack, Teams or PagerDuty securely?
 
 **Answer:**
 
-I configure the receiver and route, but store webhook/API credentials in Kubernetes Secrets or an external manager. Messages contain service, impact, duration, current value, dashboard, runbook and acknowledgement/silence link.
+I set up the receiver and route in Alertmanager, but I never put webhook or API credentials directly in the config file. Those go into Kubernetes Secrets or an external secret manager instead.
 
-Grouping and inhibition prevent a notification storm.
+Each notification includes the service name, the impact, how long it's been happening, the current value, a link to the dashboard, a link to the runbook, and a link to acknowledge or silence the alert.
 
-I inject a non-production test alert and verify the correct receiver, firing and resolved messages, and escalation. Slack/Teams supports collaboration; critical paging also uses PagerDuty or equivalent because chat can be missed.
+Grouping and inhibition stop this from turning into a flood of messages during a big incident.
 
-Credentials are rotated and configuration changes are reviewed.
+To test it, I fire a non-production test alert and check that it reaches the right receiver, that the firing and resolved messages both look correct, and that escalation works as expected. Slack and Teams are good for collaboration, but critical pages also go through PagerDuty or a similar tool, because a chat message can easily be missed.
+
+Credentials get rotated on a regular schedule, and any change to the routing configuration goes through review.

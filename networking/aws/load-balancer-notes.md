@@ -1,13 +1,13 @@
 # AWS Application Load Balancer vs. Network Load Balancer
 
-An Application Load Balancer operates at Layer 7 for HTTP/HTTPS. It understands hosts, paths, headers, methods, redirects, WebSockets, target health, and can integrate with WAF and authentication.
+An Application Load Balancer works at Layer 7, for HTTP/HTTPS. It understands hosts, paths, headers, methods, redirects, and WebSockets, checks target health, and can integrate with WAF and authentication.
 
-I choose it for web applications, APIs, ingress-style routing, and multiple services behind one endpoint.
+I pick it for web applications, APIs, ingress-style routing, and cases where several services sit behind one endpoint.
 
-A Network Load Balancer operates at Layer 4 for TCP, TLS, and UDP. It is designed for very high throughput and low latency, preserves the source IP in supported modes, and provides static IP addresses or Elastic IPs.
+A Network Load Balancer works at Layer 4, for TCP, TLS, and UDP. It's built for very high throughput and low latency, preserves the client's source IP in supported modes, and gives you static IP addresses or Elastic IPs.
 
-I choose it for non-HTTP protocols, static-IP allowlists, or workloads that need Layer-4 behavior.
+I pick it for non-HTTP protocols, when clients need a fixed IP to allow-list, or when a workload specifically needs Layer-4 behavior.
 
-The choice also considers TLS termination location, target type, cross-zone behavior and cost, health checks, idle connections, client IP needs, security groups, private versus internet-facing exposure, logging/metrics, and zonal failure.
+Other things that factor into the choice: where TLS terminates, target type, cross-zone load balancing and its cost, health checks, idle connection timeouts, whether clients need to see the real source IP, security groups, whether the load balancer is internal or internet-facing, logging/metrics, and how it behaves if a zone fails.
 
-For troubleshooting I trace DNS → listener → rule → target group → target health and port → security group/NACL/route → application response, rather than assuming a healthy load-balancer resource means the application is reachable.
+To troubleshoot, I trace the path in order: DNS → listener → rule → target group → target health and port → security group/NACL/route → application response. A healthy load-balancer resource doesn't mean the application behind it is actually reachable.

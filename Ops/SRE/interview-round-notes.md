@@ -4,33 +4,33 @@
 
 ## SRE, Reliability & Incident Management
 
-### 10.1 SRE principles & implementing error budgets
+### 10.1 SRE principles and implementing error budgets
 
-- **SRE** applies software engineering to operations: measure reliability with **SLIs** (e.g. latency, availability), set **SLOs** (targets, e.g. 99.9%), and derive an **error budget** = `100% − SLO` (the allowed unreliability).
-- **Error budget policy:** if the budget is healthy, ship features fast; if it's **exhausted**, freeze risky releases and shift focus to reliability until it recovers. This aligns dev velocity with reliability objectively.
-- **Other principles:** eliminate toil via automation, embrace blameless postmortems, cap toil (~50%), and monitor the **four golden signals** (latency, traffic, errors, saturation (how close a resource is to its limit)).
+- **SRE** applies software-engineering thinking to operations. You measure reliability with **SLIs** (like latency or availability), set a target called an **SLO** (say, 99.9%), and the gap between that and 100% is your **error budget** — the amount of unreliability you're allowed to spend.
+- **Error budget policy:** if the budget is healthy, ship features fast. If it's used up, freeze risky releases and put the focus on reliability until it recovers. This ties feature velocity to reliability in an objective way, instead of an argument.
+- **Other principles:** remove repetitive manual work through automation, run blameless postmortems, keep that manual work under roughly half of everyone's time, and watch the **four golden signals** — latency, traffic, errors, and saturation (how close a resource is to running out of capacity).
 
 ### 10.2 Post-mortem / effective incident review process
 
-- **Blameless:** focus on systems and contributing factors, not individuals.
-- **Structure:** timeline of events, impact (users/duration/SLO), detection, root cause (5 Whys / contributing factors), what went well/poorly, and **actionable follow-ups with owners and due dates**.
-- **Process:** trigger for any significant incident, write it promptly, review with stakeholders, track action items to completion, and share org-wide so others learn. The goal is systemic improvement and preventing recurrence.
+- **Blameless:** focus on the systems and contributing factors, not on blaming a person.
+- **Structure:** a timeline of events, the impact (users affected, duration, SLO impact), how it was detected, the root cause (found through something like the 5 Whys), what went well and what didn't, and concrete follow-ups with an owner and a due date.
+- **Process:** any significant incident triggers one, write it up promptly, review it with stakeholders, track the follow-ups to completion, and share it across the org so others learn from it. The goal is fixing the system, not just this one incident.
 
 ### 10.3 Lead a team through a critical production issue (behavioral — STAR)
 
-Frame with **STAR**: Situation (severe outage), Task (your role, e.g. incident commander), Action (declared incident, set up a war room/bridge, assigned roles — comms, ops, scribe — mitigated first (rollback/failover), communicated status to stakeholders regularly), Result (restored service, RTO met, ran a blameless postmortem, drove fixes).
+Use the **STAR** format: Situation (a severe outage), Task (your role, say incident commander), Action (declared the incident, opened a war room, assigned roles for communication/operations/scribe, mitigated first through rollback or failover, kept stakeholders updated regularly), Result (restored service, met the recovery target, ran a blameless postmortem, and drove the follow-up fixes).
 
-Emphasize calm coordination, clear communication, mitigate-before-diagnose, and follow-through.
+Emphasize staying calm, communicating clearly, fixing the immediate problem before digging into the cause, and following through afterward.
 
-### 10.4 Handle complex/varying-traffic scaling scenarios for K8s
+### 10.4 Handle complex/varying-traffic scaling scenarios for Kubernetes
 
-- Combine **HPA** (per-service, on CPU/RPS/custom metrics via Prometheus Adapter or **KEDA** for event-driven/queue-based scaling), **VPA** for right-sizing, and **Cluster Autoscaler/Karpenter** for nodes.
-- **Predictable peaks:** scheduled scaling/pre-warming; **spiky:** buffer with queues (SQS/Kafka) and KEDA; **bursty node needs:** Karpenter for fast, cost-aware provisioning + spot instances.
-- Set proper requests/limits, PDBs, topology spread, and readiness probes; load-test to validate; watch cost. Different services get different policies based on their traffic shape.
+- Combine the **Horizontal Pod Autoscaler** (per service, on CPU, requests per second, or custom metrics through Prometheus Adapter, or **KEDA** for event/queue-driven scaling), the **Vertical Pod Autoscaler** for right-sizing, and the **Cluster Autoscaler** or **Karpenter** for adding nodes.
+- For **predictable peaks**, use scheduled scaling to pre-warm capacity. For **spiky traffic**, buffer it with queues (SQS/Kafka) plus KEDA. For **sudden node demand**, Karpenter provisions fast and cost-consciously, combined with spot instances.
+- Set real resource requests and limits, PodDisruptionBudgets, topology spread, and readiness probes, then load-test to confirm it all works, and keep an eye on cost. Different services need different scaling policies based on how their traffic actually behaves.
 
 ### 10.5 Experience managing large-scale environments — challenges (behavioral)
 
-Talk about concrete scale (N clusters/services/regions) and challenges: config drift and standardization (solved with IaC + GitOps), observability at scale (cardinality (number of unique label combinations), cost — Thanos/sampling), multi-team coordination and safe rollouts (progressive delivery), cost optimization, on-call/toil reduction, and reliability during upgrades/migrations.
+Talk about the actual scale you worked with (how many clusters, services, or regions) and the real challenges: config drift and standardizing things (solved with IaC and GitOps), observability at scale (too many unique label combinations, and the cost that comes with it — solved with tools like Thanos or sampling), coordinating across teams and rolling out changes safely (progressive delivery), cost optimization, reducing on-call load, and staying reliable through upgrades and migrations.
 
-Pair each challenge with what you did about it.
+For each challenge, be ready to say specifically what you did about it.
 ---

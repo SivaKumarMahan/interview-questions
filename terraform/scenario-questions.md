@@ -426,7 +426,7 @@ resource "aws_security_group_rule" "db_from_app" {
 
 ### Interview answer
 
-"The approach is the same in each cloud, just applied consistently: separate state and identity per cloud, a scheduled drift plan for every stack, the same tagging and policy rules, and read-only console access for normal users. Drift usually appears in whichever cloud has the weakest controls, so the checks have to cover all of them."
+"The approach is the same in each cloud, just applied consistently. That means separate state and identity per cloud, a scheduled drift plan for every stack, the same tagging and policy rules, and read-only console access for normal users. Drift usually appears in whichever cloud has the weakest controls, so the checks have to cover all of them."
 
 ---
 
@@ -597,7 +597,7 @@ module "vpc" {
 
 ### Interview answer
 
-"Scaling is mostly about boundaries. Small state files per component and environment so teams do not queue behind one lock, versioned shared modules so standards are consistent, a pull-request workflow where the plan is reviewed, and one apply job per state. Each environment has its own credentials and approvers, and every stack has a named owner."
+"Scaling is mostly about boundaries. Keep small state files per component and environment, so teams do not queue behind one lock. Use versioned shared modules so standards stay consistent, a pull-request workflow where the plan is reviewed, and one apply job per state. Each environment has its own credentials and approvers, and every stack has a named owner."
 
 ---
 
@@ -1249,7 +1249,7 @@ terraform apply rollback.tfplan
 
 ### Interview answer
 
-"Rollback is reverting the code and applying a new reviewed plan, not restoring an old state file. Because applying old code cannot bring back deleted data or undo a migration, I design for rollback up front: blue-green so it is a traffic switch, backward-compatible migrations, deletion protection, and backups that have actually been restored once in a test."
+"Rollback is reverting the code and applying a new reviewed plan, not restoring an old state file. Applying old code cannot bring back deleted data or undo a migration, so I design for rollback up front. That means blue-green so rollback is just a traffic switch, backward-compatible migrations, deletion protection, and backups that have actually been restored once in a test."
 
 ---
 

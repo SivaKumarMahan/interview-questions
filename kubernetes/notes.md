@@ -4,15 +4,16 @@
 
 **What happens if the master fails:**
 
-- The existing pods running on worker nodes will **continue to run normally**, because worker nodes and their `kubelet` processes keep the containers alive.
-- However, **no new pods can be scheduled** or changes applied, because:
-  - The scheduler is down.
-  - The API server is unreachable.
-  - The control plane cannot make decisions.
+The pods already running on the worker nodes keep running normally. Worker nodes and their `kubelet` processes keep the containers alive on their own.
 
-So your cluster is temporarily **frozen** — workloads keep running, but no management operations work (no deployments, scaling, or restarts if a node crashes).
+But no new pods can be scheduled and no changes can be applied, because:
+- The scheduler is down.
+- The API server is unreachable.
+- The control plane can't make any decisions.
 
-**Preventive measure:** Use a **High Availability (HA) control plane** — multiple master nodes spread across zones (e.g., 3 masters). That way, even if one master fails, the cluster continues to function fully.
+So the cluster is temporarily frozen. Workloads keep running, but nothing management-related works — no deployments, no scaling, no restarts if a node crashes.
+
+The fix is a highly available control plane: run multiple master nodes spread across zones, for example three masters. That way, if one master fails, the cluster keeps working normally.
 
 ---
 
@@ -369,12 +370,12 @@ By systematically going through these steps, I can identify and resolve the issu
 
 ### Q: In K8s, as etcd is a key-value store DB, can we write something manually to it?
 
-Yes, you can write data manually to etcd in Kubernetes, but it is **generally not recommended**.
+Yes, you can write data manually to etcd in Kubernetes, but it's generally not a good idea.
 
-- etcd is the backing store for all cluster data in Kubernetes, and manually modifying its contents can lead to inconsistencies and potential cluster instability.
-- If you do need to interact with etcd directly, you can use the `etcdctl` command-line tool.
-- It is crucial to ensure that you are working with the correct version of `etcdctl` that matches your etcd server version.
-- Before making any changes, it is highly advisable to **back up your etcd data**.
+- etcd is the backing store for all cluster data in Kubernetes. Modifying its contents by hand can leave the cluster inconsistent or unstable.
+- If you do need to interact with etcd directly, use the `etcdctl` command-line tool.
+- Make sure the `etcdctl` version you use matches your etcd server version.
+- Back up your etcd data before making any changes.
 
 Here's a basic example of how to interact with etcd using `etcdctl`:
 
@@ -1072,9 +1073,9 @@ Each StatefulSet pod gets its own PVC with the naming pattern `<claim-name>-<pod
 
 ## Operations, Networking, and Security Notes
 
-- `kubelet` runs on each node and reconciles (makes actual state match desired state) assigned Pod specifications with the container runtime. `kubectl` is the client CLI; it is not a control-plane component. Metrics Server provides resource metrics used by `kubectl top` and commonly by HPA.
-- A Service selects ready Pods by labels. `ClusterIP` is internal, `NodePort` exposes a node port, and a headless Service (`clusterIP: None`) returns Pod endpoints directly—commonly for StatefulSets. Ingress/Gateway resources define HTTP(S) routing, but an installed controller/data plane implements them.
-- Use readiness to control traffic, liveness to restart a stuck container, and startup probes to protect slow-starting applications. Use HPA for horizontal replica scaling; right-size requests/limits and use cluster/node autoscaling separately.
-- For planned node work: `kubectl cordon <node>`, drain with an appropriate PDB-aware command, perform maintenance, then `kubectl uncordon <node>`. Do not use `--ignore-daemonsets` as a substitute for understanding workload disruption.
-- Secure clusters with RBAC, short-lived ServiceAccount/workload identity, NetworkPolicies, Pod Security admission, signed/scanned images, secret-management integration, audit logs, patching and restricted administrative access. `imagePullSecrets` are a fallback for private registries; cloud workload identity/integration is preferred where available.
+- `kubelet` runs on each node. It reconciles the Pod specs assigned to that node with the container runtime — it keeps what's actually running in line with what was requested. `kubectl` is just the client CLI; it is not a control-plane component. Metrics Server supplies the resource metrics behind `kubectl top` and, usually, HPA.
+- A Service selects ready Pods by labels. `ClusterIP` is internal-only. `NodePort` exposes a port on every node. A headless Service (`clusterIP: None`) returns Pod endpoints directly instead of a single virtual IP, which is common for StatefulSets. Ingress and Gateway resources define HTTP(S) routing, but they need an installed controller or data plane to actually implement that routing.
+- Readiness controls whether a Pod receives traffic. Liveness restarts a container that's stuck. Startup probes protect applications that take a while to start. HPA scales the number of replicas horizontally. Size requests and limits properly, and handle node-level (cluster/node) autoscaling as a separate concern.
+- For planned node work, cordon the node with `kubectl cordon <node>`, drain it with a PDB-aware command, do the maintenance, then bring it back with `kubectl uncordon <node>`. Don't reach for `--ignore-daemonsets` as a way to avoid thinking through what the drain will actually disrupt.
+- Secure a cluster with RBAC, short-lived ServiceAccount or workload identity, NetworkPolicies, Pod Security admission, signed and scanned images, a proper secret-management integration, audit logs, regular patching, and restricted administrative access. `imagePullSecrets` are a fallback for private registries — prefer cloud workload identity where it's available.
 - A highly available control plane needs multiple API servers behind a load balancer and an odd-numbered healthy etcd quorum. Worker-node failure causes Pods to be evicted/rescheduled after node-health timeouts; the exact behavior depends on controllers, PDBs, storage and scheduling capacity.

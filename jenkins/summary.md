@@ -1,30 +1,50 @@
 # Jenkins Summary
 
-## Jenkins and Jenkinsfile
+## What Jenkins Is
 
-**Jenkins** is an extensible automation server commonly used for CI/CD. The controller schedules jobs, stores configuration and coordinates agents; agents execute builds.
+Jenkins is an automation server used to build CI/CD pipelines. It has two parts:
 
-A `Jenkinsfile` is version-controlled Groovy pipeline-as-code, normally stored at the repository root so pipeline changes follow review and history.
+- **The controller** schedules jobs, stores configuration, and coordinates agents.
+- **Agents** are the machines or containers that actually run the build steps.
 
-**Declarative Pipeline** is structured and preferred for most use cases; **Scripted Pipeline** is more flexible but easier to make complex. Important Declarative sections include `pipeline`, `agent`, `environment`, `options`, `parameters`, `triggers`, `stages`, `stage`, `steps`, `when`, `tools`, and `post`.
+A `Jenkinsfile` holds the pipeline as code, written in Groovy. It's version-controlled and normally kept at the root of the application repository, so pipeline changes go through the same review and history as any other code change.
 
-Common steps include `checkout`/`git`, `sh`/`bat`, `withCredentials`, `junit`, `archiveArtifacts`, `stash`/`unstash`, and notifications.
+There are two pipeline styles:
 
-## End-to-End Pipeline
+| Style | When to use it |
+| --- | --- |
+| Declarative Pipeline | The default choice. Structured, easier to read, has built-in validation. |
+| Scripted Pipeline | More flexible, but easier to turn into a mess. Use only when Declarative can't do what you need. |
 
-A controlled pipeline checks out the commit, installs locked dependencies, builds, runs unit/integration tests, publishes reports, runs code/dependency/image scans and quality gates, builds and signs an immutable (not changed after creation) artifact, pushes it to a registry, and promotes the same digest.
+The main sections in a Declarative Pipeline are `pipeline`, `agent`, `environment`, `options`, `parameters`, `triggers`, `stages`, `stage`, `steps`, `when`, `tools`, and `post`.
 
-Lower environments deploy automatically; production can require protected approval, health/SLO verification, and rollback.
+Common steps you'll see in almost every pipeline: `checkout`/`git` to pull code, `sh`/`bat` to run shell commands, `withCredentials` to use secrets safely, `junit` to publish test results, `archiveArtifacts` to save build output, `stash`/`unstash` to pass files between stages, and various notification steps.
 
-Shared libraries hold reviewed reusable behavior while the `Jenkinsfile` keeps application intent visible.
+## A Typical End-to-End Pipeline
 
-A CI job can build/test/scan/publish. A separate CD/GitOps flow updates the desired image version in Git; **Argo CD** deploys it to Kubernetes. **Prometheus** and **Grafana** monitor the result and alerts route through the approved notification system.
+A well-built pipeline usually does this, in order:
+
+1. Checks out the exact commit.
+2. Installs dependencies from a lock file, so builds are repeatable.
+3. Builds the application and runs unit and integration tests.
+4. Publishes the test reports.
+5. Runs code quality, dependency, and image scans, and enforces a quality gate.
+6. Builds and signs one artifact. That artifact never changes after it's built — it's built once and reused everywhere.
+7. Pushes it to a registry.
+8. Promotes that exact same artifact through each environment.
+
+Lower environments like dev and staging usually deploy automatically. Production usually needs a protected approval step, health or SLO checks after deploy, and a rollback plan if something goes wrong.
+
+Shared libraries hold reusable, reviewed pipeline logic, so the `Jenkinsfile` itself stays short and easy to read — it shows what the application does, not how every shared step works internally.
+
+A CI job typically builds, tests, scans, and publishes. A separate CD or GitOps flow then updates the desired image version in Git, and Argo CD deploys it to Kubernetes from there. Prometheus and Grafana watch the result, and alerts go out through whatever notification system the team has approved (Slack, email, etc.).
 
 ## Operations and Troubleshooting
 
-Useful concepts include jobs, stages, steps, agents/nodes, workspace, credentials, artifacts, plugins, triggers, webhooks, Poll SCM, cron, post-build actions, backups, and Blue Ocean/other UIs.
+Concepts worth knowing: jobs, stages, steps, agents/nodes, workspace, credentials, artifacts, plugins, triggers, webhooks, Poll SCM, cron, post-build actions, backups, and UIs like Blue Ocean.
 
-Treat plugins and shared libraries as privileged code: pin/test upgrades, restrict administration, use least privilege (only the permissions needed), and back up/configure the controller through code.
-For a failure, inspect the first failed stage and logs, agent health/label, workspace, dependency/tool version, credentials scope, network/registry access, disk/memory/executors, and recent plugin or `Jenkinsfile` change. Use timestamps and preserve test/scan results.
+Treat plugins and shared libraries as privileged code, because they can touch credentials and run on every build. Pin versions, test upgrades before rolling them out, restrict who can administer Jenkins, give every identity only the access it actually needs, and keep the controller's configuration in code so it can be restored.
 
-Cleanup belongs in `post { always { ... } }`; do not expose passwords in Groovy interpolation or logs.
+When something fails, work through this order: find the first stage that failed and read its logs, check the agent's health and label, check the workspace, check dependency and tool versions, check what the credentials are scoped to, check network and registry access, check disk/memory/executor capacity, and look at whatever plugin or `Jenkinsfile` changed most recently. Turn on timestamps in the logs, and keep the test and scan results around for comparison.
+
+Cleanup steps belong in `post { always { ... } }`. Never let a password show up in a Groovy string or in the console log.

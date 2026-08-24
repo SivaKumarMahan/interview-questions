@@ -4,24 +4,25 @@
 
 **Answer:**
 
-On the server I use `sudo ss -lntp '( sport = :443 )'` to see the listening address, port, PID, and process. `127.0.0.1:443` accepts only local traffic, while `0.0.0.0:443` listens on all IPv4 interfaces, subject to firewall rules.
+On the server I run `sudo ss -lntp '( sport = :443 )'` to see the listening address, port, PID, and process. `127.0.0.1:443` only accepts local traffic, while `0.0.0.0:443` listens on every IPv4 interface, subject to the firewall.
 
-I then test each layer: `nc -vz host 443` from the actual client network for TCP, `curl -vk https://host/health` for the application protocol, and `nft list ruleset` or the cloud firewall/security group for filtering.
+Then I test each layer separately: `nc -vz host 443` from the real client network to check the TCP connection, `curl -vk https://host/health` to check the application itself, and `nft list ruleset` or the cloud security group to check filtering.
 
-A listening socket is not proof that the application is healthy, and a failed remote test does not prove the service is down; routing, ACLs, NAT, TLS, or the application can each be the cause.
+A listening socket doesn't prove the application is healthy, and a failed remote test doesn't prove the service is down — routing, ACLs, NAT, TLS, or the application itself could each be the cause.
+
 ---
 
 ### 2. You cannot SSH into a remote machine. How do you debug?
 
 **Answer:**
 
-I use the exact client error to choose the next check. A timeout suggests routing, firewall, or security-group problems; "connection refused" suggests no listener; "permission denied" means authentication reached SSH.
+I let the exact client error guide the next step. A timeout points to routing, a firewall, or a security group. "Connection refused" means nothing is listening. "Permission denied" means the connection reached SSH but authentication failed.
 
-I run `ssh -vvv user@host`, resolve DNS, and test `nc -vz host 22` from the same source network.
+I run `ssh -vvv user@host`, check DNS resolves correctly, and test `nc -vz host 22` from the same network the client is on.
 
-Using console/bastion access, I check `ss -lntp`, `systemctl status sshd`, `sshd -t`, host firewall, disk space, and `/var/log/auth.log` or `/var/log/secure`. For keys I verify the intended user, home/`.ssh` ownership, directory mode `700`, `authorized_keys` mode `600`, and server configuration.
+Using console or bastion access, I check `ss -lntp`, `systemctl status sshd`, `sshd -t`, the host firewall, disk space, and `/var/log/auth.log` or `/var/log/secure`. For key problems I check the intended user, the ownership of the home directory and `.ssh`, that `.ssh` is mode `700`, that `authorized_keys` is mode `600`, and the server's SSH configuration.
 
-I make one controlled correction and retest; I do not weaken authentication or expose port 22 to the whole internet as a shortcut.
+I make one controlled fix at a time and retest. I don't weaken authentication or open port 22 to the whole internet as a shortcut.
 
 ---
 
@@ -29,19 +30,21 @@ I make one controlled correction and retest; I do not weaken authentication or e
 
 **Answer:**
 
-Ping only proves that an ICMP response came back; it does not prove TCP port 22 or SSH authentication works. I compare `getent ahosts hostname` with the expected IP, test both `ssh -vvv user@hostname` and `ssh user@IP`, and use `nc -vz hostname 22`.
+Ping only proves an ICMP reply came back — it doesn't prove TCP port 22 or SSH authentication works. I compare `getent ahosts hostname` against the expected IP, test both `ssh -vvv user@hostname` and `ssh user@IP`, and check `nc -vz hostname 22`.
 
-If IP works but hostname fails, likely causes are a stale/wrong DNS record, IPv6 being selected when only IPv4 works, an SSH `Host` rule in `~/.ssh/config`, or host-key mismatch after an address changed.
+If the IP works but the hostname doesn't, the likely causes are a stale or wrong DNS record, IPv6 being picked when only IPv4 works, an SSH `Host` rule in `~/.ssh/config`, or a host-key mismatch after the address changed.
 
-I correct DNS or client configuration and verify the host key through a trusted source before updating `known_hosts`; I never blindly delete host-key warnings because they can indicate a man-in-the-middle attack.
+I fix the DNS or client config, and I verify the host key through a trusted source before updating `known_hosts`. I never just delete a host-key warning, since it can be a sign of a man-in-the-middle attack.
+
 ---
 
 ### 4. How do you check and configure a static IP address?
 
 **Answer:**
 
-I first capture the current address, interface, gateway, routes, DNS, and whether NetworkManager or Netplan owns the configuration: `ip -br addr`, `ip route`, `resolvectl status`, and `nmcli connection show`. I confirm the proposed IP is reserved and not already in use.
-For NetworkManager, for example:
+I first capture the current address, interface, gateway, routes, DNS, and whether NetworkManager or Netplan owns the config: `ip -br addr`, `ip route`, `resolvectl status`, and `nmcli connection show`. I confirm the new IP is reserved and not already in use.
+
+With NetworkManager, for example:
 
 ```bash
 sudo nmcli con mod "System eth0" ipv4.method manual \
@@ -50,7 +53,7 @@ sudo nmcli con mod "System eth0" ipv4.method manual \
 sudo nmcli con up "System eth0"
 ```
 
-On a remote server I use console access or an automatic rollback because a bad gateway can disconnect me. I then verify the address, route, DNS, gateway, and remote connectivity, and update inventory/DNS documentation.
+On a remote server I use console access or set up an automatic rollback, since a bad gateway can lock me out. Afterward I verify the address, route, DNS, gateway, and remote connectivity, and update the inventory or DNS documentation.
 
 ---
 
@@ -58,13 +61,13 @@ On a remote server I use console access or an automatic rollback because a bad g
 
 **Answer:**
 
-I separate discovery, mount, and permission failures. From the client I verify DNS/routing and `showmount -e server` where supported, then use a verbose temporary mount such as `mount -v -t nfs -o vers=4 server:/export /mnt/test`.
+I treat discovery, mounting, and permissions as three separate things to check. From the client I verify DNS and routing and run `showmount -e server` where it's supported, then try a verbose temporary mount like `mount -v -t nfs -o vers=4 server:/export /mnt/test`.
 
-I check `journalctl -k` and client NFS logs for timeout, access, or protocol errors.
+I check `journalctl -k` and the client's NFS logs for timeout, access, or protocol errors.
 
-On the server I check NFS services, `/etc/exports`, `exportfs -v`, firewall, and that the exported directory exists. If mounting works but access fails, I compare numeric UID/GID, root-squash behavior, ACLs, and SELinux.
+On the server I check the NFS services, `/etc/exports`, `exportfs -v`, the firewall, and that the exported directory actually exists. If the mount works but access fails, I compare the numeric UID/GID on each side, root-squash behavior, ACLs, and SELinux.
 
-I agree on NFS version and safe timeout options, test read/write with the real service account, and only then make the `/etc/fstab` or automount entry persistent.
+I agree on the NFS version and safe timeout options, test reads and writes with the real service account, and only then make the entry in `/etc/fstab` or the automounter permanent.
 
 ---
 
@@ -72,13 +75,14 @@ I agree on NFS version and safe timeout options, test read/write with the real s
 
 **Answer:**
 
-I first define "unreachable": monitoring loss, DNS failure, no ping, SSH timeout, connection refused, or only the application failing. I check scope of impact and recent network, firewall, DNS, OS, or cloud changes, then use provider console/out-of-band access if remote access is unavailable.
-From a known source I verify DNS and IP, route, TCP port, and path using `dig`, `ip route get`, `nc -vz`, `traceroute`/`mtr`, and flow or firewall logs.
+First I pin down what "unreachable" actually means: monitoring lost contact, DNS is failing, ping fails, SSH times out, the connection is refused, or only the application is down. I check how much is affected and whether there was a recent network, firewall, DNS, OS, or cloud change, then use the provider's console or out-of-band access if I can't reach it normally.
 
-On the server I inspect interface/link/address/routes, `ss -lntup`, nftables/iptables/firewalld, SSH/service state, CPU/memory, disk/inodes, kernel logs, failed authentication, and cloud security rules.
+From a known-good location I check DNS and the IP, the route, the TCP port, and the path using `dig`, `ip route get`, `nc -vz`, `traceroute`/`mtr`, and flow or firewall logs.
 
-Ping failure alone is not proof because ICMP may be blocked.
+On the server itself I check the interface, link, address, and routes, `ss -lntup`, the firewall rules (nftables/iptables/firewalld), the SSH/service state, CPU and memory, disk and inodes, kernel logs, failed logins, and cloud security rules.
 
-I restore the narrow failed layer—route, address, firewall rule, service, capacity, or host—through a safe rollback.
+A failed ping alone doesn't prove anything, since ICMP is often blocked anyway.
 
-I verify SSH and the real application from the affected network, remove temporary access, compare monitoring recovery, and prevent recurrence with redundant access, IaC review, configuration rollback, capacity alerts, and tested console procedures.
+I fix the narrow layer that's actually broken — a route, an address, a firewall rule, a service, capacity, or the host — using a safe rollback where possible.
+
+Then I verify SSH and the real application work from the affected network, remove any temporary access I opened, confirm monitoring recovers, and prevent it happening again with redundant access paths, infrastructure-as-code review, configuration rollback, capacity alerts, and a tested console procedure.

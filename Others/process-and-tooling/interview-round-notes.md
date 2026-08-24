@@ -6,14 +6,14 @@
 
 ### 13.1 Chaos engineering — what it is and using it in production
 
-- **Chaos engineering** = deliberately injecting failures (kill pods, add latency, drop network, exhaust CPU, simulate AZ loss) to **prove resilience** and find weaknesses **before** real outages do.
-- **Practice:** form a hypothesis ("system stays healthy if we kill an AZ"), define a **steady-state metric**, run the experiment starting in **staging**, limit the **scope of impact**, monitor, and roll back automatically if things degrade. Tools: **Chaos Mesh, LitmusChaos, Gremlin, AWS FIS**.
-- **In production:** run carefully with small scope of impact, off-peak, strong observability, an abort switch, and stakeholder awareness — GameDays. Goal is confidence in real-world resilience.
+- **Chaos engineering** means deliberately injecting failures — killing pods, adding latency, dropping network traffic, exhausting CPU, simulating the loss of a whole availability zone — to prove the system is resilient and find weaknesses before a real outage does.
+- **Practice:** form a hypothesis (like "the system stays healthy if we lose an AZ"), define a metric for normal, healthy behavior, run the experiment starting in staging, keep the blast radius small, monitor closely, and roll back automatically if things get worse. Tools: Chaos Mesh, LitmusChaos, Gremlin, AWS FIS.
+- **In production:** run it carefully — small blast radius, off-peak hours, strong observability, an abort switch, and stakeholders who know it's happening (GameDays). The goal is real confidence in how the system holds up.
 
 ### 13.2 Managing ServiceNow tasks — how do you prioritize?
 
-Prioritize by **impact × urgency** (ServiceNow's priority matrix), SLA deadlines, and business criticality: production-impacting incidents (P1/P2) first, then SLA-breach-risk items, then routine changes/requests.
+Prioritize by impact times urgency (ServiceNow's priority matrix), SLA deadlines, and business criticality: production-impacting incidents (P1/P2) first, then anything at risk of breaching its SLA, then routine changes and requests.
 
-I triage the queue, acknowledge and communicate ETAs, group similar tasks, escalate blockers, follow change-management for prod changes, and document resolutions.
+I triage the queue, acknowledge tasks and communicate realistic ETAs, group similar tasks together, escalate blockers, follow change-management for production changes, and document how each one was resolved.
 
-Balance firefighting with reducing recurring tickets through automation.
+I try to balance firefighting with actually reducing the recurring tickets through automation.

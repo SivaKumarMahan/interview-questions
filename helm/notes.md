@@ -45,7 +45,7 @@ To deploy Helm charts, you can use the following commands:
 5. `helm repo update`: This command updates the local cache of chart repositories.
 6. `helm list`: This command lists all the deployed Helm releases in the cluster.
 
-Helm uses Kubernetes Deployment's rolling update strategy. When you upgrade a Helm release, it triggers a rolling update of pods with new configurations/images — old pods are terminated only after new ones become Ready, ensuring zero downtime.
+Helm relies on the Kubernetes Deployment's own rolling update strategy. When you upgrade a release, Kubernetes rolls out the new pods and only terminates the old ones once the new ones are Ready — so there's no downtime in between.
 
 ---
 
@@ -53,12 +53,12 @@ Helm uses Kubernetes Deployment's rolling update strategy. When you upgrade a He
 
 ### 1. Full-stack To-Do application
 
-- Containerize frontend and backend separately and publish immutable (not changed after creation) image digests to Azure Container Registry.
-- Use one reusable chart or clearly separated charts for Deployments, Services, ConfigMaps, external secrets, probes, resources, and Ingress.
-- Keep Dev, QA, and Production values separate while reusing the same chart version.
-- Validate with `helm lint`, `helm template`, and a server-side dry run before `helm upgrade --install`.
-- Use `--atomic --wait --timeout 5m`, then verify rollout status and a business-level smoke test.
-- Roll back to a known Helm revision only after checking whether database or external dependency changes are backward-compatible.
+- Containerize the frontend and backend separately, and publish each one to Azure Container Registry under a fixed image digest that never changes.
+- Use one reusable chart, or a small number of clearly separated charts, for Deployments, Services, ConfigMaps, external secrets, probes, resource limits, and Ingress.
+- Keep Dev, QA, and Production values separate, while reusing the same chart version across all of them.
+- Validate with `helm lint`, `helm template`, and a server-side dry run before running `helm upgrade --install`.
+- Use `--atomic --wait --timeout 5m`, then check the rollout status and run a business-level smoke test.
+- Roll back to a known Helm revision only after checking that any database or external dependency changes are backward-compatible with it.
 
 ### 2. Node.js To-Do application
 
@@ -72,9 +72,9 @@ PersistentVolume backup, plugin/version pinning, credentials, security context, 
 
 ### 4. Helmfile
 
-Helmfile declaratively coordinates multiple Helm releases and environment values. I use it when several related releases must be installed in a known order, while still pinning chart versions, separating secrets, reviewing rendered changes, and verifying each release.
+Helmfile coordinates multiple Helm releases and their environment values declaratively. I use it when several related releases need to be installed in a known order, while still pinning chart versions, keeping secrets separate, reviewing rendered changes, and verifying each release.
 
-For Kubernetes desired-state reconciliation (making actual state match desired state) across clusters, Argo CD or Flux may be a better GitOps control plane.
+For keeping a cluster's actual state continuously matched to its desired state across many clusters, a GitOps tool like Argo CD or Flux is often a better fit than running Helmfile by hand.
 
 ---
 

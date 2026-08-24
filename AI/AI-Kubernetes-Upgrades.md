@@ -491,7 +491,7 @@ Kubernetes downgrades are not generally something I assume is safe. On managed p
 | Operator version unknown | Classify support as unknown/high risk based on criticality |
 | Vendor matrix unavailable | Do not let the model assume compatibility |
 | Release-note retrieval incomplete | Block final approval or lower confidence below policy threshold |
-| CRD owner cannot be identified | Report unknown reconciliation (making actual state match desired state) risk |
+| CRD owner cannot be identified | Report unknown reconciliation risk |
 | Webhook endpoint is unhealthy | Flag possible API-write/deployment failure |
 | AI output is invalid | Fail report generation safely; preserve collected evidence |
 | Cluster changes during scan | Record timestamps/resource versions and warn about snapshot inconsistency |
@@ -551,7 +551,7 @@ The strongest validation is a representative staging or cloned environment. I ru
 - assessment duration compared with manual review
 - fix completion before upgrade
 - upgrade success without unplanned outage or data loss
-- post-upgrade error, latency and reconciliation (making actual state match desired state) health
+- post-upgrade error, latency and reconciliation health
 - number of rollbacks or emergency fixes
 - repeatability of assessment results from the same evidence snapshot
 
@@ -575,7 +575,7 @@ I require owner confirmation and test evidence. Until then, compatibility remain
 
 ### Upgrade risk is phase-specific
 
-Each finding states whether failure occurs during control-plane upgrade, node drain, node startup, first workload restart, first API write or first controller reconciliation (making actual state match desired state).
+Each finding states whether failure occurs during control-plane upgrade, node drain, node startup, first workload restart, first API write or first controller reconciliation.
 
 ### A numeric score can create false confidence
 

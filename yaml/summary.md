@@ -2,13 +2,13 @@
 
 YAML (YAML Ain't Markup Language) is the backbone of modern DevOps tooling — Kubernetes, Docker, GitHub Actions, and more.
 
-It is a human-readable data serialization language that, unlike JSON or XML, prioritizes readability with a clean, minimal syntax that relies on indentation for structure (similar to Python), while remaining machine-parsable.
+It is a human-readable data format. Unlike JSON or XML, it favors a clean, minimal syntax that uses indentation for structure, much like Python does. It still stays fully machine-parsable.
 
 ## The Basic Building Blocks
 
 ### 1. Key-value pairs
 
-The simplest YAML structure is a key-value pair — a label (key) and its associated information (value):
+The simplest YAML structure is a key-value pair: a label, then its value.
 
 ```yaml
 name: John Smith
@@ -150,9 +150,20 @@ hobby_tracker:
 
 ## Important Syntax Rules
 
+Here is a quick reference before the details below:
+
+| Rule | What it means |
+| --- | --- |
+| Indentation | Use spaces, not tabs. Indentation shows structure. |
+| Colon + space | Always put a space after the colon in `key: value`. |
+| Quotes | Quote strings with special characters like `:` or `#`. |
+| `\|` block | Keeps line breaks as-is. |
+| `>` block | Folds line breaks into spaces. |
+| Comments | Start with `#`. |
+
 ### 1. Indentation matters
 
-YAML uses indentation (spaces, not tabs) to denote structure. Consistent indentation is crucial:
+YAML uses indentation to show structure — spaces only, never tabs. Keeping that indentation consistent matters a lot:
 
 ```yaml
 correct:
@@ -257,7 +268,7 @@ user:
  age: 30  # Incorrect indentation level
 ```
 
-Always use consistent indentation (usually 2 spaces).
+Stick to consistent indentation — 2 spaces is the usual convention.
 
 ### 2. Missing spaces after colons
 
@@ -408,4 +419,4 @@ with open('data.json', 'r') as json_file:
 
 ## Conclusion
 
-YAML's simplicity and readability make it ideal for configuration files and data serialization. Understanding its structure and syntax through everyday examples applies directly to modern DevOps tools like Kubernetes, Docker, GitHub Actions, and many more.
+YAML is simple and readable, which is why it's everywhere in configuration files and data formats. The structure and syntax rules above are the same ones you'll use directly in Kubernetes, Docker, GitHub Actions, and most other modern DevOps tools.

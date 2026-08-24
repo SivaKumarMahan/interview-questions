@@ -9,10 +9,10 @@ checkout → unit tests → SonarQube analysis → quality gate
 
 Required setup:
 
-- Configure the SonarQube server and token in Jenkins; keep the token in Credentials, not the repository.
-- Install/configure the SonarQube Scanner and notification integration, or call notification webhooks through protected credentials.
-- Install a pinned Trivy version in the agent image rather than downloading an unverified binary during every build.
-- Agree on quality-gate and vulnerability policy, including severity, fix availability, expiry for exceptions, and report retention.
+- Configure the SonarQube server and token in Jenkins. Keep the token in Credentials, not the repository.
+- Install and configure the SonarQube Scanner and notification integration, or call notification webhooks through protected credentials.
+- Install a pinned Trivy version in the agent image, rather than downloading an unverified binary on every build.
+- Agree on a quality-gate and vulnerability policy up front. Cover severity, fix availability, how long exceptions last, and how long reports are kept.
 
 Example pipeline stages:
 
@@ -84,4 +84,6 @@ pipeline {
 }
 ```
 
-Unlike the original draft, Trivy returns a failing exit code for policy violations, secrets are not embedded in the Jenkinsfile, and publication happens only after both gates pass. In production I also generate an SBOM, sign the image digest, archive access-controlled reports, and verify the signature at deployment.
+Unlike the original draft, Trivy now returns a failing exit code for policy violations. Secrets are no longer embedded in the Jenkinsfile. Publication only happens after both the quality gate and the scan pass.
+
+In production I also generate an SBOM (a software bill of materials — a list of what's inside the image), sign the image digest, archive access-controlled reports, and verify the signature at deployment.

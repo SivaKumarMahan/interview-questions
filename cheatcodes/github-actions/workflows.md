@@ -38,7 +38,7 @@ jobs:
           path: target/surefire-reports/
 ```
 
-For production, pin third-party actions to reviewed commit SHAs. Add a separate image job with OIDC-based registry/cloud login, build an immutable (not changed after creation) digest, and deploy through a protected environment or GitOps update.
+For production, pin third-party actions to reviewed commit SHAs. Add a separate image job with OIDC-based registry/cloud login, build a digest that never changes after it's built, and deploy through a protected environment or GitOps update.
 
 Never run privileged deployment steps for untrusted fork code.
 

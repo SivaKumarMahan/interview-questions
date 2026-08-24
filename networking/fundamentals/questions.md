@@ -4,36 +4,38 @@
 
 **Answer:**
 
-The browser parses the URL, checks browser/OS caches and resolves the hostname through the configured resolver. It opens a TCP connection (or QUIC for HTTP/3), performs TLS certificate validation for HTTPS, then sends an HTTP request.
+The browser parses the URL, checks its own and the OS's caches, and resolves the hostname through the configured DNS resolver. It opens a TCP connection (or a QUIC connection for HTTP/3), validates the TLS certificate for HTTPS, then sends the HTTP request.
 
-DNS/CDN/WAF/load balancer/reverse proxy may route it to an application, which can call caches, databases and other services before a response returns. The browser validates response security policy, fetches referenced resources and renders the page.
+Along the way, DNS, a CDN, a WAF, a load balancer, or a reverse proxy may route the request to an application. That application may call caches, databases, and other services before it sends back a response. The browser then checks the response's security policy, fetches any resources it references, and renders the page.
 
-In troubleshooting I measure each boundary—DNS, connect, TLS, time to first byte and asset loading—rather than assuming “the website” is one step.
+When I troubleshoot this, I measure each step separately — DNS, connect, TLS, time to first byte, and asset loading — rather than treating "the website" as one single step.
 
 ## 2. TCP versus UDP: when would you use each?
 
 **Answer:**
 
-TCP is connection-oriented and provides ordered, reliable byte delivery with congestion and flow control; it is the normal choice for HTTP/1.1, HTTP/2, SSH and database protocols.
+TCP is connection-oriented. It delivers data in order and reliably, and manages congestion and flow control itself. It's the normal choice for HTTP/1.1, HTTP/2, SSH, and database protocols.
 
-UDP is connectionless and has lower protocol overhead but leaves reliability, ordering and congestion behavior to the application; it suits DNS, voice/video, gaming and QUIC/HTTP/3.
+UDP is connectionless and has less overhead, but it leaves reliability, ordering, and congestion handling up to the application. That makes it a good fit for DNS, voice/video, gaming, and QUIC/HTTP/3.
 
-UDP is not inherently faster for an application that must rebuild reliability poorly. I choose based on delivery semantics, latency tolerance, network conditions and operational support.
+UDP isn't automatically faster — if an application has to rebuild reliability on top of it and does a poor job, it can end up slower. I choose based on what delivery guarantees are needed, how much latency the use case can tolerate, network conditions, and what the team can actually operate.
 
 ## 3. What is the usual DNS resolution order?
 
 **Answer:**
 
-The application/browser may check its own cache, then the operating-system cache and local mappings such as `/etc/hosts` (exact order is controlled by `nsswitch.conf` on Linux), then query configured recursive resolvers.
+The application or browser may check its own cache first, then the OS cache and local entries like `/etc/hosts` (the exact order is controlled by `nsswitch.conf` on Linux), before it queries the configured recursive resolver.
 
-The resolver checks its cache and, on a miss, walks root, TLD and authoritative servers or uses forwarders.
+The resolver checks its own cache, and on a miss, walks from the root servers to the TLD servers to the authoritative server — or it hands the query off to a forwarder.
 
-TTL controls caching, and split-horizon DNS can intentionally return different answers inside and outside a network. I verify with `getent hosts`, `dig`, resolver configuration, TTL and the exact client network.
+TTL controls how long an answer gets cached, and split-horizon DNS can intentionally return different answers depending on whether you're inside or outside a network. I verify all this with `getent hosts`, `dig`, the resolver configuration, TTL values, and by checking exactly which client network I'm testing from.
 
 ## 4. Forward proxy versus reverse proxy: what is the difference?
 
 **Answer:**
 
-A forward proxy represents clients to the internet, commonly for controlled egress, filtering, authentication and caching; a client is configured to use it. A reverse proxy represents servers to clients, terminating TLS, routing, load balancing, caching and applying WAF/rate limits in front of applications.
+A forward proxy sits in front of clients and represents them to the internet — commonly used for controlled egress, filtering, authentication, and caching. The client is explicitly configured to use it.
 
-They can both proxy HTTP, but their trust boundary and ownership differ. I preserve client identity safely using trusted forwarding headers and configure TLS, timeouts and logs deliberately.
+A reverse proxy sits in front of servers and represents them to clients. It terminates TLS, routes requests, load-balances, caches, and can apply a WAF or rate limits in front of the application.
+
+Both can proxy HTTP, but they sit on opposite sides of the trust boundary and are owned by different parties. I preserve the real client's identity safely, using trusted forwarding headers, and set TLS, timeouts, and logging deliberately rather than by default.

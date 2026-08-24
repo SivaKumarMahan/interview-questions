@@ -2,17 +2,24 @@
 
 **Answer:**
 
-Dynatrace, Datadog and New Relic are commercial observability platforms offering varying combinations of agents, APM, infrastructure, logs, traces, topology, user experience and automated analysis. OpenTelemetry is an open instrumentation and collection standard, not a complete storage/analysis UI by itself.
-I select from runtime/cloud/Kubernetes coverage, trace quality, profiling and RUM/synthetics, integrations, data residency, access, sampling/retention, operational effort and cost. A pilot uses a real service and incident query.
+Dynatrace, Datadog, and New Relic are commercial observability platforms. Each combines agents, APM, infrastructure monitoring, logs, traces, topology maps, user-experience data, and automated analysis, in different mixes.
 
-Vendor automation assists investigation but changes require evidence and safe approval controls.
+OpenTelemetry is different. It's an open standard for instrumenting code and collecting telemetry data, not a complete product for storing and analyzing it. You still need a backend to send that data to.
+
+When choosing between them, I look at runtime, cloud, and Kubernetes coverage, trace quality, profiling, real-user and synthetic monitoring, integrations, data residency, access control, sampling and retention limits, operational effort, and cost. I run a pilot against a real service and a real incident query before deciding.
+
+These tools' built-in automation can point toward a likely cause, but any actual change still needs evidence and a safe approval process. I don't let a vendor's suggestion skip review.
 
 ## 2. How do you use APM to find a latency regression?
 
 **Answer:**
 
-I mark the deployment, compare request percentiles and errors by version, select representative slow traces, and split time among gateway, service code, database/cache/queue/external dependencies.
+First, I mark the deployment time in the APM tool. Then I compare request latency percentiles and error rates before and after that point, split out by version.
 
-I inspect runtime saturation (how close a resource is to its limit) and logs for the same trace ID, compare healthy traffic, and mitigate the proven bottleneck through rollback, capacity or a targeted fix.
+I pick a few representative slow traces and break down where the time is actually going: gateway, service code, database, cache, queue, or an external dependency.
 
-I validate the original user transaction and add a regression test or SLO alert.
+I check whether the runtime is running close to a resource limit, like CPU, memory, threads, or a connection pool, and pull logs for the same trace ID. I compare all of this against healthy traffic to confirm where the real difference is.
+
+Once I've proven the bottleneck, I fix it: a rollback, added capacity, or a targeted code fix.
+
+Finally, I re-check the original slow user transaction to confirm it's actually fixed, and I add a regression test or an SLO alert so it doesn't slip through unnoticed next time.

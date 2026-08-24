@@ -1,13 +1,36 @@
 # Netdata Summary
 
-**Netdata** is a real-time infrastructure monitoring platform centered on the **Netdata Agent**. The Agent automatically collects high-frequency system and application metrics through collectors, stores recent data locally according to configuration, displays dashboards and evaluates health alerts.
+## What Netdata Is
 
-It is useful for rapid host/container troubleshooting and can complement Prometheus, cloud-native monitoring data or a larger observability platform.
+Netdata is a real-time infrastructure monitoring platform built around the **Netdata Agent**. The Agent runs on a host, automatically finds collectors, gathers high-frequency system and application metrics, stores recent data locally, shows dashboards and evaluates health alerts.
 
-For multiple systems, **Child Agents** can stream metrics to one or more **Parent Agents** for centralized retention, dashboards and alert processing. Production architecture must size Parent storage and ingestion, protect streaming credentials, use TLS and restrict access.
+It's a good fit for fast host and container troubleshooting. It can run alongside Prometheus, cloud-native monitoring, or a larger observability platform instead of replacing them.
 
-The Agent's local web/API and streaming service use configurable networking; port `19999` is the documented default, but it should not be exposed broadly to the internet.
+## Parent-Child Architecture
 
-Monitor CPU, load, memory, swap, disks, filesystems, network, processes, containers and supported applications. Validate collector status and chart dimensions, alert route and resolution, retention, clock and parent/child connectivity.
+For more than a handful of systems, **Child Agents** stream their metrics to one or more **Parent Agents**. The Parent centralizes retention, dashboards and alert processing so you don't have to check every node separately.
 
-An attractive dashboard is not enough: alerts require owners/runbooks and user-facing service SLIs still need application or synthetic instrumentation.
+When you rely on this for production, plan for:
+
+- Sizing Parent storage and ingestion capacity for the number of nodes and metrics involved.
+- Protecting streaming credentials and using TLS between Children and Parents.
+- Restricting access to the Parent, and having a recovery plan if it goes down.
+- Testing what happens when a Child loses its connection and reconnects.
+
+## Security and Networking
+
+The Agent's local web UI, API and streaming service all use configurable networking. Port `19999` is the documented default, but it should never be exposed broadly to the internet — put it behind authentication and a secured proxy, or restrict it to a private management path.
+
+## What to Monitor
+
+| Area | What to check |
+|---|---|
+| Host resources | CPU, load, memory, swap, disks, filesystems, network |
+| Workloads | Processes, containers, supported applications |
+| Netdata itself | Collector status, chart dimensions, clock accuracy |
+| Alerting | Alert routing, resolution, and who owns each alert |
+| Parent-Child | Retention limits and parent/child connectivity |
+
+## Where It Fits
+
+A good-looking dashboard isn't the whole job. Alerts still need an owner and a runbook, and user-facing service SLIs still need application or synthetic instrumentation on top of what Netdata collects. Netdata is strongest for fast infrastructure visibility; it's not a replacement for defining what "healthy" means for your actual service.

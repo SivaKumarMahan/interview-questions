@@ -2,70 +2,77 @@
 
 **Answer:**
 
-I separate source collection, authentication/authorization, S3 policy, encryption, and object-upload behavior. First I confirm the log agent/process is reading the correct path, has permission on the files, is not stuck behind a lock or full spool disk, and is producing current errors.
+I break the problem into pieces: is the log agent reading files correctly, is it authenticated, does it have permission on the bucket, and is the upload itself actually succeeding?
 
-I test the same configured AWS identity with `aws sts get-caller-identity` and a small upload to the exact bucket and prefix without printing credentials.
+First I check the log agent. Is it reading the right path? Does it have permission on the files? Is it stuck behind a lock or a full spool disk? Are there any recent errors in its own logs?
 
-Common causes include an expired/static credential, wrong instance profile or region, missing `s3:PutObject`, an explicit deny in bucket policy/SCP/permissions boundary, required object tags or ACL conditions, KMS key policy missing `kms:Encrypt`/`GenerateDataKey`, Object Lock, wrong prefix, clock skew, multipart-upload failure, or storage-class/lifecycle expectations.
+Next I test the AWS identity directly. I run `aws sts get-caller-identity`, then try a small test upload to the exact bucket and prefix, without printing the credentials.
 
-CloudTrail data events and S3 server-side evidence show whether AWS received and denied a request.
-I correct the narrow policy, key permission, agent configuration, disk/spool, or file ownership issue and verify a new object, encryption, metadata, and downstream consumption.
+Common causes I look for: an expired or wrong credential, the wrong instance profile or region, a missing `s3:PutObject` permission, an explicit deny somewhere (bucket policy, SCP, or permissions boundary), a required object tag or ACL condition, a KMS key policy that's missing `kms:Encrypt` or `kms:GenerateDataKey`, Object Lock, a wrong prefix, clock skew, a failed multipart upload, or a storage-class/lifecycle rule getting in the way.
 
-I prefer an instance role with least privilege (only the permissions needed), agent health/backlog metrics, dead-letter/spool limits, and alerts on upload age and errors.
+CloudTrail data events and S3's own server-side logs show whether AWS actually received the request and denied it, or never saw it at all.
+
+Once I find the real cause, I fix that one thing — the policy, the key permission, the agent config, the disk space, or file ownership — and then confirm a new object actually lands, with the right encryption and metadata, and that downstream systems pick it up.
+
+Going forward, I use an instance role that only has the permissions it needs, watch agent health and backlog metrics, set limits on any dead-letter or spool queue, and alert if uploads get too old or start failing.
 
 ## 2. How do you create an AWS Lambda function and publish its artifact safely?
 
 **Answer:**
 
-I define Lambda, execution role, log group, event source, networking, environment references, timeout, memory, concurrency, alarms, and permissions through Terraform, CloudFormation/SAM, CDK, or another reviewed IaC workflow.
+I define everything as code — the Lambda function, execution role, log group, event source, networking, environment variables, timeout, memory, concurrency, and alarms — using Terraform, CloudFormation/SAM, CDK, or a similar reviewed workflow.
 
-The execution role gets only the API actions and resource ARNs required; deployment identity and runtime identity are separate.
-CI installs locked dependencies, runs unit/security tests, creates a predictable ZIP or container image, generates an SBOM, scans it, calculates a digest, and stores it in a versioned artifact bucket or ECR.
+The execution role only gets the specific API actions and resource ARNs it needs. The identity used to deploy is kept separate from the identity the function runs as.
 
-Deployment references that immutable (not changed after creation) version/digest, publishes a Lambda version, and moves an alias gradually using weighted traffic.
+CI installs locked dependencies, runs unit and security tests, builds a predictable ZIP or container image, generates an SBOM, scans it, calculates a digest, and stores it in a versioned artifact bucket or ECR.
 
-Secrets are fetched through a secret manager and identity, not embedded in ZIP files or environment plaintext.
+Deployment then references that exact version or digest — it's immutable, meaning it never changes once it's created. It publishes a new Lambda version and shifts an alias over to it gradually, using weighted traffic.
 
-I validate invocation, logs/traces, error/throttle/duration, dependency access, retries, DLQ/destination, and idempotency (safe repeat behavior). Rollback moves the alias to the last healthy version.
+Secrets come from a secrets manager at runtime, through the function's identity. They're never embedded in the ZIP file or left in plaintext environment variables.
 
-Artifact retention, signatures/provenance (where an artifact came from and how it was built), code signing where required, and reserved concurrency protect the release.
+I check that invocations work, look at logs and traces, and watch error rate, throttling, and duration. I also confirm dependency access, retries, the DLQ or destination, and that the function is idempotent — safe to run more than once without side effects. If something's wrong, rollback just moves the alias back to the last healthy version.
+
+Keeping artifact history, recording provenance (where the artifact came from and how it was built), signing code where required, and reserving concurrency all help protect the release.
 
 ## 3. What do you use AWS CloudWatch and CloudTrail for in production?
 
 **Answer:**
 
-CloudWatch is operational monitoring data: AWS service and custom metrics, logs, dashboards, alarms, traces, synthetic checks, and event-driven actions.
+CloudWatch is where operational monitoring data lives: AWS service metrics, custom metrics, logs, dashboards, alarms, traces, synthetic checks, and event-driven actions.
 
-I use it for EC2/container resource and application signals, Lambda errors/duration/throttling, load-balancer status and latency, queue depth/age, log queries, SLO dashboards, and actionable alarms routed through SNS or incident tooling.
-CloudTrail records AWS API activity: who or which role called an action, when, from where, against which resource, and whether it succeeded.
+I use it to watch EC2 and container resource usage, application signals, Lambda errors/duration/throttling, load balancer status and latency, and queue depth and age, and to run log queries. I build SLO dashboards and route alarms through SNS or incident tooling so they actually get acted on.
 
-I centralize organization trails in a protected security account, enable appropriate management and selected data events, encrypt and retain logs, and alert on high-risk actions such as policy changes, trail disabling, public exposure, key changes, or unusual role assumptions.
-For an incident I compare a CloudWatch symptom with deployment/config events and CloudTrail API evidence. Neither tool replaces application tracing or all OS metrics, and CloudTrail is an audit source rather than a real-time performance monitor.
+CloudTrail records AWS API activity — who or which role called an action, when, from where, against which resource, and whether it succeeded.
+
+I centralize the organization's trails in a protected security account, turn on the right management and data events, encrypt and retain the logs, and alert on high-risk actions: policy changes, a trail getting disabled, public exposure, key changes, or an unusual role assumption.
+
+During an incident I compare what CloudWatch shows against deployment or config changes and CloudTrail's API evidence. Neither tool replaces application tracing or full OS-level metrics. CloudTrail is an audit trail, not a real-time performance monitor.
 
 ## 4. An EC2 instance reaches 100% CPU. How do you investigate and recover it?
 
 **Answer:**
 
-I confirm duration, customer impact, instance status checks, load, recent deploys, autoscaling activity, and whether a burstable instance exhausted CPU credits.
+First I check how long this has been happening, whether customers are actually affected, the instance status checks, the current load, any recent deploys, autoscaling activity, and — if it's a burstable (T-series) instance — whether it has run out of CPU credits.
 
-From SSM/console or SSH I use `uptime`, `top`, `ps`, `pidstat`, and application/runtime metrics to identify user CPU, system CPU, steal time, I/O wait, a runaway process, garbage collection, traffic spike, cron job, agent, or possible compromise.
-I stabilize safely by shifting traffic, scaling out, rate-limiting, stopping a proven nonessential runaway job, or rolling back a bad release. I do not reboot first unless the host is unrecoverable because that destroys useful process evidence and may only move load elsewhere.
+Then I connect through SSM or SSH and run `uptime`, `top`, `ps`, and `pidstat`, along with application metrics, to figure out what's actually using the CPU: user time, system time, steal time, I/O wait, a runaway process, garbage collection, a traffic spike, a cron job, an agent, or possibly a compromise.
 
-Security signs lead to isolation and incident response rather than simple restart.
+To stabilize things, I shift traffic away, scale out, rate-limit, stop a runaway process I've confirmed is safe to stop, or roll back a bad release. I avoid rebooting first unless the host is truly unrecoverable — a reboot destroys the evidence I need and often just moves the problem elsewhere.
 
-The permanent fix may be application profiling, query/cache improvement, resource limits, corrected scheduled work, autoscaling on useful demand signals, a suitable instance family, or capacity planning.
+If there's any sign of compromise, I isolate the host and start incident response instead of just restarting it.
 
-I verify latency/error and CPU recover under load and add alerts for saturation (how close a resource is to its limit), credits, queueing, and scaling failure.
+The real fix might be profiling the application, improving a query or cache, setting resource limits, fixing a scheduled job, autoscaling on a better signal, choosing a different instance type, or general capacity planning.
+
+Afterward I confirm latency, errors, and CPU actually recover under real load, and I add alerts for saturation — how close the resource is to its limit — plus credit exhaustion, queueing, and scaling failures.
 
 ## 5. How do EC2, EKS, ECS, and databases fit together, and how do you interact with an ECS service?
 
 **Answer:**
 
-EC2 provides virtual machines and can back self-managed applications, ECS container instances, or EKS worker nodes. ECS is AWS container orchestration; EKS provides a managed Kubernetes control plane.
+EC2 gives you virtual machines. Those machines can run your own applications directly, act as ECS container instances, or serve as EKS worker nodes. ECS is AWS's own container orchestrator. EKS gives you a managed Kubernetes control plane instead.
 
-Databases such as RDS normally live in private subnets and accept traffic only from the exact application security group on the database port. Load balancers expose selected services; IAM roles for tasks or service accounts provide workload identity.
+Databases like RDS usually live in private subnets. They only accept traffic from the specific application security group, on the database port. Load balancers expose the services you actually want reachable. IAM roles for tasks, or for service accounts in EKS, give each workload its own identity.
 
-For ECS I use the AWS CLI/API rather than “logging into ECS”:
+For ECS, I use the AWS CLI or API — there's no concept of "logging into ECS":
 
 ```bash
 aws ecs list-clusters
@@ -75,154 +82,154 @@ aws ecs execute-command --cluster production --task <task-id> \
   --container payments --interactive --command '/bin/sh'
 ```
 
-ECS Exec requires SSM integration, IAM authorization, logging, and a running supported task. I prefer logs/metrics over interactive access and never open a database publicly.
+ECS Exec needs SSM integration, IAM authorization, and logging set up, and it only works against a running, supported task. I'd rather rely on logs and metrics than interactive access, and I never expose a database directly to the public internet.
 
-I validate DNS, security-group references, TLS, credentials, connection pools, health checks, and failure behavior across AZs.
+I check DNS, security group references, TLS, credentials, connection pools, health checks, and how things fail across AZs.
 
 ## 6. Design a secure, scalable, highly available AWS architecture for a global SaaS product and explain regional failover.
 
 **Answer:**
 
-I begin with tenancy, data classification/residency, traffic, SLO, RTO/RPO, consistency, and compliance. Route 53 or Global Accelerator directs users to regional CloudFront/WAF and load-balancer/API endpoints.
+I start by understanding the tenancy model, data classification and residency requirements, expected traffic, SLOs, recovery targets (RTO/RPO), consistency needs, and compliance rules. Route 53 or Global Accelerator sends users to the nearest region's CloudFront, WAF, and load balancer or API endpoints.
 
-Each region has multiple AZs, private application subnets, autoscaled ECS/EKS/compute, controlled egress, workload identity, KMS encryption, centralized logs/security findings, and no public databases.
+Each region gets multiple AZs, private application subnets, autoscaled compute on ECS or EKS, controlled outbound traffic, its own workload identity, KMS encryption, centralized logs and security findings, and no databases exposed publicly.
 
-Tenant isolation is enforced in identity, authorization, data keys/partitions, quotas, and audit—not only network boundaries.
+Tenant isolation isn't just network boundaries — it's enforced in identity, authorization, data keys or partitions, quotas, and audit logging too.
 
-Data architecture determines failover. DynamoDB Global Tables or a supported multi-region datastore can provide active-active behavior; relational systems may use cross-region replicas with one write region.
+How you handle data decides how failover works. DynamoDB Global Tables, or another datastore built for multiple regions, can give you active-active behavior. Relational databases usually use cross-region replicas with a single write region instead.
 
-Object data uses replication where RPO requires it. Infrastructure and policy are reproducible from versioned IaC, secrets and certificates exist independently in each region, and dependencies have regional capacity.
+Object storage gets replicated wherever the recovery point objective requires it. Infrastructure and policy come from versioned infrastructure-as-code so they're reproducible. Secrets and certificates exist independently in each region, and dependencies have enough capacity in each region too.
 
-During an outage I declare the incident, stop risky deployments, confirm the failure and replication lag, promote or fence data according to the runbook, scale the recovery region, verify internal transactions, then shift weighted traffic gradually. Preventing split brain is more important than a fast DNS change.
+During an actual outage: declare the incident, stop any risky deployments, confirm the failure and check replication lag, promote or fence the data according to the runbook, scale up the recovery region, verify transactions are working internally, then shift traffic over gradually using weighted routing. Avoiding a split-brain situation matters more than failing over quickly.
 
-I monitor errors, latency, data correctness, queues, and business outcomes, retain rollback criteria, and reconcile (make actual state match desired state) data before failing back. Regular game days prove actual RTO/RPO.
+Afterward I watch errors, latency, data correctness, queue depth, and business metrics. I keep clear rollback criteria, and before failing back I reconcile — make actual state match desired state — the data. Regular game days are how you prove your real RTO and RPO, not just the numbers on paper.
 
 ## 7. What does email signing mean, and how would you implement it for an AWS-hosted email service?
 
 **Answer:**
 
-For internet email, signing normally means DKIM: the sending service signs selected headers/body with a domain private key, and recipients verify it using a public key published in DNS.
+For email, signing usually means DKIM. The sending service signs selected headers and the body with a private key tied to the domain, and recipients verify that signature using a public key published in DNS.
 
-With Amazon SES I verify the domain, enable Easy DKIM or bring an approved key, publish the provided CNAME/TXT records, and wait for verified status.
+With Amazon SES, I verify the domain, turn on Easy DKIM (or bring my own approved key), publish the CNAME/TXT records SES gives me, and wait for the domain to show as verified.
 
-The private signing material remains managed/protected; applications do not embed it.
+The private signing key stays managed and protected — applications never embed it directly.
 
-I also configure SPF to authorize sending infrastructure and DMARC to define alignment, reporting, and policy. DMARC is introduced with monitoring (`p=none`), analysis of legitimate senders, then isolate/reject when alignment is proven.
+I also set up SPF to say which infrastructure is allowed to send mail, and DMARC to define alignment, reporting, and what happens when a message fails. I roll DMARC out carefully: start in monitor-only mode (`p=none`), review the reports to make sure legitimate senders pass, then move to quarantine or reject once I'm confident.
 
-A custom MAIL FROM domain, bounce/complaint handling, suppression lists, least-privilege (minimum required access) SES identity, TLS, quotas, and CloudWatch/SNS events protect delivery reputation.
+A custom MAIL FROM domain, proper bounce and complaint handling, suppression lists, an SES identity with only the permissions it needs, TLS, sending quotas, and CloudWatch/SNS events all help protect the sending reputation.
 
-I test DKIM/SPF/DMARC headers with real recipients, key rotation, subdomain ownership, and failure behavior. Email signing proves domain authorization and message integrity; it does not encrypt the email content—S/MIME or PGP addresses end-to-end message signing/encryption where required.
+I test the DKIM/SPF/DMARC headers against real recipients, plan for key rotation, confirm subdomain ownership, and check how things behave on failure. Signing proves the domain sent the message and that it wasn't altered — it doesn't encrypt the content. For that you'd need S/MIME or PGP.
 
 ## 8. What is Amazon S3, and which storage classes would you choose?
 
 **Answer:**
 
-S3 is highly durable object storage: applications store objects in buckets using keys, policies, encryption and lifecycle rules.
+S3 is highly durable object storage. Applications store objects in buckets, identified by keys, and you control them with policies, encryption, and lifecycle rules.
 
-I choose Standard for frequent access; Intelligent-Tiering for uncertain patterns; Standard-IA or One Zone-IA for infrequent/re-creatable data; and Glacier Instant Retrieval, Flexible Retrieval or Deep Archive for increasingly cold archives.
+For storage class, I pick Standard for data accessed often, Intelligent-Tiering when access patterns are unpredictable, Standard-IA or One Zone-IA for infrequently accessed or easily re-creatable data, and Glacier Instant Retrieval, Flexible Retrieval, or Deep Archive as you go further into cold archival storage.
 
-I account for retrieval, minimum-duration and availability trade-offs, and use lifecycle rules rather than manually moving objects. Versioning, block-public-access, KMS where required, least-privilege (minimum required access) bucket policies and restore testing are baseline controls.
+I weigh retrieval time, minimum storage duration, and availability trade-offs, and I use lifecycle rules to move objects automatically instead of doing it by hand. Versioning, blocking public access, KMS encryption where required, bucket policies scoped to only what's needed, and regularly testing restores are the baseline controls I'd expect.
 
 ## 9. What is the difference between a security group and a network ACL?
 
 **Answer:**
 
-A security group is a stateful, allow-only virtual firewall attached to an ENI/resource; return traffic is automatically allowed and rules can reference another security group.
+A security group is a stateful, allow-only firewall attached to a resource's network interface. Return traffic is automatically allowed, and rules can reference another security group.
 
-A network ACL is a stateless subnet boundary with ordered allow and deny rules; both inbound and outbound return traffic must be allowed explicitly.
+A network ACL is a stateless boundary at the subnet level. It has ordered allow and deny rules, and you have to explicitly allow both inbound and outbound return traffic.
 
-I use security groups for the normal least-privilege (minimum required access) application path and NACLs for coarse subnet guardrails or explicit deny requirements. I troubleshoot by checking route tables, both directions, ephemeral ports and the actual ENI/subnet—not by opening `0.0.0.0/0`.
+I use security groups for the normal application traffic path, scoped to only what's needed, and NACLs for coarse subnet-level guardrails or when I need an explicit deny. When troubleshooting, I check route tables, both directions of traffic, ephemeral ports, and the actual network interface or subnet involved — not just open everything up with `0.0.0.0/0`.
 
 ## 10. IAM role versus IAM user: when do you use each?
 
 **Answer:**
 
-An IAM role supplies temporary credentials to a workload or a federated human identity and can be assumed with narrowly scoped permissions. An IAM user is a long-lived AWS principal; it is a legacy fit only for exceptional cases where federation or roles cannot be used.
+An IAM role hands out temporary credentials to a workload, or to a federated human identity, and it can be assumed with narrowly scoped permissions. An IAM user is a long-lived AWS identity — it's really a legacy option now, only for the rare case where federation or roles genuinely don't work.
 
-I use roles for EC2, Lambda, ECS/EKS workloads, CI and human access through SSO, with MFA and least privilege (only the permissions needed). I avoid static access keys, rotate any unavoidable key, and review CloudTrail evidence and permission boundaries/SCPs.
+I use roles for EC2, Lambda, ECS/EKS workloads, CI, and human access through SSO. I require MFA and give every role only the permissions it needs. I avoid static access keys, rotate any I can't avoid, and review CloudTrail logs along with permission boundaries and SCPs.
 
 ## 11. How do you back up and restore an EC2 workload?
 
 **Answer:**
 
-I make the application recoverable rather than treating a running instance as the only copy. Infrastructure is recreated from IaC; data is backed up from the database/application and EBS volumes use scheduled, encrypted snapshots with retention and cross-account/region copies when required.
+I make sure the application can be recovered — I don't treat a single running instance as the only copy of anything. Infrastructure gets rebuilt from infrastructure-as-code. Data gets backed up at the database or application level. EBS volumes get scheduled, encrypted snapshots, with retention rules and cross-account or cross-region copies when needed.
 
-An AMI can preserve a tested machine image but is not a substitute for application-consistent data backups. A restore runbook launches or rebuilds the instance, restores data, validates security/DNS/secrets and proves the application transaction.
+An AMI can preserve a tested machine image, but it's not a substitute for backing up application data properly. A restore runbook launches or rebuilds the instance, restores the data, checks security settings, DNS, and secrets, and confirms the application actually works end to end.
 
-I regularly test restores against stated RTO/RPO.
+I test restores regularly against the recovery time and recovery point targets we've agreed on.
 
 ## 12. EBS versus S3: when would you use each?
 
 **Answer:**
 
-EBS is low-latency block storage attached to an EC2 instance in one Availability Zone; it suits filesystems, boot volumes and databases that need block semantics. S3 is regional object storage accessed through its API; it suits backups, static assets, logs, data lakes and artifacts.
+EBS is low-latency block storage attached to a single EC2 instance in one Availability Zone. It's a good fit for filesystems, boot volumes, and databases that need block-level access. S3 is regional object storage you access through an API — good for backups, static assets, logs, data lakes, and build artifacts.
 
-EBS is not a shared object store, and S3 is not a mounted POSIX disk by default. I choose based on access semantics, latency, sharing, durability, lifecycle and recovery needs.
+EBS isn't a shared object store, and S3 isn't a mounted filesystem by default. The choice comes down to how the data is accessed, latency needs, whether it needs to be shared, durability, lifecycle management, and how you'd recover it.
 
 ## 13. What is a NAT Gateway, and where is it deployed?
 
 **Answer:**
 
-A NAT Gateway lets private-subnet workloads initiate outbound IPv4 connections without accepting unsolicited inbound internet traffic. It is deployed in a public subnet with an Elastic IP and a route to an Internet Gateway; private subnet route tables send `0.0.0.0/0` to the NAT Gateway.
+A NAT Gateway lets workloads in a private subnet make outbound IPv4 connections without accepting unsolicited traffic from the internet. It sits in a public subnet with an Elastic IP and a route to an Internet Gateway. Private subnet route tables send `0.0.0.0/0` traffic to it.
 
-For resilience, I deploy one per Availability Zone and route each private subnet to its local NAT Gateway. I use VPC endpoints for AWS services such as S3 where possible to reduce cost and internet dependency.
+For resilience, I deploy one NAT Gateway per Availability Zone, and route each private subnet to the NAT Gateway in its own zone. Where possible, I use VPC endpoints for AWS services like S3 instead, to cut cost and reduce the dependency on internet access altogether.
 
 ## 14. What is API Gateway, and when would you use it?
 
 **Answer:**
 
-API Gateway is a managed API front door that can expose REST, HTTP or WebSocket APIs and route them to Lambda, AWS services, VPC backends or other HTTP endpoints. It can provide authentication/authorization, throttling, request validation/transformation, custom domains, stages, logging and metrics.
+API Gateway is a managed front door for APIs. It can expose REST, HTTP, or WebSocket APIs and route them to Lambda, other AWS services, VPC backends, or plain HTTP endpoints. It handles authentication and authorization, throttling, request validation and transformation, custom domains, stages, logging, and metrics.
 
-I use it when those managed API capabilities fit the service boundary; an ALB or direct service endpoint can be simpler for an internal or conventional web workload.
+I reach for it when those managed features actually add value. For a simple internal service or a conventional web app, an ALB or a direct endpoint can be simpler.
 
-I configure least-privilege (minimum required access) backend permissions, WAF/auth as required, quotas/rate limits, observability and explicit timeout/error behavior.
+I scope backend permissions down to only what's needed, add WAF or auth where required, set quotas and rate limits, and make sure timeouts and error behavior are explicit and observable.
 
 ## 15. Explain a CloudFront + S3 + API Gateway + Lambda request flow.
 
 **Answer:**
 
-CloudFront is the public edge entry point. It serves cacheable static paths from an S3 origin—normally protected by Origin Access Control so the bucket is not public—and forwards dynamic API paths to API Gateway.
+CloudFront is the public entry point. It serves cacheable static content from an S3 origin — normally locked down with Origin Access Control so the bucket itself isn't public — and forwards dynamic API requests on to API Gateway.
 
-API Gateway authenticates/authorizes and validates the request, then invokes Lambda with a resource policy/role that permits only that invocation.
+API Gateway authenticates and authorizes the request, validates it, then invokes Lambda using a resource policy or role that only allows that one invocation.
 
-Lambda executes business logic and reads dependent services with its own least-privilege (minimum required access) role; the response returns through API Gateway and CloudFront, subject to caching rules.
+Lambda runs the business logic and reaches dependent services using its own role, scoped to only what it needs. The response travels back through API Gateway and CloudFront, subject to caching rules.
 
-I add TLS/custom domain, WAF, logs/traces, cache invalidation/versioned assets, error handling, throttling and alarms at each boundary.
+At each boundary I add TLS and a custom domain, WAF, logs and traces, cache invalidation or versioned assets, error handling, throttling, and alarms.
 
 ## 16. What is AWS Lambda, and where is it a good fit?
 
 **Answer:**
 
-Lambda runs short-lived, event-driven code without managing servers. It is well suited to API handlers, scheduled work, object/queue/event processing and automation that can be stateless, idempotent (safe to run more than once) and limited by Lambda execution limits.
+Lambda runs short-lived, event-driven code without you managing any servers. It's a good fit for API handlers, scheduled jobs, processing objects, queues, or events, and automation — as long as the work can be stateless and idempotent, and it fits within Lambda's execution limits.
 
-I set memory/timeout/concurrency intentionally, use an execution role with minimum permissions, keep dependencies small, store secrets externally, and monitor errors, duration, throttles, retries and DLQ/destinations.
+I set memory, timeout, and concurrency deliberately, give the execution role only the permissions it needs, keep dependencies small, store secrets outside the function, and monitor errors, duration, throttles, retries, and the DLQ or destination.
 
-For long-running, highly connection-heavy or specialized-runtime workloads, containers or compute services may be a better fit.
+For long-running work, workloads that hold many connections, or anything needing a specialized runtime, containers or another compute service are usually a better fit.
 
 ## 17. How do you grant an application access to an S3 bucket safely?
 
 **Answer:**
 
-I attach a least-privilege (minimum required access) IAM role to the workload (EC2 instance profile, ECS task role, Lambda execution role or EKS workload identity), then allow only the required actions and prefix—for example `s3:GetObject` on `arn:aws:s3:::reports-bucket/approved/*` and `s3:ListBucket` constrained by `s3:prefix`.
+I attach an IAM role to the workload — an EC2 instance profile, ECS task role, Lambda execution role, or EKS workload identity — and give it only the actions and prefix it actually needs. For example, `s3:GetObject` on `arn:aws:s3:::reports-bucket/approved/*`, and `s3:ListBucket` restricted by `s3:prefix`.
 
-Bucket policy, IAM policy, permission boundary, SCP, VPC endpoint policy and KMS key policy must all permit the access; an explicit deny wins.
+The bucket policy, IAM policy, permission boundary, SCP, VPC endpoint policy, and KMS key policy all have to allow the access — and an explicit deny anywhere wins over all of them.
 
-I keep Block Public Access enabled unless there is a deliberate public-content design, require TLS/encryption, audit CloudTrail data events as appropriate and test both an allowed and denied operation.
+I keep Block Public Access turned on unless there's a deliberate reason to serve public content, require TLS and encryption, audit CloudTrail data events where it matters, and test both an allowed operation and a denied one to make sure the policy actually works as intended.
 
 ## 18. What is the difference between an ALB and an NLB?
 
 **Answer:**
 
-An Application Load Balancer is Layer 7: it understands HTTP/HTTPS and can route by host, path, header or method, terminate TLS and integrate with web-oriented controls. A Network Load Balancer is Layer 4: it forwards TCP/UDP/TLS with very high performance and static IP options, but has less HTTP awareness.
+An Application Load Balancer works at Layer 7 — it understands HTTP/HTTPS and can route by host, path, header, or method, terminate TLS, and integrate with web-focused controls. A Network Load Balancer works at Layer 4 — it forwards TCP/UDP/TLS with very high performance and static IP support, but doesn't understand HTTP.
 
-I choose ALB for web applications and APIs; NLB for non-HTTP protocols, low-latency TCP/UDP, preserved client addressing or static-IP requirements. Both still require healthy targets, timeouts, security groups where applicable, observability and multi-AZ design.
+I use an ALB for web applications and APIs, and an NLB for non-HTTP protocols, very low-latency TCP/UDP, when I need to preserve the client's IP address, or when I need a static IP. Either way, you still need healthy targets, sensible timeouts, security groups where relevant, observability, and a design that spans multiple AZs.
 
 ## 19. How do Route 53 routing policies reduce latency or improve availability?
 
 **Answer:**
 
-Latency-based routing directs DNS answers toward the lowest-latency healthy AWS region; weighted routing supports gradual traffic shifts; failover routing provides active-passive recovery; geolocation/geoproximity supports location or residency needs; multivalue answers return several healthy records; and simple routing is a basic single-record choice.
+Latency-based routing sends users to whichever healthy AWS region responds fastest. Weighted routing lets you shift traffic gradually. Failover routing gives you active-passive recovery. Geolocation or geoproximity routing handles location or data-residency needs. Multivalue answers return several healthy records at once. Simple routing is just a single record with no logic.
 
-I choose the policy from the traffic, data-consistency and failover design, configure health checks where needed, keep TTLs realistic and test recovery.
+I pick the policy based on the traffic pattern, how consistent the data needs to be, and the failover design. I set up health checks where they're needed, keep TTLs realistic, and actually test that failover works.
 
-DNS routing alone does not replicate data or prevent split brain.
+DNS routing on its own doesn't replicate data, and it doesn't prevent a split-brain situation.

@@ -2,15 +2,15 @@
 
 ## List and Tuple
 
-Both lists and tuples are ordered collections that can contain mixed object types. Their main difference is mutability.
+Lists and tuples are both ordered collections, and both can hold mixed types. The main difference between them is whether you can change them after creation.
 
 | List | Tuple |
 |---|---|
-| Mutable: items can be added, removed, or replaced | Immutable: item references cannot be replaced after creation |
+| Mutable: items can be added, removed, or replaced | Immutable: once created, its items can't be swapped out |
 | Written with `[]` | Usually written with `()` |
-| Provides mutating methods such as `append()`, `extend()` and `remove()` | Has fewer methods because it cannot be modified in place |
-| Suitable for a collection that changes | Suitable for a fixed record or an interface that should not change |
-| Not hashable | Can be hashable when all contained values are hashable |
+| Has mutating methods such as `append()`, `extend()`, and `remove()` | Has fewer methods, since there's nothing to mutate |
+| Good for a collection that changes over time | Good for a fixed record, or an interface that shouldn't change |
+| Not hashable | Can be hashable, if everything inside it is hashable too |
 
 ```python
 topics = ["Python", "Linux", "Kubernetes"]
@@ -22,11 +22,11 @@ print(topics)
 print(coordinates)
 ```
 
-Immutability applies to the tuple's item references, not necessarily to every object inside it. A tuple can contain a list, and that nested list can still change.
+Being "immutable" only applies to the tuple's own slots. It doesn't reach inside. A tuple can hold a list, and that list can still be changed freely.
 
 ## The `__init__()` Method
 
-`__init__()` is an instance initializer that runs after Python creates a new object. It assigns initial instance state and should return `None`. Interview answers often call it a constructor, although object creation itself is performed by `__new__()`.
+`__init__()` runs right after Python creates a new object, and its job is to set up the object's starting state. It should always return `None`. People often call it "the constructor" in interviews, though technically it's `__new__()` that creates the object — `__init__()` just initializes it.
 
 ```python
 class Book:
@@ -45,7 +45,7 @@ Here, `self` refers to the newly created instance. Each `Book` object receives i
 
 ## Decorators
 
-A decorator accepts a function or class and returns a replacement or enhanced callable. The `@decorator` syntax applies it without changing the decorated function's body. Common uses include logging, timing, authentication, authorization, caching and retries.
+A decorator takes a function or class and returns something that either replaces it or adds behavior on top of it. The `@decorator` syntax applies it without touching the original function's body. Common uses are logging, timing, authentication, authorization, caching, and retries.
 
 ```python
 from collections.abc import Callable
@@ -72,11 +72,11 @@ def say_hello(name: str) -> str:
 print(say_hello("Momen"))
 ```
 
-`functools.wraps()` preserves metadata such as the original function name and documentation. The wrapper accepts `*args` and `**kwargs` so it can forward different call signatures.
+`functools.wraps()` keeps the original function's name and docstring attached to the wrapper, which makes debugging easier. The wrapper takes `*args` and `**kwargs` so it can forward calls no matter what arguments the original function expects.
 
 ## Missing Values in pandas
 
-Use `isna()` or its alias `isnull()` to identify missing values. Calling `sum()` counts them per column because `True` is treated as `1`.
+`isna()` (or its alias `isnull()`) flags missing values. Calling `sum()` on top of that counts them per column, since Python treats `True` as `1`.
 
 ```python
 import numpy as np
@@ -94,22 +94,22 @@ print(frame.isna().sum())
 print(frame.isna().mean().mul(100).round(2))  # missing percentage
 ```
 
-Detection is only the first step. Treatment depends on what the missing value means:
+Finding the missing values is only step one. What you do about them depends on what "missing" actually means here:
 
-- Use `dropna()` only when removing rows or columns will not bias the result.
-- Use `fillna()` with a justified constant or statistic for simple imputation.
-- For time series, forward/backward filling is valid only when the domain supports it.
-- Add a missing-value indicator when absence itself carries information.
-- Fit imputation rules on training data and apply the same rules to validation/test data to avoid leakage.
-- Validate data types and distinguish `NaN`, `None`, empty strings and invalid sentinel values.
+- Use `dropna()` only when dropping those rows or columns won't skew the result.
+- Use `fillna()` with a constant or a statistic you can justify, for simple cases.
+- For time series, forward- or backward-filling only makes sense if the domain actually supports it.
+- Add a missing-value flag when the fact that something is missing is itself useful information.
+- Learn the imputation rule from the training data only, then apply that same rule to validation and test data — otherwise you leak information across the split.
+- Tell apart `NaN`, `None`, empty strings, and placeholder values — they aren't always the same kind of "missing."
 
 ## Instance, Class and Static Methods
 
 | Method type | Declaration | First argument | Typical purpose |
 |---|---|---|---|
-| Instance method | Normal `def` in a class | `self` | Read or modify one object's state; can also access class state |
-| Class method | `@classmethod` | `cls` | Read or modify class state; commonly used as an alternative constructor |
-| Static method | `@staticmethod` | None supplied automatically | Utility logically related to the class but independent of instance/class state |
+| Instance method | Normal `def` in a class | `self` | Read or change one object's state; can also reach class state |
+| Class method | `@classmethod` | `cls` | Read or change class-level state; often used as an alternate constructor |
+| Static method | `@staticmethod` | None supplied automatically | A utility that's related to the class but doesn't need instance or class state |
 
 ```python
 class Deployment:
@@ -131,11 +131,11 @@ class Deployment:
         return replicas > 0
 ```
 
-A static method is not forbidden from reading global data, but it receives neither `self` nor `cls` automatically. If behavior needs object or class state, use the corresponding method type.
+A static method can still read global data if it needs to — nothing stops it. It just doesn't get `self` or `cls` handed to it automatically. If the logic actually needs object or class state, use the method type that gets it.
 
 ## Inheritance
 
-Inheritance lets a child class reuse and specialize behavior from a parent class. It supports polymorphism, but composition is often clearer when the relationship is not genuinely “is-a.”
+Inheritance lets a child class reuse and specialize behavior from a parent class, and it's what makes polymorphism work. That said, composition is often the clearer choice when the relationship isn't a genuine "is-a" one.
 
 ```python
 class Notifier:
@@ -151,13 +151,13 @@ class TeamsNotifier(Notifier):
         print(f"Sending to {self.channel}: {message}")
 ```
 
-A child can override inherited methods. Use `super()` when the parent implementation also needs to run, particularly when extending `__init__()`. Avoid deep inheritance trees and test overridden behavior.
+A child class can override any inherited method. Use `super()` when the parent's version still needs to run too, especially when extending `__init__()`. Keep inheritance trees shallow, and test overridden behavior directly.
 
 ## Better Logging in Python with Loguru
 
-When talking about logging, **log level** is an important term — levels act as a severity scale for your messages. Assigning different levels makes it easier to focus on critical issues while reducing noise from less important events during troubleshooting or monitoring.
+A **log level** is a severity label attached to each message. Assigning levels lets you focus on the messages that matter and filter out the noise while troubleshooting or monitoring.
 
-Python's built-in `logging` module comes with `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`. Loguru adds two more: `TRACE` and `SUCCESS`.
+Python's built-in `logging` module ships with `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`. Loguru adds two more: `TRACE` and `SUCCESS`.
 
 ## Log Levels (in order of increasing priority)
 
@@ -197,11 +197,11 @@ The default output format is:
 date | level | file location: scope: line number - message
 ```
 
-The `trace` output is not printed by default because the default log level for Loguru is `DEBUG`.
+The `trace` line above won't print by default, because Loguru's default level is `DEBUG`.
 
 ## Changing the default log level
 
-Use the logger's `add()` function to change the default log level and update the log formatting.
+Use the logger's `add()` function to set a different default log level and update the formatting at the same time.
 
 ```python
 import sys
@@ -213,7 +213,7 @@ logger.trace("Hi, This is Akhilesh Mishra")
 
 ## Changing the formatting
 
-Unlike Python's built-in `logging` module, you can add a handler, update formatting, and change the log level in a single line with `add()`.
+Unlike the built-in `logging` module, Loguru lets you add a handler, set the format, and set the log level all in one call to `add()`.
 
 ```python
 import sys
@@ -229,7 +229,7 @@ logger.success(" logger.add()")
 
 ## Pretty logging with colors
 
-Change the color of output messages using an HTML-like syntax:
+Set colors for your log output using an HTML-like syntax:
 
 ```python
 logger.remove()
@@ -260,7 +260,7 @@ See the [Loguru date/time formatting reference](https://loguru.readthedocs.io/en
 
 ## Sending logs to a file
 
-Loguru sends logs to the console by default, but you can configure it to send logs to a file:
+Loguru sends logs to the console by default, but you can point it at a file instead:
 
 ```python
 logger.add("log_file_demo.log")
@@ -280,7 +280,7 @@ logger.success(" will send logs to the file")
 
 ### Rotation, retention, and compression
 
-Loguru allows you to rotate, retain, and compress logs with time and size filters:
+Loguru can rotate, clean up, and compress log files based on time or size:
 
 ```python
 logger.add("log_rotate.log", rotation="500 MB")   # Automatically rotate a too-big file
@@ -294,7 +294,7 @@ logger.add("log_retention2.log", compression="zip")   # Save some space
 
 ### JSON logging
 
-Loguru supports logging in JSON format with the `serialize=True` option:
+Loguru can write logs in JSON format with the `serialize=True` option:
 
 ```python
 import sys
@@ -312,7 +312,7 @@ logger.success("I know you started liking loguru")
 
 ## Adding context to log messages
 
-To add extra information to a log message for context, use the `bind()` method. Add the `{extra}` directive to your `add()` format to include custom entries in the output.
+To attach extra context to a log message, use `bind()`. Add the `{extra}` placeholder to your `add()` format so those custom fields actually show up in the output.
 
 ```python
 import sys
@@ -334,7 +334,7 @@ context_logger = logger.bind(author="Akhilesh", type="demo")
 context_logger.info("You can pass context with logs!")
 ```
 
-You can further customize the context:
+You can add more context on top of that:
 
 ```python
 # Bind additional context to the logger and log a warning message
@@ -350,7 +350,7 @@ context_logger.success(
 
 ### Temporary context with `contextualize()`
 
-Use the Python context manager to modify a context-local state temporarily:
+Use this context manager to set context that only applies for the duration of the `with` block:
 
 ```python
 import sys
@@ -386,7 +386,7 @@ logger.bind(special=True).info("This message, though, is logged to the file!")
 
 ### Attach dynamic values with `patch()`
 
-The `patch()` method allows dynamic values to be attached to each new message:
+`patch()` lets you attach a computed value to every message as it's logged:
 
 ```python
 import sys
@@ -402,7 +402,7 @@ logger.info("using patch method from loguru")
 
 ## Creating custom log levels
 
-Loguru allows you to create your own log level with the `level()` function:
+Loguru lets you define your own log level with `level()`:
 
 ```python
 import sys
@@ -421,7 +421,7 @@ logger.log("Nedium", "I like having optional log levels")
 
 ## Logging exceptions
 
-Logging exceptions is crucial for tracking bugs, but it's not helpful if you don't know the cause. Loguru shows the entire stack trace, including variable values, so you can identify the problem.
+Logging exceptions matters for tracking down bugs, but it's only useful if you can actually see what caused the problem. Loguru prints the full stack trace, including variable values, so the cause is easier to spot.
 
 ```python
 from loguru import logger
@@ -460,7 +460,7 @@ def func(a, b):
 func(5, 0)
 ```
 
-By default `logger.catch()` logs at the `ERROR` level, but you can customize it to use a different level.
+By default, `logger.catch()` logs at the `ERROR` level, but you can point it at a different level instead.
 
 ## Official References
 

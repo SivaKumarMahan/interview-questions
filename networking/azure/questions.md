@@ -4,13 +4,13 @@
 
 **Answer:**
 
-A VNet is an isolated Azure IP network containing address space and subnets. Resources communicate through system/custom routes, NSGs, peering, gateways, private endpoints, load balancers, and DNS.
+A VNet is an isolated network in Azure, with its own address space and subnets. Resources inside it talk to each other and to the outside world through routes, NSGs, peering, gateways, private endpoints, load balancers, and DNS.
 
-I plan non-overlapping CIDRs with future growth, separate workload/security tiers, control routes and egress, and integrate on-premises through VPN/ExpressRoute. Peering provides connectivity but is not transitive by default.
+I plan non-overlapping address ranges with room to grow, keep workload and security tiers separate, control routing and egress, and connect on-premises networks through VPN or ExpressRoute. Peering gives connectivity between two VNets, but it isn't transitive by default — a third VNet peered to one of them isn't automatically reachable.
 
-For failure I check DNS, effective routes, effective NSGs, firewall/NVA, peering/gateway status, service firewall, and application port. Network Watcher connection troubleshoot and flow logs locate the deny path.
+When something's broken, I check DNS, effective routes, effective NSG rules, any firewall/NVA, peering/gateway status, service firewalls, and the application port. Network Watcher's connection troubleshoot tool and flow logs help pinpoint exactly where traffic is being dropped.
 
-I validate both allowed and denied flows after IaC changes.
+After any IaC change, I confirm both the traffic that should get through and the traffic that should be blocked behave as expected.
 
 ---
 
@@ -18,13 +18,13 @@ I validate both allowed and denied flows after IaC changes.
 
 **Answer:**
 
-Application Gateway is a regional Layer-7 HTTP/HTTPS load balancer. It provides host/path routing, TLS termination or end-to-end TLS, health probes, session affinity, redirects, autoscaling, and optional Web Application Firewall.
+Application Gateway is a regional Layer-7 load balancer for HTTP/HTTPS. It handles host/path routing, TLS termination (or end-to-end TLS), health probes, session affinity, redirects, autoscaling, and can add a Web Application Firewall.
 
-**Flow:** client → frontend IP/listener → routing rule → backend pool/HTTP setting → healthy backend. WAF policies inspect requests using managed/custom rules.
+**Flow:** client → frontend IP/listener → routing rule → backend pool/HTTP setting → healthy backend. WAF policies inspect requests using managed or custom rules.
 
-For 502/503 I check backend health reason, DNS/IP, probe path/status, host header, certificate trust, port/protocol, NSG/routes, and backend readiness. I compare access/performance/firewall logs.
+For a 502/503, I check the backend's health-check failure reason, DNS/IP, probe path/status, host header, certificate trust, port/protocol, NSG/routes, and whether the backend is actually ready. I compare access, performance, and firewall logs to narrow it down.
 
-After correction I test TLS, routing paths, health, latency, and WAF behavior without disabling protection broadly.
+Once fixed, I test TLS, the routing paths, health checks, and latency, and confirm WAF is still doing its job — I don't disable protection broadly just to get things working again.
 
 ---
 
@@ -32,13 +32,13 @@ After correction I test TLS, routing paths, health, latency, and WAF behavior wi
 
 **Answer:**
 
-Azure DNS hosts public DNS zones/records; Azure Private DNS provides internal resolution for VNets and private endpoints. DNS hosting does not register a domain automatically.
+Azure DNS hosts public DNS zones and records. Azure Private DNS handles internal resolution for VNets and private endpoints. Hosting DNS for a domain doesn't register that domain for you.
 
-I delegate public zones through registrar NS records, manage records via IaC, use sensible TTLs, and protect change permissions. Private zones link to required VNets and use records/zone groups for private endpoints.
+I delegate public zones by pointing the registrar's NS records at Azure, manage records through IaC, use sensible TTLs, and lock down who can change records. Private zones get linked to the VNets that need them, with records or zone groups set up for private endpoints.
 
-Hybrid DNS may require Azure DNS Private Resolver or forwarders.
+A hybrid setup, where on-premises and Azure both need to resolve the same names, may need Azure DNS Private Resolver or DNS forwarders.
 
-Troubleshooting uses `dig`/`nslookup`, confirms authoritative server, record/type, TTL/cache, VNet link, forwarding rules, and client resolver. I query both expected internal/external clients because split-horizon results differ intentionally.
+To troubleshoot, I use `dig`/`nslookup`, confirm which server is actually authoritative, check the record type, TTL/cache, the VNet link, forwarding rules, and the client's resolver settings. I query from both an internal and an external client, since split-horizon DNS is often deliberately giving different answers to each.
 
 ---
 
@@ -46,13 +46,13 @@ Troubleshooting uses `dig`/`nslookup`, confirms authoritative server, record/typ
 
 **Answer:**
 
-I use private endpoints to give supported PaaS services private IPs in a VNet, with private DNS mapping service names to those IPs. Public network access is disabled/restricted after validation.
+I use private endpoints to give supported PaaS services a private IP address inside a VNet, paired with private DNS that maps the service name to that IP. I then disable or restrict public network access, once I've confirmed everything still works.
 
-App Service/Functions use VNet integration for outbound access; private endpoint handles private inbound where applicable.
+App Service and Functions use VNet integration for outbound traffic; the private endpoint handles private inbound traffic where that's supported.
 
-Service endpoints are an alternative for selected services/subnets but still address the public service endpoint; they are not the same as Private Link.
+Service endpoints are a different, older option for some services and subnets — they still route to the service's public endpoint, so they aren't the same thing as Private Link.
 
-I validate DNS from the workload, route, NSG/firewall, endpoint approval, service configuration, and actual TCP/application connection. Hybrid clients need DNS forwarding and VPN/ExpressRoute path. I test denied public access too.
+I validate DNS resolution from the actual workload, the route, NSG/firewall rules, endpoint approval, the service's own configuration, and a real TCP/application connection. Hybrid clients also need DNS forwarding and a working VPN/ExpressRoute path. I test that public access is actually denied too, not just that private access works.
 
 ---
 
@@ -60,9 +60,10 @@ I validate DNS from the workload, route, NSG/firewall, endpoint approval, servic
 
 **Answer:**
 
-I start with data flows and trust boundaries. Measures include subnet segmentation, NSGs, UDRs, Azure Firewall/NVA where inspection is required, private endpoints, private DNS, restricted egress, DDoS Protection for exposed critical workloads, WAF for HTTP applications, and limited public IPs.
+I start by mapping out the data flows and trust boundaries. From there, the usual controls are: subnet segmentation, NSGs, user-defined routes, Azure Firewall or an NVA where traffic needs deep inspection, private endpoints, private DNS, restricted egress, DDoS Protection for exposed critical workloads, a WAF for HTTP applications, and keeping public IPs to a minimum.
 
-Connectivity to on-premises uses VPN or ExpressRoute with redundant design.
+Connectivity to on-premises goes over VPN or ExpressRoute, built with redundancy in mind.
 
-I test from the actual source and work layer by layer: DNS resolution, route, NSG effective rules, firewall logs, service firewall, private endpoint approval, and application port. Network Watcher connection troubleshoot and flow logs help locate the deny point.
-Changes use IaC and peer review. I enable diagnostics, alert on unexpected public exposure, review rules, and verify both an allowed and intentionally denied flow.
+I test from the real source, working layer by layer: DNS resolution, routing, effective NSG rules, firewall logs, service firewalls, private endpoint approval, and the application port. Network Watcher's connection troubleshoot tool and flow logs help find exactly where a connection is being denied.
+
+Changes go through IaC and peer review. I turn on diagnostics, alert on unexpected public exposure, review rules regularly, and check both an allowed flow and one that's meant to be denied.

@@ -1,12 +1,13 @@
 ## 1. How do you design a DevOps platform for 100+ microservices?
 
-**Answer:** Provide standardized CI/CD templates, centralized logging/monitoring, shared Helm charts, self-service infrastructure modules, and enforce guardrails via GitOps. Mini-case: Our platform team built a Jenkins shared library; all 100 services onboarded with consistent pipelines and compliance checks.
+**Answer:** Provide standardized CI/CD templates, centralized logging and monitoring, shared Helm charts, self-service infrastructure modules, and enforce guardrails through GitOps. Mini-case: our platform team built a Jenkins shared library, and all 100 services onboarded onto consistent pipelines with the same compliance checks built in.
+
 **Detailed interview approach:**
-I offer paved-road templates rather than one custom pipeline per service: versioned CI workflows, base images, Helm charts, Terraform modules, observability libraries, security policies, and a self-service catalog.
+Instead of a custom pipeline per service, I offer paved-road templates: versioned CI workflows, base images, Helm charts, Terraform modules, observability libraries, security policies, and a self-service catalog.
 
-Teams own application configuration while the platform owns supported contracts, upgrades, documentation, examples, and SLOs.
+Teams own their own application configuration, while the platform team owns the supported contracts, upgrades, documentation, examples, and SLOs.
 
-Guardrails run in CI and admission with clear errors and an expiring exception process. I design tenant isolation, artifact/secret identity, cost attribution, and disaster recovery from the start.
+Guardrails run in CI and at admission, with clear error messages and an exception process that expires automatically. I design for tenant isolation, artifact and secret identity, cost attribution, and disaster recovery from day one.
 
-Adoption and quality are measured through onboarding time, pipeline reliability, deployment frequency, security findings, and support tickets; feedback drives the next platform version instead of forcing teams to fork it.
+I measure adoption and quality through onboarding time, pipeline reliability, deployment frequency, security findings, and support tickets. That feedback shapes the next version of the platform, rather than teams forking it to work around it.
 

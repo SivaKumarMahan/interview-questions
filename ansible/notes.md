@@ -2,10 +2,17 @@
 
 ## Dynamic Inventory and Ansible Galaxy
 
-Dynamic inventory plugins query an infrastructure provider, virtualization system, CMDB or another source at run time, then group hosts by trusted metadata. They are useful for cloud VMs whose private IPs change.
+A dynamic inventory plugin asks a cloud provider, virtualization system, CMDB, or other source for the current list of hosts, then groups them using metadata you trust. This is useful for cloud VMs, since their private IP addresses often change.
 
-Internal DNS names, a bastion, or an automation runner inside the private network can provide connectivity; inventory discovery does not bypass SSH/WinRM, firewall, authentication or host-key requirements.
+Dynamic inventory only discovers hosts — it doesn't skip normal connection rules. You still need working SSH or WinRM access, a firewall path that's actually open, valid authentication, and correct host keys. Internal DNS names, a bastion host, or an automation runner inside the private network can provide that connectivity.
 
-Ansible Galaxy distributes reusable roles and collections. Install only reviewed, version-pinned content—for example `ansible-galaxy role install <role>` or `ansible-galaxy collection install <namespace.collection>`—and record dependency versions in `requirements.yml`.
+Ansible Galaxy distributes reusable roles and collections. Only install content you've reviewed, and pin the version — for example:
 
-Review source, licenses, maintenance and secrets behavior before use; a community role should not receive unrestricted production credentials.
+```bash
+ansible-galaxy role install <role>
+ansible-galaxy collection install <namespace.collection>
+```
+
+Record the versions you depend on in `requirements.yml`.
+
+Before using a community role or collection, check its source, license, and how well it's maintained, and check how it handles secrets. A community role should never get unrestricted production credentials.

@@ -14,15 +14,15 @@ Durable searchable backend
 Dashboards, searches and alerts
 ```
 
-Applications should write structured JSON containing timestamp, severity, service, environment, version, trace/correlation ID and meaningful event fields. Credentials, tokens, personal information and other secrets must be redacted before ingestion.
+Applications should write structured JSON with timestamp, severity, service, environment, version, trace or correlation ID, and meaningful event fields. Credentials, tokens, personal information, and other secrets must be redacted before ingestion — not caught afterward.
 
-Azure-focused options include Azure Monitor Agent with Log Analytics. A portable Grafana stack commonly uses Grafana Alloy as the collector, Loki for storage/querying and Grafana for exploration and dashboards.
+Azure-focused setups often use Azure Monitor Agent with Log Analytics. A portable, cloud-agnostic stack commonly uses Grafana Alloy as the collector, Loki for storage and querying, and Grafana for exploring the results and building dashboards.
 
 ## Loki Architecture
 
-Loki is a log aggregation backend designed around label-based streams. It indexes stream labels rather than building a full-text index for every log line, then stores compressed log chunks.
+Loki is a log aggregation backend built around label-based streams. Instead of building a full-text index for every log line, it indexes only the stream labels and stores the actual log content as compressed chunks.
 
-This can reduce index overhead, but performance and cost still depend on correct labels, query scope, retention and storage design.
+This can cut index overhead significantly, but performance and cost still come down to correct labels, sensible query scope, retention, and storage design.
 
 ```text
 Container/file/journal logs
@@ -34,9 +34,9 @@ Loki :3100
 Grafana
 ```
 
-Promtail appears in older monitoring guides as the Loki log agent. Promtail reached end of life in March 2026, so use Grafana Alloy for new deployments and plan migration for remaining Promtail configurations.
+Promtail shows up in older monitoring guides as the Loki log agent. It reached end of life in March 2026, so new deployments should use Grafana Alloy instead, and any remaining Promtail configurations should be migrated.
 
-Good Loki labels are stable and limited, such as `service`, `environment`, `namespace`, `pod` and `container`. A request ID, user ID or timestamp should remain a parsed log field rather than a label.
+Good Loki labels are stable and few in number — things like `service`, `environment`, `namespace`, `pod`, and `container`. A request ID, user ID, or timestamp should stay a parsed log field, not a label.
 
 ## LogQL Examples
 
@@ -59,12 +59,17 @@ In a containerized lab, configure the Grafana data source as `http://loki:3100`;
 
 ## Operational Practices
 
-- Define retention, archive and deletion rules based on operational and compliance requirements.
+- Define retention, archive, and deletion rules based on operational and compliance requirements.
 - Restrict access by team and environment, encrypt data in transit and at rest, and audit sensitive searches.
-- Control debug logging and multiline parsing; monitor collector buffering, dropped entries, backpressure and retry behavior.
-- Avoid high-cardinality (number of unique label combinations) Loki labels and queries that scan unnecessarily broad time ranges.
-- Separate tenant data when required and monitor Loki/Alloy health independently of the applications they observe.
-- Store dashboards and collector configuration in version control and pin reviewed component versions.
+- Control debug logging and multiline parsing. Monitor collector buffering, dropped entries, backpressure, and retry behavior.
+- Keep Loki labels low-cardinality — avoid labels with many unique combinations of values — and avoid queries that scan unnecessarily broad time ranges.
+- Separate tenant data when required, and monitor Loki/Alloy health independently of the applications they observe.
+- Store dashboards and collector configuration in version control, and pin reviewed component versions.
 
-When log volume suddenly increases, identify the service, version and logger responsible; protect storage and ingestion; reduce unsafe verbosity through a controlled change; preserve required audit evidence; and verify that collectors did not drop data. Do not respond by blindly deleting production logs.
-During an incident, narrow the time and service scope, start from a metric alert or trace exemplar, search the shared trace ID and compare the first failure with deployments and dependency events.
+## Handling a Log Volume Spike
+
+When log volume suddenly increases: identify the service, version, and logger responsible. Protect storage and ingestion first. Reduce unsafe verbosity through a controlled, reviewed change. Preserve any audit evidence you're required to keep. Then verify collectors didn't drop data along the way. Don't respond by blindly deleting production logs.
+
+## Incident Triage
+
+During an incident, narrow the time range and service scope right away. Start from a metric alert or a trace exemplar, search for the shared trace ID, and compare the first failure against recent deployments and dependency events.

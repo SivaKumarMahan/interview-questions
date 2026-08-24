@@ -152,7 +152,7 @@ If memory usage increases with traffic, I would configure a Horizontal Pod Autos
 
 Suppose a Java application has a memory limit of `512Mi`, but during peak traffic it uses `700Mi`. Kubernetes kills the container because it exceeds the limit.
 
-I would first confirm the usage, then either increase the memory limit—for example, to `1Gi`—if justified, or optimize the application's memory consumption.
+I would first confirm the usage. Then I'd either increase the memory limit — for example to `1Gi` — if that's justified, or optimize the application's memory consumption.
 
 In short: I would verify the OOMKilled event, check memory metrics, review resource limits, analyze application behavior, and then either optimize the application or adjust the Kubernetes resource configuration.
 

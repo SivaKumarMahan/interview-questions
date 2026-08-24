@@ -2,42 +2,42 @@
 
 ## Core Model
 
-Docker packages an application and its runtime dependencies into an image and starts isolated container processes from that image. The CLI talks to the Docker daemon/API; the daemon builds images, manages containers, volumes, and networks, and pulls/pushes through registries.
+Docker packages an application and its runtime dependencies into an image, then starts isolated container processes from that image. The CLI talks to the Docker daemon, which builds images, manages containers, volumes, and networks, and pulls or pushes them through registries.
 
-Images are immutable (not changed after creation) layered blueprints; containers add an ephemeral writable layer. Persistent application state belongs in volumes or external services.
+An image is a stack of layers that never changes once it's built. A container adds one more layer on top that it can write to, but that writable layer is thrown away when the container is removed. Anything that needs to survive belongs in a volume or an external service, not in the container itself.
 
 ## Dockerfile Instructions
 
-- `FROM`: selects the base and starts a build stage.
+- `FROM`: picks the base image and starts a build stage.
 - `LABEL`: adds metadata.
-- `ARG`: build-time value; never a safe secret store.
-- `ENV`: image/runtime default environment value.
-- `WORKDIR`: sets and creates the working directory.
-- `COPY`: copies local build-context files and is preferred for normal copying.
-- `ADD`: additionally supports local archive extraction and limited remote sources; use only when that behavior is intended.
-- `RUN`: executes a build step and creates a layer.
-- `EXPOSE`: documents a container port; it does not publish it.
-- `VOLUME`: declares a mount point but operational volume ownership should be explicit.
-- `USER`: changes the user for later steps/runtime; production should normally be non-root.
-- `HEALTHCHECK`: reports container health but must be lightweight and meaningful.
-- `ENTRYPOINT`: main executable; `CMD`: its default command/arguments or standalone default.
-- `ONBUILD`: defers an instruction until the image is used as a base; use cautiously because behavior is hidden from the child Dockerfile.
+- `ARG`: a build-time value — never use it to hold a secret.
+- `ENV`: sets a default environment variable, baked into the image and at runtime.
+- `WORKDIR`: sets (and creates) the working directory.
+- `COPY`: copies files from the build context; the default choice for copying.
+- `ADD`: does what `COPY` does, plus it can extract local archives and fetch some remote sources — use it only when you actually need that behavior.
+- `RUN`: runs a command during the build and creates a layer.
+- `EXPOSE`: documents which port the container listens on; it doesn't publish that port to the host.
+- `VOLUME`: declares a mount point, but who owns and manages that volume should still be explicit.
+- `USER`: sets which user later steps and the running container use; production should normally run as non-root.
+- `HEALTHCHECK`: reports container health, but keep the check itself lightweight and meaningful.
+- `ENTRYPOINT`: the main program the container runs; `CMD`: its default arguments, or a default command on its own.
+- `ONBUILD`: queues up an instruction to run later, when this image is used as someone else's base. Use it carefully — that behavior is invisible in the child Dockerfile.
 
-Use a trusted pinned small base, `.dockerignore`, dependency-first cache ordering, multi-stage builds, one clear process, exec-form command, non-root user, read-only filesystem where possible, limited capabilities/resources, runtime secret injection, scanning, SBOM, signing, and regular rebuilds.
+Good defaults: a small, trusted, pinned base image; a `.dockerignore` file; copying dependency files before source code so the cache works well; multi-stage builds; one clear main process; the exec form of commands; a non-root user; a read-only filesystem where possible; limited capabilities and resources; secrets injected at runtime, not baked in; scanning; an SBOM; signing; and rebuilding regularly.
 
 ## Compose and Multi-Stage Builds
 
-Compose describes local or controlled multi-container services, networks, ports, volumes, dependencies, and environment in YAML. It is convenient for development/test; production orchestration needs clear HA, scheduling, secret, and upgrade behavior.
+Compose describes a multi-container application — its services, networks, ports, volumes, dependencies, and environment variables — in one YAML file. It's convenient for development and testing. Production needs an orchestrator that handles high availability, scheduling, secrets, and upgrades properly.
 
-Multi-stage Dockerfiles compile/test in a tool-heavy stage and copy only runtime output into a small final image. This reduces size and attack surface and keeps compilers/source/dependency caches out of production.
+A multi-stage Dockerfile compiles and tests the app in a stage that has all the build tools, then copies just the runtime output into a small final image. This keeps the image smaller, reduces its attack surface, and keeps compilers, source code, and dependency caches out of production.
 
 ## Scenario Reminders
 
-- **Works locally but not in Docker:** compare configuration, files, architecture, dependencies, port/listener, filesystem permissions, DNS/network, and logs.
-- **Large image:** inspect layers, build context, cache order, base, package cleanup, and multi-stage design.
-- **Frequent restarts:** inspect exit/OOM/health status, logs, configuration, dependencies, and resource limits.
-- **Persistent data:** use a named volume or external datastore with backup; never rely on the writable layer.
-- **Multi-container communication:** use a user-defined network and service/container DNS names rather than fixed IPs.
+- **Works locally but not in Docker:** compare configuration, files, CPU architecture, dependencies, the port the app listens on, filesystem permissions, DNS/network setup, and logs.
+- **Large image:** check layers, the build context, cache ordering, the base image, leftover package caches, and whether a multi-stage build would help.
+- **Frequent restarts:** check the exit code, whether it was OOM-killed, health status, logs, configuration, dependencies, and resource limits.
+- **Persistent data:** use a named volume or an external datastore with backups — never rely on the container's writable layer.
+- **Multi-container communication:** use a user-defined network and reach other containers by name, not by a fixed IP address.
 
 ## docker init
 

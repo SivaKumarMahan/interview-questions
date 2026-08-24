@@ -2,7 +2,7 @@
 
 ## Safe Bash Backup Rotation Example
 
-This example creates a PostgreSQL dump from a container, verifies that the output is non-empty, and removes backups older than seven days. In production, credentials should come from a protected runtime mechanism and backups should be encrypted, copied to separate storage, monitored, and restore-tested.
+This example dumps a PostgreSQL database from a container, checks the output isn't empty, and removes backups older than seven days. In production, credentials should come from a protected runtime source, and backups should also be encrypted, copied to separate storage, monitored, and tested by actually restoring them.
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -28,10 +28,10 @@ find "$backup_dir" -maxdepth 1 -type f \
 echo "Backup completed: $backup_file"
 ```
 
-I would additionally generate a checksum, upload to versioned immutable (not changed after creation) storage, alert on failure or missing successful backup, and regularly restore into an isolated database. Retention by age is clearer and safer than parsing `ls` output.
+I'd also generate a checksum, upload the backup to storage that can't be changed after it's written, alert if the backup fails or never runs, and regularly restore it into a separate test database. Deleting by age like this is clearer and safer than trying to parse `ls` output.
 
 ## Shell Error Handling and Logging
 
-For automation, begin with a deliberate strict-mode choice such as `set -Eeuo pipefail`; understand that `-e` has shell-context exceptions, so important commands should still be checked explicitly. Use an `ERR` trap to add line number and command context, then exit with a useful status.
+For any automation script, start with a deliberate strict-mode choice such as `set -Eeuo pipefail`. Keep in mind that `-e` has some shell-specific exceptions, so you should still check important commands explicitly rather than relying on it alone. Add an `ERR` trap to capture the line number and command that failed, then exit with a useful status code.
 
-Log both stdout and stderr while preserving visibility, for example `exec > >(tee -a "$log_file") 2>&1`. Avoid printing secrets, quote variables, use `mktemp` for temporary files, and test failure paths rather than only the happy path.
+Log both stdout and stderr while still showing them on screen, for example with `exec > >(tee -a "$log_file") 2>&1`. Never print secrets, always quote variables, use `mktemp` for temporary files, and test what happens when things fail, not just the happy path.

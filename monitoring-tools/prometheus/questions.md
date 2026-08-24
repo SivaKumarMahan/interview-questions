@@ -2,10 +2,11 @@
 
 **Answer:**
 
-It commonly defines global scrape/evaluation intervals, scrape jobs and service discovery, relabeling, rule files, remote write and Alertmanager targets. In Kubernetes, Operator resources such as ServiceMonitor and PodMonitor often generate scrape configuration.
-I run `promtool check config`, inspect the Targets page for discovery/TLS/auth errors, verify expected labels and a sample query, and reload through the supported method. Credentials use secret files or platform secret integration.
+It usually defines the global scrape and evaluation intervals, scrape jobs and service discovery, relabeling rules, rule files, remote write, and Alertmanager targets. In Kubernetes, Operator resources like `ServiceMonitor` and `PodMonitor` often generate this scrape configuration for you.
 
-I also watch scrape duration/failures and label cardinality (number of unique label combinations) so one target cannot destabilize Prometheus.
+To validate it, I run `promtool check config`, check the Targets page for discovery, TLS or auth errors, confirm the expected labels with a sample query, and reload it through the supported method. Credentials go through secret files or the platform's secret integration, not plain text in the config.
+
+I also watch scrape duration and failures, and keep an eye on label cardinality — the number of unique label combinations a metric produces — so a single bad target can't destabilize the whole Prometheus instance.
 
 ## 2. How do you alert when disk use exceeds 80%?
 
@@ -23,15 +24,16 @@ I also watch scrape duration/failures and label cardinality (number of unique la
     summary: "Filesystem usage above 80% on {{ $labels.instance }}"
 ```
 
-I exclude irrelevant/read-only filesystems, include mount point and runbook, and use a duration to avoid temporary noise. Investigation checks growth rate, inode use, open-deleted files, logs, containers and application data.
+I exclude filesystems that don't matter, like read-only ones, include the mount point and a runbook link in the annotations, and use a `for` duration so a brief spike doesn't page anyone. When investigating, I check the growth rate, inode usage, files that are open but deleted, logs, containers, and application data.
 
-A time-to-full forecast and critical threshold may be more urgent than a fixed percentage. I test both the rule and receiver.
+A time-to-full forecast and a critical threshold are often more useful than a single fixed percentage. I test both the rule and the receiver before trusting it.
 
 ## 3. How do you operate Prometheus for Kubernetes at production scale?
 
 **Answer:**
 
-I deploy a pinned kube-prometheus-stack or managed service, configure resources, persistent storage, retention, HA, RBAC/authentication and ServiceMonitors. node-exporter, kube-state-metrics and kubelet/cAdvisor cover nodes, object state and containers; applications expose business and request metrics.
-For long retention/global queries I use remote write with Thanos/Mimir or a managed backend. I monitor Prometheus memory/disk, rule time, failed scrapes, remote-write backlog and cardinality (number of unique label combinations).
+I deploy a pinned kube-prometheus-stack or a managed service, and configure resource limits, persistent storage, retention, high availability, RBAC/authentication and ServiceMonitors. Node Exporter, kube-state-metrics and kubelet/cAdvisor cover nodes, object state and containers; applications expose their own business and request metrics on top of that.
 
-I inject test alerts and simulate a lost target. Stable cluster/service labels support multi-cluster queries, while unlimited request/user labels are prohibited.
+For long retention or queries across clusters, I use remote write into Thanos, Mimir, or a managed backend. I monitor Prometheus's own memory and disk usage, rule evaluation time, failed scrapes, remote-write backlog, and cardinality.
+
+I inject test alerts and simulate a lost target to confirm the whole pipeline works. Stable cluster and service labels support multi-cluster queries, but unlimited request or user labels are not allowed — they blow up cardinality.

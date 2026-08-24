@@ -2,30 +2,36 @@
 
 **Answer:**
 
-CloudWatch is operational monitoring data: metrics, logs, dashboards, alarms, synthetics and event integrations. CloudTrail records AWS API activity for audit and investigation.
+CloudWatch holds operational monitoring data: metrics, logs, dashboards, alarms, synthetic checks, and event integrations. CloudTrail records AWS API activity for audit and investigation.
 
-I use CloudWatch to see that latency or errors increased and CloudTrail to determine whether a deployment role or administrator changed the load balancer, security policy or scaling configuration at that time.
+In practice, I use CloudWatch to spot that latency or errors went up, then use CloudTrail to check whether a deployment role or an administrator changed the load balancer, a security policy, or a scaling setting around that same time.
 
-CloudTrail does not replace application tracing, and CloudWatch does not by itself provide a complete identity audit. Production uses centralized protected trails, selected data events, encryption/retention, actionable CloudWatch alarms and tested SNS/incident routing.
+CloudTrail isn't a substitute for application tracing, and CloudWatch alone doesn't give a full identity audit trail. In production, I use centralized, protected CloudTrail trails, turn on the data events that matter, enable encryption and retention, make sure CloudWatch alarms are actually actionable, and test that SNS or the incident tool really receives them.
 
 ## 2. Logs are not uploading from a healthy EC2 instance to S3. How do you investigate?
 
 **Answer:**
 
-I confirm the collector is reading current files, its spool disk is healthy and it attempted an upload.
+First I confirm the log collector is actually reading current files, that its local spool disk is healthy, and that it attempted an upload at all.
 
-I identify its role with `aws sts get-caller-identity`, then check bucket/region/prefix, `s3:PutObject`, explicit denies from bucket policy/SCP/boundary, KMS `Encrypt`/`GenerateDataKey`, required tags/conditions, clock and multipart failures.
+Then I check permissions. I run `aws sts get-caller-identity` to see which role the instance is actually using, and check the target bucket, region, and prefix. I look for `s3:PutObject` permission, any explicit denies coming from the bucket policy, an SCP, or a permissions boundary, and the KMS `Encrypt`/`GenerateDataKey` permissions if the bucket uses KMS encryption. I also check required tags or conditions, clock skew, and multipart upload failures.
 
-I inspect agent errors and CloudTrail data events without printing credentials.
+I look at the collector's own error logs and at CloudTrail data events for that bucket, without ever printing credentials to the screen.
 
-I fix the narrow collector, IAM, KMS, path or storage issue, then verify a new object with correct encryption/metadata and downstream consumption. Prevention includes instance/task roles, least privilege (only the permissions needed) and alerts on collector backlog, upload age and errors.
+Once I find the real cause, I fix that one thing: the collector, the IAM policy, the KMS permission, the path, or the storage config. Then I verify a fresh object lands with the right encryption and metadata, and that downstream consumers pick it up.
+
+To stop it recurring, I use instance or task roles instead of long-lived keys, keep permissions scoped to only what's needed, and alert on collector backlog, upload age, and error counts.
 
 ## 3. How would you monitor an EC2 CPU incident?
 
 **Answer:**
 
-I confirm CloudWatch duration, customer impact, status checks, autoscaling, recent changes and CPU-credit exhaustion for burstable instances. On the host I compare load, user/system CPU, steal, I/O wait and top processes.
+First I check the basics in CloudWatch: how long the high CPU has lasted, whether customers are actually affected, instance status checks, autoscaling activity, any recent deployments or config changes, and CPU credit exhaustion if it's a burstable instance type.
 
-I stabilize by shifting traffic, scaling out, rolling back or stopping a proven nonessential runaway job; I avoid rebooting before preserving evidence.
+Then on the host itself, I compare load average, user versus system CPU time, CPU steal, I/O wait, and the top processes.
 
-The permanent fix may be profiling, query/cache work, scheduled-job correction, better scaling signals or a suitable instance family. I validate user latency/errors under load and alert on saturation (how close a resource is to its limit), credits, queueing and failed scaling.
+To stabilize things, I shift traffic away, scale out, roll back a bad deployment, or stop a runaway job once I've confirmed it's safe to stop. I avoid rebooting before I've captured evidence of what was happening.
+
+The real fix depends on what I find. It could be profiling the code, fixing a slow query or cache, correcting a scheduled job, improving autoscaling triggers, or moving to a better-suited instance type.
+
+Afterward, I confirm user-facing latency and error rates are back to normal under load, and I set up alerts for CPU running close to its limit, credit exhaustion, request queueing, and failed scaling events.

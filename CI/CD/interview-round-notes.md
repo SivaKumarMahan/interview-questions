@@ -6,9 +6,11 @@
 
 ### 4.1 What are GitHub Actions?
 
-A CI/CD platform built into GitHub that runs **workflows** (YAML in `.github/workflows/`) triggered by events (push, PR, schedule, manual). A workflow has **jobs** (run on runners) made of **steps**, and steps use reusable **actions** from the Marketplace.
+GitHub Actions is a CI/CD platform built into GitHub. It runs **workflows**, which are YAML files stored in `.github/workflows/`. A workflow starts when an event happens, such as a push, a pull request, a schedule, or a manual trigger.
 
-It offers hosted or self-hosted runners, secrets, matrix builds, and reusable/composite workflows.
+A workflow contains **jobs**, and each job runs on a runner. A job is made up of **steps**, and steps can use reusable **actions** from the Marketplace.
+
+GitHub Actions offers hosted or self-hosted runners, secrets management, matrix builds, and reusable or composite workflows.
 
 ### 4.2 Difference between GitHub Actions and Jenkins
 
@@ -24,49 +26,51 @@ It offers hosted or self-hosted runners, secrets, matrix builds, and reusable/co
 
 ### 4.3 Why is GitHub Actions gaining popularity?
 
-Native to GitHub (no extra server), config lives with the code (YAML, versioned, PR-reviewed), huge reusable-actions marketplace, generous hosted runners, easy matrix builds, low maintenance vs. running Jenkins, and OIDC-based keyless cloud auth. It lowers the barrier to CI/CD dramatically for teams already on GitHub.
+It's built into GitHub, so there's no extra server to run. The pipeline config lives with the code as YAML, so it's versioned and reviewed through pull requests. It has a huge marketplace of reusable actions and generous hosted runners, and matrix builds are easy to set up. It needs far less maintenance than running Jenkins yourself, and it supports OIDC, so cloud login doesn't need long-lived keys. For teams already on GitHub, this lowers the barrier to CI/CD a lot.
 
 ### 4.4 Design a CI/CD pipeline for microservices on Kubernetes
 
-- **Repo strategy:** per-service pipelines (mono-repo with path filters, or poly-repo). Build only what changed.
-- **CI stage:** lint → unit tests → build container (multi-stage) → SAST + dependency scan → image scan (Trivy) → push immutable (not changed after creation) tag (git SHA) to registry.
-- **CD stage (GitOps preferred):** update the desired state in a Git repo (Argo CD / Flux) rather than pushing from CI; the cluster reconciles (makes actual state match desired state). Or push via Helm/Kustomize from the pipeline.
-- **Progressive delivery:** deploy to staging → automated tests → canary/blue-green to prod (Argo Rollouts / Flagger) with automated rollback on SLO breach.
-- **Cross-cutting:** environment promotion, secrets from a vault, per-service versioning, observability hooks, and DB migration handling.
+- **Repo strategy:** Give each service its own pipeline. Use a mono-repo with path filters, or separate repos per service — either way, only build what changed.
+- **CI stage:** Lint, run unit tests, then build the container with a multi-stage Dockerfile. Run SAST and a dependency scan, then scan the image with Trivy. Push the image tagged with the Git SHA, so the tag never changes once it's pushed.
+- **CD stage (GitOps preferred):** Instead of having CI push the change directly, update the desired state in a Git repo that Argo CD or Flux watches. The cluster then reconciles itself — meaning it keeps changing until it matches what's in Git. You can also push with Helm or Kustomize straight from the pipeline if you're not using GitOps.
+- **Progressive delivery:** Deploy to staging, run automated tests, then roll out to production with canary or blue-green (Argo Rollouts or Flagger), with automatic rollback if an SLO is breached.
+- **Cross-cutting concerns:** environment promotion, secrets pulled from a vault, per-service versioning, observability hooks, and a plan for handling database migrations.
 
 ### 4.5 Zero-downtime deployments in Jenkins / GitHub Actions
 
-- **Rolling update** (K8s default): new pods come up and pass readiness before old ones terminate; `maxUnavailable`/`maxSurge` tune it. Use PDBs.
-- **Blue/Green:** stand up the new version alongside old, switch traffic (Service/ingress/LB) once healthy; instant rollback by switching back.
-- **Canary:** shift a small % of traffic to the new version, watch metrics, ramp up gradually.
-- **Key enablers regardless of tool:** readiness/liveness probes, graceful shutdown (SIGTERM handling + `preStop`), backward-compatible DB migrations (expand/contract), and health-gated promotion. The CI tool just orchestrates these; the pattern lives in the deploy target.
+- **Rolling update** (the Kubernetes default): new pods come up and pass their readiness check before old pods are terminated. `maxUnavailable` and `maxSurge` control how aggressive this is. Use PodDisruptionBudgets too.
+- **Blue/Green:** stand up the new version next to the old one, then switch traffic over once it's healthy. Rollback is instant — just switch back.
+- **Canary:** send a small percentage of traffic to the new version, watch the metrics, then ramp up gradually.
+- **What actually enables this, regardless of tool:** readiness and liveness probes, graceful shutdown (handling SIGTERM and using `preStop`), backward-compatible database migrations (the expand/contract pattern), and only promoting once health checks pass. The CI tool just triggers these steps — the real zero-downtime behavior lives in how the deployment target is set up.
 
 ### 4.6 Blue/Green vs Canary — when to choose which
 
-- **Blue/Green:** two full environments, cut traffic over all at once. **Choose when** you need instant rollback and can afford double capacity, and testing on a full parallel env matters (e.g. major releases). Downside: cost, and all users move at once.
-- **Canary:** gradually route a small subset of traffic to the new version while monitoring. **Choose when** you want to limit scope of impact, validate against real production traffic, and roll changes progressively. Needs good metrics/automation. Downside: more complex routing, slower full rollout.
-- Rule of thumb: canary for continuous, risk-managed delivery of high-traffic services; blue/green for big-bang releases needing an instant switch.
+- **Blue/Green:** you run two full environments and cut traffic over all at once. Choose this when you need an instant rollback and can afford double the capacity — for example, major releases where testing on a full parallel environment matters. Downside: cost, and all users move at the same time.
+- **Canary:** you gradually shift a small slice of traffic to the new version while watching metrics. Choose this when you want to limit the blast radius, validate against real production traffic, and roll changes out gradually. It needs good metrics and automation to work well. Downside: more complex routing, and a slower full rollout.
+- Rule of thumb: canary for continuous, risk-managed delivery of high-traffic services; blue-green for big-bang releases that need an instant switch.
 
 ### 4.7 Manage parallel builds and artifacts in Jenkins / GitLab
 
-- **Jenkins:** `parallel {}` stages in a declarative pipeline; multiple agents/executors; matrix builds; `stash`/`unstash` to pass files between stages; archive artifacts via `archiveArtifacts` or push to Nexus/Artifactory.
-- **GitLab CI:** jobs in the same `stage` run in parallel; `parallel:` and `parallel:matrix:` fan-out; `artifacts:` pass outputs downstream, `cache:` for dependencies; `needs:` builds a DAG for faster, non-linear pipelines.
-- **General:** use an artifact repository (Nexus/Artifactory/registry) as the source of truth, version artifacts immutably, and cache dependencies to speed builds.
+- **Jenkins:** use `parallel {}` stages in a declarative pipeline, spread work across multiple agents or executors, and use matrix builds for combinations. Use `stash`/`unstash` to pass files between stages, and archive artifacts with `archiveArtifacts` or push them to Nexus or Artifactory.
+- **GitLab CI:** jobs in the same `stage` run in parallel automatically. `parallel:` and `parallel:matrix:` fan a job out into many. `artifacts:` pass outputs to later jobs, `cache:` speeds up dependency installs, and `needs:` builds a DAG so jobs don't wait on unrelated stages.
+- **In general:** use an artifact repository (Nexus, Artifactory, or a container registry) as the single source of truth, version artifacts so they never change once published, and cache dependencies to speed up builds.
 
 ### 4.8 Migrate pipelines from one CI/CD tool to another
 
-1. **Inventory** existing pipelines: stages, secrets, triggers, plugins, integrations, agents.
-2. **Map concepts:** e.g. Jenkins stages/`Jenkinsfile` → GitHub Actions jobs/YAML; shared libraries → reusable/composite workflows; credentials → GH secrets/OIDC.
-3. **Migrate incrementally:** start with a low-risk service, run **both pipelines in parallel** to compare outputs, then cut over.
-4. **Re-platform, don't lift-and-shift** anti-patterns; adopt the target tool's idioms (matrix, OIDC, caching).
-5. **Handle secrets & artifacts:** migrate to the new secret store and artifact repo.
-6. **Validate & decommission** old jobs after a bake-in period. Keep everything in version control.
+1. **Inventory** the existing pipelines: stages, secrets, triggers, plugins, integrations, and agents.
+2. **Map the concepts** across tools. For example, Jenkins stages and a `Jenkinsfile` map to GitHub Actions jobs and YAML. Shared libraries map to reusable or composite workflows. Credentials map to GitHub secrets or OIDC.
+3. **Migrate incrementally.** Start with a low-risk service, run both pipelines in parallel to compare their output, then cut over.
+4. **Re-platform instead of lifting and shifting.** Don't just copy old anti-patterns — use the target tool's own features, like matrix builds, OIDC, and caching.
+5. **Handle secrets and artifacts** by migrating them to the new secret store and artifact repository.
+6. **Validate, then decommission** the old jobs after a bake-in period. Keep everything under version control the whole way through.
 
 ### 4.9 How much experience do you have writing pipeline scripts? / end-to-end pipelines?
 
-Frame with specifics: *"I've written declarative and scripted Jenkins pipelines (Groovy), GitHub Actions workflows, and GitLab CI.
+Answer with specifics: "I've written declarative and scripted Jenkins pipelines in Groovy, GitHub Actions workflows, and GitLab CI pipelines.
 
-End-to-end I've built: checkout → build (Maven/Docker) → unit tests → SonarQube (SAST) → dependency & image scan (OWASP/Trivy) → push to Nexus/ECR → deploy to K8s via Helm/Argo CD → smoke tests → Slack notification, with approvals for prod."* Name the tools and the flow.
+End-to-end, I've built pipelines that check out code, build it with Maven or Docker, run unit tests, run SonarQube for static analysis, scan dependencies and images with OWASP and Trivy, push to Nexus or ECR, deploy to Kubernetes with Helm or Argo CD, run smoke tests, and send a Slack notification — with a manual approval step before production."
+
+Name the actual tools you've used and walk through the flow.
 
 ### 4.10 Write a pipeline script using Groovy (Jenkins) — example
 ```groovy

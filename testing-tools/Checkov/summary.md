@@ -1,25 +1,43 @@
 # Checkov Interview Summary
 
-**Checkov** is a static policy and security scanner for infrastructure-as-code. For Terraform it parses configuration or supported plan JSON and evaluates built-in or custom policies for misconfiguration such as public exposure, missing encryption/logging, weak network rules and unsafe defaults.
+## What It Is
 
-It also supports other IaC frameworks, but Checkov does **not** prove runtime security or replace `terraform validate`, provider policy, cloud audit and penetration testing.
+Checkov is a static policy and security scanner for infrastructure-as-code. For Terraform, it reads the configuration (or a supported plan in JSON) and checks it against built-in or custom policies.
+
+It catches misconfigurations such as public exposure, missing encryption or logging, weak network rules, and unsafe defaults. It also supports other IaC frameworks besides Terraform.
+
+Checkov does **not** prove runtime security. It doesn't replace `terraform validate`, provider policy, cloud audit, or penetration testing — it's one layer, not the whole program.
+
+## Running It
 
 ```bash
 checkov --directory . --framework terraform
 checkov --file main.tf --framework terraform
 ```
 
-Run it during local/pre-commit feedback and in pull-request CI before `terraform apply`. Pin the tool version in the build image/dependency lock, publish a protected report such as **SARIF** or **JUnit XML** where appropriate, and fail according to an agreed policy.
+Run it locally or in a pre-commit hook for fast feedback, and again in pull-request CI before `terraform apply`. In CI:
 
-Review each finding against the actual resource path, variables/modules, provider behavior and environment.
+| Practice | Why |
+| --- | --- |
+| Pin the Checkov version | Keeps results reproducible across runs |
+| Publish a machine-readable report (SARIF, JUnit XML) | Makes findings visible in the PR and to other tools |
+| Fail according to an agreed policy | Turns the scan into an enforceable gate, not just a suggestion |
 
-**Exceptions must include:**
+Review each finding against the real resource path, its variables and modules, the provider's actual behavior, and the environment it targets — don't just react to the check ID.
 
-- A specific check ID
-- Business/technical reason
-- Owner
-- Compensating control
-- Approval
-- Expiry
+## Handling Exceptions
 
-A suppression is **not** a fix. Never skip an entire directory or severity merely to make the pipeline green. Custom organization policies should be versioned, unit tested and rolled out in audit/advisory mode before blocking production changes.
+An exception must record:
+
+- The specific check ID
+- The business or technical reason
+- An owner
+- A compensating control
+- Who approved it
+- An expiry date
+
+A suppression is **not** a fix — it's a tracked, time-bound decision to accept risk. Never skip an entire directory or severity just to make the pipeline green.
+
+## Custom Policies
+
+Organization-specific rules should be versioned and unit tested like any other code. Roll them out in audit or advisory mode first, so you can see what they'd block, before switching them to enforce and failing production changes.

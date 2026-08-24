@@ -10,10 +10,10 @@
 
 **Detailed interview approach:**
 
-I first identify which certificate expired—public ingress, internal service, API server, kubelet, webhook, or client—and inspect issuer, SAN, chain, secret, and expiry with `openssl s_client`/`openssl x509` and the relevant controller status.
+First I identify which certificate actually expired — public ingress, an internal service, the API server, kubelet, a webhook, or a client. I check the issuer, SAN, chain, secret, and expiry using `openssl s_client`/`openssl x509` and the relevant controller's status.
 
-For cert-manager I inspect Certificate, CertificateRequest, Order/Challenge, controller logs, DNS/HTTP challenge reachability, and issuer credentials.
+For cert-manager, I check the Certificate, CertificateRequest, Order/Challenge, controller logs, whether the DNS/HTTP challenge is reachable, and the issuer's credentials.
 
-I renew or rotate through the supported controller, reload the consumer, and verify the complete chain and hostname from a real client. Cluster certificates follow the platform-specific rotation procedure and node/control-plane sequence.
+I renew or rotate the certificate through the supported controller, reload whatever consumes it, and confirm the full chain and hostname from a real client. Cluster certificates follow the platform's own rotation procedure and node/control-plane sequence.
 
-Alerts at 30/14/7 days, automated renewal tests, owner inventory, and protected issuer keys prevent emergency expiry.
+Alerts at 30/14/7 days out, automated renewal tests, a clear owner inventory, and protected issuer keys are what actually prevent an emergency expiry.
