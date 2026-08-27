@@ -6,7 +6,7 @@
 
 **Candidate:**
 
-A Dockerfile contains the steps used to build a container image. The exact file depends on the application language and how it is built.
+A Dockerfile contains the steps used to build a container image. My project has a React frontend and a Spring Boot backend, so I use a separate Dockerfile for each — both use a multi-stage build so the final image only contains the built output, not the build tools.
 
 The main practices I follow are:
 
@@ -68,63 +68,7 @@ docker build -t orders-service:1.0.0 .
 docker run --rm -p 8080:8080 orders-service:1.0.0
 ```
 
-## Example 2: JAR already built by CI
-
-If the pipeline already runs Maven and creates the JAR, the Dockerfile can be smaller:
-
-```dockerfile
-FROM eclipse-temurin:21-jre-jammy
-
-RUN groupadd --system appgroup \
-    && useradd --system --gid appgroup --uid 10001 appuser
-
-WORKDIR /app
-
-COPY --chown=appuser:appgroup target/orders-service.jar /app/app.jar
-
-USER 10001
-
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-```
-
-Build the JAR and image:
-
-```bash
-mvn -B clean verify
-docker build -t orders-service:1.0.0 .
-```
-
-I use this approach when CI is responsible for testing and publishing the application package before the container build.
-
-## Example 3: Java WAR on Tomcat
-
-```dockerfile
-FROM tomcat:10.1-jre21-temurin-jammy
-
-RUN rm -rf /usr/local/tomcat/webapps/* \
-    && chown -R 10001:0 /usr/local/tomcat
-
-COPY --chown=10001:0 target/orders.war \
-  /usr/local/tomcat/webapps/ROOT.war
-
-USER 10001
-
-EXPOSE 8080
-
-CMD ["catalina.sh", "run"]
-```
-
-### Explanation
-
-- Tomcat is both the web server and Java runtime for the WAR.
-- The default applications are removed.
-- The application WAR is copied as `ROOT.war`.
-- Tomcat runs in the foreground so the container stays active.
-- The process runs as a non-root user.
-
-## Example 4: React with NGINX
+## Example 2: React with NGINX
 
 ```dockerfile
 FROM node:22-alpine AS build
@@ -156,46 +100,6 @@ CMD ["nginx", "-g", "daemon off;"]
 
 If the project creates a `build` directory instead of `dist`, I change the source path to match the project.
 
-## Example 5: Python FastAPI
-
-```dockerfile
-FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-RUN groupadd --system appgroup \
-    && useradd --system --gid appgroup --uid 10001 appuser
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY --chown=appuser:appgroup app ./app
-
-USER 10001
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Explanation
-
-- `python:3.12-slim` provides a small Python runtime.
-- Dependencies are copied and installed before application code to improve build caching.
-- `--no-cache-dir` prevents the package download cache from remaining in the image.
-- The application runs as a non-root user.
-- Uvicorn listens on all container interfaces on port 8000.
-
-Build and run:
-
-```bash
-docker build -t sample-api:1.0.0 .
-docker run --rm -p 8000:8000 sample-api:1.0.0
-```
-
 ## `.dockerignore`
 
 I add a `.dockerignore` file so unnecessary or sensitive files are not sent to the Docker build:
@@ -206,12 +110,9 @@ I add a `.dockerignore` file so unnecessary or sensitive files are not sent to t
 *.log
 node_modules
 target
-__pycache__
 .idea
 .vscode
 ```
-
-If the Dockerfile needs a locally built JAR from `target`, I do not ignore that directory for that specific build approach.
 
 ## `COPY` vs. `ADD`
 

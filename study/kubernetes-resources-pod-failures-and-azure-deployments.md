@@ -133,6 +133,10 @@ Correct the template, parameters, access, or Azure configuration. Run validation
 
 Start with the deployment error and operation history to identify the failed resource. Then validate the infrastructure code and parameters, verify RBAC and Azure Policy, and check names, regions, SKUs, quotas, API versions, dependencies, and networking. Review the Activity Log for more detail, fix the root cause, redeploy, and verify the result.
 
+### Worked example: AuthorizationFailed
+
+An ACR deployment fails with `AuthorizationFailed` because the deploying service principal only has the `Reader` role on the resource group. Step 4 above (check access and governance) catches this immediately: `az deployment operation group list` shows the exact operation that was denied, and the fix is to assign the role the deployment actually needs (e.g. `Contributor` scoped to that resource group, or a narrower custom role) rather than reaching for `Owner`. Reassign the role and rerun the pipeline.
+
 ## 3. What Happens When One Pod Goes Down?
 
 For normal stateless replicas, pods do not directly coordinate recovery. Kubernetes controllers and Services handle it.
@@ -163,3 +167,102 @@ Kubernetes coordinates pod replacement and traffic routing, but it does not mana
 ### Short interview answer
 
 When a pod fails, the Deployment creates a replacement to restore the desired replica count. During recovery, the Service routes traffic only to ready pods. Once the new pod passes its readiness probe, it is added to the Service and starts receiving traffic. Distributed applications may also require their own coordination logic for data and leadership.
+
+## 4. Troubleshooting OOMKilled Pods
+
+An `OOMKilled` status means the container used more memory than its configured limit, so the Linux kernel killed the process to protect the node.
+
+### 1. Confirm the reason
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Check the Events section for `Reason: OOMKilled`, and note the exit code (`137`, which is `128 + SIGKILL`).
+
+### 2. Check current memory usage
+
+```bash
+kubectl top pod <pod-name>
+kubectl top node
+```
+
+This shows whether the container is genuinely near its limit, and whether the node itself is under memory pressure.
+
+### 3. Review resource requests and limits
+
+```yaml
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+```
+
+Confirm the limit is actually appropriate for the workload rather than an arbitrary guess - see [§1](#1-resource-requests-and-limits-in-kubernetes) above.
+
+### 4. Check the application itself
+
+- Look for memory leaks.
+- Check whether a recent deployment increased memory usage (new dependency, new caching behavior, a changed batch size).
+- Review logs from the crashed container specifically:
+
+```bash
+kubectl logs <pod-name> --previous
+```
+
+### 5. Monitor memory over time
+
+Use Prometheus and Grafana to see whether memory grows steadily (a leak) or spikes under specific traffic (a genuine capacity issue) - see [§2 in kubernetes-operations-and-stateful-workloads.md](kubernetes-operations-and-stateful-workloads.md#2-monitoring-aks-with-prometheus-and-grafana).
+
+### 6. Decide: raise the limit, or fix the application
+
+If traffic-driven memory growth is expected and legitimate, consider a Horizontal Pod Autoscaler so load is spread across more replicas instead of concentrated in one container. If a Java application has a 512Mi limit but needs 700Mi at peak, confirm the usage is genuine load (not a leak) before simply raising the limit.
+
+### Short interview answer
+
+I'd confirm the OOMKilled event and exit code with `kubectl describe pod`, check current memory pressure with `kubectl top`, and review the configured requests/limits. Then I'd check the application for a memory leak or a recent change that increased memory use, using `kubectl logs --previous` for the crashed container. I'd monitor memory over time with Prometheus/Grafana to distinguish a leak from genuine load, and either raise the limit (if justified) or fix the application - adding HPA if the growth is traffic-driven.
+
+## 5. AKS ImagePullBackOff After an Identity Change
+
+`ImagePullBackOff` means Kubernetes cannot pull the container image. When this starts right after an identity change, the first suspect is that the new identity lost registry access - not the image itself.
+
+### 1. Confirm the error
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Check Events for `401 Unauthorized`, `403 Forbidden`, or `failed to pull image`.
+
+### 2. Verify the managed identity
+
+```bash
+az aks show -g <resource-group> -n <cluster-name>
+```
+
+Confirm which identity the cluster is actually using now.
+
+### 3. Check ACR role assignments
+
+```bash
+az role assignment list --assignee <managed-identity-id>
+```
+
+The identity needs `AcrPull` on the Azure Container Registry. If it was swapped (e.g. Identity A → Identity B) and only Identity A had `AcrPull`, pods lose the ability to authenticate to ACR immediately.
+
+### 4. Verify the image name and tag
+
+Rule out a genuinely wrong reference before assuming it's purely a permissions issue.
+
+### 5. Fix and restart
+
+Assign `AcrPull` to the correct identity, then:
+
+```bash
+kubectl rollout restart deployment <deployment-name>
+```
+
+### Short interview answer
+
+Since the failure started after an identity change, I'd first verify which managed identity AKS is now using with `az aks show`, then check whether that identity has `AcrPull` on the registry with `az role assignment list`. If it doesn't - which is the common cause after an identity swap - I'd assign the role, confirm the image name/tag are correct, and restart the deployment to force a fresh pull.

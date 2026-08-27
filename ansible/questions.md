@@ -204,7 +204,9 @@ Machine A needs to be an approved control node: Ansible installed, inventory in 
 
 I run `ansible-playbook --syntax-check`, then `--check --diff` where the modules support it, limit the first production run to a single canary host, and check service health afterward. Code, inventory structure, Vault references, reviews, and CI logs give me repeatability and an audit trail.
 
-### 16. Is Ansible inventory static or dynamic?
+---
+
+### 8. Is Ansible inventory static or dynamic?
 
 **Answer:**
 
@@ -214,7 +216,9 @@ A dynamic inventory plugin queries a source such as AWS, Azure, VMware, or Kuber
 
 Inventory should describe targets only — it should never contain secrets.
 
-### 17. What is the difference between the `command` and `shell` modules?
+---
+
+### 9. What is the difference between the `command` and `shell` modules?
 
 **Answer:**
 
@@ -224,7 +228,9 @@ Inventory should describe targets only — it should never contain secrets.
 
 Given the choice, I prefer a dedicated Ansible module over either one. Where I can, I use `creates`/`removes` or a module that's already idempotent, and I quote any variables carefully when `shell` really is unavoidable.
 
-### 18. What is an Ansible module?
+---
+
+### 10. What is an Ansible module?
 
 **Answer:**
 
@@ -234,7 +240,9 @@ Modules return structured facts like `changed`, `failed`, and their output. A we
 
 A task calls one module. A playbook organizes plays, variables, handlers, and tasks together. I use fully qualified names such as `ansible.builtin.copy` so it's always clear where a module comes from.
 
-### 19. How do you automate private VMs with Ansible when their IP addresses change?
+---
+
+### 11. How do you automate private VMs with Ansible when their IP addresses change?
 
 **Answer:**
 

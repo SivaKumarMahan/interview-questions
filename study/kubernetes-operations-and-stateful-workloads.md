@@ -84,6 +84,29 @@ Common dashboard and alert signals include:
 | Kubelet and API server | Node, pod, and Kubernetes API metrics |
 | CoreDNS | DNS metrics |
 
+### Installing the stack
+
+In production this is normally installed as a single Helm release rather than assembled component by component:
+
+```bash
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+```
+
+This one chart typically brings in Prometheus, Grafana, Alertmanager, `kube-state-metrics`, and `node-exporter` together, pre-wired to scrape the cluster.
+
+### Troubleshooting missing metrics
+
+If a target's metrics aren't showing up in Grafana, work through it in order:
+
+1. **Check Prometheus Pods** - `kubectl get pods -n monitoring` to confirm Prometheus itself is running.
+2. **Check Prometheus Targets** - in the Prometheus UI, confirm the target shows as `UP`, not `DOWN`.
+3. **Confirm the `/metrics` endpoint** - `curl` the application's metrics port directly to confirm it's actually exposing data.
+4. **Check ServiceMonitor/PodMonitor** - confirm a `ServiceMonitor` or `PodMonitor` resource exists and its label selector actually matches the target Service/Pod.
+5. **Check NetworkPolicies/firewalls** - confirm nothing is blocking Prometheus from reaching the target's metrics port.
+6. **Review Prometheus logs** - scrape errors (TLS, auth, timeouts) usually show up here.
+
 ## 3. Kubernetes Autoscaling
 
 Kubernetes can scale at three levels:
@@ -170,6 +193,96 @@ If `mysql-1` is recreated, it keeps the same identity and reconnects to its own 
 - Moving a pod after node failure requires the disk to detach and attach elsewhere, which can delay recovery.
 - Use a suitable StorageClass and CSI driver with dynamic provisioning.
 - Prefer a mature Kubernetes operator for complex databases when it can safely manage upgrades, backups, failover, and recovery.
+
+## 5. What Happens When `kubectl apply` Runs
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+1. `kubectl` reads the YAML and prepares the API request.
+2. The request goes to the Kubernetes API Server.
+3. The API Server authenticates and authorizes the request.
+4. Admission controllers and validation are applied.
+5. The desired state is stored in `etcd`.
+6. Controllers reconcile the desired state - for a Deployment, the Deployment Controller creates or updates a ReplicaSet.
+7. The Scheduler assigns new Pods to suitable worker nodes.
+8. The Kubelet on the selected node asks the container runtime to pull the image and start the container.
+9. The CNI configures Pod networking.
+10. Readiness checks determine when the Pod can start receiving traffic.
+
+```text
+kubectl apply
+  -> API Server
+  -> etcd
+  -> Deployment Controller
+  -> ReplicaSet
+  -> Scheduler
+  -> Kubelet
+  -> Container Runtime
+  -> Pod Running
+```
+
+### Short interview answer
+
+`kubectl apply` sends the manifest to the API Server, which authenticates the request, runs it through admission controllers, and persists the desired state in `etcd`. From there, the relevant controller (e.g. the Deployment Controller) reconciles that state into a ReplicaSet, the Scheduler places the resulting Pods on suitable nodes, and the Kubelet on each node pulls the image and starts the container - with the CNI wiring up networking and readiness checks gating when traffic actually starts flowing.
+
+## 6. Rolling Updates - `maxSurge` and `maxUnavailable`
+
+A Rolling Update is the default Deployment strategy: it replaces old Pods with new ones gradually, in batches, instead of stopping everything at once.
+
+Example: 4 Pods running `v1`, deploying `v2`:
+
+1. Kubernetes creates a `v2` Pod.
+2. It waits for the new Pod to become healthy (readiness probe passes).
+3. It removes an old `v1` Pod.
+4. It repeats until all Pods run `v2`.
+
+```yaml
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 1
+```
+
+- `maxSurge` - the maximum number of extra Pods that can be created above the desired replica count during the update.
+- `maxUnavailable` - the maximum number of Pods that can be unavailable at once during the update.
+
+Tuning these controls the tradeoff between rollout speed and headroom: a higher `maxSurge` rolls out faster but briefly uses more cluster resources; a higher `maxUnavailable` rolls out faster but reduces how many healthy replicas are guaranteed at any moment.
+
+### Short interview answer
+
+A Rolling Update gradually replaces old Pods with new ones, waiting for each new Pod to pass its readiness probe before removing an old one - so deployments happen with little or no downtime. `maxSurge` caps how many extra Pods can exist above the desired count during the rollout, and `maxUnavailable` caps how many Pods can be unavailable at once; together they control how aggressively the rollout proceeds.
+
+## 7. `kubectl exec` vs `kubectl run`
+
+**`kubectl exec`** - runs a command inside an *existing* Pod's container.
+
+```bash
+kubectl exec -it nginx-pod -- /bin/bash
+kubectl exec -it nginx-pod -- /bin/sh
+kubectl exec nginx-pod -- ls /app
+kubectl exec nginx-pod -- env
+kubectl exec -it nginx-pod -c app-container -- /bin/bash
+```
+
+`-it` attaches an interactive terminal; `-c` selects a specific container in a multi-container Pod.
+
+**`kubectl run`** - creates a *new*, standalone Pod, mainly for quick testing/debugging.
+
+```bash
+kubectl run nginx --image=nginx
+kubectl run ubuntu --image=ubuntu -it -- /bin/bash
+kubectl run debug --image=busybox -it --rm -- sh
+kubectl run test --image=busybox -- sleep 3600
+```
+
+The `--rm` flag in the `debug` example is worth calling out specifically - it deletes the Pod automatically once the interactive session ends, which is the standard pattern for a throwaway debug Pod that doesn't linger in the cluster.
+
+### Short interview answer
+
+`kubectl exec` runs a command inside a Pod that's already running - useful for inspecting a live application. `kubectl run` creates a brand-new standalone Pod, which is mainly useful for spinning up a temporary debug/test Pod (often with `--rm` so it cleans itself up) rather than working with an existing workload.
 
 ## Short Interview Summary
 

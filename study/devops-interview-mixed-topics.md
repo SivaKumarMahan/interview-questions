@@ -24,6 +24,7 @@ Collected interview questions and answers across Helm, CI/CD, Terraform, Kuberne
 18. [App Service vs App Service Plan vs Web App](#18-app-service-vs-app-service-plan-vs-web-app)
 19. [Dockerfile - COPY vs ADD, CMD vs ENTRYPOINT](#19-dockerfile---copy-vs-add-cmd-vs-entrypoint)
 20. [Jenkins pipeline for AKS - basic and enterprise version](#20-jenkins-pipeline-for-aks---basic-and-enterprise-version)
+21. [Teams bots, Adaptive Cards and dashboard visualization](#21-teams-bots-adaptive-cards-and-dashboard-visualization)
 
 ---
 
@@ -144,6 +145,20 @@ REVISION  STATUS
 
 Each Helm upgrade creates a new release revision, which is important for rollback.
 
+In CI/CD I normally combine install and upgrade into one idempotent command instead of branching on "does this release already exist":
+
+```bash
+helm upgrade --install my-app ./my-app \
+  -n production \
+  -f values-prod.yaml
+```
+
+For a quick one-off change without editing the values file, `--set` overrides a single value directly:
+
+```bash
+helm upgrade my-app ./my-app -n production --set image.tag=v2
+```
+
 ### 1.4 Complete Helm rollback procedure
 
 Suppose revision 2 introduced a bad application version and the Pods are failing.
@@ -255,6 +270,16 @@ Verify Pods + Application
 ### 1.6 Strong interview answer
 
 > "In my projects, I use Helm to package Kubernetes resources into reusable charts. The chart contains Chart.yaml, values.yaml, and templates such as Deployment, Service, and Ingress. For deployment, I validate the chart using `helm lint` and `helm template`, then use `helm install` or `helm upgrade` with environment-specific values. Every upgrade creates a new Helm revision. If the latest deployment has an issue, I check `helm history`, identify the last known-good revision, and run `helm rollback <release> <revision>`. After rollback, I verify the Helm status, Kubernetes rollout, Pod health, logs, and application functionality."
+
+### 1.7 Best practices
+
+- Separate values files per environment (`values-dev.yaml`, `values-qa.yaml`, `values-prod.yaml`) instead of branching logic inside templates.
+- Keep secrets out of the chart where possible - reference an external secret manager (e.g. Azure Key Vault) rather than committing secret values to `values.yaml`.
+- Version Helm charts, so a specific chart version can be pinned and rolled back independently of the application image tag.
+- Always run `helm lint` before deploying.
+- Use `helm upgrade --install` in CI/CD so the same command works for both first deploy and subsequent releases.
+- Verify the rollout (`kubectl rollout status`) after every install/upgrade rather than assuming success from Helm's own exit code.
+- Roll back immediately on a failed deployment rather than trying to hotfix forward under pressure.
 
 ---
 
@@ -862,6 +887,15 @@ Then immediately explain:
 
 That answer gives the interviewer both application knowledge and actual DevOps ownership, which is what they usually look for in an Azure DevOps interview.
 
+### 4.6 Additional enterprise elements worth mentioning
+
+For a more enterprise-scale version of the same architecture:
+
+- **Azure Front Door** in front of Application Gateway for global routing/CDN, when the application serves multiple regions.
+- **TDE (Transparent Data Encryption)** on Azure SQL for encryption at rest.
+- **Redis** as a caching layer between the backend and the database to reduce database load.
+- **GZRS (Geo-Zone-Redundant Storage)** for the storage tier when both zone and region redundancy are required.
+
 ---
 
 ## 5. Ingress and DNS in Kubernetes
@@ -921,6 +955,31 @@ kubectl describe ingress <ingress-name>
 
 **6. Check the external Load Balancer and firewall** - verify the Load Balancer is healthy, and check NSG/firewall rules and DNS records if traffic is coming from outside the cluster.
 
+### 5.3.1 When the Service specifically isn't reachable from *outside* the cluster
+
+The steps above cover routing in general. When the specific complaint is "works inside the cluster, not from outside," add these:
+
+**Test from inside the cluster first** - before blaming the Ingress/Load Balancer, confirm the Service itself works from inside the cluster using a temporary debug Pod:
+
+```bash
+kubectl run test-pod --rm -it --image=curlimages/curl -- sh
+curl http://<service-name>:<port>
+```
+
+If this fails, the problem is between Service and Pod/Application - the Ingress and Load Balancer aren't the issue yet. If it succeeds, move outward.
+
+**Confirm the Load Balancer actually has an external IP:**
+
+```bash
+kubectl get svc <ingress-controller-service> -n ingress-nginx
+```
+
+A `<pending>` `EXTERNAL-IP` means the cloud load balancer was never provisioned - that alone explains total external unreachability.
+
+**Confirm the external DNS record points at that Load Balancer IP**, and that the required ports are actually open - normally `80` and `443` - on the NSG/firewall in front of it.
+
+**Finally, review both the application logs and the Ingress Controller logs** - not just its config - since a config that looks correct can still be failing at the connection/upstream level.
+
 ### 5.4 Interview summary
 
 > "Ingress controls external HTTP/HTTPS routing to Kubernetes Services, while CoreDNS provides internal name resolution. When troubleshooting, I start from the application by checking Pod readiness, then EndpointSlices, Service selectors and ports, DNS resolution, Ingress rules and controller, and finally the external Load Balancer and firewall."
@@ -955,9 +1014,11 @@ Prometheus -> Alert Rules -> Alertmanager -> Email/Slack/Teams/PagerDuty
 Example alerts:
 
 - CPU > 80% for 5 minutes
+- Memory > 80%
 - Pod in CrashLoopBackOff
 - Node NotReady
 - Disk usage > 90%
+- Deployment replicas unavailable
 
 Prometheus continuously evaluates alert rules written in PromQL. When a condition is met, it sends the alert to Alertmanager, which handles routing, grouping, silencing, and notifications.
 
@@ -1285,7 +1346,24 @@ for i in range(1, 11):
     print(f"{num} x {i} = {num * i}")
 ```
 
-### 9.16 Most common interview programs
+### 9.16 Armstrong number
+
+A number equal to the sum of its own digits, each raised to the power of the digit count (e.g. `153 = 1³ + 5³ + 3³`).
+
+```python
+num = 153
+digits = str(num)
+power = len(digits)
+
+total = sum(int(d) ** power for d in digits)
+
+if total == num:
+    print("Armstrong number")
+else:
+    print("Not an Armstrong number")
+```
+
+### 9.17 Most common interview programs
 
 1. Fibonacci series
 2. Prime number
@@ -3230,3 +3308,82 @@ If you're targeting senior DevOps or Azure DevOps interviews, you can also menti
 - **Progressive delivery:** use blue-green or canary deployments for production releases to minimize risk.
 
 This version is much closer to what you'll see in enterprise environments and is suitable for discussing in DevOps interviews.
+
+---
+
+## 21. Teams bots, Adaptive Cards and dashboard visualization
+
+A cluster of related concepts that shows up in "build a status dashboard/bot" style questions: chat apps, micro frontends, the Teams Bot Framework, Adaptive Cards, and the difference between D3.js and Highcharts for the visualization layer.
+
+**Chat apps** - applications where users communicate through messages, such as Microsoft Teams, Slack, or an internal chat application. In a DevOps context, they're commonly used as the front door for ChatOps - checking deployment status, triggering pipelines, or getting alerts without leaving the chat tool.
+
+**Micro frontends** - a way to split a large frontend application into smaller, independently developed and deployed frontend applications, each typically owned by a different team.
+
+```
+Employee Portal
+ ├── Profile
+ ├── Payroll
+ ├── Leave Management
+ └── Reports
+```
+
+Different teams can own and deploy each section independently instead of shipping one large frontend as a single unit.
+
+**Teams Bot Framework** - used to build bots that users interact with directly inside Microsoft Teams.
+
+```
+User: Check production deployment
+Bot:  Production deployment is successful.
+      Version: v2.4.1
+      Status: Running
+```
+
+**Adaptive Cards** - JSON-based UI cards used by Teams bots to display structured information and interactive buttons inside a Teams conversation, instead of plain text.
+
+```
+Production Deployment
+Status: Successful
+Version: v2.4.1
+Environment: Production
+[View Logs] [Rollback]
+```
+
+**D3.js vs Highcharts** - both are JavaScript charting libraries, but they solve different problems:
+
+| Library | Strength |
+| --- | --- |
+| D3.js | More flexible and customizable - you build the visualization from primitives (SVG, scales, axes) |
+| Highcharts | Easier for standard business charts (bar, line, pie) with less code and built-in interactivity |
+
+D3.js is the right choice when a dashboard needs a custom or unusual visualization; Highcharts is the right choice when the requirement is common business charts delivered quickly.
+
+**Azure Web Apps** - Azure App Service Web Apps, used to host web applications and APIs without managing the underlying VMs directly. Supports .NET, Node.js, Python, Java, and PHP.
+
+**Putting it together** - a Teams-integrated deployment-status dashboard could look like:
+
+```
+User
+  |
+  v
+Microsoft Teams
+  |
+  v
+Teams Bot
+  |
+  v
+Python API
+  |
+  v
+Azure Web App / Database / APIs
+  |
+  v
+Data
+  |
+  v
+D3.js / Highcharts
+  |
+  v
+Web Dashboard
+```
+
+The bot handles the conversational interface and Adaptive Cards inside Teams, a Python API on Azure App Service does the backend work (querying deployment/pipeline state), and a web dashboard renders the same data visually using D3.js or Highcharts depending on how custom the charts need to be.
