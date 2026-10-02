@@ -12,7 +12,7 @@ Log locations vary by Linux distribution and by which service manager it uses. W
 
 ## Interview Questions
 
-### 1. What logs appear under `/var/log`?
+<details><summary>Q1. [Basic] What logs appear under <code>/var/log</code>?</summary>
 
 **Answer:**
 
@@ -22,7 +22,9 @@ The exact set depends on the distribution, because many systems now send most se
 
 I check permissions and never truncate or change production logs during an investigation without preserving the evidence first.
 
-### 2. Where are Apache logs usually located?
+</details>
+
+<details><summary>Q2. [Basic] Where are Apache logs usually located?</summary>
 
 **Answer:**
 
@@ -38,7 +40,9 @@ journalctl -u apache2 --since today   # or httpd
 
 For a failed request, I match the timestamp, client IP, URL, and status code in the access log, then use the request ID or timestamp to find the matching entry in the error log and any upstream application logs.
 
-### 3. How do you check logs from the last 7 days?
+</details>
+
+<details><summary>Q3. [Basic] How do you check logs from the last 7 days?</summary>
 
 **Answer:**
 
@@ -52,7 +56,9 @@ For plain log files, I first find the current and rotated files under `/var/log`
 
 I account for timezone differences and log rotation boundaries, and export a read-only copy when I need to preserve evidence from an incident.
 
-### 4. How do you investigate a service crash using system logs?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you investigate a service crash using system logs?</summary>
 
 **Answer:**
 
@@ -60,7 +66,9 @@ I establish which service, which host, and the exact failure window, then use `s
 
 If it makes sense, I validate the configuration and try to reproduce it safely in a lower environment. After fixing it with a rollback, a targeted configuration change, or added capacity, I confirm the health checks pass and add an actionable alert or runbook for that failure mode.
 
-### 5. What is log rotation?
+</details>
+
+<details><summary>Q5. [Basic] What is log rotation?</summary>
 
 **Answer:**
 
@@ -72,7 +80,9 @@ Before changing a rule, I test it with `logrotate -d /etc/logrotate.conf`. A ser
 
 I check permissions, ownership, any retention or compliance requirements, disk usage, and the next scheduled run rather than just forcing a rotation blindly.
 
-### 6. A log file shows junk characters. How do you check and recover it?
+</details>
+
+<details><summary>Q6. [Intermediate] A log file shows junk characters. How do you check and recover it?</summary>
 
 **Answer:**
 
@@ -88,7 +98,9 @@ It might be compressed, UTF-16, contain ANSI control codes, or just be a binary 
 
 I also check for disk errors, an interrupted rotation, or multiple processes writing incompatible formats to the same file. If integrity checks fail, I restore the log from backup or a central logging system rather than overwrite the only copy of the evidence during an incident.
 
-### 7. How do you print the last 15 lines of a file in Linux?
+</details>
+
+<details><summary>Q7. [Basic] How do you print the last 15 lines of a file in Linux?</summary>
 
 **Using the `tail` command**
 
@@ -111,11 +123,15 @@ If you want the last 15 lines of a command's output instead of a file:
 dmesg | tail -n 15
 ```
 
-### 8. How would you view the last few lines of a huge log file that's continuously updated?
+</details>
+
+<details><summary>Q8. [Basic] How would you view the last few lines of a huge log file that's continuously updated?</summary>
 
 "I'd use `tail -f logfile.log` to stream the last lines in real time."
 
-### 9. log file processing - using tools like grep to extract IP addresses and count occurrences?
+</details>
+
+<details><summary>Q9. [Intermediate] log file processing - using tools like grep to extract IP addresses and count occurrences?</summary>
 
 **A:** You can combine `grep` with `awk`, `sort`, and `uniq` to pull IP addresses out of log files and count how often each one appears. Here's the approach step by step:
 
@@ -171,3 +187,5 @@ dmesg | tail -n 15
    ```bash
    awk '{print $1}' logfile.log | sort | uniq -c | sort -nr
    ```
+
+</details>

@@ -189,7 +189,7 @@ docker run -td -p 8080:5000 --name flask livingdevopswithakhilesh/docker-demo-do
 
 ## Interview Questions
 
-### 1. How do you create a custom Docker image?
+<details><summary>Q1. [Basic] How do you create a custom Docker image?</summary>
 
 **Answer:**
 
@@ -215,7 +215,9 @@ docker push registry.example.com/app:abc123
 
 I check that tests pass, that the app starts correctly, which user it runs as, what files are in the image, its size and layer count, how it handles shutdown, and its scan results. Credentials should never go into build arguments or image layers — if a private dependency truly needs a credential during the build, use a BuildKit secret mount instead, which keeps it out of the final image and its history.
 
-### 2. How do you write a production-ready Dockerfile?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you write a production-ready Dockerfile?</summary>
 
 **Answer:**
 
@@ -238,7 +240,9 @@ I use the exec form of `ENTRYPOINT`/`CMD` (the `["cmd", "arg"]` array style, not
 
 I also test the image under the same restrictions it'll run under in production — non-root, read-only filesystem, and resource limits.
 
-### 3. Dockerfile Security, Reliability, and Optimization
+</details>
+
+<details><summary>Q3. [Intermediate] Dockerfile Security, Reliability, and Optimization</summary>
 
 #### The Dockerfile
 
@@ -260,17 +264,20 @@ CMD ["java", "-jar", "app.jar"]
 #### Problems
 
 **Security:**
+
 - `ENV DB_PASSWORD=Production123` bakes a real secret into the image layers — anyone who can pull or inspect the image (`docker history`) can see it.
 - `ubuntu:latest` is an unpinned, mutable tag — the image can silently change over time, breaking reproducibility and potentially introducing vulnerabilities.
 - No non-root user — the container runs as `root` by default, which is a bigger blast radius if the app is compromised.
 - Installs the full JDK (includes compilers/dev tools) instead of just a JRE, growing the attack surface unnecessarily.
 
 **Reliability:**
+
 - `RUN apt-get update` on its own line, separate from `apt-get install`, can use a stale cached layer for `update` while installing a newer package list — a classic Docker caching pitfall. They should be combined in one `RUN`.
 - No version pinning for `openjdk-17-jdk` — install could silently pull a different patch version between builds.
 - `COPY . /app` copies everything, including potentially unnecessary files (`.git`, local configs, secrets) — no `.dockerignore` mentioned.
 
 **Image size / optimization:**
+
 - `ubuntu:latest` + full JDK is a large base; no multi-stage build to strip build-time dependencies from the final image.
 
 #### Corrected Dockerfile
@@ -295,7 +302,9 @@ The `DB_PASSWORD` should never be baked into the image — it should be injected
 
 "There are three categories of problems here: security — a real secret baked into the image via `ENV`, and the container running as root; reliability — `apt-get update` and `install` split into separate `RUN` layers, which can install against a stale package index, plus an unpinned `ubuntu:latest` base; and size — using a full JDK and Ubuntu base instead of a slim JRE image. I'd switch to a pinned, JRE-only base image, add a non-root user, remove the hardcoded secret and inject it at runtime instead, and combine related `RUN` steps."
 
-### 4. What is the base image in Docker and which base image would you use for Python or Node.js?
+</details>
+
+<details><summary>Q4. [Basic] What is the base image in Docker and which base image would you use for Python or Node.js?</summary>
 
 A **base image** is the starting point of your Docker image — the first layer everything else is built on top of. Your app, its dependencies, and your configuration all get added on top of it. It defines the runtime environment your app needs, such as the operating system and libraries.
 
@@ -323,7 +332,9 @@ CMD ["npm", "start"]
 - For Python, use `python:3.x-slim` or `python:3.x-alpine`.
 - For Node.js, use `node:18-slim` or `node:18-alpine`.
 
-### 5. What is the difference between `ADD` and `COPY` in a Dockerfile?
+</details>
+
+<details><summary>Q5. [Basic] What is the difference between <code>ADD</code> and <code>COPY</code> in a Dockerfile?</summary>
 
 **Answer:**
 
@@ -337,7 +348,9 @@ For remote files, I'd rather download them in a controlled `RUN` step with TLS a
 
 Neither `COPY` nor `ADD` should ever pull in `.git`, local credentials, or build output you don't need.
 
-### 6. What happens when you write `COPY .` in a Dockerfile?
+</details>
+
+<details><summary>Q6. [Basic] What happens when you write <code>COPY .</code> in a Dockerfile?</summary>
 
 **Answer:**
 
@@ -353,7 +366,9 @@ COPY src ./src
 
 I check the build context size, build logs, and image layers (using `docker history` or a tool like Dive) to catch anything that shouldn't be there. If a secret ever ends up in a layer, deleting it in a later layer isn't enough — the old layer still has it in the image's history. The fix is to rotate the secret and rebuild from a clean history.
 
-### 7. What is the difference between `RUN`, `CMD`, and `ENTRYPOINT`?
+</details>
+
+<details><summary>Q7. [Basic] What is the difference between <code>RUN</code>, <code>CMD</code>, and <code>ENTRYPOINT</code>?</summary>
 
 **Answer:**
 
@@ -370,7 +385,9 @@ CMD ["--port", "8080"]
 
 Running `docker run image --port 9090` overrides the `CMD` arguments while keeping the `ENTRYPOINT`. I always use the JSON/exec array form rather than a plain shell string, so the app runs directly as PID 1 and receives shutdown signals correctly. A shell-form command inserts an extra shell process in between, which can interfere with signal handling.
 
-### 8. What is the difference between `CMD` and `ENTRYPOINT`?
+</details>
+
+<details><summary>Q8. [Basic] What is the difference between <code>CMD</code> and <code>ENTRYPOINT</code>?</summary>
 
 **Answer:**
 
@@ -385,7 +402,9 @@ CMD ["--config", "/etc/server/config.yaml"]
 
 For a general-purpose tool image, `CMD` alone is often more flexible. I avoid wrapper shell scripts unless they end with `exec "$@"`, so signals still reach the actual application instead of being swallowed by the wrapper. I also test `docker stop` directly to confirm the container shuts down cleanly.
 
-### 9. Dockerfile: what is the difference between COPY vs ADD and CMD vs ENTRYPOINT?
+</details>
+
+<details><summary>Q9. [Basic] Dockerfile: what is the difference between COPY vs ADD and CMD vs ENTRYPOINT?</summary>
 
 These are two of the most frequently asked Docker interview questions.
 
@@ -654,7 +673,9 @@ ENTRYPOINT ["nginx", "-g", "daemon off;"]
 >
 > **CMD vs ENTRYPOINT:** CMD defines the default command that can be overridden when starting the container. ENTRYPOINT defines the container's main executable and is intended to always run. A common production pattern is to use ENTRYPOINT for the application (for example, `java -jar app.jar`) and CMD to provide default arguments that users can override."
 
-### 10. How many `CMD` instructions can a Dockerfile contain, and what happens when there are multiple?
+</details>
+
+<details><summary>Q10. [Basic] How many <code>CMD</code> instructions can a Dockerfile contain, and what happens when there are multiple?</summary>
 
 **Answer:**
 
@@ -671,7 +692,9 @@ CMD ["--spring.profiles.active=prod"]
 
 Arguments passed to `docker run image ...` replace `CMD`; the `--entrypoint` flag is needed to replace `ENTRYPOINT` itself. The exec form keeps signal handling working correctly, which matters for a clean shutdown. I confirm the final result with `docker image inspect` and by actually testing `docker stop`.
 
-### 11. How do you pass environment variables during docker build commands? What services do you use for storing Docker images?
+</details>
+
+<details><summary>Q11. [Basic] How do you pass environment variables during docker build commands? What services do you use for storing Docker images?</summary>
 
 **Passing environment variables during a Docker build:**
 
@@ -708,7 +731,9 @@ You can store Docker images in a container registry. Some popular options:
 
 Pick a registry based on how well it fits your cloud provider, its security features, and how well it scales.
 
-### 12. How do you inject environment values during Docker builds, and where should runtime configuration be stored?
+</details>
+
+<details><summary>Q12. [Intermediate] How do you inject environment values during Docker builds, and where should runtime configuration be stored?</summary>
 
 **Answer:**
 
@@ -719,3 +744,5 @@ If a build genuinely needs a secret — say, to pull a private dependency — us
 I never bake separate Dev, UAT, and Prod credentials into separate images. I build one image, publish it under a fixed digest to the approved registry, and supply environment-specific but non-secret configuration through Kubernetes ConfigMaps, platform settings, or orchestrator variables. Actual secret values come from Vault, Key Vault, Secrets Manager, or an external-secret integration, scoped to only the access they need and rotated regularly.
 
 I check `docker history`, the image's configuration, CI logs, the SBOM and provenance record, and registry access to make sure nothing sensitive leaked out. If a credential ever does end up in a layer, deleting the file later isn't enough — I rotate it immediately and rebuild without it.
+
+</details>

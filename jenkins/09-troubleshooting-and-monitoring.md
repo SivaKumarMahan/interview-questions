@@ -16,7 +16,7 @@ Cleanup steps belong in `post { always { ... } }`. Never let a password show up 
 
 ## Interview Questions
 
-### 1. What will you do if a Jenkins pipeline fails? *(scenario)*
+<details><summary>Q1. [Intermediate] What will you do if a Jenkins pipeline fails? <em>(scenario)</em></summary>
 
 **Answer:** Check Jenkins logs → Identify stage of failure → Fix configuration/code issue → Re-run the pipeline. If infra-related, verify Terraform or Kubernetes changes before redeploying.
 
@@ -27,7 +27,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 2. A Jenkins pipeline fails although the application works locally. How do you troubleshoot it?
+</details>
+
+<details><summary>Q2. [Intermediate] A Jenkins pipeline fails although the application works locally. How do you troubleshoot it?</summary>
 
 **Answer:**
 
@@ -43,7 +45,9 @@ Any temporary debug output I add has to avoid printing credentials.
 
 Once I find it, I fix the build definition, dependency pinning, test isolation, agent image, or pipeline configuration, rerun from a clean environment, and confirm the same artifact passes every later stage. Hermetic builds, committed lockfiles and wrapper scripts, standardized build images, and being able to run the same CI commands locally all help stop this from happening again.
 
-### 3. How do you troubleshoot Jenkins jobs failing randomly? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you troubleshoot Jenkins jobs failing randomly? <em>(scenario)</em></summary>
 
 **Answer:** Check build logs → Verify network stability → Look for race conditions → Add retry logic.
 
@@ -54,7 +58,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 4. Runbook: Jenkins jobs failing randomly
+</details>
+
+<details><summary>Q4. [Intermediate] Runbook: Jenkins jobs failing randomly</summary>
 
 "Random" failures are usually caused by nondeterministic external conditions, not truly random code.
 
@@ -66,7 +72,9 @@ Useful: `df -h`, `free -m`, `uptime`, `dmesg`.
 
 **Strong approach:** compare successful and failed builds, identify the common pattern, reproduce the failure, and fix the underlying issue rather than repeatedly rerunning the job and hoping it passes.
 
-### 5. How do you troubleshoot Jenkins jobs failing due to missing dependencies? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot Jenkins jobs failing due to missing dependencies? <em>(scenario)</em></summary>
 
 **Answer:** Check agent environment → Install required tools via Docker image or Ansible → Use containerized build agents for consistency.
 
@@ -77,7 +85,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 6. Runbook: Jenkins jobs failing due to missing dependencies
+</details>
+
+<details><summary>Q6. [Intermediate] Runbook: Jenkins jobs failing due to missing dependencies</summary>
 
 Identify which dependency is missing, e.g.:
 
@@ -112,7 +122,9 @@ Common causes: dependency not installed, incorrect `PATH`, wrong tool version, a
 
 Better long-term solutions: Jenkins tool configuration (auto-install), Docker-based agents, Kubernetes dynamic agents, prebuilt agent images - so "what's installed on this agent" stops being a manual, driftable state.
 
-### 7. How do you troubleshoot Jenkins plugin failures? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] How do you troubleshoot Jenkins plugin failures? <em>(scenario)</em></summary>
 
 **Answer:** Check Jenkins logs → Verify plugin compatibility → Downgrade/upgrade plugin → Test in staging Jenkins.
 
@@ -123,7 +135,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 8. Runbook: Jenkins plugin failures
+</details>
+
+<details><summary>Q8. [Intermediate] Runbook: Jenkins plugin failures</summary>
 
 ```
 Plugin failure
@@ -154,7 +168,9 @@ Look for: `Failed Loading Plugin`, `NoSuchMethodError`, `ClassNotFoundException`
 
 If the failure started after a Jenkins/plugin/Java upgrade, compare against the previous known-good versions. Test plugin upgrades in a non-production Jenkins instance first.
 
-### 9. How do you troubleshoot Jenkins “Out of Memory” errors? *(scenario)*
+</details>
+
+<details><summary>Q9. [Intermediate] How do you troubleshoot Jenkins “Out of Memory” errors? <em>(scenario)</em></summary>
 
 **Answer:** Increase JVM heap size (-Xmx), clean old builds, archive artifacts to external storage, add monitoring for Jenkins memory usage.
 
@@ -165,7 +181,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 10. Runbook: Jenkins Out of Memory
+</details>
+
+<details><summary>Q10. [Intermediate] Runbook: Jenkins Out of Memory</summary>
 
 First determine *where* the OOM is happening:
 
@@ -194,7 +212,9 @@ Fix: increase JVM heap appropriately (e.g. `-Xms2g -Xmx4g`), move builds to agen
 
 **Don't just keep increasing heap if the underlying workload is wrong** - that treats the symptom, not the cause.
 
-### 11. How do you debug a Jenkins job stuck on “Waiting for Executor”? *(scenario)*
+</details>
+
+<details><summary>Q11. [Intermediate] How do you debug a Jenkins job stuck on “Waiting for Executor”? <em>(scenario)</em></summary>
 
 **Answer:** No free agents → Increase executors → Add agent nodes → Use Kubernetes dynamic agents.
 
@@ -205,7 +225,9 @@ I check `Manage Nodes`, queue and build metrics, agent pod or VM events, and net
 
 To stop this from happening again, I use agents that scale automatically and get created fresh for each job, set up alerts for capacity and queue time, use sensible labels and quotas, add health checks to agent images, apply timeouts, and keep long or privileged workloads separate from everything else.
 
-### 12. Runbook: Jenkins job stuck on "Waiting for Executor"
+</details>
+
+<details><summary>Q12. [Intermediate] Runbook: Jenkins job stuck on "Waiting for Executor"</summary>
 
 Meaning: Jenkins has no suitable executor available right now.
 
@@ -215,7 +237,9 @@ Fix: add another agent, increase executor count carefully, free stuck builds, co
 
 **Don't blindly increase executors.** If a VM has 2 CPUs and 4 GB RAM, 10 heavy executors will make builds slower, not faster - executors share the same finite CPU/memory.
 
-### 13. How do you troubleshoot a Jenkins pipeline stuck in the queue? *(scenario)*
+</details>
+
+<details><summary>Q13. [Intermediate] How do you troubleshoot a Jenkins pipeline stuck in the queue? <em>(scenario)</em></summary>
 
 **Answer:** Check if Jenkins agents are available → Validate node labels → Check executor limits → Scale up agents if using Kubernetes/VMs.
 
@@ -226,7 +250,9 @@ I check `Manage Nodes`, queue and build metrics, agent pod or VM events, and net
 
 To stop this from happening again, I use agents that scale automatically and get created fresh for each job, set up alerts for capacity and queue time, use sensible labels and quotas, add health checks to agent images, apply timeouts, and keep long or privileged workloads separate from everything else.
 
-### 14. Runbook: Jenkins pipeline stuck in queue
+</details>
+
+<details><summary>Q14. [Intermediate] Runbook: Jenkins pipeline stuck in queue</summary>
 
 ```
 Build queued
@@ -254,7 +280,9 @@ Common causes: no suitable agent, a required label doesn't exist, matching agent
 
 **Interview answer:** check the queue item's reason, whether a suitable agent is online, whether it has a free executor, and whether the label in the pipeline matches an available agent.
 
-### 15. How do you integrate Jenkins with monitoring? *(scenario)*
+</details>
+
+<details><summary>Q15. [Intermediate] How do you integrate Jenkins with monitoring? <em>(scenario)</em></summary>
 
 **Answer:** Use Jenkins Prometheus plugin → Send metrics to Grafana → Alert on pipeline failures/slow builds.
 
@@ -266,3 +294,5 @@ Dashboards show both the symptoms and the dependencies behind them. Alerts are b
 As things scale up, I combine or downsample older metrics, sample traces intelligently instead of keeping everything, and apply hot/warm/cold log retention based on what's needed for debugging versus compliance. During an incident, I trace one request across every layer it touches and compare that timeline against recent deployments or config changes.
 
 I regularly check that alerts actually get delivered and that they clear once resolved, and I tune out noisy or unactionable alerts.
+
+</details>

@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. Where do you check Windows logs?
+<details><summary>Q1. [Basic] Where do you check Windows logs?</summary>
 
 **Answer:**
 
@@ -22,7 +22,9 @@ I filter by the incident time, provider, event ID, hostname, and any correlation
 
 I save the relevant events before any cleanup happens, and I don't treat every warning as the root cause.
 
-### 2. How do you troubleshoot high CPU on Windows?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you troubleshoot high CPU on Windows?</summary>
 
 **Answer:**
 
@@ -39,7 +41,9 @@ Where possible, I capture a dump or performance trace before restarting anything
 
 The actual fix might be correcting bad code or a slow query, a configuration change, scaling the workload, or stopping a runaway task. Afterward I confirm response time and CPU are back to normal and add an alert with a runbook for next time.
 
-### 3. How do you troubleshoot disk-full issues on Windows?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you troubleshoot disk-full issues on Windows?</summary>
 
 **Answer:**
 
@@ -50,3 +54,5 @@ I don't delete files I don't recognize. First I stop or control whatever is prod
 If a large deleted file is still holding space because a process has it open, I find that process. If the growth is legitimate, I extend the disk or filesystem after checking the backup and platform limits.
 
 After recovering space, I restart only the affected services, confirm there's free space and the application is writing normally, and prevent it recurring with retention policies, quotas, capacity alerts, and clear ownership of directories that tend to grow.
+
+</details>

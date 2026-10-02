@@ -165,7 +165,7 @@ Metrics Server supplies common resource metrics; production scaling must also va
 
 ## Interview Questions
 
-### 1. How does the Kubernetes scheduler decide where to place Pods?
+<details><summary>Q1. [Intermediate] How does the Kubernetes scheduler decide where to place Pods?</summary>
 
 **Answer:**
 
@@ -183,7 +183,9 @@ kubectl top nodes
 
 I check the requests, taints, selectors and affinity, topology constraints, PVC, quota, node capacity and IPs, and the autoscaler. I fix the actual constraint or add capacity — deleting and recreating an identical Pod doesn't solve a problem that was never going to schedule in the first place.
 
-### 2. What are common scheduling challenges in a multi-node, multi-AZ setup?
+</details>
+
+<details><summary>Q2. [Advanced] What are common scheduling challenges in a multi-node, multi-AZ setup?</summary>
 
 **Answer:**
 
@@ -193,7 +195,9 @@ I design topology spread across hostname and zone, choosing `ScheduleAnyway` or 
 
 The goal isn't perfect spreading at all costs — hard constraints can actually reduce availability if one zone fails, so I choose between strict and preferred rules deliberately.
 
-### 3. Suppose I want a pod to be scheduled on a specific node only. How can I achieve this?
+</details>
+
+<details><summary>Q3. [Intermediate] Suppose I want a pod to be scheduled on a specific node only. How can I achieve this?</summary>
 
 You can control pod scheduling using `nodeSelector`, Node Affinity, or the `nodeName` field:
 
@@ -216,7 +220,9 @@ spec:
             values: ["node-1"]
 ```
 
-### 4. How do you troubleshoot Kubernetes pod scheduling due to taints?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot Kubernetes pod scheduling due to taints?</summary>
 
 **Answer:** Run kubectl describe node → Check taints → Add tolerations in pod spec → Or remove taints if not needed.
 
@@ -227,7 +233,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 5. When using anti-affinity rules, is it possible to create a "deadlock" where no new Pods can be scheduled?
+</details>
+
+<details><summary>Q5. [Advanced] When using anti-affinity rules, is it possible to create a "deadlock" where no new Pods can be scheduled?</summary>
 
 **Answer:**
 
@@ -258,7 +266,9 @@ Solutions:
 - Ensure adequate node diversity.
 - Monitor Pod scheduling events.
 
-### 6. How can you ensure high availability for your application deployed in a Kubernetes cluster?
+</details>
+
+<details><summary>Q6. [Intermediate] How can you ensure high availability for your application deployed in a Kubernetes cluster?</summary>
 
 Implement these strategies:
 
@@ -271,7 +281,9 @@ Implement these strategies:
 - **Horizontal Pod Autoscaler:** Scale based on metrics.
 - **Rolling updates:** Zero-downtime deployments.
 
-### 7. How do you build a highly available Kubernetes cluster?
+</details>
+
+<details><summary>Q7. [Advanced] How do you build a highly available Kubernetes cluster?</summary>
 
 - **Multiple control plane nodes** - normally 3 or 5 (odd numbers, for etcd quorum).
 - **Distribute nodes across Availability Zones** - both control plane and worker nodes, so a single zone failure doesn't take down the cluster.
@@ -292,7 +304,9 @@ Kubernetes marks the node `NotReady`, removes its Pods' endpoints from any Servi
 
 HA in Kubernetes is a stack of measures working together: multiple control plane nodes with HA etcd spread across Availability Zones, multiple Pod replicas backed by readiness/liveness probes and PDBs, rolling updates tuned via `maxSurge`/`maxUnavailable`, HPA plus Cluster Autoscaler for capacity, and regular etcd backups. When a worker node fails, Kubernetes marks it `NotReady`, pulls its Pods out of Service endpoints, and reschedules them elsewhere - the surviving replicas keep serving traffic in the meantime.
 
-### 8. How do resource requests and limits work?
+</details>
+
+<details><summary>Q8. [Basic] How do resource requests and limits work?</summary>
 
 **Answer:**
 
@@ -310,7 +324,9 @@ I size these from observed usage percentiles and load tests, plus some headroom 
 
 VPA can help recommend values. Requests that are too high waste capacity or block scheduling. Memory limits that are too low cause crashes. CPU limits can hurt latency-sensitive workloads. The right policy really depends on the workload.
 
-### 9. What are resource requests and limits, and why are they useful?
+</details>
+
+<details><summary>Q9. [Basic] What are resource requests and limits, and why are they useful?</summary>
 
 Resource requests and limits control how much CPU and memory a container is expected and allowed to use.
 
@@ -376,7 +392,9 @@ Requests and limits should be based on measured application usage. Values that a
 
 Resource requests describe the CPU and memory a container needs, and the scheduler uses them when selecting a node. Limits define how much the container can use. CPU use above its limit is throttled, while exceeding a memory limit can cause `OOMKilled`. Correct values improve scheduling, stability, and resource sharing.
 
-### 10. How do you set resource limits in Kubernetes?
+</details>
+
+<details><summary>Q10. [Basic] How do you set resource limits in Kubernetes?</summary>
 
 **Answer:** Define requests & limits in pod spec → Ensures fair resource allocation and prevents pod from consuming all CPU/memory.
 
@@ -387,7 +405,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 11. How do you optimize resource requests and limits for containers in a production cluster?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you optimize resource requests and limits for containers in a production cluster?</summary>
 
 Optimizing resource requests and limits is crucial for ensuring efficient resource utilization, preventing resource contention, and maintaining application performance.
 
@@ -419,7 +439,9 @@ Optimizing resource requests and limits is crucial for ensuring efficient resour
 
 By following these strategies, you can optimize resource requests and limits for containers in your production Kubernetes cluster, leading to improved performance and cost-efficiency.
 
-### 12. Can a Pod's resource requests be modified after creation, and what's the difference between requests and limits during OOM scenarios?
+</details>
+
+<details><summary>Q12. [Intermediate] Can a Pod's resource requests be modified after creation, and what's the difference between requests and limits during OOM scenarios?</summary>
 
 **Answer:**
 
@@ -446,7 +468,9 @@ resources:
     cpu: "500m"
 ```
 
-### 13. How do you fix OOMKilled Pods?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you fix OOMKilled Pods?</summary>
 
 **Answer:**
 
@@ -458,7 +482,9 @@ The permanent fix removes the leak or the unbounded cache, or right-sizes the re
 
 I update requests and limits through the controller, load-test the change, and keep watching working set, RSS, GC, OOM events, and node headroom, with alerts in place. Just raising the memory limit without finding the root cause can just move the failure to the node level or raise cost.
 
-### 14. How do you troubleshoot “OOMKilled” pods in Kubernetes?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you troubleshoot “OOMKilled” pods in Kubernetes?</summary>
 
 **Answer:** Pod exceeded memory → Check logs/events → Increase memory limit → Optimize app memory usage → Use HPA to spread load.
 
@@ -471,7 +497,9 @@ Exit code 137 usually points to OOM; a connection or config error needs a differ
 
 I watch the rollout status, restart count, logs, latency, and error rate afterward, and roll back to the last healthy revision if the impact keeps growing.
 
-### 15. How do you troubleshoot OOMKilled Pods step by step?
+</details>
+
+<details><summary>Q15. [Intermediate] How do you troubleshoot OOMKilled Pods step by step?</summary>
 
 An `OOMKilled` status means the container used more memory than its configured limit, so the Linux kernel killed the process to protect the node.
 
@@ -502,7 +530,7 @@ resources:
     memory: 1Gi
 ```
 
-Confirm the limit is actually appropriate for the workload rather than an arbitrary guess - see [§1](#1-resource-requests-and-limits-in-kubernetes) above.
+Confirm the limit is actually appropriate for the workload rather than an arbitrary guess - see the requests and limits questions above.
 
 #### 4. Check the application itself
 
@@ -526,7 +554,9 @@ If traffic-driven memory growth is expected and legitimate, consider a Horizonta
 
 I'd confirm the OOMKilled event and exit code with `kubectl describe pod`, check current memory pressure with `kubectl top`, and review the configured requests/limits. Then I'd check the application for a memory leak or a recent change that increased memory use, using `kubectl logs --previous` for the crashed container. I'd monitor memory over time with Prometheus/Grafana to distinguish a leak from genuine load, and either raise the limit (if justified) or fix the application - adding HPA if the growth is traffic-driven.
 
-### 16. You have a memory leak in one of your microservices and the pod keeps getting OOMKilled. Walk me through how you would diagnose and fix it without taking down your production service.
+</details>
+
+<details><summary>Q16. [Advanced] You have a memory leak in one of your microservices and the pod keeps getting OOMKilled. Walk me through how you would diagnose and fix it without taking down your production service.</summary>
 
 **Answer:**
 
@@ -557,7 +587,9 @@ The part most people miss: make sure it does not happen again silently. Set a Pr
 
 The interviewer is checking whether you think in systems, not just commands — anyone can Google the `kubectl` commands; not everyone thinks about the alert that catches the next incident before it becomes an outage.
 
-### 17. CrashLoopBackOff Caused by OOMKilled
+</details>
+
+<details><summary>Q17. [Intermediate] CrashLoopBackOff Caused by OOMKilled</summary>
 
 #### What the describe output shows
 
@@ -589,7 +621,9 @@ Then decide:
 
 "OOMKilled with exit code 137 means the container exceeded its memory limit and the kernel killed it, which causes the restart loop. I'd check actual memory usage with `kubectl top pod` versus the configured limit, look at the app logs for signs of a memory leak, and either raise the memory limit if it's genuinely under-provisioned or fix the leak if usage keeps climbing over time."
 
-### 18. How do you detect & fix Kubernetes resource leaks?
+</details>
+
+<details><summary>Q18. [Intermediate] How do you detect &amp; fix Kubernetes resource leaks?</summary>
 
 **Answer:** Monitor unused PVCs, ConfigMaps, Secrets → Use cleanup jobs → Apply resource quotas.
 
@@ -602,7 +636,9 @@ Exit code 137 usually points to OOM; a connection or config error needs a differ
 
 I watch the rollout status, restart count, logs, latency, and error rate afterward, and roll back to the last healthy revision if the impact keeps growing.
 
-### 19. What if Kubernetes cluster nodes are running out of resources?
+</details>
+
+<details><summary>Q19. [Intermediate] What if Kubernetes cluster nodes are running out of resources?</summary>
 
 **Answer:** Check node metrics → Add more nodes (cluster autoscaler) → Tune resource requests/limits → Reschedule pods across nodes.
 
@@ -613,7 +649,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 20. What is a PodDisruptionBudget and why is it useful?
+</details>
+
+<details><summary>Q20. [Basic] What is a PodDisruptionBudget and why is it useful?</summary>
 
 **Answer:**
 
@@ -625,7 +663,9 @@ For a three-replica API, `minAvailable: 2` allows exactly one voluntary eviction
 
 When a drain is stuck, I check `kubectl get pdb`, the current healthy and desired counts, allowed disruptions, unavailable Pods, and the controller's replica count. I fix the underlying health or capacity issue, or make a deliberate, approved risk decision — I don't just bypass a production safeguard casually.
 
-### 21. What is a PodDisruptionBudget, and when does ignoring it cause a real production outage?
+</details>
+
+<details><summary>Q21. [Advanced] What is a PodDisruptionBudget, and when does ignoring it cause a real production outage?</summary>
 
 **Answer:**
 
@@ -659,7 +699,9 @@ I have seen this play out: a team upgrading their EKS node group with no PDBs se
 
 That specific scenario is what PDB is for.
 
-### 22. A critical Pod gets evicted due to node pressure. How do you prevent it from happening again?
+</details>
+
+<details><summary>Q22. [Intermediate] A critical Pod gets evicted due to node pressure. How do you prevent it from happening again?</summary>
 
 **Answer:**
 
@@ -671,7 +713,9 @@ A PDB doesn't stop this kind of eviction, because node pressure is involuntary, 
 
 I fix the source of the pressure, replace the node if it's unhealthy, confirm rescheduling and SLOs recover, and add alerts on capacity and growth forecasts. Changing kubelet's eviction thresholds is a last resort, tested platform decision — not a way to hide the fact that there isn't enough capacity.
 
-### 23. How do you handle pod eviction in Kubernetes?
+</details>
+
+<details><summary>Q23. [Intermediate] How do you handle pod eviction in Kubernetes?</summary>
 
 **Answer:** Check node pressure (CPU/memory/disk) → Reschedule pods to healthy nodes → Use PodDisruptionBudgets to protect critical pods.
 
@@ -682,7 +726,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 24. When a node becomes `NotReady`, how long does it take for Pods to be evicted, and can this be controlled per Pod?
+</details>
+
+<details><summary>Q24. [Intermediate] When a node becomes <code>NotReady</code>, how long does it take for Pods to be evicted, and can this be controlled per Pod?</summary>
 
 **Answer:**
 
@@ -704,7 +750,9 @@ tolerations:
   tolerationSeconds: 60  # Evict after 60 seconds instead of 300
 ```
 
-### 25. What is the difference between vertical and horizontal scaling in Kubernetes?
+</details>
+
+<details><summary>Q25. [Basic] What is the difference between vertical and horizontal scaling in Kubernetes?</summary>
 
 | Vertical scaling | Horizontal scaling |
 | --- | --- |
@@ -746,7 +794,9 @@ Horizontal scaling is usually preferred for stateless services because it improv
 
 Vertical scaling gives an existing pod more CPU or memory and is limited by node capacity. Horizontal scaling adds more replicas and normally uses HPA. Horizontal scaling is often preferred for stateless services because it provides better availability and fault tolerance, while VPA is useful when a workload benefits from a larger pod.
 
-### 26. How do you implement autoscaling when traffic fluctuates heavily in Kubernetes?
+</details>
+
+<details><summary>Q26. [Intermediate] How do you implement autoscaling when traffic fluctuates heavily in Kubernetes?</summary>
 
 To implement autoscaling when traffic fluctuates heavily, you can use the **Horizontal Pod Autoscaler (HPA)** and **Cluster Autoscaler**.
 
@@ -817,7 +867,9 @@ Simulate traffic spikes to test the autoscaling behavior and ensure that your ap
 
 By implementing HPA and Cluster Autoscaler, you can ensure that your Kubernetes cluster scales efficiently in response to fluctuating traffic demands.
 
-### 27. HPA cannot scale Pods fast enough during a massive traffic surge. How do you handle it?
+</details>
+
+<details><summary>Q27. [Advanced] HPA cannot scale Pods fast enough during a massive traffic surge. How do you handle it?</summary>
 
 **Answer:**
 
@@ -827,7 +879,9 @@ To prevent it next time, I raise the minimum replica count for headroom against 
 
 I load-test the burst scenario and measure detection time, Pod Ready time, node provisioning time, error rate, latency, and cost. Adding more Pods can't fix a shared dependency that's already saturated.
 
-### 28. When using a Horizontal Pod Autoscaler with custom metrics, what happens if the metrics server becomes unavailable during high load?
+</details>
+
+<details><summary>Q28. [Advanced] When using a Horizontal Pod Autoscaler with custom metrics, what happens if the metrics server becomes unavailable during high load?</summary>
 
 **Answer:**
 
@@ -859,7 +913,9 @@ Best practices:
 - Set up alerts for HPA failures.
 - Consider backup scaling strategies (manual intervention procedures).
 
-### 29. What do you do if a Pod is getting heavy load and must remain healthy?
+</details>
+
+<details><summary>Q29. [Intermediate] What do you do if a Pod is getting heavy load and must remain healthy?</summary>
 
 **Answer:**
 
@@ -873,18 +929,24 @@ I also optimize the code, database, or cache directly, since scaling horizontall
 
 I load-test both the traffic surge and a node failure, and measure HPA detection time, Pod and node Ready time, P95 latency, error rate, and cost. Alerts should fire before saturation actually becomes a problem, not after.
 
-### 30. A pod is under heavy load — keep it healthy before it dies (auto-scaling) *(asked in interview round)*
+</details>
+
+<details><summary>Q30. [Intermediate] A pod is under heavy load — keep it healthy before it dies (auto-scaling) <em>(asked in interview round)</em></summary>
 
 - Use the Horizontal Pod Autoscaler (HPA) to add or remove replicas based on CPU, memory, or custom/external metrics — for example requests-per-second through the Prometheus Adapter, or KEDA for event-driven scaling.
+
   ```bash
   kubectl autoscale deployment web --cpu-percent=70 --min=3 --max=20
   ```
+
 - Set proper resource requests and limits so the scheduler and HPA make good decisions.
 - Use the Cluster Autoscaler or Karpenter to add nodes when pods can't be scheduled.
 - Use readiness probes together with a PodDisruptionBudget to keep enough healthy replicas during scaling and rollouts.
 - Use the VPA to right-size single-instance workloads, and add caching or queues to reduce load.
 
-### 31. Your cluster autoscaler is not scaling up even though Pods are Pending. What do you investigate?
+</details>
+
+<details><summary>Q31. [Intermediate] Your cluster autoscaler is not scaling up even though Pods are Pending. What do you investigate?</summary>
 
 **Answer:**
 
@@ -896,7 +958,9 @@ I work out whether any available node template would actually satisfy the Pod. T
 
 A PDB mainly affects scale-down, not the initial scale-up. HPA also needs realistic requests, and the node autoscaler needs to respond fast enough for the actual demand.
 
-### 32. Explain how Karpenter is different from Cluster Autoscaler. In 2026, why would you still choose Cluster Autoscaler?
+</details>
+
+<details><summary>Q32. [Advanced] Explain how Karpenter is different from Cluster Autoscaler. In 2026, why would you still choose Cluster Autoscaler?</summary>
 
 **Answer:**
 
@@ -918,7 +982,9 @@ So why still use Cluster Autoscaler in 2026?
 
 The strong answer shows you understand both tools and can make a context-based decision — not just "Karpenter is newer so it must be better."
 
-### 33. How do you troubleshoot Azure Kubernetes Service (AKS) scaling issues?
+</details>
+
+<details><summary>Q33. [Intermediate] How do you troubleshoot Azure Kubernetes Service (AKS) scaling issues?</summary>
 
 **Answer:** Check cluster autoscaler logs → Verify VM quotas in Azure → Ensure correct resource requests/limits.
 
@@ -931,7 +997,9 @@ For an immediate incident, I might safely scale with `kubectl scale deployment <
 
 I verify readiness, load distribution, scaling events, dependency health, a graceful scale-down, and cost. Load tests and capacity alerts are what prove the whole path works before the next real peak.
 
-### 34. How do you optimize Kubernetes cluster costs?
+</details>
+
+<details><summary>Q34. [Intermediate] How do you optimize Kubernetes cluster costs?</summary>
 
 **Answer:** Use Cluster Autoscaler, rightsizing pods with requests/limits, spot/preemptible nodes, and scale workloads by time of day.
 
@@ -941,3 +1009,5 @@ I compare cost by service, account or subscription, region, tag, SKU, and usage 
 I contain it safely with budgets, scaling caps, quotas, or shutting down confirmed non-production waste — never by blindly deleting stateful production resources. Terraform plans get cost estimates and require policy or approval above certain thresholds.
 
 Required tags, anomaly alerts, rightsizing, schedules, lifecycle retention, reserved or spot instance choices, and owner showback are what make cost optimization an ongoing habit rather than a one-time cleanup. I always verify performance and SLOs are still fine after reducing cost.
+
+</details>

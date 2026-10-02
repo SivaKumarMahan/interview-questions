@@ -143,7 +143,7 @@ Validate a service's configuration before reloading it. Keep a recoverable copy,
 
 ## Interview Questions
 
-### 1. What is the purpose of `grep`?
+<details><summary>Q1. [Basic] What is the purpose of <code>grep</code>?</summary>
 
 **Answer:**
 
@@ -158,7 +158,9 @@ I narrow the search to a specific time range or set of files, and use a literal 
 
 I'm careful not to expose secrets when sharing output. For structured logs, I'd rather use `jq` or a proper log query tool than a fragile regex.
 
-### 2. Which `grep` flag shows lines not containing a keyword?
+</details>
+
+<details><summary>Q2. [Basic] Which <code>grep</code> flag shows lines not containing a keyword?</summary>
 
 **Answer:**
 
@@ -173,7 +175,9 @@ grep -Ev 'DEBUG|TRACE' app.log
 
 For binary, compressed, or rotated logs, I pick the right tool — `grep -a`, `zgrep`, or a proper log query — rather than forcing it. I keep the original log file intact rather than overwriting it just to get a filtered view.
 
-### 3. What is the difference between `find` and `locate`?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between <code>find</code> and <code>locate</code>?</summary>
 
 **Answer:**
 
@@ -183,7 +187,9 @@ For binary, compressed, or rotated logs, I pick the right tool — `grep -a`, `z
 
 Before running `find` with `-delete` or `-exec`, I always run the same expression with `-print` first to see exactly what it will touch.
 
-### 4. How do you find all files modified in the last 10 minutes?
+</details>
+
+<details><summary>Q4. [Basic] How do you find all files modified in the last 10 minutes?</summary>
 
 **Answer:**
 
@@ -197,7 +203,9 @@ sudo find /var/log -type f -mmin -10 -printf '%TY-%Tm-%Td %TH:%TM %s %p\n'
 
 If this is part of an incident, I sort the results and compare the modification times against when the deployment or failure happened. I don't run `-delete` right away — I look at the matches, who owns them, and what they're for first.
 
-### 5. What are hard links and soft links?
+</details>
+
+<details><summary>Q5. [Basic] What are hard links and soft links?</summary>
 
 **Answer:**
 
@@ -209,7 +217,9 @@ A symbolic link is a small separate file that just contains a target path: `ln -
 
 I use symlinks for switching between versioned releases, and hard links for certain backup or deduplication setups — keeping in mind that editing a hard-linked file changes the data everywhere it's linked, since it's all the same inode.
 
-### 6. How do you archive or compress a directory?
+</details>
+
+<details><summary>Q6. [Basic] How do you archive or compress a directory?</summary>
 
 **Answer:**
 
@@ -223,3 +233,5 @@ sha256sum backup-2026-07-19.tar.gz > backup.sha256
 `tar` bundles files and keeps their metadata; gzip compresses the result. I use `-C` so the archive doesn't store unwanted absolute paths, look inside the archive before extracting it, extract anything untrusted into its own isolated directory, verify the checksum, and do a test restore.
 
 For a live database or data that's actively changing, I use an application-consistent backup instead of tarring files while they're being written to. Encryption and where backups are kept follow whatever the data policy requires.
+
+</details>

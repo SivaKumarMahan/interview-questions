@@ -94,7 +94,7 @@ When troubleshooting, I start with the HTTP status, the exact repository type an
 
 ## Interview Questions
 
-### 1. What is Sonatype Nexus Repository, and why is it used in CI/CD pipelines?
+<details><summary>Q1. [Basic] What is Sonatype Nexus Repository, and why is it used in CI/CD pipelines?</summary>
 
 **Answer:**
 
@@ -130,7 +130,9 @@ It provides:
 
 Nexus should store build artifacts that are immutable, meaning they never change once created. It should not store source code. Git stays the source-code system. The CI/CD platform stays responsible for building, testing, approving and deploying.
 
-### 2. What are the different repository types available in Nexus Repository?
+</details>
+
+<details><summary>Q2. [Basic] What are the different repository types available in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -153,7 +155,9 @@ Developers normally download from the group. CI publishes to the appropriate hos
 
 Nexus also separates the repository format from its type. For example, `maven2 (hosted)`, `maven2 (proxy)` and `maven2 (group)` share the Maven format but perform different roles.
 
-### 3. What is the difference between Hosted, Proxy and Group repositories in Nexus?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between Hosted, Proxy and Group repositories in Nexus?</summary>
 
 **Answer:**
 
@@ -171,7 +175,9 @@ I put trusted internal sources and proxies in a deliberate order. I also use rou
 
 Permissions on a group endpoint allow users to consume member content through that group. They do not automatically grant direct access to every member URL.
 
-### 4. What is the purpose of a Repository Group in Nexus?
+</details>
+
+<details><summary>Q4. [Basic] What is the purpose of a Repository Group in Nexus?</summary>
 
 **Answer:**
 
@@ -199,7 +205,9 @@ Groups improve:
 
 Member order must be deliberate. I also avoid placing untrusted repositories ahead of internal namespaces because the wrong component could be selected.
 
-### 5. How does Nexus Repository act as a proxy for public repositories such as Maven Central or npm?
+</details>
+
+<details><summary>Q5. [Basic] How does Nexus Repository act as a proxy for public repositories such as Maven Central or npm?</summary>
 
 **Answer:**
 
@@ -230,7 +238,9 @@ Benefits include:
 
 I restrict Nexus outbound access to approved registries and use TLS validation. A proxy does not mean every remote component is safe; vulnerability, license, signature and policy controls remain necessary.
 
-### 6. How does Nexus Repository reduce dependency on external package repositories?
+</details>
+
+<details><summary>Q6. [Basic] How does Nexus Repository reduce dependency on external package repositories?</summary>
 
 **Answer:**
 
@@ -255,7 +265,9 @@ Limitations:
 
 For critical dependencies, I ensure release inputs are pinned, cached/hosted according to policy and included in recovery planning.
 
-### 7. What package formats are supported by Sonatype Nexus Repository?
+</details>
+
+<details><summary>Q7. [Basic] What package formats are supported by Sonatype Nexus Repository?</summary>
 
 **Answer:**
 
@@ -291,7 +303,9 @@ The **Raw** format stores arbitrary files when no native package format applies.
 
 Which formats support hosted, proxy and group repositories can differ by Nexus edition and release. In an interview, I talk about the formats relevant to the project — Maven, npm, NuGet, Docker and Helm — and then check the exact version matrix rather than assuming every format supports every repository type.
 
-### 8. What is the difference between Nexus Repository OSS and Nexus Repository Pro?
+</details>
+
+<details><summary>Q8. [Basic] What is the difference between Nexus Repository OSS and Nexus Repository Pro?</summary>
 
 **Answer:**
 
@@ -317,3 +331,5 @@ Professional Edition adds enterprise capabilities that currently include areas s
 Sonatype's Repository Firewall, Lifecycle and IQ supply-chain policy tools may be separate products or licenses. I do not assume every vulnerability or quarantine feature is automatically included in Nexus Pro.
 
 The choice comes down to availability targets, identity needs, storage, promotion workflow, support and compliance requirements. It is not just about how many artifacts you store.
+
+</details>

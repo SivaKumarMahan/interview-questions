@@ -63,7 +63,7 @@ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT  # Allow HTTPS
 
 ## Interview Questions
 
-### 1. How do you check if a port is open or listening?
+<details><summary>Q1. [Basic] How do you check if a port is open or listening?</summary>
 
 **Answer:**
 
@@ -73,7 +73,9 @@ Then I test each layer separately: `nc -vz host 443` from the real client networ
 
 A listening socket doesn't prove the application is healthy, and a failed remote test doesn't prove the service is down — routing, ACLs, NAT, TLS, or the application itself could each be the cause.
 
-### 2. How do you find and stop a process listening on port 8080?
+</details>
+
+<details><summary>Q2. [Basic] How do you find and stop a process listening on port 8080?</summary>
 
 **Answer:**
 
@@ -87,7 +89,9 @@ I identify which service owns the port before stopping it — killing a bare PID
 
 I also check containers (`docker ps` or `crictl ps`) and firewall or proxy configuration, since a port being reachable doesn't prove the application behind it is healthy.
 
-### 3. What is the fastest way to copy huge files across servers?
+</details>
+
+<details><summary>Q3. [Intermediate] What is the fastest way to copy huge files across servers?</summary>
 
 **Answer:**
 
@@ -101,7 +105,9 @@ Compression (`-z`) helps on a slower network if the data compresses well, but wa
 
 For cloud volumes, a snapshot, replication, or object storage might be faster and safer than a file copy. I estimate the bandwidth and disk space needed, protect any credentials involved, throttle the transfer if it would affect production, and verify file counts and checksums before cutting over.
 
-### 4. How do you fix NTP time sync issues?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you fix NTP time sync issues?</summary>
 
 **Answer:**
 
@@ -112,7 +118,10 @@ On virtual machines, I also check whether the hypervisor's own time sync is enab
 For a large offset, jumping the clock can break databases and authentication, so I follow the application's maintenance procedure. For a small offset, chrony should adjust it gradually and safely. After fixing `/etc/chrony.conf`, I reload or restart chronyd and confirm the offset is shrinking and a source is marked selected (`^*`).
 
 I keep monitoring drift, and use multiple approved internal time sources so a single NTP server isn't a single point of failure.
-### 5. How do you check and configure a static IP address?
+
+</details>
+
+<details><summary>Q5. [Intermediate] How do you check and configure a static IP address?</summary>
 
 **Answer:**
 
@@ -129,7 +138,9 @@ sudo nmcli con up "System eth0"
 
 On a remote server I use console access or set up an automatic rollback, since a bad gateway can lock me out. Afterward I verify the address, route, DNS, gateway, and remote connectivity, and update the inventory or DNS documentation.
 
-### 6. A Linux server suddenly becomes unreachable. How do you troubleshoot it?
+</details>
+
+<details><summary>Q6. [Intermediate] A Linux server suddenly becomes unreachable. How do you troubleshoot it?</summary>
 
 **Answer:**
 
@@ -145,7 +156,9 @@ I fix the narrow layer that's actually broken — a route, an address, a firewal
 
 Then I verify SSH and the real application work from the affected network, remove any temporary access I opened, confirm monitoring recovers, and prevent it happening again with redundant access paths, infrastructure-as-code review, configuration rollback, capacity alerts, and a tested console procedure.
 
-### 7. Investigate intermittent packet loss between containers / nodes *(asked in interview round)*
+</details>
+
+<details><summary>Q7. [Advanced] Investigate intermittent packet loss between containers / nodes <em>(asked in interview round)</em></summary>
 
 1. Measure it: `ping`, `mtr <target>` (shows exactly where the loss starts, hop by hop), and `iperf3` for throughput.
 2. Check interface errors and drops: `ip -s link`, `ethtool -S eth0`, `netstat -s` (retransmits, drops).
@@ -154,7 +167,9 @@ Then I verify SSH and the real application work from the affected network, remov
 5. Check DNS. Intermittent DNS failures often look like packet loss — check CoreDNS, the classic conntrack race on musl/Alpine, and `ndots`.
 6. Check the node, NIC, and upstream network: cloud provider network health, security groups/NACLs, and whether the physical NIC is close to saturated.
 
-### 8. How do you troubleshoot an NFS mount issue?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you troubleshoot an NFS mount issue?</summary>
 
 **Answer:**
 
@@ -165,3 +180,5 @@ I check `journalctl -k` and the client's NFS logs for timeout, access, or protoc
 On the server I check the NFS services, `/etc/exports`, `exportfs -v`, the firewall, and that the exported directory actually exists. If the mount works but access fails, I compare the numeric UID/GID on each side, root-squash behavior, ACLs, and SELinux.
 
 I agree on the NFS version and safe timeout options, test reads and writes with the real service account, and only then make the entry in `/etc/fstab` or the automounter permanent.
+
+</details>

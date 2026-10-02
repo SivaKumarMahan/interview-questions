@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. Which container registry should you trust for production images?
+<details><summary>Q1. [Basic] Which container registry should you trust for production images?</summary>
 
 **Answer:**
 
@@ -20,7 +20,9 @@ Kubernetes or the runtime checks that the image comes from an approved registry,
 
 I test pull behavior during a registry or availability-zone failure, and monitor auth failures, scan findings, replication lag, storage, and unusual downloads. A private registry alone doesn't guarantee trust. Provenance and controlled promotion into production are what actually establish it.
 
-### 2. How do you secure Docker registry in production? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you secure Docker registry in production? <em>(scenario)</em></summary>
 
 **Answer:** Enable HTTPS & authentication → Use signed images (Cosign) → Restrict access via IAM.
 
@@ -33,7 +35,9 @@ At runtime I drop unnecessary capabilities, use seccomp, AppArmor, or SELinux, r
 
 If startup is slow or a push fails, I measure layer size and cache hits, check registry DNS, auth, and TLS, and check disk and application initialization, instead of just retrying blindly. Then I rebuild from patched base images and re-verify functionality and security findings.
 
-### 3. How do you secure CI/CD artifact storage? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you secure CI/CD artifact storage? <em>(scenario)</em></summary>
 
 **Answer:** Store in Nexus/Artifactory → Enable RBAC → Use signed artifacts → Encrypt storage.
 
@@ -48,7 +52,9 @@ If I suspect compromise, I stop promotion, revoke runner and signing credentials
 
 Regular patching, egress restrictions, audit log retention, and recovery drills cover the gaps that scanners alone can't catch.
 
-### 4. How do you sign software artifacts and verify them before deployment?
+</details>
+
+<details><summary>Q4. [Advanced] How do you sign software artifacts and verify them before deployment?</summary>
 
 **Answer:**
 
@@ -64,7 +70,9 @@ Signing proves origin and integrity, not quality. Code review, tests, scanning, 
 
 If a key or workflow is compromised, I revoke trust, find every digest signed with it, rebuild from a trusted pipeline, and block those old artifacts from deployment.
 
-### 5. What is the role of Nexus Repository in software supply-chain management?
+</details>
+
+<details><summary>Q5. [Intermediate] What is the role of Nexus Repository in software supply-chain management?</summary>
 
 **Answer:**
 
@@ -96,7 +104,9 @@ approved source
 
 Nexus alone does not prove that an artifact is safe. Repository management, Sonatype Firewall/Lifecycle where licensed, CI security checks, signing, admission/deployment verification and incident response work together.
 
-### 6. How would you configure authentication and authorization in Nexus Repository?
+</details>
+
+<details><summary>Q6. [Intermediate] How would you configure authentication and authorization in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -145,7 +155,9 @@ I:
 - Review access periodically and remove leavers/stale service accounts.
 - Keep Production publisher and reader permissions separate where required.
 
-### 7. How do you handle access control for different development teams in Nexus Repository?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you handle access control for different development teams in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -183,7 +195,9 @@ I use:
 
 Read permission on a group can expose the content of all its members through that group. So I never put restricted artifacts inside a broadly readable group.
 
-### 8. How do you secure sensitive artifacts stored in Nexus Repository?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you secure sensitive artifacts stored in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -207,3 +221,5 @@ I apply defense in depth:
 If an artifact is confidential, I also keep it out of any broadly readable group and restrict who can access backups and support bundles. Even when the binary itself is encrypted, the name and metadata around it can still be sensitive.
 
 I never run Nexus as the operating-system root account.
+
+</details>

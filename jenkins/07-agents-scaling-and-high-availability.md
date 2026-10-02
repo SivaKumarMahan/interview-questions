@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What if a Jenkins agent node goes offline?
+<details><summary>Q1. [Intermediate] What if a Jenkins agent node goes offline?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ For Kubernetes agents, I look at Pod events, image pulls, scheduling, resource q
 
 I only reconnect once I've actually fixed the cause. I clean up any workspace that might be corrupted, rerun the stages that are safe to run more than once, and confirm the output is correct. Autoscaling, having more than one agent per label, health checks, and agent images that never change after they're built all stop a single bad host from blocking delivery.
 
-### 2. What if a Jenkins agent node goes offline? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] What if a Jenkins agent node goes offline? <em>(scenario)</em></summary>
 
 **Answer:** Check agent logs → Restart service → Verify connectivity with master → Add auto-scaling slaves (Kubernetes or cloud VMs).
 
@@ -27,7 +29,9 @@ I check `Manage Nodes`, queue and build metrics, agent pod or VM events, and net
 
 To stop this from happening again, I use agents that scale automatically and get created fresh for each job, set up alerts for capacity and queue time, use sensible labels and quotas, add health checks to agent images, apply timeouts, and keep long or privileged workloads separate from everything else.
 
-### 3. How do you implement auto-scaling for Jenkins agents? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement auto-scaling for Jenkins agents? <em>(scenario)</em></summary>
 
 **Answer:** Integrate Jenkins with Kubernetes plugin → Agents spin up as pods on demand → Auto-terminate after job completion.
 
@@ -38,7 +42,9 @@ I check `Manage Nodes`, queue and build metrics, agent pod or VM events, and net
 
 To stop this from happening again, I use agents that scale automatically and get created fresh for each job, set up alerts for capacity and queue time, use sensible labels and quotas, add health checks to agent images, apply timeouts, and keep long or privileged workloads separate from everything else.
 
-### 4. How do you scale Jenkins dynamically? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you scale Jenkins dynamically? <em>(scenario)</em></summary>
 
 **Answer:** Integrate Jenkins with Kubernetes cloud plugin → Auto-create agents as pods → Terminate when idle.
 
@@ -49,7 +55,9 @@ I check `Manage Nodes`, queue and build metrics, agent pod or VM events, and net
 
 To stop this from happening again, I use agents that scale automatically and get created fresh for each job, set up alerts for capacity and queue time, use sensible labels and quotas, add health checks to agent images, apply timeouts, and keep long or privileged workloads separate from everything else.
 
-### 5. What if a Jenkins controller crashes?
+</details>
+
+<details><summary>Q5. [Intermediate] What if a Jenkins controller crashes?</summary>
 
 **Answer:**
 
@@ -63,7 +71,9 @@ Standard Jenkins doesn't normally run as an active-active controller setup. I de
 
 To prevent this in the future: monitor controller health, alert on disk space, regularly test that backups actually restore, keep the plugin list small, and keep configuration and pipelines in Git.
 
-### 6. What if Jenkins master crashes? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] What if Jenkins master crashes? <em>(scenario)</em></summary>
 
 **Answer:** I first determine whether only the process failed or the VM, container, disk, or database is also unavailable. I restore the controller on a known-good host from a tested backup of `JENKINS_HOME`, configuration-as-code files, plugin versions, credentials, and job metadata.
 
@@ -82,7 +92,9 @@ I keep configuration and pipelines as code, back up `JENKINS_HOME` on a regular 
 
 If the controller crashes, I preserve the logs first, then restore or fail over using the documented storage or database procedure, reconnect the agents, and check that credentials, jobs, the queue, and webhooks all came back correctly. I keep watching the controller's JVM health, disk space, queue length, backup success, and how long recovery actually takes.
 
-### 7. How do you handle Jenkins master node becoming a single point of failure? *(scenario)*
+</details>
+
+<details><summary>Q7. [Advanced] How do you handle Jenkins master node becoming a single point of failure? <em>(scenario)</em></summary>
 
 **Answer:** Run Jenkins in HA (Kubernetes) → Backup Jenkins home → Scale horizontally with agents.
 
@@ -93,7 +105,9 @@ I keep configuration and pipelines as code, back up `JENKINS_HOME` on a regular 
 
 If the controller crashes, I preserve the logs first, then restore or fail over using the documented storage or database procedure, reconnect the agents, and check that credentials, jobs, the queue, and webhooks all came back correctly. I keep watching the controller's JVM health, disk space, queue length, backup success, and how long recovery actually takes.
 
-### 8. How do you implement High Availability (HA) Jenkins? *(scenario)*
+</details>
+
+<details><summary>Q8. [Advanced] How do you implement High Availability (HA) Jenkins? <em>(scenario)</em></summary>
 
 **Answer:** Run Jenkins on Kubernetes with persistent volume → Use multiple replicas with HA proxy → Backup Jenkins home regularly.
 
@@ -104,7 +118,9 @@ I keep configuration and pipelines as code, back up `JENKINS_HOME` on a regular 
 
 If the controller crashes, I preserve the logs first, then restore or fail over using the documented storage or database procedure, reconnect the agents, and check that credentials, jobs, the queue, and webhooks all came back correctly. I keep watching the controller's JVM health, disk space, queue length, backup success, and how long recovery actually takes.
 
-### 9. How should you design Jenkins high availability (and what is it not)?
+</details>
+
+<details><summary>Q9. [Advanced] How should you design Jenkins high availability (and what is it not)?</summary>
 
 Standard Jenkins does not provide active-active controller clustering like some other clustered platforms. Don't say "run two Jenkins masters against the same `JENKINS_HOME`" - that's not how Jenkins works, and doing it risks corrupting state.
 
@@ -171,7 +187,9 @@ Monitor:
 
 **Key interview point:** Jenkins HA is not "multiple active controllers." Think controller resilience + durable state + redundant agents + backup/DR.
 
-### 10. How do you design disaster recovery for Jenkins? *(scenario)*
+</details>
+
+<details><summary>Q10. [Advanced] How do you design disaster recovery for Jenkins? <em>(scenario)</em></summary>
 
 **Answer:** Backup Jenkins home + configs to cloud storage → Use Infrastructure as Code to recreate Jenkins → Run Jenkins on Kubernetes with persistent storage.
 
@@ -181,7 +199,10 @@ I treat recovering the controller as a separate problem from keeping build capac
 I keep configuration and pipelines as code, back up `JENKINS_HOME` on a regular schedule, record which plugin versions are running, protect credentials, and actually test restoring to a standby or new controller. Builds run on agents that get created fresh for each job and torn down afterward, so losing one agent isn't a big deal.
 
 If the controller crashes, I preserve the logs first, then restore or fail over using the documented storage or database procedure, reconnect the agents, and check that credentials, jobs, the queue, and webhooks all came back correctly. I keep watching the controller's JVM health, disk space, queue length, backup success, and how long recovery actually takes.
-### 11. How do you plan Jenkins disaster recovery (backups, RPO, RTO)?
+
+</details>
+
+<details><summary>Q11. [Advanced] How do you plan Jenkins disaster recovery (backups, RPO, RTO)?</summary>
 
 DR means that if the Jenkins controller or its infrastructure is lost, Jenkins can be restored quickly enough to continue CI/CD. The core principle: **`JENKINS_HOME` is critical state.**
 
@@ -242,3 +263,5 @@ Resume CI/CD
 Test the DR process periodically - an untested backup is not a verified recovery path.
 
 **HA vs DR:** HA minimizes downtime from an infrastructure failure (agents/controller resilience while things are still mostly working). DR restores Jenkins after a major failure or total loss.
+
+</details>

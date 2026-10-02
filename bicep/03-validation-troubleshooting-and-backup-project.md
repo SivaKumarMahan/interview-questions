@@ -52,7 +52,7 @@ A successful deployment doesn't prove the backup can actually be restored. I alw
 
 ## Interview Questions
 
-### 1. How do you validate a Bicep deployment before applying it?
+<details><summary>Q1. [Intermediate] How do you validate a Bicep deployment before applying it?</summary>
 
 **Answer:**
 
@@ -66,7 +66,9 @@ My validation layers are:
 
 I pay close attention to deletions, replacements, role assignments, network rules, SKUs, and any properties that what-if can't fully predict. What-if is a useful change artifact to review, but it doesn't replace backups, a staged rollout, or a service-specific recovery plan.
 
-### 2. How do you troubleshoot Bicep deployment failures?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you troubleshoot Bicep deployment failures?</summary>
 
 **Answer:**
 
@@ -83,7 +85,10 @@ I check the error code, resource name, API version, permissions, any policy deni
 Once I've fixed the root cause, I rerun what-if and confirm there's no unintended delete or replacement. ARM deployments can partially create resources before failing, so I check the actual state rather than blindly redeploying or manually deleting resources.
 
 I validate resource health and the dependent application once the deployment succeeds.
-### 3. How do you troubleshoot an Azure resource deployment failure?
+
+</details>
+
+<details><summary>Q3. [Intermediate] How do you troubleshoot an Azure resource deployment failure?</summary>
 
 Use a structured process to find the resource and reason that caused the failure.
 
@@ -153,3 +158,5 @@ Start with the deployment error and operation history to identify the failed res
 #### Worked example: AuthorizationFailed
 
 An ACR deployment fails with `AuthorizationFailed` because the deploying service principal only has the `Reader` role on the resource group. Step 4 above (check access and governance) catches this immediately: `az deployment operation group list` shows the exact operation that was denied, and the fix is to assign the role the deployment actually needs (e.g. `Contributor` scoped to that resource group, or a narrower custom role) rather than reaching for `Owner`. Reassign the role and rerun the pipeline.
+
+</details>

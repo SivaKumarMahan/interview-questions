@@ -39,6 +39,37 @@ Someone edits an EC2 instance in the AWS console. Terraform does **not** update 
 
 Current Terraform versions can lock the S3 backend with `use_lockfile = true`. The older DynamoDB lock table still exists in many projects but is the legacy approach.
 
+### Plan and Apply with Remote State Locking
+
+Both `plan` and `apply` take the state lock, so two runs can never write the state at the same time. The lock lives in the backend: a DynamoDB table or an S3 lock file on AWS, or a blob lease on Azure Storage.
+
+```mermaid
+sequenceDiagram
+    actor Eng as Engineer or CI
+    participant TF as Terraform CLI
+    participant Lock as State lock
+    participant State as Remote state
+    participant Cloud as Cloud API
+
+    Eng->>TF: terraform plan -out=tfplan
+    TF->>Lock: acquire lock
+    alt lock already held
+        Lock-->>TF: Error acquiring the state lock
+        TF-->>Eng: wait, or stop the other run
+    else lock acquired
+        Lock-->>TF: OK
+        TF->>State: read current state
+        TF->>Cloud: refresh real resources
+        TF-->>Eng: show the planned changes
+        TF->>Lock: release lock
+    end
+    Eng->>TF: terraform apply tfplan
+    TF->>Lock: acquire lock
+    TF->>Cloud: create, update, delete resources
+    TF->>State: write new state
+    TF->>Lock: release lock
+```
+
 ### State file best practices
 
 1. Remote backend, never a local file for team work.
@@ -64,7 +95,7 @@ terraform {
 
 ## Interview Questions
 
-### 1. What is a Terraform backend?
+<details><summary>Q1. [Basic] What is a Terraform backend?</summary>
 
 #### What it is
 
@@ -95,7 +126,9 @@ terraform {
 
 "A backend decides where the state file is stored. Local means the file sits on your machine, which is not good for teams. Remote backends like S3, Azure Storage, or Terraform Cloud allow shared state with encryption, versioning, and locking. Backend settings cannot use normal variables, so I pass them with a backend config file."
 
-### 2. Why use a remote backend?
+</details>
+
+<details><summary>Q2. [Basic] Why use a remote backend?</summary>
 
 #### Reasons
 
@@ -110,7 +143,9 @@ terraform {
 
 "A remote backend gives the team one shared state file with locking, encryption, versioning, and access control. Without it, everyone keeps their own copy and two applies can overwrite each other. It also lets the pipeline run Terraform instead of running it from a laptop."
 
-### 3. How do you migrate from one backend to another?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you migrate from one backend to another?</summary>
 
 #### Steps
 
@@ -150,7 +185,9 @@ terraform {
 
 "I back up the state with `terraform state pull`, update the backend block, run `terraform init -migrate-state`, and confirm the migration by running a plan that shows no changes. I do it when nobody else is running Terraform, and I keep the old copy until the new backend is proven working."
 
-### 4. How do you store the state file securely?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you store the state file securely?</summary>
 
 #### Checklist
 
@@ -178,7 +215,9 @@ Even if an output is marked `sensitive`, the value can still exist inside the st
 
 "State goes into a remote backend with encryption, versioning, locking, and restricted access. Each environment has its own state path, and only the deployment identity can write to production. State can contain secrets even when outputs are marked sensitive, so I protect read access as strongly as write access, and I never commit state to Git."
 
-### 5. How do you secure the state file? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you secure the state file? <em>(scenario)</em></summary>
 
 #### Checklist
 
@@ -207,7 +246,9 @@ terraform {
 
 "State goes in a remote backend with encryption, versioning, locking, and tight IAM, separated per environment, and never in Git. The point I always make is that state can contain secret values, so read access has to be as restricted as write access, and the restore procedure should be tested before you actually need it."
 
-### 6. How do you manage the state file day to day?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you manage the state file day to day?</summary>
 
 #### Treat state like a production database
 
@@ -238,7 +279,9 @@ terraform import <address> <id>
 
 "I treat state as a protected production database: encrypted, versioned, locked, with least-privilege access and separate states per environment. All normal changes go through the pipeline. Before any state operation I confirm the backend key, check that no apply is running, and pull a backup. I use supported commands like `state mv`, `state rm`, `import`, and `moved` blocks instead of editing the JSON."
 
-### 7. Can you edit the state file manually?
+</details>
+
+<details><summary>Q7. [Basic] Can you edit the state file manually?</summary>
 
 #### Technically yes, but do not
 
@@ -266,7 +309,9 @@ moved {
 
 "You can, but I avoid it. Manual JSON edits can break lineage and dependencies and cause destructive plans. I use `state mv`, `state rm`, `import`, and `moved` blocks, always with a backup and a full plan afterwards. And I remind people that changing state does not change the real cloud resource."
 
-### 8. How does a team share state? *(scenario)*
+</details>
+
+<details><summary>Q8. [Intermediate] How does a team share state? <em>(scenario)</em></summary>
 
 #### Setup
 
@@ -294,7 +339,9 @@ terraform {
 
 "State lives in a shared remote backend with encryption, locking, and versioning, with one key per environment and component. The pipeline is the only identity that writes to production; engineers get read access so they can plan but not apply. That combination is what actually prevents two people overwriting each other."
 
-### 9. What happens if two people apply at the same time?
+</details>
+
+<details><summary>Q9. [Intermediate] What happens if two people apply at the same time?</summary>
 
 #### Without locking
 
@@ -328,7 +375,9 @@ Only after you have proved nothing is running.
 
 "Without locking, both runs plan from the same old state and can overwrite each other, which causes lost state entries or duplicate resources. A remote backend with locking makes the second run wait or fail. I also serialize the deployment job per state, because locking protects the file but not the logic. If a lock is stuck after a crash, I confirm no apply is running before using `force-unlock` with the exact ID."
 
-### 10. Two people run apply at the same time. What happens? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] Two people run apply at the same time. What happens? <em>(scenario)</em></summary>
 
 #### With a locking backend
 
@@ -352,7 +401,9 @@ Both plan from the same old state and both write. The result can be a lost state
 
 "With a locking backend the second run is refused with a state lock error, which is the correct behaviour. Without locking, both runs plan from the same old state and one overwrites the other, causing lost entries or duplicate resources. Locking protects the file, but I also serialize the pipeline per state, because two valid changes can still conflict logically."
 
-### 11. State locking and avoiding conflicts *(asked in interview round)*
+</details>
+
+<details><summary>Q11. [Intermediate] State locking and avoiding conflicts <em>(asked in interview round)</em></summary>
 
 1. Use a backend that supports locking: S3 with a lock file, Azure Storage blob lease, GCS, or Terraform Cloud.
 2. Terraform takes the lock during plan and apply and releases it at the end.
@@ -369,7 +420,9 @@ Check the lock owner and the pipeline first. Only when nothing is running:
 terraform force-unlock <LOCK_ID>
 ```
 
-### 12. How do you prevent concurrent Terraform changes?
+</details>
+
+<details><summary>Q12. [Intermediate] How do you prevent concurrent Terraform changes?</summary>
 
 Two users applying changes to the same state at the same time can cause conflicts or unsafe infrastructure changes. Use a remote backend that supports state locking.
 
@@ -412,7 +465,9 @@ Always confirm the locking method supported by the Terraform or OpenTofu version
 
 Store Terraform state in a remote backend with locking. When one apply acquires the lock, another apply against the same state is blocked. In production, also serialize apply jobs through CI/CD, use separate state for each environment, and restrict apply permission with RBAC.
 
-### 13. How do you handle state locking in CI/CD?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you handle state locking in CI/CD?</summary>
 
 #### Setup
 
@@ -448,7 +503,9 @@ Only after checking the pipeline and cloud logs to prove no apply is running.
 
 "I use a remote backend with native locking and one state key per environment or component so runs do not block each other. Only the deployment identity can write to production, and the pipeline allows one job per state. If a lock stays after a crashed job, I check the lock owner and the pipeline first, and only then run `force-unlock` with that exact ID. I never force-unlock just because a job is waiting."
 
-### 14. Terraform State Conflict from Two Simultaneous Pipelines
+</details>
+
+<details><summary>Q14. [Intermediate] Terraform State Conflict from Two Simultaneous Pipelines</summary>
 
 #### The situation
 
@@ -484,7 +541,9 @@ With this, the second `apply` will block/fail with a "state locked" error until 
 
 "Running two `terraform apply`s against the same state at the same time risks state corruption and conflicting resource changes. The fix is to use a remote backend that supports locking — like the `azurerm` backend on Azure Storage, which uses blob leases — so the second pipeline is blocked until the first finishes, combined with pipeline-level concurrency control so only one deployment can run per environment at a time."
 
-### 15. How do you set up state locking for a team?
+</details>
+
+<details><summary>Q15. [Intermediate] How do you set up state locking for a team?</summary>
 
 #### S3 backend
 
@@ -529,7 +588,9 @@ terraform_apply:
 
 "I use a backend with native locking: S3 with a lock file, Azure Storage with blob leases, GCS, or Terraform Cloud. On top of that the pipeline allows one apply job per state so two changes cannot queue into each other. I also monitor for locks that stay too long, since that usually means a job crashed, and force-unlock is a controlled procedure, not something anyone can run."
 
-### 16. The backend lock is stuck. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q16. [Intermediate] The backend lock is stuck. What do you do? <em>(scenario)</em></summary>
 
 #### The error looks like this
 
@@ -562,7 +623,9 @@ Never delete the lock table or lock object just because a job is waiting.
 
 "I read the lock record to see who owns it and when it started, then confirm through the pipeline and cloud logs that no apply is still running. Only then do I use `force-unlock` with that exact lock ID. Afterwards I run a full plan, because the crashed run may have created resources that state does not know about. I never delete the lock object just to unblock a waiting job."
 
-### 17. Debugging remote backend locking issues
+</details>
+
+<details><summary>Q17. [Intermediate] Debugging remote backend locking issues</summary>
 
 1. **Check whether another `plan`/`apply` is actually running** - the most common cause of a "stuck" lock is simply that another operation legitimately holds it.
 2. **Read the lock details** - Terraform's lock error includes the lock ID, who holds it, and when it was created.
@@ -588,7 +651,9 @@ terraform plan
 
 First I confirm no other plan/apply is genuinely running, then inspect the backend-specific lock details - a stale blob lease for Azure Storage, the DynamoDB lock table for S3, or workspace runs for Terraform Cloud. Only once I've confirmed the lock is stale do I run `terraform force-unlock`, then validate with `plan`. To prevent recurrence, I serialize CI/CD deployments per environment and investigate why the lock went stale in the first place - usually an interrupted agent or network failure.
 
-### 18. How do you reduce lock contention? *(scenario)*
+</details>
+
+<details><summary>Q18. [Advanced] How do you reduce lock contention? <em>(scenario)</em></summary>
 
 #### The cause
 
@@ -609,7 +674,9 @@ terraform apply -lock-timeout=5m
 
 "Lock contention almost always means the state file is too big and too many teams share it. I split state by environment and component so each pipeline has its own lock, keep stacks small so applies finish quickly, and set a lock timeout so jobs fail with a clear message instead of hanging. I also monitor for locks that stay open, which usually means a crashed run."
 
-### 19. Optimizing Terraform state locking performance
+</details>
+
+<details><summary>Q19. [Advanced] Optimizing Terraform state locking performance</summary>
 
 The goal is reducing **lock contention**, not disabling locking - locking is what prevents two concurrent applies from corrupting state.
 
@@ -624,7 +691,9 @@ The goal is reducing **lock contention**, not disabling locking - locking is wha
 
 I reduce lock contention rather than touch locking itself - splitting state by component and by environment so unrelated applies don't block each other, keeping individual applies small, and serializing CI/CD runs against the same state so they queue instead of race. If stale locks keep showing up, that's a signal to investigate why applies are dying mid-run, not a reason to routinely force-unlock.
 
-### 20. The state file is getting too large. What do you do?
+</details>
+
+<details><summary>Q20. [Advanced] The state file is getting too large. What do you do?</summary>
 
 #### Split it by boundary
 
@@ -652,7 +721,9 @@ Use small stable outputs, data sources, or DNS names, not one big shared state.
 
 "I split the state by lifecycle and ownership, for example network, platform, data, and application. The goal is smaller blast radius and faster plans, not a fixed resource count. Moving resources is a migration, so I back up state, use `moved` blocks or `terraform state mv`, and confirm both old and new stacks plan clean before normal deployments continue."
 
-### 21. The state file is huge and plans take forever. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q21. [Advanced] The state file is huge and plans take forever. What do you do? <em>(scenario)</em></summary>
 
 #### Split it
 
@@ -684,7 +755,9 @@ Back up state first, and both stacks must plan clean afterwards.
 
 "A slow plan usually means one state holds too much, so I split it by lifecycle and ownership: network, platform, data, and application. The move itself is a migration, so I back up state and use `moved` blocks, then confirm both stacks plan clean. I also remove broad data sources and unnecessary `depends_on`, and cache providers in CI."
 
-### 22. How do you recover a deleted state file?
+</details>
+
+<details><summary>Q22. [Intermediate] How do you recover a deleted state file?</summary>
 
 #### Steps
 
@@ -708,7 +781,9 @@ Never run `terraform apply` against an empty state in production. It will try to
 
 "First I stop all applies, because an empty state makes Terraform want to recreate everything. Then I restore the last good version from bucket versioning or the backend's history and confirm it with a read-only plan. If no copy exists, I rebuild state by importing the real resources in small groups until the plan is clean. Afterwards I turn on versioning, restrict delete permissions, and test the restore procedure."
 
-### 23. How do you recover from a corrupted state file?
+</details>
+
+<details><summary>Q23. [Intermediate] How do you recover from a corrupted state file?</summary>
 
 #### If you have a backup
 
@@ -733,7 +808,9 @@ Turn on bucket versioning, keep locking on, and test the restore once in a while
 
 "If versioning is on, I restore the previous state version from the bucket and confirm it with a read-only plan. If there is no backup, I rebuild state by importing resources one at a time until the plan is clean. The real fix is prevention: versioning, locking, restricted access, and a restore procedure that has actually been tested."
 
-### 24. State is corrupted and versioning was never enabled. How do you recover?
+</details>
+
+<details><summary>Q24. [Advanced] State is corrupted and versioning was never enabled. How do you recover?</summary>
 
 #### Steps
 
@@ -764,7 +841,9 @@ Turn on encryption, versioning or soft delete, locking, restricted access, audit
 
 "I stop all runs and preserve the evidence, then hunt for any legitimate copy: Terraform Cloud history, CI artifacts, a local backup file, or object-store recovery. If nothing exists, I rebuild state by making the code match reality and importing resources in small groups, planning after each group until nothing unexpected appears. I never copy state from another environment. Afterwards I enable versioning, locking, restricted access, and a tested restore procedure."
 
-### 25. The state file is corrupted or deleted. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q25. [Intermediate] The state file is corrupted or deleted. What do you do? <em>(scenario)</em></summary>
 
 #### Steps
 
@@ -787,3 +866,5 @@ Versioning, soft delete, locking, restricted delete permissions, and a restore y
 #### Interview answer
 
 "First I stop all runs, because with an empty state Terraform will plan to recreate everything. Then I restore the previous version from bucket versioning or the backend's history and confirm it with a read-only plan. If there is genuinely no copy, I rebuild state by importing resources in small groups until the plan is clean. Afterwards I make sure versioning and delete protection are on and that the restore procedure is documented and tested."
+
+</details>

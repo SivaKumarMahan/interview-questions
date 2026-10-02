@@ -48,7 +48,7 @@ Organization-specific rules should be versioned and unit tested like any other c
 
 ## Interview Questions
 
-### 1. What is Checkov, and where do you use it with Terraform?
+<details><summary>Q1. [Basic] What is Checkov, and where do you use it with Terraform?</summary>
 
 **Answer:**
 
@@ -62,13 +62,16 @@ checkov --directory ./terraform --framework terraform
 
 I combine it with `terraform fmt -check`, `validate`, a reviewed plan, provider/cloud policy, and post-deployment verification. Static scanning can't see every runtime value, external resource, or business requirement. A pass is evidence, not proof of complete security.
 
-### 2. How do you integrate Checkov into a CI/CD pipeline?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you integrate Checkov into a CI/CD pipeline?</summary>
 
 **Answer:**
 
 The pipeline uses a pinned Checkov version and checks out the reviewed commit. It scans the correct root modules and variable/plan context, writes a machine-readable report where required, and blocks based on the organization's agreed policy.
 
 The job has no cloud credentials when scanning the source doesn't need them. Access to the report and its artifacts is restricted, because findings can reveal how the infrastructure is built.
+
 ```yaml
 - name: Scan Terraform with Checkov
   run: checkov --directory infrastructure --framework terraform
@@ -76,7 +79,9 @@ The job has no cloud credentials when scanning the source doesn't need them. Acc
 
 I keep the same configuration locally and in CI, deliberately exclude generated and vendor directories, and make the result visible on the pull request. After a tool or policy upgrade, I test it against representative repositories before enforcing it, so a new rule set doesn't unexpectedly block every team.
 
-### 3. Should you scan Terraform source or the Terraform plan?
+</details>
+
+<details><summary>Q3. [Intermediate] Should you scan Terraform source or the Terraform plan?</summary>
 
 **Answer:**
 
@@ -86,7 +91,9 @@ I usually scan the source on every pull request, and add a protected plan scan f
 
 Plan and state artifacts are encrypted, access-controlled, and never printed without care. Neither mode replaces reviewing destructive changes, securing state, enforcing runtime cloud policy, or testing the application itself.
 
-### 4. Checkov fails a Terraform pipeline. How do you investigate and fix it?
+</details>
+
+<details><summary>Q4. [Intermediate] Checkov fails a Terraform pipeline. How do you investigate and fix it?</summary>
 
 **Answer:**
 
@@ -98,7 +105,9 @@ If an exception is genuinely needed, I document the threat, the compensating con
 
 After deployment, cloud policy/configuration evidence verifies that the intended control exists.
 
-### 5. How do Checkov suppressions and custom checks work safely?
+</details>
+
+<details><summary>Q5. [Intermediate] How do Checkov suppressions and custom checks work safely?</summary>
 
 **Answer:**
 
@@ -116,3 +125,5 @@ The syntax alone doesn't make the exception acceptable. Review still checks the 
 For an organization-specific rule, I write a versioned external check, add positive and negative unit fixtures, and load it through the supported external-check mechanism. I run it in report-only mode first, measure false positives, document the fix and its owner, then turn on enforcement.
 
 Policy code gets the same review and release discipline as infrastructure modules do.
+
+</details>

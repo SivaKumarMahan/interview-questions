@@ -16,7 +16,7 @@ If Azure Pipelines already connects directly to GitHub and can own the whole wor
 
 ## Interview Questions
 
-### 1. How do you trigger a GitHub Actions workflow in another repository?
+<details><summary>Q1. [Intermediate] How do you trigger a GitHub Actions workflow in another repository?</summary>
 
 **Answer:**
 
@@ -30,7 +30,9 @@ The payload should only carry identifiers, like a version number and source comm
 
 I also add concurrency control, make the workflow idempotent, meaning safe to run more than once, keep audit logs, and attach a correlation ID. That way duplicate requests can't deploy twice, and both workflow runs stay traceable.
 
-### 2. What is the purpose of `repository_dispatch` in GitHub Actions?
+</details>
+
+<details><summary>Q2. [Basic] What is the purpose of <code>repository_dispatch</code> in GitHub Actions?</summary>
 
 **Answer:**
 
@@ -53,7 +55,9 @@ I use it for controlled cross-repository orchestration, not as an open productio
 
 GitHub limits how big the payload can be, so artifacts stay in a registry or artifact store. The event itself carries only metadata.
 
-### 3. How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?
+</details>
+
+<details><summary>Q3. [Intermediate] How would you trigger a CI/CD pipeline in Repo A from changes in Repo B?</summary>
 
 **Answer:**
 
@@ -75,3 +79,5 @@ gh api --method POST repos/company/repo-a/dispatches \
 I prevent loops by defining one-way ownership, add concurrency control per environment, and keep the workflow idempotent.
 
 If Repo A only needs a dependency update, a pull request from Dependabot or an update bot is often safer. It goes through normal review instead of triggering a deployment directly.
+
+</details>

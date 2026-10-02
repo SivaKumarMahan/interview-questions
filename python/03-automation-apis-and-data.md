@@ -163,7 +163,7 @@ server = smtplib.SMTP("smtp.gmail.com", 587)
 server.starttls()
 ```
 
-In practice, `smtplib` is more common for legacy/on-prem notification flows; Slack/Teams webhooks (as in [§4](#4-cicd-automation)) are more common in modern pipelines.
+In practice, `smtplib` is more common for legacy/on-prem notification flows; Slack/Teams webhooks (as in the CI/CD automation section of this file) are more common in modern pipelines.
 
 ### Report generation
 
@@ -285,7 +285,7 @@ logging.error("Unable to connect to Kubernetes API")
 
 ## Interview Questions
 
-### 1. How do you call a REST API in Python?
+<details><summary>Q1. [Basic] How do you call a REST API in Python?</summary>
 
 **Answer:**
 
@@ -310,7 +310,9 @@ except (requests.ConnectionError, ValueError) as exc:
 
 For authentication I get a short-lived token from managed identity or a secret store and send it in a header, and I never log it. I also handle pagination and rate limits, respect `Retry-After`, use correlation IDs, and make sure a POST is safe to retry (it won't create duplicates) before I turn retries on for it.
 
-### 2. How do you create API endpoints and call another API using FastAPI?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you create API endpoints and call another API using FastAPI?</summary>
 
 **Answer:**
 
@@ -360,7 +362,9 @@ async def external_status() -> dict:
 
 In a busy service, I reuse one client across the app's lifetime instead of opening a fresh connection pool for every request. Retries stay limited, and only used for calls that are safe to repeat.
 
-### 3. How do you read and write JSON in Python?
+</details>
+
+<details><summary>Q3. [Basic] How do you read and write JSON in Python?</summary>
 
 **Answer:**
 
@@ -385,7 +389,9 @@ I always check required fields and types, because text can be valid JSON and sti
 
 For output that matters, I write to a temporary file first and then rename it. That way a crash mid-write never leaves a half-written file behind.
 
-### 4. How do you fetch JSON data and query it efficiently?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you fetch JSON data and query it efficiently?</summary>
 
 **Answer:**
 
@@ -421,7 +427,9 @@ I handle pagination and rate limits, and I never assume that because JSON is val
 
 If queries get complicated or run often against a lot of data, I move the records into a proper database with indexes instead of treating a JSON file like one. Authentication tokens stay short-lived and never get logged.
 
-### 5. How do you parse YAML in Python?
+</details>
+
+<details><summary>Q5. [Basic] How do you parse YAML in Python?</summary>
 
 **Answer:**
 
@@ -440,7 +448,9 @@ if not isinstance(config, dict) or "services" not in config:
 
 I catch parser errors with file and line information, and I validate the resulting structure against a schema. If comments and formatting need to survive a rewrite, I use a round-trip capable library instead of the plain loader. Any secrets referenced by the YAML are fetched separately at runtime, not stored in the file.
 
-### 6. How do you execute shell commands from Python?
+</details>
+
+<details><summary>Q6. [Basic] How do you execute shell commands from Python?</summary>
 
 **Answer:**
 
@@ -460,7 +470,9 @@ result = subprocess.run(
 
 I handle `CalledProcessError` and `TimeoutExpired`, redact sensitive arguments, and prefer a Python SDK when one exists, since it's typed and easier to test. In tests I mock the subprocess call itself and check the command arguments, exit-code handling, and timeout behavior.
 
-### 7. Python: Kubernetes pod health check
+</details>
+
+<details><summary>Q7. [Intermediate] Python: Kubernetes pod health check</summary>
 
 ```python
 import subprocess
@@ -540,7 +552,9 @@ Iterate pod["status"]["phase"] and flag anything != "Running"
 
 This is a common pattern for wrapping `kubectl` (or any CLI tool) in Python when you need to process structured output rather than just eyeballing text - `-o json` plus `json.loads()` turns an opaque CLI into something you can iterate over programmatically.
 
-### 8. Python: Docker image age script
+</details>
+
+<details><summary>Q8. [Intermediate] Python: Docker image age script</summary>
 
 ```python
 import subprocess
@@ -562,7 +576,9 @@ for line in result.stdout.splitlines():
 
 As written, the script only prints the raw `ID CreatedAt` lines - to actually act on image age you'd parse each line's timestamp (Docker's `CreatedAt` format needs explicit parsing, e.g. with `datetime.strptime`) and compare it against `cutoff`, then collect the IDs older than the cutoff to remove with `docker rmi`. This is the same overall shape as the pod-health-check script: shell out with `subprocess.run()`, capture structured-ish text output, then parse and filter it in Python.
 
-### 9. How do you handle errors in Python scripts?
+</details>
+
+<details><summary>Q9. [Basic] How do you handle errors in Python scripts?</summary>
 
 **Answer:**
 
@@ -587,7 +603,9 @@ At the outer boundary of the program, I log the failure once and return a non-ze
 
 I also separate retryable failures from validation errors, keep secrets out of exception messages, and test the failure paths themselves: timeouts, invalid input, partial output, and a dependency that isn't available.
 
-### 10. Debugging a pipeline failure caused by a Python script
+</details>
+
+<details><summary>Q10. [Intermediate] Debugging a pipeline failure caused by a Python script</summary>
 
 A Jenkins or Azure DevOps pipeline fails with:
 
@@ -624,7 +642,9 @@ kubectl describe pod <pod-name>
 
 The pattern generalizes beyond `kubectl` specifically: reproduce the failing command outside the pipeline, get the full (not truncated) error, verify connectivity/auth to whatever system it's calling, validate the input, and check the target system's own diagnostics.
 
-### 11. How do you manage secrets in Python automation?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you manage secrets in Python automation?</summary>
 
 **Answer:**
 
@@ -634,7 +654,9 @@ I never commit secrets, put them in default arguments, print them, or let them e
 
 If a secret does get exposed, I revoke it first, then review logs and access history, rotate any downstream credentials, remove retained output, and add a test or a scan so it doesn't happen again.
 
-### 12. How do you process large log files in Python?
+</details>
+
+<details><summary>Q12. [Intermediate] How do you process large log files in Python?</summary>
 
 **Answer:**
 
@@ -658,7 +680,9 @@ For production use, I define the expected log format, count the malformed record
 
 If the volume keeps growing or becomes continuous, I move parsing to a log platform or streaming system instead of stretching one script past its limits.
 
-### 13. How do you schedule Python automation?
+</details>
+
+<details><summary>Q13. [Basic] How do you schedule Python automation?</summary>
 
 **Answer:**
 
@@ -670,7 +694,9 @@ I record the start and end time, how many items were processed, the result, and 
 
 Secrets come from workload identity or a secret manager, never from the schedule definition itself.
 
-### 14. How do you make a Python script production-ready?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you make a Python script production-ready?</summary>
 
 **Answer:**
 
@@ -686,7 +712,10 @@ My checklist:
 - Metrics, alerts, and a documented runbook
 
 I test the happy path, invalid input, a dependency being down, partial failure, retries, and running the script twice in a row. A script isn't production-ready just because it worked once on a laptop. Someone else needs to be able to run it, watch it, stop it, and recover from a failure safely.
-### 15. Python script: restart pods stuck in CrashLoopBackOff
+
+</details>
+
+<details><summary>Q15. [Intermediate] Python script: restart pods stuck in CrashLoopBackOff</summary>
 
 ```python
 from kubernetes import client, config
@@ -709,7 +738,9 @@ for pod in pods.items:
 
 **Use case:** automatically recover unhealthy pods. This targets `CrashLoopBackOff` specifically via `container_statuses[].state.waiting.reason`, using the native `kubernetes` client - a more targeted check than the generic `phase != "Running"` test in the `subprocess`+`kubectl -o json` pod-health-check script elsewhere in this file, which detects unhealthy pods but doesn't act on them.
 
-### 16. Python script: delete old Docker images, keeping the 5 newest
+</details>
+
+<details><summary>Q16. [Intermediate] Python script: delete old Docker images, keeping the 5 newest</summary>
 
 ```python
 import subprocess
@@ -725,7 +756,9 @@ for image in images[5:]:
 
 **Use case:** free up disk space on Jenkins agents. This is a count-based policy (keep the 5 most recent, delete the rest via list slicing) - a different approach from the age-based `docker images --format` + datetime-cutoff script elsewhere in this file, which filters by a 7-day age threshold instead of a fixed count. Pick whichever policy actually matches your retention need: count-based is simpler but doesn't account for build frequency; age-based accounts for time but not how many images accumulated in that time.
 
-### 17. Python script: check disk usage
+</details>
+
+<details><summary>Q17. [Intermediate] Python script: check disk usage</summary>
 
 ```python
 import shutil
@@ -740,7 +773,9 @@ if free < 10:
 
 **Use case:** alert when disk space is running low - a pure-Python equivalent of the Bash `df`-based check, useful when the rest of the monitoring tooling is already Python.
 
-### 18. Python script: check website health
+</details>
+
+<details><summary>Q18. [Intermediate] Python script: check website health</summary>
 
 ```python
 import requests
@@ -757,7 +792,9 @@ else:
 
 **Use case:** basic application health monitoring - a simple synthetic check, distinct from Kubernetes liveness/readiness probes since it verifies the application from outside the cluster, over the same path a real user would take.
 
-### 19. Python script: list Azure Virtual Machines
+</details>
+
+<details><summary>Q19. [Intermediate] Python script: list Azure Virtual Machines</summary>
 
 ```python
 from azure.identity import DefaultAzureCredential
@@ -776,7 +813,9 @@ for vm in client.virtual_machines.list_all():
 
 **Use case:** generate VM inventory reports.
 
-### 20. Python script: validate YAML before deployment
+</details>
+
+<details><summary>Q20. [Intermediate] Python script: validate YAML before deployment</summary>
 
 ```python
 import yaml
@@ -788,3 +827,5 @@ print(data["kind"])
 ```
 
 **Use case:** validate Kubernetes manifests before applying them - catches YAML syntax errors and lets you sanity-check fields (like confirming `kind` is what you expect) before they ever reach `kubectl apply`.
+
+</details>

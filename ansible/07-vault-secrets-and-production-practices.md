@@ -103,7 +103,7 @@ Security practices:
 
 ## Interview Questions
 
-### 1. How do you manage secrets securely in Ansible?
+<details><summary>Q1. [Intermediate] How do you manage secrets securely in Ansible?</summary>
 
 **Answer:**
 
@@ -134,3 +134,5 @@ My other security habits: a separate vault identity per environment, giving acco
 After a deployment I check that the application can authenticate, that unauthorized users can't read the secret file, that CI logs contain no secret values, and that rotation works without hand-editing the playbook.
 
 If a secret does leak, I revoke or rotate it first, then remove it from Git history and logs, and find out who accessed it.
+
+</details>

@@ -47,7 +47,7 @@ Being "immutable" only applies to the tuple's own slots. It doesn't reach inside
 
 ## Interview Questions
 
-### 1. How is Python useful for DevOps?
+<details><summary>Q1. [Basic] How is Python useful for DevOps?</summary>
 
 **Answer:**
 
@@ -57,13 +57,17 @@ A practical example is an unused-resource report: authenticate with workload ide
 
 For production automation I also add argument parsing, structured logging, timeouts, retries with backoff (each retry waits a bit longer than the last), tests, dependency locking, useful exit codes, and metrics. I never hardcode credentials, and I never catch every exception just to make errors disappear silently.
 
-### 2. Short interview answer: How have you used Python for DevOps automation and debugging?
+</details>
+
+<details><summary>Q2. [Basic] Short interview answer: How have you used Python for DevOps automation and debugging?</summary>
 
 I have used Python to automate repetitive DevOps tasks - checking server disk usage, monitoring application health over REST APIs, validating Kubernetes YAML before deployment, restarting failed pods via the Kubernetes API, generating Azure VM inventory reports via the Azure SDK, and cleaning up old Docker images on build agents. These run on a schedule via cron or as steps inside Jenkins/Azure DevOps pipelines.
 
 When debugging Python errors, I read the traceback bottom-up to find the exception type and the exact failing line, reproduce the issue locally or in a test environment, verify inputs like config files/env vars/API responses, and add logging if needed. If it's failing inside a CI/CD pipeline specifically, I review the pipeline logs, rerun the failing command manually outside the pipeline, and validate dependencies, permissions, and any external service (Kubernetes, Azure APIs) before implementing a fix.
 
-### 3. What is the difference between a list, tuple, set, and dictionary?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between a list, tuple, set, and dictionary?</summary>
 
 **Answer:**
 
@@ -81,7 +85,9 @@ ports = {"http": 80, "https": 443}
 
 I pick based on what the data actually means, not just syntax. A set removes duplicates, but it doesn't represent an order that matters to the business. A dictionary makes a named lookup clearer than relying on list positions.
 
-### 4. Explain Python list, tuple, dictionary and set with examples.
+</details>
+
+<details><summary>Q4. [Basic] Explain Python list, tuple, dictionary and set with examples.</summary>
 
 #### 8.1 List
 
@@ -160,7 +166,9 @@ print(numbers)
 - **Dictionary:** stores data in key-value pairs with unique keys.
 - **Set:** unordered collection of unique elements.
 
-### 5. What is the difference between a Python list and an array?
+</details>
+
+<details><summary>Q5. [Basic] What is the difference between a Python list and an array?</summary>
 
 **Answer:**
 
@@ -179,7 +187,9 @@ Lists work best for ordinary collections that hold rich object values. Typed arr
 
 Both lists and these arrays keep their order and can be changed. Indexing is roughly `O(1)`, but inserting near the start requires shifting everything else, so that's `O(n)`.
 
-### 6. What is slicing in Python?
+</details>
+
+<details><summary>Q6. [Basic] What is slicing in Python?</summary>
 
 **Answer:**
 
@@ -200,7 +210,9 @@ For a regular list, a slice creates a new outer list, but the objects inside it 
 
 A step of zero raises `ValueError`. A large slice uses memory proportional to its size, so for a big iterable I'd rather stream it with something like `itertools.islice`.
 
-### 7. What is the difference between a shallow copy and a deep copy?
+</details>
+
+<details><summary>Q7. [Basic] What is the difference between a shallow copy and a deep copy?</summary>
 
 **Answer:**
 
@@ -224,7 +236,9 @@ Assignment like `second = original` doesn't copy anything at all; both names poi
 
 Deep copies can be expensive, and they don't make sense for things like sockets, locks, or database connections. I only reach for one when I genuinely need independent nested state, and often I'd rather use an immutable value or build the fields I need explicitly instead.
 
-### 8. Explain local, nonlocal, and global variables in Python.
+</details>
+
+<details><summary>Q8. [Basic] Explain local, nonlocal, and global variables in Python.</summary>
 
 **Answer:**
 
@@ -256,7 +270,9 @@ Without `nonlocal count`, the line `count += 1` would try to create a brand-new 
 
 Passing arguments, returning values, using closures, or using a class instance is usually clearer. `nonlocal` earns its place in small closures like counters or decorators.
 
-### 9. What is the difference between a module, package, and library?
+</details>
+
+<details><summary>Q9. [Basic] What is the difference between a module, package, and library?</summary>
 
 **Answer:**
 
@@ -283,7 +299,9 @@ from inventory import validators
 
 For a library I plan to publish, I define metadata and dependencies in `pyproject.toml`, use a virtual environment, pin or lock the dependencies, test the public API, and avoid circular imports or heavy work happening just from importing the module.
 
-### 10. How do you create a Python virtual environment?
+</details>
+
+<details><summary>Q10. [Basic] How do you create a Python virtual environment?</summary>
 
 **Answer:**
 
@@ -301,3 +319,5 @@ deactivate
 On Windows, activation is usually `.venv\Scripts\Activate.ps1`. I don't commit `.venv` to source control; I commit a dependency file and a lock file instead.
 
 CI creates a fresh environment on every run, installs pinned dependencies, scans them, and tests against the supported Python versions. Containers add another layer of isolation, but they don't remove the need to pin dependencies.
+
+</details>

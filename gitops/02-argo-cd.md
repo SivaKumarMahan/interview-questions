@@ -110,6 +110,25 @@ If Git says `replicas: 3` and an administrator manually scales the Deployment to
 
 This makes Git the source of truth. Emergency manual changes should therefore be recorded in Git, or Argo CD may reverse them.
 
+### Argo CD Reconcile Loop
+
+Argo CD runs this loop for every Application, by default about every three minutes or straight away when a Git webhook arrives. With automated sync and `selfHeal: true`, a manual `kubectl edit` in the cluster is reverted on the next loop.
+
+```mermaid
+flowchart TD
+    G["Change merged to<br/>GitOps repository"] --> F["Repo server renders manifests<br/>Helm, Kustomize, plain YAML"]
+    F --> CMP{"Controller compares<br/>desired state in Git<br/>with live state in cluster"}
+    CMP -- "Synced" --> H["Check health<br/>Healthy, Progressing, Degraded"]
+    CMP -- "OutOfSync" --> AUTO{"Automated sync<br/>enabled?"}
+    AUTO -- "Yes" --> APPLY["Apply changes<br/>to the cluster"]
+    AUTO -- "No" --> UI["Show OutOfSync in UI,<br/>wait for manual sync"]
+    APPLY --> H
+    UI --> W
+    H --> W["Wait for next poll<br/>or Git webhook"]
+    DRIFT["Someone edits the<br/>cluster by hand"] -.-> CMP
+    W --> CMP
+```
+
 ### Responsibilities
 
 | Component | Responsibility |
@@ -139,7 +158,7 @@ CI tests the code, builds and pushes the image, and updates its tag in the GitOp
 
 ## Interview Questions
 
-### 1. What is the difference between RBAC and what Argo CD gives you for access control? Why do most production teams stop using raw RBAC for developer access?
+<details><summary>Q1. [Advanced] What is the difference between RBAC and what Argo CD gives you for access control? Why do most production teams stop using raw RBAC for developer access?</summary>
 
 **Answer:**
 
@@ -170,3 +189,5 @@ Argo CD also gives you drift protection that raw RBAC does not. If someone with 
 Argo CD immediately marks the app `OutOfSync` and can auto-heal it back to what is in Git. Git is the source of truth and nobody can override it silently.
 
 That is the production answer — not just what RBAC is, but why teams move away from managing it manually and what they use instead.
+
+</details>

@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you check listening ports on Windows?
+<details><summary>Q1. [Basic] How do you check listening ports on Windows?</summary>
 
 **Answer:**
 
@@ -21,7 +21,9 @@ Test-NetConnection server.example.com -Port 443
 
 A port listening locally doesn't prove it's reachable remotely, so I test from the actual client network and check the logs on both ends.
 
-### 2. How do you manage Windows Firewall rules?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you manage Windows Firewall rules?</summary>
 
 **Answer:**
 
@@ -37,7 +39,9 @@ Before touching production I export and review the current policy and confirm ex
 
 I deploy rules through Group Policy, configuration management, or infrastructure-as-code wherever possible, rather than making unmanaged manual changes. Logging and a periodic review help catch rules that are unused or too broad.
 
-### 3. What is PowerShell remoting?
+</details>
+
+<details><summary>Q3. [Basic] What is PowerShell remoting?</summary>
 
 **Answer:**
 
@@ -54,7 +58,9 @@ I restrict it with firewall scoping, groups that only get the access they need, 
 
 When troubleshooting, I look at DNS, time sync and Kerberos, the WinRM listener, the firewall, SPNs, user permissions, and the double-hop problem.
 
-### 4. How do you troubleshoot RDP connection issues?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot RDP connection issues?</summary>
 
 **Answer:**
 
@@ -68,3 +74,5 @@ I treat network, service, authentication, and capacity as separate things to che
 6. Use Bastion or a serial/console connection for recovery, rather than opening RDP up broadly.
 
 Once it's fixed, I remove any temporary access I opened, confirm normal approved connections still work, and keep RDP private behind a VPN or Bastion with MFA and monitoring.
+
+</details>

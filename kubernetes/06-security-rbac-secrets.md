@@ -39,7 +39,7 @@ New Pods referencing a missing ServiceAccount cannot be admitted.
 
 ## Interview Questions
 
-### 1. How do you secure a Kubernetes cluster?
+<details><summary>Q1. [Intermediate] How do you secure a Kubernetes cluster?</summary>
 
 **Answer:**
 
@@ -58,7 +58,9 @@ Policies are versioned and tested, and any exception has an expiry date. Nodes u
 
 Security is about managing threat and risk, not a checklist. No single tool "secures Kubernetes" — what matters is verifying the controls actually work and that response and restore procedures hold up under a real test.
 
-### 2. How do you secure Kubernetes cluster?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you secure Kubernetes cluster?</summary>
 
 **Answer:**
 • Use RBAC for access control.
@@ -76,7 +78,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 3. How do you enforce zero-trust security in a Kubernetes cluster?
+</details>
+
+<details><summary>Q3. [Advanced] How do you enforce zero-trust security in a Kubernetes cluster?</summary>
 
 **Answer:** Disable default network connectivity, apply strict NetworkPolicies, enforce PodSecurityAdmission, use mTLS with a service mesh, and verify identity per request.
 
@@ -90,7 +94,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 4. Kubernetes security contexts — configuring permissions and access controls?
+</details>
+
+<details><summary>Q4. [Intermediate] Kubernetes security contexts — configuring permissions and access controls?</summary>
 
 Kubernetes **Security Contexts** allow you to define security settings for Pods and Containers. They help configure permissions and access controls to enhance the security of your applications running in a Kubernetes cluster. Here are some key aspects:
 
@@ -174,7 +180,9 @@ spec:
 
 By configuring security contexts, you can enforce security policies and ensure that your applications run with the appropriate permissions and access controls in a Kubernetes environment.
 
-### 5. I want to give only read-only permissions to check logs for users. How can you set up RBAC for this?
+</details>
+
+<details><summary>Q5. [Intermediate] I want to give only read-only permissions to check logs for users. How can you set up RBAC for this?</summary>
 
 Use a `ClusterRole` scoped to reading pods and pod logs, then bind it to the user:
 
@@ -201,7 +209,9 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-### 6. How do you enforce least privilege (only the permissions needed) in Kubernetes?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you enforce least privilege (only the permissions needed) in Kubernetes?</summary>
 
 **Answer:** Use RBAC roles → Bind only necessary permissions → Restrict cluster admin → Enable PodSecurityPolicies/OPA.
 
@@ -214,7 +224,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 7. If a ServiceAccount is deleted while Pods using it are still running, what happens to the mounted tokens and API access?
+</details>
+
+<details><summary>Q7. [Advanced] If a ServiceAccount is deleted while Pods using it are still running, what happens to the mounted tokens and API access?</summary>
 
 **Answer:**
 
@@ -242,7 +254,9 @@ kubectl create serviceaccount myapp-sa
 kubectl rollout restart deployment/myapp
 ```
 
-### 8. How do you handle authentication for AKS clusters and store secrets securely in Kubernetes?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you handle authentication for AKS clusters and store secrets securely in Kubernetes?</summary>
 
 **Authentication for AKS clusters:**
 
@@ -260,7 +274,9 @@ kubectl rollout restart deployment/myapp
 
 By following these practices, you can ensure secure authentication for your AKS clusters and safely manage sensitive information within your Kubernetes environment.
 
-### 9. How do you manage secrets in Kubernetes?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you manage secrets in Kubernetes?</summary>
 
 **Answer:** Store in Kubernetes Secrets (base64 encoded) → Encrypt at rest → Integrate with Vault/Key Vault for rotation.
 
@@ -273,7 +289,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 10. How do you securely manage secrets and certificates in EKS?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you securely manage secrets and certificates in EKS?</summary>
 
 **Answer:**
 
@@ -285,7 +303,9 @@ Certificates go through cert-manager with an approved issuer, such as a private 
 
 When troubleshooting, I check the ServiceAccount's annotation and association, the OIDC trust relationship, the IAM policy, CSI or operator logs, the secret's version, KMS, network endpoints and DNS, and file permissions. A rotation test confirms the application picks up the new value without an outage and that the old credentials actually get revoked.
 
-### 11. How do you manage secret rotation across CI/CD, Kubernetes, and apps?
+</details>
+
+<details><summary>Q11. [Advanced] How do you manage secret rotation across CI/CD, Kubernetes, and apps?</summary>
 
 **Answer:** Centralize secrets in Vault/Key Vault/Secret Manager, use dynamic short-lived credentials where possible, automate rotation with scripts/events, update pipeline/runtime fetch logic to fetch latest secrets at runtime, and test rotation in staging.
 
@@ -297,7 +317,9 @@ Rotation uses an overlap period: issue the new value, update the consumers, veri
 
 Pre-commit and server-side scans, protected logs, least privilege, expiry, and rotation tests are what prevent this from happening again.
 
-### 12. How do you handle Kubernetes secret exposure in logs?
+</details>
+
+<details><summary>Q12. [Advanced] How do you handle Kubernetes secret exposure in logs?</summary>
 
 **Answer:** Prevent kubectl describe from showing → Use kubectl get secret -o jsonpath securely → Audit RBAC → Enable encryption at rest.
 
@@ -310,7 +332,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 13. How do you handle certificate rotation in on-prem Kubernetes clusters?
+</details>
+
+<details><summary>Q13. [Advanced] How do you handle certificate rotation in on-prem Kubernetes clusters?</summary>
 
 **Answer:**
 
@@ -322,7 +346,9 @@ Application TLS goes through cert-manager with an internal ACME setup or CA, wit
 
 I test all of this in non-production first and document the recovery steps. Blindly replacing certificate files can break quorum or API access, so I plan for maintenance windows and console access ahead of time.
 
-### 14. How do you handle Kubernetes certificate expiration?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you handle Kubernetes certificate expiration?</summary>
 
 **Answer:** Monitor cert expiry, automate renewals with cert-manager, rotate cluster certs regularly, and alert on failures. Mini-case: Cert-manager auto-renewed TLS certs before expiry; a Grafana alert ensured we never missed rotation deadlines.
 
@@ -335,7 +361,9 @@ I renew or rotate it through the supported controller, reload the consumer, and 
 
 Alerts at 30, 14, and 7 days out, automated renewal tests, an owner inventory, and protected issuer keys are what prevent an emergency expiry in the first place.
 
-### 15. How do you enforce that all images come from a trusted internal registry?
+</details>
+
+<details><summary>Q15. [Intermediate] How do you enforce that all images come from a trusted internal registry?</summary>
 
 **Answer:**
 
@@ -345,7 +373,9 @@ I restrict who has pull and push roles on the registry, protect the signing iden
 
 I also control which fields can mutate the image reference and who can use ephemeral containers or node runtime access. If the registry becomes unavailable, disaster recovery uses an approved, replicated registry — bypassing image verification is only ever a high-risk, explicitly documented emergency action.
 
-### 16. How do you detect and stop crypto-mining workloads in Kubernetes?
+</details>
+
+<details><summary>Q16. [Advanced] How do you detect and stop crypto-mining workloads in Kubernetes?</summary>
 
 **Answer:** Enable anomaly detection (Falco/Azure Defender), restrict containers from running privileged mode, enforce quotas, and monitor unusual CPU spikes. Mini-case: A compromised pod started crypto-mining; Falco detected suspicious syscalls and Kubernetes killed the pod within seconds.
 **Detailed interview approach:**
@@ -357,7 +387,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 17. How do you isolate workloads in a multi-tenant EKS cluster?
+</details>
+
+<details><summary>Q17. [Advanced] How do you isolate workloads in a multi-tenant EKS cluster?</summary>
 
 **Answer:**
 
@@ -367,7 +399,9 @@ Sensitive tenants get dedicated node groups with taints and a hardened runtime, 
 
 I test cross-namespace API, network, secret, and IAM access, and resource-exhaustion attempts. I audit access and review quotas regularly. Whether to share a cluster at all follows the threat model, not just cost.
 
-### 18. How do you architect multi-tenant Kubernetes clusters securely?
+</details>
+
+<details><summary>Q18. [Advanced] How do you architect multi-tenant Kubernetes clusters securely?</summary>
 
 **Answer:** Use namespaces + strict RBAC per tenant, network policies to isolate traffic, resource quotas & limit ranges, PodSecurity admission controls, encrypt secrets, and audit logging per namespace. Consider separate clusters for high-security tenants.
 
@@ -382,7 +416,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 19. How do you manage multiple Kubernetes clusters securely?
+</details>
+
+<details><summary>Q19. [Advanced] How do you manage multiple Kubernetes clusters securely?</summary>
 
 **Answer:** Use Rancher, Anthos, or Azure Arc → Apply consistent RBAC & policies → Centralized monitoring/logging.
 
@@ -395,7 +431,9 @@ If I suspect an exposure, I isolate the workload, preserve audit and runtime evi
 
 I verify both the denied and the allowed paths with real service accounts, and periodically review RBAC, unused permissions, certificate and secret rotation, patch levels, backup and restore, and any policy exceptions still open.
 
-### 20. How do you enforce compliance in Kubernetes clusters?
+</details>
+
+<details><summary>Q20. [Advanced] How do you enforce compliance in Kubernetes clusters?</summary>
 
 **Answer:** Use OPA/Gatekeeper or Kyverno for policy enforcement → Restrict images, namespaces, resource limits.
 
@@ -408,7 +446,9 @@ Each rule has unit tests with both allowed and denied fixtures, and produces an 
 
 Runtime and audit monitoring catches any change that happens outside CI. I track exceptions, false positives, and time to remediate, and periodically map the evidence back to each control, so compliance actually reflects real risk reduction rather than just a checklist.
 
-### 21. How do you secure CI/CD pipelines running in Kubernetes?
+</details>
+
+<details><summary>Q21. [Intermediate] How do you secure CI/CD pipelines running in Kubernetes?</summary>
 
 **Answer:** Run pipelines as non-root → Restrict namespaces → Use PodSecurityPolicies/OPA → Isolate sensitive workloads.
 
@@ -420,3 +460,5 @@ Credentials live in Jenkins Credentials or an external vault, scoped to the smal
 Agents are ephemeral, isolated, non-root where possible, and get a short-lived cloud identity. If a secret ever shows up in the logs, masking isn't enough — I stop the exposure, revoke and rotate the credential, restrict or delete the retained logs where policy allows, audit where it was used, and fix the step that printed it.
 
 Configuration, plugins, and the restore process are all backed up and tested.
+
+</details>

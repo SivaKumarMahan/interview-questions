@@ -70,7 +70,7 @@ Terraform creates the Key Vault and grants access to the managed identity. The a
 
 ## Interview Questions
 
-### 1. How do you reuse the same code for different environments?
+<details><summary>Q1. [Intermediate] How do you reuse the same code for different environments?</summary>
 
 #### Folder layout
 
@@ -108,7 +108,9 @@ Dev passes a small CIDR and one NAT gateway. Prod passes a bigger CIDR and one N
 
 "I keep the common code in versioned modules and give each environment its own small root folder with its own backend, variables, and approvals. Dev and prod call the same module version but pass different values. I avoid writing `if environment == prod` inside modules, because that hides the differences."
 
-### 2. How do you manage deployments for multiple environments?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you manage deployments for multiple environments?</summary>
 
 #### Rules I follow
 
@@ -130,7 +132,9 @@ prod -> same module version, different values, with approval
 
 "Each environment gets its own root folder, state key, credentials, variables, and approval. The shared logic lives in versioned modules that each environment pins. The pipeline maps a folder to exactly one environment so a job cannot mix dev code with prod credentials. A change is proven in dev and test before the same module version is promoted to production."
 
-### 3. How do you manage multiple environments? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you manage multiple environments? <em>(scenario)</em></summary>
 
 #### Two ways
 
@@ -156,7 +160,9 @@ Each folder gets its own backend key, credentials, and approval.
 
 "For short-lived or nearly identical environments I use workspaces. For dev, test, and production I prefer separate folders with their own backend, variables, credentials, and approvals, because it is obvious which environment you are in and a dev job can never touch production state."
 
-### 4. How do you manage dev, QA, and prod with Terraform? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you manage dev, QA, and prod with Terraform? <em>(scenario)</em></summary>
 
 #### Layout
 
@@ -186,7 +192,9 @@ Prove the change in dev, then QA, then apply the same module version to prod wit
 
 "Shared modules hold the logic, and each environment has its own folder with its own backend, variables, credentials, and approvals. What differs between environments is values like sizing, retention, and protection settings, not the code itself. A change is proven in dev and QA before the same module version is promoted to production."
 
-### 5. How do you organize a Terraform project for multiple environments?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you organize a Terraform project for multiple environments?</summary>
 
 #### 15.1 Modules
 
@@ -379,7 +387,9 @@ This ensures code is reviewed, plans are visible before deployment, and changes 
 
 > "I organize Terraform using reusable modules for components like networking, AKS, ACR, and monitoring. The root configuration simply composes these modules and passes environment-specific variables. For environments such as development, staging, and production, I prefer separate directories with their own backend configuration, state file, and terraform.tfvars rather than relying on workspaces. This provides better isolation, clearer permissions, and reduces the risk of deploying to the wrong environment. I also split infrastructure into multiple state files, such as networking, AKS, and applications, to reduce the impact of changes and allow teams to work independently. Finally, all Terraform changes go through a CI/CD pipeline that runs terraform fmt, terraform validate, tflint, and terraform plan during pull requests, with terraform apply executed only after review and approval."
 
-### 6. How do you provision environments end to end? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you provision environments end to end? <em>(scenario)</em></summary>
 
 #### Pieces
 
@@ -401,7 +411,9 @@ This ensures code is reviewed, plans are visible before deployment, and changes 
 
 "Reusable modules plus one tfvars file per environment, and the pipeline selects the backend config and var file for the chosen environment. Terraform builds the platform, for example the cluster and node groups sized per environment, and application deployment is handled separately by Argo CD or Helm. For dev I add a scheduled scale-down or destroy outside working hours to control cost, while production stays permanent."
 
-### 7. Workspaces or separate state files?
+</details>
+
+<details><summary>Q7. [Intermediate] Workspaces or separate state files?</summary>
 
 | CLI workspaces | Separate state files |
 |---|---|
@@ -423,7 +435,9 @@ terraform workspace list
 
 "Workspaces reuse one configuration and backend with a different state per workspace. They are handy for temporary or nearly identical environments, but it is easy to forget which one is selected and they share backend and credentials. For long-lived dev, test, and production I prefer separate root folders and state files, because credentials, approvals, and blast radius are then explicit."
 
-### 8. How do you manage multiple Terraform workspaces across environments?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you manage multiple Terraform workspaces across environments?</summary>
 
 **Interviewer:** How do you manage multiple Terraform workspaces across environments?
 
@@ -487,7 +501,9 @@ resource "azurerm_resource_group" "rg" {
 
 > "For production environments, I prefer separate directories and separate remote state files for dev, test, and prod because it's safer and provides better isolation. I use Terraform workspaces only for nearly identical environments or temporary deployments where only configuration values change."
 
-### 9. What are the benefits of modules and workspaces?
+</details>
+
+<details><summary>Q9. [Basic] What are the benefits of modules and workspaces?</summary>
 
 #### Modules
 
@@ -521,3 +537,5 @@ terraform/
 #### Interview answer
 
 "Modules give reuse and consistency, so every team gets the same tagging, encryption, and naming without copying code. Workspaces let the same configuration hold separate state per environment. Together they reduce duplication, but for long-lived production boundaries I still prefer separate folders and state files over workspaces, because permissions and blast radius are clearer."
+
+</details>

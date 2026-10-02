@@ -51,7 +51,7 @@ find /var/log -name "*.log" -size +100M  # Large log files
 
 ## Interview Questions
 
-### 1. A service is consuming 100% CPU. How will you find and fix it?
+<details><summary>Q1. [Intermediate] A service is consuming 100% CPU. How will you find and fix it?</summary>
 
 **Answer:**
 
@@ -63,7 +63,9 @@ If customers are affected, I rate-limit traffic, pull the unhealthy instance out
 
 The real fix might be correcting an infinite loop, improving a query or index, adding a timeout, setting a resource limit, or adding capacity. Afterward I check CPU, latency, errors, and actual business transactions, and add an alert or regression test for what I found.
 
-### 2. How do you troubleshoot high CPU usage on a Linux server? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you troubleshoot high CPU usage on a Linux server? <em>(scenario)</em></summary>
 
 **Answer:** Use `top`, `htop`, `vmstat`, and `iostat` to find the process, then kill or fix it, and scale the infrastructure if needed.
 
@@ -74,7 +76,9 @@ I work out whether it's a real capacity problem, a stuck process, or I/O wait sh
 
 I then confirm the application is healthy and check the resource trend, and put in retention, limits, alerts, or a code/config fix so I'm not just restarting things blindly next time.
 
-### 3. How do you find the process using the most CPU right now?
+</details>
+
+<details><summary>Q3. [Basic] How do you find the process using the most CPU right now?</summary>
 
 **Answer:**
 
@@ -90,7 +94,9 @@ I check the load average, CPU steal time, I/O wait, recent deployments, and traf
 
 I capture the PID, its service or container owner, and its logs, then mitigate it safely — scaling, rolling back, rate-limiting, or gracefully restarting whichever workload turns out to actually be the problem.
 
-### 4. How do you find the top 5 CPU-consuming and memory-consuming processes?
+</details>
+
+<details><summary>Q4. [Basic] How do you find the top 5 CPU-consuming and memory-consuming processes?</summary>
 
 **Answer:**
 
@@ -105,7 +111,9 @@ I sort memory by RSS, since `%mem` is derived from it and VSZ can include large 
 
 I also map each PID back to its service or container and compare it against request rate and any recent changes before deciding a process is actually abnormal.
 
-### 5. Command to show memory usage & CPU / processes *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Basic] Command to show memory usage &amp; CPU / processes <em>(asked in interview round)</em></summary>
 
 ```bash
 free -h          # memory (human readable)
@@ -116,7 +124,9 @@ ps aux --sort=-%cpu | head   # top CPU consumers
 mpstat -P ALL 1  # per-core CPU
 ```
 
-### 6. How do you find free memory?
+</details>
+
+<details><summary>Q6. [Basic] How do you find free memory?</summary>
 
 **Answer:**
 
@@ -128,7 +138,9 @@ I look at this against the actual workload and its trend over time. High used me
 
 I fix the actual cause — a leak, a cache setting, a config change — or right-size and scale the service based on evidence. Restarting is only a temporary fix, and I preserve diagnostics before doing it.
 
-### 7. How do you find which process is consuming the most memory?
+</details>
+
+<details><summary>Q7. [Basic] How do you find which process is consuming the most memory?</summary>
 
 **Answer:**
 
@@ -150,7 +162,9 @@ I confirm system-wide pressure with `free -h`, `vmstat 1`, swap activity, and OO
 
 Before restarting or killing anything, I capture logs and heap or thread diagnostics where relevant, confirm the actual user impact, and try graceful service control first. The permanent fix might be correcting a memory leak, tuning a cache or heap setting, setting resource limits, scaling traffic, or adding capacity.
 
-### 8. A process is causing high memory usage. How do you locate and stop it?
+</details>
+
+<details><summary>Q8. [Intermediate] A process is causing high memory usage. How do you locate and stop it?</summary>
 
 **Answer:**
 
@@ -169,7 +183,9 @@ Where it's safe, I capture a heap dump or runtime metrics before stopping the pr
 
 Then I fix the actual leak or cache setting, set realistic limits and alerts, and load-test the fix.
 
-### 9. Troubleshoot a memory leak on a production Linux server *(asked in interview round)*
+</details>
+
+<details><summary>Q9. [Advanced] Troubleshoot a memory leak on a production Linux server <em>(asked in interview round)</em></summary>
 
 1. Confirm the trend. Check `free -h`, `vmstat 1`, and your monitoring dashboards. Is memory climbing steadily and never coming back down?
 2. Find the process. Use `ps aux --sort=-%rss | head`, `top` (the RES column), or `smem` for a more accurate view. Watch RSS over time, for example with `while true; do ps -o rss= -p <pid>; sleep 5; done`.
@@ -178,7 +194,9 @@ Then I fix the actual leak or cache setting, set realistic limits and alerts, an
 5. Tell a real leak apart from normal caching. Page cache shows up under `buff/cache` and is reclaimable whenever the kernel needs the space back — that's expected, not a leak.
 6. Mitigate now: restart or roll the process, add memory limits (cgroups or systemd's `MemoryMax`), and enable automatic restarts. Then fix the actual bug in the code.
 
-### 10. How do you analyze high system load?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you analyze high system load?</summary>
 
 **Answer:**
 
@@ -188,7 +206,9 @@ A high run-queue with busy CPUs points to CPU contention. A high block count, I/
 
 I address whatever resource or workload is actually the problem, compare it against the normal baseline and any recent changes, and confirm latency and errors actually recover — not just that the load number dropped.
 
-### 11. Linux server has high load — identify & resolve bottlenecks *(asked in interview round)*
+</details>
+
+<details><summary>Q11. [Intermediate] Linux server has high load — identify &amp; resolve bottlenecks <em>(asked in interview round)</em></summary>
 
 Use the USE method across CPU, memory, disk, and network: for each one, check utilization, saturation (how close it is to its limit), and errors.
 
@@ -200,7 +220,9 @@ Use the USE method across CPU, memory, disk, and network: for each one, check ut
 
 Compare the timing against recent deploys, cron jobs, or traffic spikes. To resolve it: scale out or up, fix the offending process, add resource limits, or tune the workload.
 
-### 12. How do you check disk I/O performance?
+</details>
+
+<details><summary>Q12. [Basic] How do you check disk I/O performance?</summary>
 
 **Answer:**
 
@@ -212,7 +234,9 @@ High utilization by itself isn't necessarily bad — the real evidence is rising
 
 Fixes can include tuning a query or index, adding caching, moving batch jobs to a quieter time, separating data and log volumes onto different disks, provisioning more IOPS, or scaling up. I take a baseline and remeasure the same workload after making the change.
 
-### 13. Debug high I/O latency *(asked in interview round)*
+</details>
+
+<details><summary>Q13. [Intermediate] Debug high I/O latency <em>(asked in interview round)</em></summary>
 
 ```bash
 iostat -xz 1        # %util, await, svctm per device
@@ -220,11 +244,14 @@ iotop               # per-process IO
 dstat / sar -d      # historical
 pidstat -d 1        # per-process disk IO
 ```
+
 Watch `await` (the average I/O wait time in milliseconds) and `%util` — close to 100% means the device is saturated. Also check the `wa` column in `vmstat`, which shows CPU time spent waiting on I/O, and look for processes stuck in uninterruptible sleep (`D` state) with `ps aux | awk '$8 ~ /D/'`.
 
 Common causes are an undersized or degraded disk (for example, EBS gp2 running out of burst credits and getting throttled), a noisy neighbor, swapping, heavy fsync activity, or filesystem fragmentation. Fix it by adding IOPS or throughput, adding caching, batching writes, or moving hot data to faster storage.
 
-### 14. How do you fix "Too many open files" in Linux?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you fix "Too many open files" in Linux?</summary>
 
 **Answer:**
 
@@ -241,7 +268,9 @@ LimitNOFILE=65536
 
 After `systemctl daemon-reload`, I restart during an approved window and confirm the new limit with `/proc/<new-pid>/limits`. Raising the limit only buys time if the application is leaking connections, so I also fix how it closes or pools connections, tune traffic if needed, and set an alert well before the new limit is hit.
 
-### 15. How do you debug a kernel panic?
+</details>
+
+<details><summary>Q15. [Advanced] How do you debug a kernel panic?</summary>
 
 **Answer:**
 
@@ -253,7 +282,9 @@ If `kdump` is set up, I analyze the matching unstripped kernel and crash dump wi
 
 A temporary fix might be rolling back a kernel or driver, or moving the workload elsewhere. The real fix is a patched kernel, driver, or replacing failed hardware. I make sure `kdump` works and console access is ready before the next incident.
 
-### 16. You have hosted an application on a Linux server - how would you migrate it to a serverless architecture in azure?
+</details>
+
+<details><summary>Q16. [Advanced] You have hosted an application on a Linux server - how would you migrate it to a serverless architecture in azure?</summary>
 
 To migrate an application from a Linux server to a serverless setup in Azure, I'd follow these steps:
 
@@ -264,3 +295,5 @@ To migrate an application from a Linux server to a serverless setup in Azure, I'
 5. **Deploy the application.** Use Azure DevOps or another CI/CD tool to deploy the refactored app.
 6. **Test and optimize.** Test it thoroughly in the serverless environment and tune it for performance and cost.
 7. **Monitor and maintain.** Set up `Azure Monitor` and `Application Insights` so you can see the application is running smoothly.
+
+</details>

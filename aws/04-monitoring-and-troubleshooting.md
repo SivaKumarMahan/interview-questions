@@ -22,9 +22,27 @@ Compare what you see against application and system logs, I/O wait, recent relea
 
 Then fix the actual root cause — inefficient code or a bad query, a background job, a capacity mismatch, the burst-credit model, or unexpected traffic — and confirm both user-facing latency/errors and CPU recover. Scaling out without diagnosing the cause just hides the problem and costs more.
 
+### ALB 502/504 Decision Tree
+
+First find out who produced the error. `HTTPCode_ELB_5XX_Count` means the load balancer itself returned it, while `HTTPCode_Target_5XX_Count` means your application did. ALB access logs show the target that was used and how long it took to respond.
+
+```mermaid
+flowchart TD
+    A["Users get 5xx from the ALB"] --> B{"Which status code?"}
+    B -- "503" --> C["No registered targets in the target group:<br/>check registration, ECS service events,<br/>and the listener rule's target group.<br/>If all targets are unhealthy, the ALB<br/>fails open and still sends traffic"]
+    B -- "502 Bad Gateway" --> D{"Target closed the connection<br/>or sent an invalid response"}
+    D --> D1["App crashed or restarted:<br/>check app logs and ECS stopped reason"]
+    D --> D2["App keep-alive timeout is shorter<br/>than the ALB idle timeout"]
+    D --> D3["TLS or protocol mismatch<br/>between ALB and target"]
+    B -- "504 Gateway Timeout" --> E{"Target did not answer in time"}
+    E --> E1["Slow app or database:<br/>compare TargetResponseTime<br/>with the idle timeout, default 60s"]
+    E --> E2["Security group or NACL blocks<br/>the target port"]
+    E --> E3["Target in a subnet without<br/>a working route"]
+```
+
 ## Interview Questions
 
-### 1. What do you use AWS CloudWatch and CloudTrail for in production?
+<details><summary>Q1. [Basic] What do you use AWS CloudWatch and CloudTrail for in production?</summary>
 
 **Answer:**
 
@@ -38,7 +56,9 @@ I centralize the organization's trails in a protected security account, turn on 
 
 During an incident I compare what CloudWatch shows against deployment or config changes and CloudTrail's API evidence. Neither tool replaces application tracing or full OS-level metrics. CloudTrail is an audit trail, not a real-time performance monitor.
 
-### 2. An EC2 instance reaches 100% CPU. How do you investigate and recover it?
+</details>
+
+<details><summary>Q2. [Intermediate] An EC2 instance reaches 100% CPU. How do you investigate and recover it?</summary>
 
 **Answer:**
 
@@ -54,7 +74,9 @@ The real fix might be profiling the application, improving a query or cache, set
 
 Afterward I confirm latency, errors, and CPU actually recover under real load, and I add alerts for saturation — how close the resource is to its limit — plus credit exhaustion, queueing, and scaling failures.
 
-### 3. A server is healthy and has network connectivity, but logs are not uploading to an S3 bucket. What do you investigate?
+</details>
+
+<details><summary>Q3. [Intermediate] A server is healthy and has network connectivity, but logs are not uploading to an S3 bucket. What do you investigate?</summary>
 
 **Answer:**
 
@@ -71,3 +93,5 @@ CloudTrail data events and S3's own server-side logs show whether AWS actually r
 Once I find the real cause, I fix that one thing — the policy, the key permission, the agent config, the disk space, or file ownership — and then confirm a new object actually lands, with the right encryption and metadata, and that downstream systems pick it up.
 
 Going forward, I use an instance role that only has the permissions it needs, watch agent health and backlog metrics, set limits on any dead-letter or spool queue, and alert if uploads get too old or start failing.
+
+</details>

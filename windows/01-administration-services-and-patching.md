@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What Windows Server tasks have you handled?
+<details><summary>Q1. [Basic] What Windows Server tasks have you handled?</summary>
 
 **Answer:**
 
@@ -14,7 +14,9 @@ Example: an IIS application started returning 503 errors. I confirmed the scope 
 
 I checked the health endpoint and a real transaction worked, watched for errors afterward, and prevented it happening again by switching to a managed service account with a credential-expiry alert.
 
-### 2. How do you check Windows service status?
+</details>
+
+<details><summary>Q2. [Basic] How do you check Windows service status?</summary>
 
 **Answer:**
 
@@ -30,7 +32,9 @@ I check dependent services, any recent changes, the System and Application logs,
 
 After a controlled start, I verify the `Status`, the listening port, application health, and monitoring. If it keeps failing, I look at the service-specific log and exit code instead of restarting it over and over.
 
-### 3. How do you restart a Windows service with PowerShell?
+</details>
+
+<details><summary>Q3. [Basic] How do you restart a Windows service with PowerShell?</summary>
 
 **Answer:**
 
@@ -45,7 +49,9 @@ Before restarting a production service, I check the impact, get approval, confir
 
 Afterward I test the port, the health endpoint, dependencies, and the error rate. If it fails again, I stop retrying and look into the configuration, credentials, a missing dependency, or resource exhaustion instead.
 
-### 4. How do you schedule tasks in Windows?
+</details>
+
+<details><summary>Q4. [Basic] How do you schedule tasks in Windows?</summary>
 
 **Answer:**
 
@@ -63,7 +69,9 @@ The service account only gets the permissions it actually needs, with managed cr
 
 I check the run history, exit code, logs, whether overlapping runs are handled, what happens to a missed run, and that alerts are in place.
 
-### 5. How do you patch Windows servers safely?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you patch Windows servers safely?</summary>
 
 **Answer:**
 
@@ -74,3 +82,5 @@ Before patching, I check dependencies, how the cluster or load balancer will beh
 I drain one redundant node, install the approved updates, reboot it, and check its services, ports, application transactions, monitoring, and event logs before moving on to the next node.
 
 If something fails, I stop the rollout, preserve the evidence, follow the documented uninstall, restore, or failover steps, and communicate the impact. Patch compliance, exceptions, reboot status, and any post-patch incidents all get recorded and reviewed afterward.
+
+</details>

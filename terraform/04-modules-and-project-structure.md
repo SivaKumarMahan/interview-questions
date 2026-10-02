@@ -104,7 +104,7 @@ module "vpc" {
 
 ## Interview Questions
 
-### 1. What is a Terraform module and why use it?
+<details><summary>Q1. [Basic] What is a Terraform module and why use it?</summary>
 
 #### What it is
 
@@ -139,7 +139,9 @@ One giant module with 40 boolean flags. Keep modules small and focused.
 
 "A module is a folder of Terraform code with defined inputs and outputs. The folder I run Terraform in is the root module, and anything I call with a `module` block is a child module. I use modules so teams do not repeat the same resource blocks and so standards like tagging and encryption are applied everywhere. I keep them small, versioned, and documented."
 
-### 2. How do you make code reusable across projects? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you make code reusable across projects? <em>(scenario)</em></summary>
 
 #### Steps
 
@@ -166,7 +168,9 @@ module "vpc" {
 
 "I move repeated patterns into modules that live in their own repo or a private registry with semantic version tags, and consumers pin a version. The module must not contain environment names, account IDs, or credentials; those come in as validated variables. Every module has a README and a working example so other teams can adopt it without reading the internals."
 
-### 3. How do you organize modules for reuse? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you organize modules for reuse? <em>(scenario)</em></summary>
 
 #### Typical set
 
@@ -202,7 +206,9 @@ module "network" {
 
 "I build one module per component, network, compute, database, IAM, and monitoring, each with a clear input and output contract and no environment names inside. They are versioned in a registry or Git and consumers pin a version. That way an improvement to the module can be rolled out team by team instead of surprising everyone at once."
 
-### 4. How do you design modules used by many teams?
+</details>
+
+<details><summary>Q4. [Advanced] How do you design modules used by many teams?</summary>
 
 #### Module rules
 
@@ -243,7 +249,9 @@ Release a new major version with a migration note. Do not change v1 behaviour un
 
 "I keep modules small with a clear input and output contract, validation, secure defaults, examples, and documentation, and no environment names or credentials inside. They live in a private registry or Git with semantic versions, and each environment pins a version. Breaking changes get a major version and a migration guide. A platform team owns the standards, but other teams contribute through pull requests instead of copying the module."
 
-### 5. Design a module for a multi-tier app *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Intermediate] Design a module for a multi-tier app <em>(asked in interview round)</em></summary>
 
 #### Structure
 
@@ -287,7 +295,9 @@ module "compute" {
 }
 ```
 
-### 6. How do you test a module before releasing it?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you test a module before releasing it?</summary>
 
 #### Checklist for the module repo
 
@@ -335,7 +345,9 @@ module "vpc" {
 
 "Each module has a README, a working example, and tests. CI runs fmt, validate, tflint, a security scan, and `terraform test` or Terratest against the example, then generates the docs. Releases are tagged with semantic versions and consumers pin a version, so a change to the module cannot break every team at once. A breaking change means a new major version with a migration note."
 
-### 7. Structuring a large Terraform project *(asked in interview round)*
+</details>
+
+<details><summary>Q7. [Advanced] Structuring a large Terraform project <em>(asked in interview round)</em></summary>
 
 #### Layout
 
@@ -363,7 +375,9 @@ environments/
 
 Workspaces are fine for short-lived or nearly identical copies. For long-lived dev, staging, and production, separate folders are clearer, because the credentials, backend, and approvals are visible.
 
-### 8. How do you design Terraform for a big company with many teams? *(scenario)*
+</details>
+
+<details><summary>Q8. [Advanced] How do you design Terraform for a big company with many teams? <em>(scenario)</em></summary>
 
 #### Structure
 
@@ -385,7 +399,9 @@ Pull request → plan posted as a comment → review → approval → apply. Atl
 
 "A platform team owns a private registry of versioned modules and the standards. Application teams own small root configurations that pin a module version and have their own state, credentials, and approvers. State is split by network, platform, data, and application. Every change goes through a pull request where the plan is posted for review, and a tool like Atlantis or Spacelift runs it consistently."
 
-### 9. How do you scale Terraform for a large team? *(scenario)*
+</details>
+
+<details><summary>Q9. [Advanced] How do you scale Terraform for a large team? <em>(scenario)</em></summary>
 
 #### What matters most
 
@@ -400,7 +416,9 @@ Pull request → plan posted as a comment → review → approval → apply. Atl
 
 "Scaling is mostly about boundaries. Keep small state files per component and environment, so teams do not queue behind one lock. Use versioned shared modules so standards stay consistent, a pull-request workflow where the plan is reviewed, and one apply job per state. Each environment has its own credentials and approvers, and every stack has a named owner."
 
-### 10. How do you handle dependencies between separate stacks?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you handle dependencies between separate stacks?</summary>
 
 #### Option 1: remote state (simple, but couples the stacks)
 
@@ -466,7 +484,10 @@ Once another stack depends on an output, treat it like a public interface. Do no
 #### Interview answer
 
 "I connect stacks through a small number of stable outputs. The simplest way is a `terraform_remote_state` data source, but that gives the application stack read access to the network state. I often prefer passing values in as variables from the pipeline instead, or looking resources up by tag. Terragrunt can wire dependencies automatically. The main rule is to treat those outputs as a public interface and deploy the stacks in a defined order."
-### 11. Passing dependencies between modules via outputs
+
+</details>
+
+<details><summary>Q11. [Intermediate] Passing dependencies between modules via outputs</summary>
 
 Enterprise Terraform projects split infrastructure into modules (network, AKS, Key Vault, SQL, storage). Those modules usually depend on each other - AKS needs the subnet ID from the network module, for example. The pattern is to expose what a downstream module needs as an **output**, and pass it in as an **input variable** to the module that needs it, rather than hardcoding values or duplicating resource lookups.
 
@@ -495,3 +516,5 @@ This keeps modules independently reusable - the AKS module doesn't need to know 
 #### Short interview answer
 
 Each module exposes what other modules need through `outputs.tf`, and the consuming module takes it as an input variable - `subnet_id = module.network.subnet_id`, for example. That keeps modules loosely coupled and reusable, and makes cross-module dependencies explicit in code instead of relying on naming conventions or manual data lookups.
+
+</details>

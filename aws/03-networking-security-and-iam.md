@@ -43,7 +43,7 @@ To troubleshoot, I trace the path in order: DNS → listener → rule → target
 
 ## Interview Questions
 
-### 1. What are the main components of an AWS VPC?
+<details><summary>Q1. [Basic] What are the main components of an AWS VPC?</summary>
 
 **Answer:**
 
@@ -57,7 +57,9 @@ A subnet is "public" because its route table sends traffic to an Internet Gatewa
 
 For high availability, I use multiple AZs, keep public and private subnets independent, apply least-privilege routing and security (giving only the access that's needed), control egress, turn on flow logs, and plan IP capacity ahead of time. I test both the forward and return paths, and avoid overlapping CIDRs that would block future connectivity.
 
-### 2. Design a VPC with subnets, security groups; explain networking (production) *(asked in interview round)*
+</details>
+
+<details><summary>Q2. [Advanced] Design a VPC with subnets, security groups; explain networking (production) <em>(asked in interview round)</em></summary>
 
 - **VPC** with a planned CIDR (e.g. `10.0.0.0/16`), spanning **at least 2 AZs** for high availability.
 - **Subnets per AZ:** public (ALB/NAT), private-app (compute), private-data (RDS) — a 3-tier layout.
@@ -66,7 +68,9 @@ For high availability, I use multiple AZs, keep public and private subnets indep
 - **NACLs (stateless, per-subnet):** a coarser allow/deny layer on top of security groups.
 - **Add-ons:** VPC endpoints (S3/ECR) to keep that traffic off the public internet, flow logs for auditing, and multi-AZ everywhere.
 
-### 3. Why can't you attach an Internet Gateway directly to a public subnet?
+</details>
+
+<details><summary>Q3. [Basic] Why can't you attach an Internet Gateway directly to a public subnet?</summary>
 
 **Answer:**
 
@@ -78,7 +82,9 @@ This matters because several public subnets across different availability zones 
 
 A route by itself doesn't translate a private IPv4 address into a public one. And an Internet Gateway doesn't create unsolicited access on its own — if the resource has no public address, or its security rules deny the traffic, the traffic still won't get through.
 
-### 4. How can a server in a private subnet access the internet securely?
+</details>
+
+<details><summary>Q4. [Basic] How can a server in a private subnet access the internet securely?</summary>
 
 **Answer:**
 
@@ -94,7 +100,9 @@ IPv6 uses an egress-only Internet Gateway for outbound-initiated access.
 
 When troubleshooting, I test DNS, `ip route`, TCP/TLS, NAT Gateway metrics, route table associations, flow logs, and the actual response from the destination — testing from the affected subnet itself, not just from a public bastion.
 
-### 5. What is a NAT Gateway, and where is it deployed?
+</details>
+
+<details><summary>Q5. [Basic] What is a NAT Gateway, and where is it deployed?</summary>
 
 **Answer:**
 
@@ -102,7 +110,9 @@ A NAT Gateway lets workloads in a private subnet make outbound IPv4 connections 
 
 For resilience, I deploy one NAT Gateway per Availability Zone, and route each private subnet to the NAT Gateway in its own zone. Where possible, I use VPC endpoints for AWS services like S3 instead, to cut cost and reduce the dependency on internet access altogether.
 
-### 6. What is the difference between a security group and a network ACL?
+</details>
+
+<details><summary>Q6. [Basic] What is the difference between a security group and a network ACL?</summary>
 
 **Answer:**
 
@@ -112,7 +122,9 @@ A network ACL is a stateless boundary at the subnet level. It has ordered allow 
 
 I use security groups for the normal application traffic path, scoped to only what's needed, and NACLs for coarse subnet-level guardrails or when I need an explicit deny. When troubleshooting, I check route tables, both directions of traffic, ephemeral ports, and the actual network interface or subnet involved — not just open everything up with `0.0.0.0/0`.
 
-### 7. How do you connect to an EC2 instance?
+</details>
+
+<details><summary>Q7. [Basic] How do you connect to an EC2 instance?</summary>
 
 **Answer:**
 
@@ -127,7 +139,9 @@ The username depends on the AMI. The network path needs a route, and the securit
 
 **Failure steps:** check DNS/IP, run `nc -vz host 22`, check the security group/NACL/route, confirm the instance and `sshd` are up (via SSM or the console), run `ssh -vvv` for verbose output, and check user/key/`authorized_keys` permissions and the auth logs. I don't open `0.0.0.0/0` as a shortcut.
 
-### 8. How do you access an EC2 instance in a private subnet?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you access an EC2 instance in a private subnet?</summary>
 
 **Answer:**
 
@@ -139,7 +153,9 @@ I check the instance is healthy, the route and return path exist, NACLs allow th
 
 I never assign a public IP or open SSH to `0.0.0.0/0` just to troubleshoot. Access should be time-bound, least-privilege, logged, and removed once the issue is resolved.
 
-### 9. IAM role versus IAM user: when do you use each?
+</details>
+
+<details><summary>Q9. [Basic] IAM role versus IAM user: when do you use each?</summary>
 
 **Answer:**
 
@@ -147,12 +163,16 @@ An IAM role hands out temporary credentials to a workload, or to a federated hum
 
 I use roles for EC2, Lambda, ECS/EKS workloads, CI, and human access through SSO. I require MFA and give every role only the permissions it needs. I avoid static access keys, rotate any I can't avoid, and review CloudTrail logs along with permission boundaries and SCPs.
 
-### 10. Security best practices for AWS IAM and secrets *(asked in interview round)*
+</details>
+
+<details><summary>Q10. [Intermediate] Security best practices for AWS IAM and secrets <em>(asked in interview round)</em></summary>
 
 - **IAM:** Give every identity only the permissions it needs, nothing more. Prefer roles over long-lived keys. Use IAM roles for service accounts (IRSA) in EKS and OIDC for CI. Require MFA for humans. Avoid wildcard `*` policies. Use permission boundaries and SCPs in AWS Organizations. Rotate any access key you can't avoid using, and audit access with IAM Access Analyzer.
 - **Secrets:** Keep them in Secrets Manager or SSM Parameter Store, never in code. Log and monitor everything.
 
-### 11. How do you grant an application access to an S3 bucket safely?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you grant an application access to an S3 bucket safely?</summary>
 
 **Answer:**
 
@@ -162,9 +182,13 @@ The bucket policy, IAM policy, permission boundary, SCP, VPC endpoint policy, an
 
 I keep Block Public Access turned on unless there's a deliberate reason to serve public content, require TLS and encryption, audit CloudTrail data events where it matters, and test both an allowed operation and a denied one to make sure the policy actually works as intended.
 
-### 12. Secure an S3 bucket used for static website hosting *(asked in interview round)*
+</details>
+
+<details><summary>Q12. [Intermediate] Secure an S3 bucket used for static website hosting <em>(asked in interview round)</em></summary>
 
 - **Don't make the bucket public.** Serve it through CloudFront with Origin Access Control (OAC). Keep Block Public Access turned on, and only let CloudFront read from the bucket, through a bucket policy.
 - **Force HTTPS.** Enforce it with a bucket policy condition (`aws:SecureTransport`), plus a CloudFront redirect-to-HTTPS rule and an ACM certificate.
 - **Encrypt data at rest** (SSE-S3 or SSE-KMS), turn on **versioning** so you can recover from mistakes, and turn on **logging** (CloudTrail data events or S3 server access logs).
 - Add **WAF** on CloudFront. Give IAM only the permissions it actually needs, and disable ACLs (bucket-owner-enforced). Nothing but the static assets should be reachable, and nothing should be writable from the public internet.
+
+</details>

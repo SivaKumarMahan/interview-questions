@@ -1,0 +1,11 @@
+services:
+  localstack:
+    # Pinned on purpose: images from 2026.3.0 onwards (including "latest") need a
+    # LOCALSTACK_AUTH_TOKEN. 4.4.0 still runs without an account. See the README.
+    image: localstack/localstack:4.4.0
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sts,iam
+      # - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}   # only needed for newer images

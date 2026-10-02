@@ -62,7 +62,7 @@ A typical release validates with `helm lint` and `helm template`, runs policy/se
 
 ## Interview Questions
 
-### 1. How do you perform rolling updates and rollbacks in Kubernetes?
+<details><summary>Q1. [Intermediate] How do you perform rolling updates and rollbacks in Kubernetes?</summary>
 
 **Answer:**
 
@@ -79,7 +79,9 @@ I check the Pods, events, readiness, and the application's own error rate, laten
 
 A rollback might not undo a ConfigMap change, an external system change, or a database change. That's why releases use immutable config and artifacts, and backward-compatible migrations. Whatever failed gets its evidence preserved and fixed before I try the rollout again.
 
-### 2. How do `maxSurge` and `maxUnavailable` control a rolling update?
+</details>
+
+<details><summary>Q2. [Basic] How do <code>maxSurge</code> and <code>maxUnavailable</code> control a rolling update?</summary>
 
 A Rolling Update is the default Deployment strategy: it replaces old Pods with new ones gradually, in batches, instead of stopping everything at once.
 
@@ -107,7 +109,9 @@ Tuning these controls the tradeoff between rollout speed and headroom: a higher 
 
 A Rolling Update gradually replaces old Pods with new ones, waiting for each new Pod to pass its readiness probe before removing an old one - so deployments happen with little or no downtime. `maxSurge` caps how many extra Pods can exist above the desired count during the rollout, and `maxUnavailable` caps how many Pods can be unavailable at once; together they control how aggressively the rollout proceeds.
 
-### 3. How does Kubernetes perform rolling updates using YAML to achieve zero downtime deployments?
+</details>
+
+<details><summary>Q3. [Intermediate] How does Kubernetes perform rolling updates using YAML to achieve zero downtime deployments?</summary>
 
 Kubernetes performs rolling updates using the **Deployment** resource, which allows you to update your application without downtime by gradually replacing old pods with new ones. You can specify the update strategy and parameters in the Deployment YAML file.
 
@@ -166,7 +170,9 @@ kubectl get pods -o wide
 kubectl rollout undo deployment my-app
 ```
 
-### 4. If you update a Deployment's image while a rolling update is in progress, will Kubernetes wait for the current rollout to complete or start a new one immediately?
+</details>
+
+<details><summary>Q4. [Intermediate] If you update a Deployment's image while a rolling update is in progress, will Kubernetes wait for the current rollout to complete or start a new one immediately?</summary>
 
 **Answer:**
 
@@ -188,7 +194,9 @@ kubectl rollout history deployment/myapp
 
 This can lead to more Pods than expected during the transition period, so monitor resource usage carefully.
 
-### 5. An application upgrade caused downtime even with rolling updates. How do you prevent it next time?
+</details>
+
+<details><summary>Q5. [Advanced] An application upgrade caused downtime even with rolling updates. How do you prevent it next time?</summary>
 
 **Answer:**
 
@@ -198,7 +206,9 @@ The fix usually involves multiple replicas spread across nodes, a startup and re
 
 I reproduce the failure in a load test and measure how many requests actually get dropped during the rollout. Zero downtime is an end-to-end architecture decision, not just a Deployment strategy setting.
 
-### 6. How do you ensure zero downtime deployment in Kubernetes?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you ensure zero downtime deployment in Kubernetes?</summary>
 
 **Answer:** Use RollingUpdate strategy in deployments, configure readiness probes, and keep replicas running until new pods are healthy.
 
@@ -209,7 +219,9 @@ I deploy an immutable image digest, watch `kubectl rollout status`, Pod events, 
 
 PodDisruptionBudgets, spreading across multiple zones, backward-compatible configuration and database changes, and an actually-tested rollback path are what make an update genuinely low-risk.
 
-### 7. How do you achieve blue-green deployments in Kubernetes?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you achieve blue-green deployments in Kubernetes?</summary>
 
 **Answer:**
 
@@ -221,7 +233,9 @@ I make sure there's enough capacity for both at once, and check sessions, cachin
 
 Once I'm confident, I remove Blue and the old resources, with approval. The pipeline records the versions involved, and automated synthetic checks and SLO gates back the decision. Any destructive database migration waits until the rollback window has closed.
 
-### 8. How do you perform blue-green deployment in Kubernetes?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you perform blue-green deployment in Kubernetes?</summary>
 
 **Answer:** Run two environments (Blue = current, Green = new) → Route traffic to Green only after successful validation → Rollback to Blue if issues occur.
 
@@ -232,7 +246,9 @@ I deploy an immutable image digest, watch `kubectl rollout status`, Pod events, 
 
 PodDisruptionBudgets, spreading across multiple zones, backward-compatible configuration and database changes, and an actually-tested rollback path are what make an update genuinely low-risk.
 
-### 9. How do you perform Canary Deployment in Kubernetes?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you perform Canary Deployment in Kubernetes?</summary>
 
 **Answer:** Deploy a new version to a small % of users → Use Istio/NGINX Ingress for traffic routing → Gradually increase traffic → Rollback if errors.
 
@@ -243,9 +259,11 @@ I deploy an immutable image digest, watch `kubectl rollout status`, Pod events, 
 
 PodDisruptionBudgets, spreading across multiple zones, backward-compatible configuration and database changes, and an actually-tested rollback path are what make an update genuinely low-risk.
 
-### 10. How do you handle a failed deployment in Kubernetes?
+</details>
 
-**Answer:** Use kubectl describe pod and kubectl logs to check errors → If critical, rollback with kubectl rollout undo deployment <name> → Fix and redeploy.
+<details><summary>Q10. [Intermediate] How do you handle a failed deployment in Kubernetes?</summary>
+
+**Answer:** Use kubectl describe pod and kubectl logs to check errors → If critical, rollback with `kubectl rollout undo deployment <name>` → Fix and redeploy.
 
 **Detailed interview approach:**
 I use a Deployment strategy with realistic readiness and startup probes, a graceful shutdown, and enough spare capacity. I pick `maxUnavailable` and `maxSurge` based on the replica count and the availability target — setting zero unavailable only makes sense if the cluster can actually host the surge capacity that requires.
@@ -254,7 +272,9 @@ I deploy an immutable image digest, watch `kubectl rollout status`, Pod events, 
 
 PodDisruptionBudgets, spreading across multiple zones, backward-compatible configuration and database changes, and an actually-tested rollback path are what make an update genuinely low-risk.
 
-### 11. How do you implement rollback in Azure Kubernetes Service (AKS)?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you implement rollback in Azure Kubernetes Service (AKS)?</summary>
 
 **Answer:** Use kubectl rollout undo for deployments, or Helm rollback (helm rollback release name ).
 
@@ -265,7 +285,9 @@ The pipeline runs prechecks, deploys to a small or no-traffic target, runs readi
 
 If a threshold fails, it stops traffic and rolls back to the previous artifact or config. Database changes use an expand-and-contract approach, since an application rollback can't undo a destructive schema change. I verify recovery, record the result, and improve whatever test or guard should have caught the failure earlier.
 
-### 12. Do you update only images or also replicas, storage, and CPU?
+</details>
+
+<details><summary>Q12. [Intermediate] Do you update only images or also replicas, storage, and CPU?</summary>
 
 **Answer:**
 
@@ -277,7 +299,9 @@ Some StorageClass and PVC fields are immutable, and need proper data migration, 
 
 Every change flows through a Git diff, render, schema, and policy checks, a lower environment first, then a progressive rollout to production, SLO verification, and a rollback or recovery path. "Deployment" really means configuration plus artifact together, not just the image.
 
-### 13. How do you safely update a Kubernetes cluster version?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you safely update a Kubernetes cluster version?</summary>
 
 **Answer:**
 
@@ -289,7 +313,9 @@ I monitor SLOs, Pending Pods, restarts, DNS, networking, storage, and admission 
 
 Rolling back a managed control plane usually isn't possible, so recovery often means fixing forward, rolling back the node pool, or failing the workload over elsewhere. I keep IaC, a runbook, and post-upgrade evidence, and I never skip an unsupported version jump.
 
-### 14. Have you upgraded Kubernetes clusters?
+</details>
+
+<details><summary>Q14. [Intermediate] Have you upgraded Kubernetes clusters?</summary>
 
 **Answer:**
 
@@ -299,7 +325,9 @@ I upgraded the control plane by one supported minor version, validated the API a
 
 Afterward I validated real transactions, policy and security, and backups, and recorded the evidence and any issues in the root-cause review. If I only assisted on part of it, I say exactly what my responsibility was rather than claiming end-to-end ownership.
 
-### 15. How have you upgraded a Kubernetes cluster in production in Azure? What steps did you take to ensure zero downtime?
+</details>
+
+<details><summary>Q15. [Intermediate] How have you upgraded a Kubernetes cluster in production in Azure? What steps did you take to ensure zero downtime?</summary>
 
 In production, I upgrade AKS clusters with zero downtime by upgrading the control plane first, followed by node pools sequentially using Azure CLI. Each node is drained gracefully, with workloads protected by readiness probes, multiple replicas, and PodDisruptionBudgets.
 
@@ -352,7 +380,9 @@ az aks nodepool upgrade --resource-group <resource-group> --cluster-name <aks-cl
 
 By following these steps, I ensure a smooth AKS upgrade with zero downtime for end-users.
 
-### 16. What are the steps to be performed while upgrading a Kubernetes cluster?
+</details>
+
+<details><summary>Q16. [Intermediate] What are the steps to be performed while upgrading a Kubernetes cluster?</summary>
 
 - **Backup everything:** etcd, configurations, and application data.
 - **Check compatibility:** Review release notes and breaking changes.
@@ -364,7 +394,9 @@ By following these steps, I ensure a smooth AKS upgrade with zero downtime for e
 - **Test applications** and roll back if issues occur.
 - **Uncordon nodes:** `kubectl uncordon <node>`.
 
-### 17. How do you manage Kubernetes cluster upgrades with zero downtime?
+</details>
+
+<details><summary>Q17. [Intermediate] How do you manage Kubernetes cluster upgrades with zero downtime?</summary>
 
 **Answer:** Upgrade control plane first → Drain nodes one by one → Use pod disruption budgets → Monitor workloads.
 
@@ -377,7 +409,9 @@ I monitor API errors, DNS, networking, scheduling, and node and application SLOs
 
 Backups and a tested cluster-rebuild path are required before rolling this out across the whole fleet.
 
-### 18. How do you manage Kubernetes upgrades across 50+ clusters?
+</details>
+
+<details><summary>Q18. [Advanced] How do you manage Kubernetes upgrades across 50+ clusters?</summary>
 
 **Answer:** Automate upgrades with tools like Rancher/Anthos, test in staging first, roll out gradually, and monitor workloads post-upgrade. Mini-case: Anthos automated rolling upgrades; a failed upgrade in staging paused rollout and prevented production outages.
 **Detailed interview approach:**
@@ -389,7 +423,9 @@ I monitor API errors, DNS, networking, scheduling, and node and application SLOs
 
 Backups and a tested cluster-rebuild path are required before rolling this out across the whole fleet.
 
-### 19. Automated zero-downtime EKS upgrades *(asked in interview round)*
+</details>
+
+<details><summary>Q19. [Advanced] Automated zero-downtime EKS upgrades <em>(asked in interview round)</em></summary>
 
 1. Upgrade the control plane first, one minor version at a time, using `eks update-cluster-version`. AWS manages this part.
 2. Upgrade the managed add-ons (VPC CNI, CoreDNS, kube-proxy) to versions compatible with the new control plane.
@@ -397,7 +433,9 @@ Backups and a tested cluster-rebuild path are required before rolling this out a
 4. Protect availability during the drains with PodDisruptionBudgets, multiple replicas, readiness probes, and topology spread.
 5. Validate compatibility beforehand: check for deprecated APIs with tools like `kubent` or `pluto`, test the upgrade in a non-production cluster, and automate the whole flow with IaC (Terraform or eksctl) plus a pipeline.
 
-### 20. How do you integrate Kubernetes into a CI/CD pipeline?
+</details>
+
+<details><summary>Q20. [Intermediate] How do you integrate Kubernetes into a CI/CD pipeline?</summary>
 
 **Answer:**
 
@@ -411,7 +449,9 @@ Secrets come from an external manager or workload identity — never an admin ku
 
 The pipeline records the commit, the image digest, the manifests or chart used, the scan results, approvals, the cluster, deployment, and revision, and the verification results. If a deploy fails, its events and logs are preserved, and it's reverted through Git, Helm, or the controller once it's safe to do so.
 
-### 21. How do you connect Jenkins to a Kubernetes cluster?
+</details>
+
+<details><summary>Q21. [Intermediate] How do you connect Jenkins to a Kubernetes cluster?</summary>
 
 **Answer:**
 
@@ -421,7 +461,9 @@ The Jenkins Kubernetes plugin might also spin up ephemeral build agents, but tha
 
 For an authentication failure, I check the credential, IAM token, or OIDC setup, the kubeconfig context, API DNS, network, CA, and time sync, and RBAC with `kubectl auth can-i`. I test both an allowed and a denied operation. I rotate tokens regularly, restrict who can approve the production stage, and never print a kubeconfig or token in the logs.
 
-### 22. How do you handle configuration drift in Kubernetes?
+</details>
+
+<details><summary>Q22. [Intermediate] How do you handle configuration drift in Kubernetes?</summary>
 
 **Answer:** Use GitOps tools like ArgoCD/Flux → Ensure cluster config matches Git repo → Auto-revert manual changes.
 
@@ -433,3 +475,5 @@ I separate environment permissions and repositories, require branch protection a
 A manual emergency change might temporarily pause sync, but it gets captured through a pull request right away — otherwise reconciliation will correctly remove it again. A rollback is just a Git revert to the last known-good commit, followed by a sync and a health and SLO check.
 
 Secrets use an external-secret or encrypted-secret workflow, never plaintext in Git. Sync failures, drift, controller access, and audit events are all monitored, and destructive pruning has explicit safeguards around it.
+
+</details>

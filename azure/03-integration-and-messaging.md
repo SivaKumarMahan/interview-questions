@@ -1,6 +1,6 @@
 # Azure: Integration and Messaging
 
-> Functions vs Logic Apps, Queue Storage, and using Functions with Data Factory and Power Platform.
+> Functions vs Logic Apps, Queue Storage, Service Bus and Event Grid, and using Functions with Data Factory and Power Platform.
 
 ## Key Concepts
 
@@ -85,3 +85,45 @@ Common uses include:
 - AI or custom library calls
 
 Power Apps can call the Function and use its response interactively. Power Automate can call it as one step in a wider workflow. Secure the endpoint with an appropriate identity and authorization model rather than exposing an anonymous production Function.
+
+## Interview Questions
+
+<details><summary>Q1. [Basic] What is Azure Service Bus?</summary>
+
+**Answer:**
+
+Service Bus is enterprise messaging built around queues and topics with subscriptions. It supports multiple consumers competing for work, publish-subscribe patterns, message locks, dead-letter queues, scheduled messages, duplicate detection, ordered sessions, and transactions in some scenarios.
+
+A producer sends a durable message; a consumer picks it up under a lock, processes it in a way that's safe even if it runs twice, and marks it complete. On failure, the message is abandoned and retried, and after enough failed attempts it goes to the dead-letter queue. I keep an eye on active and dead-letter message counts, message age, throttling, and processing latency.
+
+Managed identity and roles scoped to just sending or just receiving protect access. I choose Service Bus when messages genuinely need to be processed reliably — not just when I need to announce that something happened.
+
+</details>
+
+<details><summary>Q2. [Basic] What is Azure Event Grid?</summary>
+
+**Answer:**
+
+Event Grid routes events from Azure or custom sources to handlers like Functions, Logic Apps, webhooks, Service Bus, or Event Hubs. It's built for fast, reactive fan-out with filtering, and it delivers each event at least once.
+
+For example: a blob-created event triggers metadata processing and a notification. The handler validates the event, is written to tolerate being run twice, responds quickly, and relies on retries and a dead-letter destination for failures.
+
+The event payload usually just describes what happened; the consumer goes and fetches the real data separately if it needs to.
+
+I monitor delivery failures and dead-lettered events, and secure webhook validation and identity. Event Grid isn't a substitute for the richer guarantees of a real command queue.
+
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between Service Bus and Event Grid?</summary>
+
+**Answer:**
+
+Service Bus carries commands and messages that a consumer needs to reliably process from a queue or topic, with locks, completion tracking, dead-lettering, sessions, and richer broker features. Event Grid just announces that something happened, and routes that announcement quickly to subscribers with filtering and fan-out.
+
+I use Service Bus for something like order processing, where each message needs controlled completion, retry, and ordering. I use Event Grid to tell several different handlers that a blob or resource just changed.
+
+The two can work together: Event Grid spots an event and routes the important work into Service Bus for controlled processing.
+
+I decide between them based on delivery guarantees, ordering, transactions, retention, throughput, how consumers are structured, retry behavior, and what the payload needs to carry.
+
+</details>

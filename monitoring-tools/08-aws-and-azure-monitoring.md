@@ -95,7 +95,7 @@ Add cluster, subscription, region, and environment labels, but avoid high-cardin
 
 ## Interview Questions
 
-### 1. What is the difference between CloudWatch and CloudTrail?
+<details><summary>Q1. [Basic] What is the difference between CloudWatch and CloudTrail?</summary>
 
 **Answer:**
 
@@ -105,7 +105,9 @@ In practice, I use CloudWatch to spot that latency or errors went up, then use C
 
 CloudTrail isn't a substitute for application tracing, and CloudWatch alone doesn't give a full identity audit trail. In production, I use centralized, protected CloudTrail trails, turn on the data events that matter, enable encryption and retention, make sure CloudWatch alarms are actually actionable, and test that SNS or the incident tool really receives them.
 
-### 2. How would you monitor an EC2 CPU incident?
+</details>
+
+<details><summary>Q2. [Intermediate] How would you monitor an EC2 CPU incident?</summary>
 
 **Answer:**
 
@@ -119,7 +121,9 @@ The real fix depends on what I find. It could be profiling the code, fixing a sl
 
 Afterward, I confirm user-facing latency and error rates are back to normal under load, and I set up alerts for CPU running close to its limit, credit exhaustion, request queueing, and failed scaling events.
 
-### 3. Logs are not uploading from a healthy EC2 instance to S3. How do you investigate?
+</details>
+
+<details><summary>Q3. [Intermediate] Logs are not uploading from a healthy EC2 instance to S3. How do you investigate?</summary>
 
 **Answer:**
 
@@ -133,7 +137,9 @@ Once I find the real cause, I fix that one thing: the collector, the IAM policy,
 
 To stop it recurring, I use instance or task roles instead of long-lived keys, keep permissions scoped to only what's needed, and alert on collector backlog, upload age, and error counts.
 
-### 4. How do you monitor Azure resources in production?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you monitor Azure resources in production?</summary>
 
 **Answer:**
 
@@ -145,7 +151,9 @@ For an incident, I fix the time window and scope first. Then I compare healthy a
 
 Monitoring is deployed through IaC or Policy. Access and retention are controlled, and alert delivery is tested regularly.
 
-### 5. What are Azure diagnostic settings?
+</details>
+
+<details><summary>Q5. [Basic] What are Azure diagnostic settings?</summary>
 
 **Answer:**
 
@@ -153,7 +161,9 @@ Diagnostic settings route a resource's supported log and metric categories to Lo
 
 I choose destinations based on query needs, SIEM requirements, archiving, retention, and cost. I deploy settings consistently, trigger a known event, and check that the resource ID, timestamp, and fields show up correctly at the destination. I also alert on ingestion gaps and lock down the destination against unauthorized deletion.
 
-### 6. What are Log Analytics and KQL?
+</details>
+
+<details><summary>Q6. [Basic] What are Log Analytics and KQL?</summary>
 
 **Answer:**
 
@@ -170,7 +180,9 @@ AppRequests
 
 I scope the time range and resource early. I confirm the right table and schema with a known event, and I avoid expensive broad joins. Once a query is proven, I turn it into a saved function, a workbook, or an alert. Workspace design also covers region, RBAC, retention, data residency, and ingestion cost.
 
-### 7. What is Application Insights, and how would you investigate a slow API?
+</details>
+
+<details><summary>Q7. [Intermediate] What is Application Insights, and how would you investigate a slow API?</summary>
 
 **Answer:**
 
@@ -182,7 +194,9 @@ I verify the suspected dependency using its own metrics and logs before I change
 
 I also set up sampling, filter out sensitive data, configure trace propagation and retention, and run meaningful synthetic tests. After a rollback, a query fix, or another change, I repeat the same transaction and confirm that latency, errors, and dependency health have recovered.
 
-### 8. How do you create and validate an Azure Monitor alert?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you create and validate an Azure Monitor alert?</summary>
 
 **Answer:**
 
@@ -193,3 +207,5 @@ The notification should include the environment, resource, observed value, owner
 I deploy the alert through Bicep, Terraform, or Policy. I trigger a safe test condition to confirm the notification fires and creates an incident, then confirm it resolves correctly. Alert processing rules handle planned maintenance windows.
 
 I track noise and missed incidents, and tune the rule over time rather than leaving an untested portal configuration in place.
+
+</details>

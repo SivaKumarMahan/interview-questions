@@ -26,7 +26,7 @@ Common steps you'll see in almost every pipeline: `checkout`/`git` to pull code,
 
 ## Interview Questions
 
-### 1. Explain Jenkins controller-agent architecture and how it enables distributed builds.
+<details><summary>Q1. [Basic] Explain Jenkins controller-agent architecture and how it enables distributed builds.</summary>
 
 **Answer:**
 
@@ -43,7 +43,9 @@ I label agents by what they can do, and use the pipeline `agent` directive so ea
 
 For security, I don't run builds on the controller itself, I give credentials only the access they need, I isolate agents from each other, restrict network access, keep images and plugins patched, and keep trusted and untrusted workloads apart. I also watch queue length, how busy the executors are, agent connection failures, disk space, and overall controller health.
 
-### 2. Freestyle job versus Pipeline: what is the difference?
+</details>
+
+<details><summary>Q2. [Basic] Freestyle job versus Pipeline: what is the difference?</summary>
 
 **Answer:**
 
@@ -53,7 +55,9 @@ A Pipeline defines every delivery stage as code in a `Jenkinsfile`. That means c
 
 I prefer Declarative Pipeline for normal CI/CD work because its structure and built-in validation are clearer. Scripted Pipeline is more flexible, but it needs a lot more discipline to keep readable.
 
-### 3. What are Jenkins plugins, and how do you manage them safely?
+</details>
+
+<details><summary>Q3. [Intermediate] What are Jenkins plugins, and how do you manage them safely?</summary>
 
 **Answer:**
 
@@ -62,3 +66,5 @@ Plugins extend Jenkins to work with source control, credentials, agents, pipelin
 Every plugin is code that runs inside Jenkins, so it carries real compatibility and supply-chain risk. I only install supported plugins, pin and test versions on a non-production controller first, watch for security advisories, remove plugins nobody uses, back up configuration, and have a plan to restart or roll back.
 
 I try not to install a plugin just because a pipeline could call it — a CLI, an API, or a shared-library integration is often safer and easier to govern.
+
+</details>

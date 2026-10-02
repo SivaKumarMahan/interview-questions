@@ -95,7 +95,7 @@ They can be used together: Helm can install an Operator and its supporting resou
 
 ## Interview Questions
 
-### 1. What is Helm and how does it simplify Kubernetes deployments?
+<details><summary>Q1. [Basic] What is Helm and how does it simplify Kubernetes deployments?</summary>
 
 **Answer:**
 
@@ -113,7 +113,9 @@ helm upgrade --install orders ./chart \
 
 I check the rendered YAML and policies, pin chart and image versions, watch the rollout and application health, and keep enough history to roll back. Helm's job is packaging and configuration — Kubernetes itself still does the actual rollout and self-healing.
 
-### 2. Explain the folder structure of a Helm chart and the purpose of each folder/file. What commands you use to deploy Helm charts?
+</details>
+
+<details><summary>Q2. [Basic] Explain the folder structure of a Helm chart and the purpose of each folder/file. What commands you use to deploy Helm charts?</summary>
 
 **A:** A Helm chart has a specific folder structure that organizes the files and templates needed to deploy applications on Kubernetes. Here's an overview of the typical folder structure of a Helm chart:
 
@@ -160,7 +162,9 @@ To deploy Helm charts, you can use the following commands:
 
 Helm relies on the Kubernetes Deployment's own rolling update strategy. When you upgrade a release, Kubernetes rolls out the new pods and only terminates the old ones once the new ones are Ready — so there's no downtime in between.
 
-### 3. Explain a basic Helm chart structure and the commands used to release it.
+</details>
+
+<details><summary>Q3. [Basic] Explain a basic Helm chart structure and the commands used to release it.</summary>
 
 **Answer:**
 
@@ -179,3 +183,5 @@ helm rollback payments <revision> -n payments
 ```
 
 CI validates the values schema, renders every supported environment, runs Kubernetes schema and policy checks, packages a versioned chart, and signs and publishes it. Production then deploys that exact same chart and image that were already tested, and verifies the rollout, probes, logs, metrics, and a real transaction afterward.
+
+</details>

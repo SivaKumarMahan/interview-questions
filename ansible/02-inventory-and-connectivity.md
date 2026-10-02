@@ -93,7 +93,7 @@ Before using a community role or collection, check its source, license, and how 
 
 ## Interview Questions
 
-### 1. How does Ansible communicate with remote Linux servers, and how do you establish connectivity?
+<details><summary>Q1. [Basic] How does Ansible communicate with remote Linux servers, and how do you establish connectivity?</summary>
 
 **Answer:**
 
@@ -112,13 +112,16 @@ Ansible's `ping` doesn't use ICMP — it checks login, Python/module execution, 
 
 Credentials stay in an approved vault or CI identity, never in plaintext inventory.
 
-### 2. How do you configure passwordless SSH for Ansible, and where should the key be generated?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you configure passwordless SSH for Ansible, and where should the key be generated?</summary>
 
 **Answer:**
 
 I generate the key pair on whatever starts the automation — an engineer's approved workstation for personal admin work, or, better, a dedicated CI/control-node identity for shared automation.
 
 The private key stays there or in a credential manager. Only the public key goes into the target user's `~/.ssh/authorized_keys`.
+
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/ansible_prod
 ssh-copy-id -i ~/.ssh/ansible_prod.pub automation@server
@@ -129,7 +132,9 @@ I use restrictive file permissions, verify host keys, protect the private key wi
 
 In cloud environments I prefer short-lived certificates, SSM, or a managed identity mechanism when the platform supports it.
 
-### 3. What if the target Ansible user does not exist or you do not yet have access to the server?
+</details>
+
+<details><summary>Q3. [Intermediate] What if the target Ansible user does not exist or you do not yet have access to the server?</summary>
 
 **Answer:**
 
@@ -142,7 +147,9 @@ For repeatability, the base image or provisioning workflow should bootstrap that
 If access unexpectedly fails, I check ownership, approval, the inventory address, DNS, routing, the firewall, the bastion, the SSH service, whether the account is locked or expired, `authorized_keys` permissions, and any host-key changes, using console or provider access where I'm authorized to.
 I record who approved the bootstrap access, and I test both what should work and what should be denied. Missing access is a process gap to escalate, not a reason to loosen SSH policy.
 
-### 4. How would you automate Machine B from Machine A with Ansible?
+</details>
+
+<details><summary>Q4. [Intermediate] How would you automate Machine B from Machine A with Ansible?</summary>
 
 **Answer:**
 
@@ -165,7 +172,9 @@ Machine A needs to be an approved control node: Ansible installed, inventory in 
 
 I run `ansible-playbook --syntax-check`, then `--check --diff` where the modules support it, limit the first production run to a single canary host, and check service health afterward. Code, inventory structure, Vault references, reviews, and CI logs give me repeatability and an audit trail.
 
-### 5. Is Ansible inventory static or dynamic?
+</details>
+
+<details><summary>Q5. [Basic] Is Ansible inventory static or dynamic?</summary>
 
 **Answer:**
 
@@ -175,7 +184,9 @@ A dynamic inventory plugin queries a source such as AWS, Azure, VMware, or Kuber
 
 Inventory should describe targets only — it should never contain secrets.
 
-### 6. How do you automate private VMs with Ansible when their IP addresses change?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you automate private VMs with Ansible when their IP addresses change?</summary>
 
 **Answer:**
 
@@ -184,3 +195,5 @@ I use a dynamic inventory plugin for the cloud or virtualization platform, and g
 Internal DNS, a CMDB-backed inventory, or a bastion/proxy can provide the connection path where direct access isn't available.
 
 The control node still needs authenticated network access, host-key verification, and credentials scoped to only what it needs. Dynamic inventory discovers hosts — it doesn't bypass network security.
+
+</details>

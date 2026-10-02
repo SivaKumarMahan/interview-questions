@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What is Azure Bicep?
+<details><summary>Q1. [Basic] What is Azure Bicep?</summary>
 
 **Answer:**
 
@@ -29,7 +29,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 
 I keep Bicep in Git, validate it and run what-if in CI, and deploy with an identity that has only the access it needs. Afterward I check the Azure Activity Log, the deployment output, policy compliance, and resource health.
 
-### 2. Why use Bicep instead of raw ARM templates?
+</details>
+
+<details><summary>Q2. [Basic] Why use Bicep instead of raw ARM templates?</summary>
 
 **Answer:**
 
@@ -41,7 +43,9 @@ I choose Bicep for Azure-only infrastructure, when the team wants native ARM int
 
 The right choice depends on scope, team skills, governance, and whatever platform standards already exist.
 
-### 3. What is the basic structure of a Bicep file?
+</details>
+
+<details><summary>Q3. [Basic] What is the basic structure of a Bicep file?</summary>
 
 **Answer:**
 
@@ -69,7 +73,9 @@ output workspaceId string = logWorkspace.id
 
 Parameters are the deployment's inputs. Variables calculate internal values. Resources declare the actual Azure objects. Modules let you reuse other Bicep files, and outputs expose non-sensitive results. I avoid putting secrets in outputs, because deployment history can retain them.
 
-### 4. What are Bicep modules?
+</details>
+
+<details><summary>Q4. [Basic] What are Bicep modules?</summary>
 
 **Answer:**
 
@@ -89,7 +95,9 @@ Modules can be published to a private Bicep registry in Azure Container Registry
 
 I avoid building one large module full of unrelated, conditional resources — it quickly becomes hard to own and unsafe to change.
 
-### 5. How do you pass values between Bicep modules?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you pass values between Bicep modules?</summary>
 
 **Answer:**
 
@@ -111,7 +119,9 @@ module app './app.bicep' = {
 
 I pass stable values like resource IDs, names, or endpoints — not entire sensitive objects. If two modules belong to different deployment lifecycles, I'd rather look up an existing resource by ID or name, or use an approved configuration output, than couple every deployment into one giant template.
 
-### 6. What is the difference between `existing` resources and new resources in Bicep?
+</details>
+
+<details><summary>Q6. [Basic] What is the difference between <code>existing</code> resources and new resources in Bicep?</summary>
 
 **Answer:**
 
@@ -129,3 +139,5 @@ output hubVnetId string = existingVnet.id
 The deployment identity needs read access to that referenced scope. If the name or scope is wrong, the deployment fails once it tries to evaluate the resource's properties.
 
 `existing` is useful when a network or Key Vault has a separate owner and lifecycle. It doesn't import that resource into your current deployment for you to modify.
+
+</details>

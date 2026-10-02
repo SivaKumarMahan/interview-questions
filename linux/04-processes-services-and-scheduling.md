@@ -158,7 +158,7 @@ I used cron to automate log cleanup, disk checks, backup verification, log rotat
 
 ## Interview Questions
 
-### 1. How do you check running processes?
+<details><summary>Q1. [Basic] How do you check running processes?</summary>
 
 **Answer:**
 
@@ -168,7 +168,9 @@ I look at the owner, parent process, state (running, sleeping, uninterruptible, 
 
 I don't kill anything until I know who owns it and what it's for, and I capture logs or a memory dump first if that evidence would otherwise be lost.
 
-### 2. How do you kill a process in one command?
+</details>
+
+<details><summary>Q2. [Basic] How do you kill a process in one command?</summary>
 
 **Answer:**
 
@@ -178,7 +180,9 @@ If it hasn't exited after a reasonable, approved wait, I check its state first �
 
 I avoid broad `pkill` unless I've confirmed the pattern with `pgrep -af` first. After the process is gone, I check whether its parent or supervisor — systemd or Kubernetes, for example — will restart it, check the ports and data consistency, and confirm the application is actually healthy. Killing a process is a mitigation, not a fix for the underlying cause.
 
-### 3. Command to kill a process *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Basic] Command to kill a process <em>(asked in interview round)</em></summary>
 
 ```bash
 ps aux | grep <name>     # find PID
@@ -187,9 +191,12 @@ kill -9 <PID>            # force-kill, last resort
 pkill -f <pattern>       # kill by command pattern
 kill -HUP <PID>          # reload config for many daemons
 ```
+
 Try a plain `kill` first so the process can clean up after itself. Only use `-9` if it ignores that and refuses to stop.
 
-### 4. What is the difference between `kill -15` and `kill -9`?
+</details>
+
+<details><summary>Q4. [Basic] What is the difference between <code>kill -15</code> and <code>kill -9</code>?</summary>
 
 **Answer:**
 
@@ -197,7 +204,9 @@ Try a plain `kill` first so the process can clean up after itself. Only use `-9`
 
 I start with SIGTERM, look into why shutdown is taking too long if it is, and only reach for SIGKILL when the process is genuinely stuck and I understand what an abrupt stop will cost. Neither one should be used carelessly on a database or other critical service.
 
-### 5. How do you identify which process is writing to a file in real time?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you identify which process is writing to a file in real time?</summary>
 
 **Answer:**
 
@@ -212,7 +221,9 @@ sudo ausearch -k file_write
 
 I remove the temporary audit rule once I'm done. I don't stop a process until I know whether it's a legitimate writer, a misconfigured service, or something suspicious.
 
-### 6. What are zombie processes and how do you remove them?
+</details>
+
+<details><summary>Q6. [Intermediate] What are zombie processes and how do you remove them?</summary>
 
 **Answer:**
 
@@ -222,7 +233,9 @@ Sending a signal to a zombie does nothing, since it's already dead. I first try 
 
 If zombies keep piling up, the real fix belongs in the parent program — it needs to handle `SIGCHLD` and call `wait` or `waitpid`. I also check the process-count limit, since enough zombies can actually prevent new processes from starting.
 
-### 7. Zombie and orphan processes *(asked in interview round)*
+</details>
+
+<details><summary>Q7. [Intermediate] Zombie and orphan processes <em>(asked in interview round)</em></summary>
 
 A zombie process has already exited, but its parent never called `wait()` to collect its exit status, so its entry lingers in the process table with state `Z`. It uses no memory or CPU, just a slot in the process table. To clear it, get the parent to reap it by handling `SIGCHLD`. If the parent is broken, kill the parent instead — the zombie is re-parented to init and reaped from there. You cannot `kill -9` a zombie; it's already dead.
 
@@ -230,7 +243,9 @@ An orphan is a child process whose parent died first. It gets re-parented to ini
 
 In containers, run an init process (`--init` or `tini`) so PID 1 can reap zombies properly.
 
-### 8. What are runlevels or systemd targets?
+</details>
+
+<details><summary>Q8. [Basic] What are runlevels or systemd targets?</summary>
 
 **Answer:**
 
@@ -240,7 +255,9 @@ I check the default with `systemctl get-default`, change it permanently with `sy
 
 The old runlevel numbers map roughly onto targets, but systemd's dependency model is much richer than a single number.
 
-### 9. A scheduled cron job is not executing. How do you debug?
+</details>
+
+<details><summary>Q9. [Intermediate] A scheduled cron job is not executing. How do you debug?</summary>
 
 **Answer:**
 
@@ -254,7 +271,9 @@ Cron runs with a small environment and a different working directory than an int
 
 I run the exact same command as the cron user with a clean environment, check for locking issues and SELinux/AppArmor denials, and confirm the expected output actually happened. For anything important, I add failure alerting and make sure a retry is safe to run again without causing problems.
 
-### 10. How do you schedule a cron job every 15 minutes?
+</details>
+
+<details><summary>Q10. [Basic] How do you schedule a cron job every 15 minutes?</summary>
 
 **Answer:**
 
@@ -267,3 +286,5 @@ The crontab entry is:
 This runs at minutes 0, 15, 30, and 45 of every hour — not fifteen minutes after the previous run finishes. I use absolute paths, set the shebang and executable permission, and install it under the right service account.
 
 If overlapping runs would be unsafe, I wrap it with `flock -n /run/collect-metrics.lock ...`. I test the script as that user and add monitoring, since cron itself only proves the job started, not that the actual task succeeded.
+
+</details>

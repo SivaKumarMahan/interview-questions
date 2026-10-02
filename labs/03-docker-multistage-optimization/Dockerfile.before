@@ -1,0 +1,11 @@
+# BEFORE: a single-stage build.
+# Problems: the full Go toolchain ships in the final image, the whole folder is copied,
+# the build cache is invalidated by any file change, and the app runs as root.
+FROM golang:1.23
+
+WORKDIR /src
+COPY . .
+RUN go build -o /usr/local/bin/app .
+
+EXPOSE 8080
+CMD ["app"]

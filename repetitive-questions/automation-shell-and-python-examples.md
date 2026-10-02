@@ -793,7 +793,7 @@ A production backup additionally needs encryption, a remote failure-domain copy,
 
 ### Log rotation and cleanup with Slack notification
 
-Source: [Others/coding-challenges/interview-round-notes.md](../Others/coding-challenges/interview-round-notes.md)
+Source: [others/coding-challenges/interview-round-notes.md](../others/coding-challenges/interview-round-notes.md)
 
 Compresses logs older than a day, deletes archives past retention, cleans `/tmp`, and notifies Slack on both success and failure using a `trap`.
 
@@ -1020,7 +1020,7 @@ print(counts.most_common())
 
 ### Parse and chart AWS CloudWatch metrics
 
-Source: [Others/coding-challenges/interview-round-notes.md](../Others/coding-challenges/interview-round-notes.md)
+Source: [others/coding-challenges/interview-round-notes.md](../others/coding-challenges/interview-round-notes.md)
 
 Pulls 24 hours of EC2 CPU data and saves a graph.
 

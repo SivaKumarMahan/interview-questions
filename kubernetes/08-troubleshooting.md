@@ -39,6 +39,24 @@ See `03-networking-and-traffic.md` for the investigation flow.
 
 Check kubelet and runtime health, certificates, disk/memory/PID pressure, CNI state, system logs, control-plane connectivity, and cloud instance health.
 
+### CrashLoopBackOff Decision Tree
+
+Start with `kubectl describe pod`. The last state and exit code of the container tell you which branch to follow. Then confirm the cause with `kubectl logs <pod> --previous`, which shows the output of the crashed container.
+
+```mermaid
+flowchart TD
+    A["Pod in CrashLoopBackOff"] --> B["kubectl describe pod<br/>read Last State, Reason, Exit Code, Events"]
+    B --> C{"Reason or exit code?"}
+    C -- "OOMKilled, exit 137" --> D["Memory limit too low or a leak:<br/>check usage, raise the limit, fix the leak"]
+    C -- "Error, exit 1 or other" --> E["kubectl logs --previous"]
+    C -- "Completed, exit 0" --> F["Main process finishes and exits:<br/>fix command, args, or entrypoint"]
+    C -- "Events show liveness probe failed" --> G["Probe kills a slow or busy app:<br/>fix the probe or add a startupProbe"]
+    E --> H{"What do the logs show?"}
+    H -- "Missing config, env var, or secret" --> I["Fix ConfigMap, Secret, or env"]
+    H -- "Cannot reach database or dependency" --> J["Check DNS, Service, NetworkPolicy,<br/>and credentials"]
+    H -- "Logs are empty" --> K["Check command and image,<br/>use kubectl debug to start a shell"]
+```
+
 ### Basic pod troubleshooting command order
 
 Run these commands in order:
@@ -80,7 +98,7 @@ Repeated issue charts consolidate to one evidence-based flow:
 
 ## Interview Questions
 
-### 1. What does `kubectl describe` do, and how do you use it during troubleshooting?
+<details><summary>Q1. [Basic] What does <code>kubectl describe</code> do, and how do you use it during troubleshooting?</summary>
 
 **Answer:**
 
@@ -92,7 +110,9 @@ It doesn't replace logs, metrics, or the full YAML, so I compare it against `kub
 
 I fix the cause once I actually have evidence for it, then confirm the Conditions, readiness, and the real application transaction all recover.
 
-### 2. What do you do if a Pod is not responding?
+</details>
+
+<details><summary>Q2. [Intermediate] What do you do if a Pod is not responding?</summary>
 
 **Answer:**
 
@@ -106,27 +126,35 @@ If there's real user impact, I pull it out of traffic through readiness or a rol
 
 Once it's fixed, I verify the Pod is Ready with stable restarts, the Service endpoints are correct, and a real transaction succeeds with normal latency and error rate. The root-cause review adds a timeout, a probe fix, better monitoring, resource resizing, or a regression test.
 
-### 3. A pod is not responding / stuck in Pending — troubleshooting approach *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Intermediate] A pod is not responding / stuck in Pending — troubleshooting approach <em>(asked in interview round)</em></summary>
 
 Start with this general flow:
+
 ```bash
 kubectl get pods -o wide
 kubectl describe pod <name>     # EVENTS section is the key signal
 kubectl logs <name> [--previous]
 kubectl get events --sort-by=.lastTimestamp
 ```
+
 A pod stuck in **Pending** almost always means the scheduler can't place it. Read the events to see why:
+
 - **Insufficient CPU or memory** — no node has room. Add nodes, adjust the requests, or let the cluster autoscaler add capacity.
 - **Unschedulable due to taints, affinity, or a nodeSelector** — no node matches the pod's requirements.
 - **PVC unbound** — there's no matching PV or StorageClass, or a zone mismatch.
 - **ImagePullBackOff** (a different phase) — the image name or tag is wrong, or the registry credentials are missing.
 
 If the pod is running but not responding, or keeps restarting:
+
 - `CrashLoopBackOff` means the app crashes on startup. Check `logs --previous`, the config, missing env vars or secrets, and any failing dependency.
 - Failing liveness or readiness probes can restart a healthy app or keep it out of the Service. Check the probe's path, port, and timeout.
 - `OOMKilled` (shown by `describe`) means the container ran out of memory. Raise the memory limit or fix the leak.
 
-### 4. What are common Kubernetes errors you have faced (like CrashLoopBackOff, ImagePullError) and how did you resolve them?
+</details>
+
+<details><summary>Q4. [Intermediate] What are common Kubernetes errors you have faced (like CrashLoopBackOff, ImagePullError) and how did you resolve them?</summary>
 
 **1. CrashLoopBackOff**
 
@@ -165,7 +193,9 @@ If the pod is running but not responding, or keeps restarting:
 
 By systematically diagnosing and addressing these common errors, you can maintain a healthy and stable cluster environment.
 
-### 5. How do you troubleshoot CrashLoopBackOff?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot CrashLoopBackOff?</summary>
 
 **Answer:**
 
@@ -183,7 +213,9 @@ If a recent release caused this, I roll back first. To debug further, I run the 
 
 Once it's fixed, I verify the restart count is stable, readiness passes, logs and dependency health look normal, and I add a regression or preflight test.
 
-### 6. A Pod is stuck in CrashLoopBackOff, but logs show no errors. How do you debug?
+</details>
+
+<details><summary>Q6. [Intermediate] A Pod is stuck in CrashLoopBackOff, but logs show no errors. How do you debug?</summary>
 
 **Answer:**
 
@@ -195,7 +227,9 @@ I can spin up a temporary debug Pod using the same image but with a `sleep` comm
 
 If the process never even starts, I also check the node, runtime, and kubelet logs. The real fix gets codified in the image or manifest, tested, rolled out, and verified — a manual change inside a running Pod is never the permanent fix.
 
-### 7. What will you do if a pod is stuck in CrashLoopBackOff?
+</details>
+
+<details><summary>Q7. [Intermediate] What will you do if a pod is stuck in CrashLoopBackOff?</summary>
 
 **Answer:** Run kubectl describe pod and kubectl logs → Check startup script, image, or config issue → Fix error → Redeploy.
 
@@ -208,7 +242,9 @@ Exit code 137 usually points to OOM; a connection or config error needs a differ
 
 I watch the rollout status, restart count, logs, latency, and error rate afterward, and roll back to the last healthy revision if the impact keeps growing.
 
-### 8. I am getting a CrashLoopBackOff error for one of the pods in a namespace. What should be the reason?
+</details>
+
+<details><summary>Q8. [Intermediate] I am getting a CrashLoopBackOff error for one of the pods in a namespace. What should be the reason?</summary>
 
 **Common causes:**
 
@@ -228,7 +264,9 @@ kubectl get events --sort-by='.lastTimestamp'
 
 Check exit codes, resource requests/limits, and application logs.
 
-### 9. How do you troubleshoot Kubernetes CrashLoopBackOff with ConfigMap errors?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you troubleshoot Kubernetes CrashLoopBackOff with ConfigMap errors?</summary>
 
 **Answer:** Check mounted config → Validate YAML → Fix key-value mismatches → Restart pod.
 
@@ -241,7 +279,9 @@ Exit code 137 usually points to OOM; a connection or config error needs a differ
 
 I watch the rollout status, restart count, logs, latency, and error rate afterward, and roll back to the last healthy revision if the impact keeps growing.
 
-### 10. Can you run `kubectl port-forward` to a Pod that's in CrashLoopBackOff state, and will it work?
+</details>
+
+<details><summary>Q10. [Intermediate] Can you run <code>kubectl port-forward</code> to a Pod that's in CrashLoopBackOff state, and will it work?</summary>
 
 **Answer:**
 
@@ -266,7 +306,9 @@ For debugging CrashLoopBackOff:
 - Check container startup probes and resource limits.
 - Consider temporarily removing liveness probes for debugging.
 
-### 11. A Pod is stuck in ImagePullBackOff. How do you troubleshoot?
+</details>
+
+<details><summary>Q11. [Intermediate] A Pod is stuck in ImagePullBackOff. How do you troubleshoot?</summary>
 
 **Answer:**
 
@@ -284,7 +326,9 @@ I verify the image and digest actually exist, check credentials such as IRSA or 
 
 I fix the manifest or the access problem, confirm the image now pulls and starts, and run the application's health checks. To prevent it happening again, I add CI registry validation, digest pinning, credential-expiry monitoring, and a registry path that works across multiple AZs.
 
-### 12. How do you troubleshoot “ImagePullBackOff” in Kubernetes?
+</details>
+
+<details><summary>Q12. [Intermediate] How do you troubleshoot “ImagePullBackOff” in Kubernetes?</summary>
 
 **Answer:**
 Check if image exists in registry.
@@ -301,7 +345,9 @@ I test or rotate credentials without printing them, and check registry IAM, the 
 
 To prevent it recurring, I use workload identity where it's supported, expiring registry credentials, signed and scanned smaller images, registry mirrors, and alerts on image-pull events.
 
-### 13. How do you troubleshoot Kubernetes pods not pulling images from private registry?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you troubleshoot Kubernetes pods not pulling images from private registry?</summary>
 
 **Answer:** Create imagePullSecret → Attach to service account → Validate registry credentials.
 
@@ -314,7 +360,9 @@ I test or rotate credentials without printing them, and check registry IAM, the 
 
 To prevent it recurring, I use workload identity where it's supported, expiring registry credentials, signed and scanned smaller images, registry mirrors, and alerts on image-pull events.
 
-### 14. How do you troubleshoot AKS ImagePullBackOff after an identity change?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you troubleshoot AKS ImagePullBackOff after an identity change?</summary>
 
 `ImagePullBackOff` means Kubernetes cannot pull the container image. When this starts right after an identity change, the first suspect is that the new identity lost registry access - not the image itself.
 
@@ -358,7 +406,9 @@ kubectl rollout restart deployment <deployment-name>
 
 Since the failure started after an identity change, I'd first verify which managed identity AKS is now using with `az aks show`, then check whether that identity has `AcrPull` on the registry with `az role assignment list`. If it doesn't - which is the common cause after an identity swap - I'd assign the role, confirm the image name/tag are correct, and restart the deployment to force a fresh pull.
 
-### 15. Kubernetes ImagePullBackOff
+</details>
+
+<details><summary>Q15. [Intermediate] Kubernetes ImagePullBackOff</summary>
 
 #### The setup
 
@@ -394,7 +444,9 @@ kubectl get secrets                     # check if an imagePullSecret exists
 
 "ImagePullBackOff usually means the image tag doesn't exist, the registry credentials are missing or expired, or AKS's identity doesn't have `AcrPull` on that ACR. I'd start with `kubectl describe pod` to see the exact error message, then verify the tag exists in ACR and check the role assignment or imagePullSecret depending on what the error says."
 
-### 16. How do you troubleshoot slow image pulls in Kubernetes?
+</details>
+
+<details><summary>Q16. [Intermediate] How do you troubleshoot slow image pulls in Kubernetes?</summary>
 
 **Answer:** Check registry health, use image caching on nodes, enable parallel pulls, reduce image size, and use local/private mirrors.
 Mini-case: Our pods were delayed by 2 mins due to 3GB images; slimming base images + enabling node cache cut startup time to <20s.
@@ -408,7 +460,9 @@ I test or rotate credentials without printing them, and check registry IAM, the 
 
 To prevent it recurring, I use workload identity where it's supported, expiring registry credentials, signed and scanned smaller images, registry mirrors, and alerts on image-pull events.
 
-### 17. How do you troubleshoot Kubernetes pods stuck in “Pending”?
+</details>
+
+<details><summary>Q17. [Intermediate] How do you troubleshoot Kubernetes pods stuck in “Pending”?</summary>
 
 **Answer:** Run kubectl describe pod → Check node resource availability → Verify PVC binding → Ensure taints/tolerations are configured.
 
@@ -419,7 +473,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 18. How do you troubleshoot a pod that is stuck in the 'Pending' state in Kubernetes?
+</details>
+
+<details><summary>Q18. [Intermediate] How do you troubleshoot a pod that is stuck in the 'Pending' state in Kubernetes?</summary>
 
 To troubleshoot a pod stuck in the 'Pending' state, I would follow these steps:
 
@@ -483,7 +539,9 @@ kubectl get resourcequota -n <namespace>
 
 By systematically going through these steps, I can identify and resolve the issue causing the pod to remain in the 'Pending' state.
 
-### 19. A pod is in Pending state after the deployment is done. What can be the reason behind this?
+</details>
+
+<details><summary>Q19. [Intermediate] A pod is in Pending state after the deployment is done. What can be the reason behind this?</summary>
 
 Check these common issues:
 
@@ -496,7 +554,9 @@ Check these common issues:
 
 Use `kubectl describe pod` and check the Events section for specific reasons.
 
-### 20. How do you handle Kubernetes pod scheduling failures?
+</details>
+
+<details><summary>Q20. [Intermediate] How do you handle Kubernetes pod scheduling failures?</summary>
 
 **Answer:** Run kubectl describe pod → Check taints/tolerations → Check node resources → Add tolerations or scale nodes.
 
@@ -507,7 +567,9 @@ I compare the requests against `kubectl top nodes`, the nodes' allocatable value
 
 I don't remove a protective taint just to get past the problem. I verify scheduling, readiness, distribution across failure domains, and whether the cluster autoscaler will handle the same situation automatically next time.
 
-### 21. How do you troubleshoot high Pod restart counts?
+</details>
+
+<details><summary>Q21. [Intermediate] How do you troubleshoot high Pod restart counts?</summary>
 
 **Answer:**
 
@@ -518,12 +580,14 @@ I classify the cause: OOM, a failed liveness probe, an application error, a comp
 I compare against the image, config, node, and an unaffected replica. To mitigate, I roll back, scale, or pull it out of traffic, and for a hang I capture a memory dump before it restarts again. Then I fix the code, config, probe, resources, or dependency, and deploy that fix through the controller.
 
 I confirm the restart count has stabilized — keeping in mind the counter itself persists for the life of the Pod — readiness is good, transactions succeed, and SLOs hold over an observation window. To prevent it recurring, I add an alert on restart rate and reason, tune startup and liveness settings, test for memory leaks, add a dependency timeout or circuit breaker, run a config preflight check, and use a canary rollout.
-Kubernetes Scenario-Based Interview Questions
-==============================================
+
+**Kubernetes Scenario-Based Interview Questions**
 
 The following questions focus on production incidents and design decisions. Each answer explains the investigation flow, likely evidence, corrective action, verification, and preventive measures expected in an interview.
 
-### 22. How do you troubleshoot high pod restart counts in Kubernetes?
+</details>
+
+<details><summary>Q22. [Intermediate] How do you troubleshoot high pod restart counts in Kubernetes?</summary>
 
 **Answer:** • Check pod logs for crash reason.
 • Validate resource limits.
@@ -539,7 +603,9 @@ Exit code 137 usually points to OOM; a connection or config error needs a differ
 
 I watch the rollout status, restart count, logs, latency, and error rate afterward, and roll back to the last healthy revision if the impact keeps growing.
 
-### 23. All Pods in one namespace suddenly fail readiness checks. What is your troubleshooting approach?
+</details>
+
+<details><summary>Q23. [Advanced] All Pods in one namespace suddenly fail readiness checks. What is your troubleshooting approach?</summary>
 
 **Answer:**
 
@@ -553,7 +619,9 @@ For immediate mitigation, I might roll back a config, policy, or release, or res
 
 To prevent a repeat, I add config canaries, secret-expiry alerts, policy tests, synthetic probes on dependencies, and better change correlation.
 
-### 24. How do you handle Kubernetes pods stuck in Terminating state?
+</details>
+
+<details><summary>Q24. [Intermediate] How do you handle Kubernetes pods stuck in Terminating state?</summary>
 
 **Answer:** Run kubectl delete pod --force --grace-period=0 → Check finalizers → Investigate volumes/network issues.
 
@@ -564,7 +632,9 @@ I fix whatever's actually responsible — the controller, node, or plugin — an
 
 I verify the replacement is healthy and cleanup finished, then fix the underlying finalizer timeout, controller issue, or node fencing so it doesn't happen again.
 
-### 25. How do you troubleshoot Kubernetes nodes showing “NotReady”?
+</details>
+
+<details><summary>Q25. [Intermediate] How do you troubleshoot Kubernetes nodes showing “NotReady”?</summary>
 
 **Answer:** Run kubectl describe node → Check kubelet, docker/containerd logs → Verify network plugins → Restart node or replace if unhealthy.
 
@@ -579,7 +649,9 @@ Then I fix the real cause — disk cleanup, a CNI or runtime repair, certificate
 
 If this keeps happening, the fix is repairing the node image or node pool, not repeatedly restarting the node.
 
-### 26. How do you troubleshoot “Node Not Ready” in Kubernetes?
+</details>
+
+<details><summary>Q26. [Intermediate] How do you troubleshoot “Node Not Ready” in Kubernetes?</summary>
 
 **Answer:** Run kubectl describe node → Check kubelet logs → Verify Docker/container runtime → Restart node services → Replace unhealthy node if needed.
 
@@ -594,7 +666,9 @@ Then I fix the real cause — disk cleanup, a CNI or runtime repair, certificate
 
 If this keeps happening, the fix is repairing the node image or node pool, not repeatedly restarting the node.
 
-### 27. One of your worker nodes is not joining the cluster. How would you debug the issue?
+</details>
+
+<details><summary>Q27. [Intermediate] One of your worker nodes is not joining the cluster. How would you debug the issue?</summary>
 
 If a worker node isn't joining the cluster, I'd first check the `kubeadm join` token validity, network connectivity to the API server, and kubelet logs for authentication or connection errors.
 
@@ -643,7 +717,9 @@ sudo kubeadm reset                              # On the worker node, reset the 
 
 Then rejoin the cluster using the `kubeadm join` command provided by the master node.
 
-### 28. Kubelet is constantly restarting on one node. How do you isolate the issue?
+</details>
+
+<details><summary>Q28. [Intermediate] Kubelet is constantly restarting on one node. How do you isolate the issue?</summary>
 
 **Answer:**
 
@@ -653,7 +729,9 @@ I compare against a healthy node's version and config, and check for any recent 
 
 After the fix or replacement, I verify the node is Ready, kubelet, the runtime, and CNI are healthy, test Pod scheduling, networking, volumes, logs, and exec, and then uncordon it. The root-cause review adds image validation, certificate and disk alerts, or a rollout canary.
 
-### 29. What happens if kubelet is not running?
+</details>
+
+<details><summary>Q29. [Intermediate] What happens if kubelet is not running?</summary>
 
 **Answer:**
 
@@ -665,7 +743,9 @@ I cordon the node, check `systemctl` and `journalctl` for kubelet, the runtime, 
 
 After recovery, I verify the node is Ready, CNI and CSI are healthy, a test Pod schedules fine, networking, logs, and exec work, and the application itself is healthy. I monitor kubelet's service, certificates, and disk going forward to catch this earlier next time.
 
-### 30. What do you do when a node hosting critical workloads crashes permanently?
+</details>
+
+<details><summary>Q30. [Advanced] What do you do when a node hosting critical workloads crashes permanently?</summary>
 
 **Answer:**
 
@@ -677,7 +757,9 @@ For a node that's intermittently reachable, I cordon it. For a node that's perma
 
 Once recovery is done, I verify replicas are spread across zones, data is consistent, endpoints are correct, and the application actually transacts. The root-cause review covers node health, autoscaler capacity, replica spreading, any assumptions about local data, and how long failover took.
 
-### 31. How do you handle Kubernetes API server overload?
+</details>
+
+<details><summary>Q31. [Advanced] How do you handle Kubernetes API server overload?</summary>
 
 **Answer:** Scale API servers horizontally, add rate limiting, optimize controller workloads, and increase etcd performance.
 Mini-case: Cluster had 50 controllers hammering the API; tuning cache sizes + scaling API server replicas fixed latency.
@@ -691,7 +773,9 @@ The permanent fix uses shared informers and watches, pagination, client backoff,
 
 Before closing the incident, I verify kubectl latency, controller queues, scheduling, admission webhooks, and any application-side change. Control-plane SLOs and alerts should catch saturation before clients start timing out.
 
-### 32. Kubernetes etcd performance is degrading. What are root causes and fixes?
+</details>
+
+<details><summary>Q32. [Advanced] Kubernetes etcd performance is degrading. What are root causes and fixes?</summary>
 
 **Answer:**
 
@@ -701,7 +785,9 @@ For mitigation, I cut down abusive or noisy clients and events, protect the disk
 
 I always snapshot before maintenance and never restart or remove more than one quorum member at a time. Afterward I validate the API's SLOs and controller health. For managed Kubernetes, I escalate to the provider with metrics and a time window, while I check my own client load in parallel.
 
-### 33. How do you handle Kubernetes etcd datastore corruption?
+</details>
+
+<details><summary>Q33. [Advanced] How do you handle Kubernetes etcd datastore corruption?</summary>
 
 **Answer:** Restore from snapshot, rebuild control plane if required, ensure regular backups, and test restore procedure. Mini-case: When an upgrade corrupted etcd, Velero backups allowed full cluster restore in 30 minutes, saving production downtime.
 
@@ -712,7 +798,9 @@ Recovery uses whatever method the Kubernetes distribution actually supports: rep
 
 I validate API objects, controllers, Nodes, Secrets, and workloads before letting any new changes through. Scheduled, encrypted snapshots stored in a genuinely separate failure domain, and regular restore drills, are what actually prove the RPO and RTO.
 
-### 34. Multiple nodes show high disk I/O due to container logs. What do you do?
+</details>
+
+<details><summary>Q34. [Intermediate] Multiple nodes show high disk I/O due to container logs. What do you do?</summary>
 
 **Answer:**
 
@@ -723,3 +811,5 @@ I don't blindly `rm` active log files — a deleted-but-open file still holds on
 For the long term, I move to structured logs at the right level, add rate limiting or sampling, set size and file retention, tune Fluent Bit's backpressure and buffers, use a separate disk where that's designed in, set ephemeral-storage requests and limits, and add disk and inode forecast alerts.
 
 I confirm the application's logs are still sufficient, the agent delivers them without loss within the required window, node I/O, pressure, and restarts are back to normal, and central log cost and cardinality — meaning the number of unique label combinations being tracked — stay under control.
+
+</details>

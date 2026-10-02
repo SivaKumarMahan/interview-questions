@@ -102,13 +102,15 @@ docker rm -f Thor  # or force-delete a running container
 
 ## Interview Questions
 
-### 1. What is Docker? *(scenario)*
+<details><summary>Q1. [Basic] What is Docker? <em>(scenario)</em></summary>
 
 Docker is a containerization platform. It packages an application together with its dependencies, libraries, and configuration into a portable **image**, which then runs as an isolated **container**.
 
 Containers share the host machine's kernel instead of booting a full guest operating system, using two Linux features — namespaces for isolation and cgroups for resource limits. That's what makes them lightweight and able to start in milliseconds. It also solves the classic "works on my machine" problem, because the same image runs the same way everywhere, from a developer's laptop to production.
 
-### 2. Have you built Docker containers? For what use case?
+</details>
+
+<details><summary>Q2. [Basic] Have you built Docker containers? For what use case?</summary>
 
 **Answer:**
 
@@ -118,7 +120,9 @@ In CI, the build starts from a pinned base image, runs the tests, generates an S
 
 Before it ships, I check image size and layer count, the scan results, startup time, health checks, logs, how it handles shutdown signals, and whether it still works with a read-only filesystem. This is what avoids "works on my machine" problems — one build, tested once, runs everywhere.
 
-### 3. Docker versus virtual machines: what is the difference?
+</details>
+
+<details><summary>Q3. [Basic] Docker versus virtual machines: what is the difference?</summary>
 
 **Answer:**
 
@@ -126,7 +130,9 @@ A virtual machine emulates hardware and runs a full guest operating system on to
 
 Containers don't replace every security boundary a VM gives you. Production security still relies on a hardened host, namespaces and cgroups for isolation, non-root users, tools like seccomp and AppArmor, verified image provenance, and orchestration-level policy. In practice, containers are usually run on top of VMs in cloud environments anyway.
 
-### 4. What are cgroups?
+</details>
+
+<details><summary>Q4. [Basic] What are cgroups?</summary>
 
 **Answer:**
 
@@ -140,7 +146,9 @@ docker run --memory=512m --cpus=1.5 --pids-limit=200 app
 
 Go over the memory limit and the container gets killed (an OOM kill); go over the CPU limit and it just gets throttled. I check `docker stats`, the container's state and exit code, host resource pressure, and cgroup metrics when something looks wrong. Limits protect the host, but they should be based on real measurements — set them too low and the app becomes unstable for no good reason.
 
-### 5. What is the lifecycle of a Docker container?
+</details>
+
+<details><summary>Q5. [Basic] What is the lifecycle of a Docker container?</summary>
 
 **Answer:**
 
@@ -159,7 +167,9 @@ docker rm web
 
 When something fails, I check the container's exit code and state, whether it was killed for using too much memory, its logs, events, configuration, mounts, network, and health status — before I just restart it and hope.
 
-### 6. How do you list running containers and all containers, including stopped ones?
+</details>
+
+<details><summary>Q6. [Basic] How do you list running containers and all containers, including stopped ones?</summary>
 
 **Answer:**
 
@@ -172,7 +182,9 @@ docker ps -a --filter status=exited
 
 The status and exit code tell me what to check next. I look at `docker inspect`, `docker logs`, and any application or host metrics before restarting or deleting anything — an exited container can hold evidence you'll need to figure out what actually went wrong.
 
-### 7. How do you enter a running Docker container from the command line?
+</details>
+
+<details><summary>Q7. [Basic] How do you enter a running Docker container from the command line?</summary>
 
 **Answer:**
 
@@ -190,7 +202,9 @@ A minimal or distroless production image may have no shell at all. In that case,
 
 Access to the Docker socket is effectively root access to the whole host, so it's restricted and audited. If something needs fixing, I don't patch it live inside the container — I fix the Dockerfile or configuration, build a new image, redeploy it, and verify the fix.
 
-### 8. How do you copy a file from a container to the host?
+</details>
+
+<details><summary>Q8. [Basic] How do you copy a file from a container to the host?</summary>
 
 **Answer:**
 
@@ -202,3 +216,5 @@ docker cp ./config.yaml mycontainer:/tmp/config.yaml
 The container can be running or stopped. I check the path, permissions, free disk space, and whether the file might contain secrets or personal data before copying it. For logs or data that's actively being written, a plain copy can catch it mid-write — use the application's own export or snapshot feature when that matters.
 
 Copying a file into a running container is a debugging move, not a way to manage configuration — the change disappears the moment the container is replaced. Anything that needs to stick around belongs in the image, a config file, or a volume, deployed properly.
+
+</details>

@@ -452,11 +452,13 @@ Be ready to reason through:
 
 ## Interview Questions
 
-### 1. How confident are you in Kubernetes & Docker? (rating question) *(asked in interview round)*
+<details><summary>Q1. [Basic] How confident are you in Kubernetes &amp; Docker? (rating question) <em>(asked in interview round)</em></summary>
 
 Give an honest self-rating and back it up with real work. For example: *"8/10 — I run production EKS clusters: writing manifests and Helm charts, HPA/VPA autoscaling, RBAC, network policies, and troubleshooting incidents like CrashLoopBackOff, pending pods, and node pressure."* Avoid claiming a perfect 10/10. A number backed by concrete examples is always more convincing.
 
-### 2. Explain Kubernetes architecture.
+</details>
+
+<details><summary>Q2. [Basic] Explain Kubernetes architecture.</summary>
 
 **Answer:**
 
@@ -472,7 +474,9 @@ Here's the flow end to end. You run `kubectl apply`, which sends the desired sta
 
 In a managed service like EKS or AKS, the cloud provider runs the control plane for you. You still own the nodes, the workloads, and the configuration, and you still have to design for high availability yourself.
 
-### 3. What happens when `kubectl apply` runs?
+</details>
+
+<details><summary>Q3. [Intermediate] What happens when <code>kubectl apply</code> runs?</summary>
 
 ```bash
 kubectl apply -f deployment.yaml
@@ -505,7 +509,9 @@ kubectl apply
 
 `kubectl apply` sends the manifest to the API Server, which authenticates the request, runs it through admission controllers, and persists the desired state in `etcd`. From there, the relevant controller (e.g. the Deployment Controller) reconciles that state into a ReplicaSet, the Scheduler places the resulting Pods on suitable nodes, and the Kubelet on each node pulls the image and starts the container - with the CNI wiring up networking and readiness checks gating when traffic actually starts flowing.
 
-### 4. What are the roles of kubelet, kube-apiserver, and kube-proxy in EKS?
+</details>
+
+<details><summary>Q4. [Basic] What are the roles of kubelet, kube-apiserver, and kube-proxy in EKS?</summary>
 
 **Answer:**
 
@@ -519,7 +525,9 @@ When I troubleshoot this, I check node status, the kubelet journal, EKS control-
 
 I cordon an unstable node before doing any corrective work on it.
 
-### 5. What are Pods, Deployments, and Services?
+</details>
+
+<details><summary>Q5. [Basic] What are Pods, Deployments, and Services?</summary>
 
 **Answer:**
 
@@ -535,7 +543,9 @@ During a rollout, the Deployment creates new Pods, readiness gates when they sta
 
 I verify all of this with `kubectl get deploy,rs,pods,svc,endpointslice`, rollout status, events, and a test request from a debug Pod.
 
-### 6. What is a ConfigMap and what is a Secret?
+</details>
+
+<details><summary>Q6. [Basic] What is a ConfigMap and what is a Secret?</summary>
 
 **Answer:**
 
@@ -547,7 +557,9 @@ I also turn on encryption at rest, use least-privilege RBAC, meaning roles that 
 
 Updating an environment variable requires the Pod to be recreated. A mounted, projected file may refresh on its own, but the application still has to reread it. When troubleshooting, I check the object and key names, the namespace, the volume or event, permissions, the rendered value without printing the secret itself, and whether consumers of the value have been rolled out.
 
-### 7. What are ConfigMap, Secret, ServiceAccount and Namespace in Kubernetes?
+</details>
+
+<details><summary>Q7. [Basic] What are ConfigMap, Secret, ServiceAccount and Namespace in Kubernetes?</summary>
 
 **Quick definitions:**
 
@@ -682,7 +694,9 @@ These are different resources because they belong to different namespaces.
 - **ServiceAccount** -> provides a pod's identity to access the Kubernetes API.
 - **Namespace** -> logically isolates resources within a cluster for different teams or environments.
 
-### 8. Why does each layer of the Kubernetes tooling ecosystem exist, and what problem does each tool solve?
+</details>
+
+<details><summary>Q8. [Intermediate] Why does each layer of the Kubernetes tooling ecosystem exist, and what problem does each tool solve?</summary>
 
 **Answer:**
 
@@ -705,7 +719,9 @@ Each layer addresses a limitation the previous one exposed: usability, delivery,
 
 That is how you stop collecting tools and start understanding them — by knowing the specific problem each one was adopted to solve.
 
-### 9. What is etcd, and what actually happens to your cluster if it goes down?
+</details>
+
+<details><summary>Q9. [Advanced] What is etcd, and what actually happens to your cluster if it goes down?</summary>
 
 **Answer:**
 
@@ -730,7 +746,9 @@ If you lose etcd data with no backup, you have lost your entire cluster state �
 
 The answer the interviewer wants is not just what etcd is — it is that you understand the scope of impact of losing it and have a real backup and recovery plan.
 
-### 10. In K8s, as etcd is a key-value store DB, can we write something manually to it?
+</details>
+
+<details><summary>Q10. [Intermediate] In K8s, as etcd is a key-value store DB, can we write something manually to it?</summary>
 
 Yes, you can write data manually to etcd in Kubernetes, but it's generally not a good idea.
 
@@ -761,13 +779,16 @@ etcdctl del mykey
 
 Remember, direct manipulation of etcd should be done with extreme caution and typically only in advanced scenarios where you fully understand the implications. In most cases, it is better to use `kubectl` and Kubernetes APIs to manage cluster state.
 
-### 11. There are 1 master and 3 worker nodes. If the master fails, what happens? Will pods keep running or will they crash?
+</details>
+
+<details><summary>Q11. [Intermediate] There are 1 master and 3 worker nodes. If the master fails, what happens? Will pods keep running or will they crash?</summary>
 
 **What happens if the master fails:**
 
 The pods already running on the worker nodes keep running normally. Worker nodes and their `kubelet` processes keep the containers alive on their own.
 
 But no new pods can be scheduled and no changes can be applied, because:
+
 - The scheduler is down.
 - The API server is unreachable.
 - The control plane can't make any decisions.
@@ -776,7 +797,9 @@ So the cluster is temporarily frozen. Workloads keep running, but nothing manage
 
 The fix is a highly available control plane: run multiple master nodes spread across zones, for example three masters. That way, if one master fails, the cluster keeps working normally.
 
-### 12. What happens if the firewall between the Kubernetes master node and worker nodes gets broken?
+</details>
+
+<details><summary>Q12. [Intermediate] What happens if the firewall between the Kubernetes master node and worker nodes gets broken?</summary>
 
 **Impact:**
 
@@ -794,7 +817,9 @@ The fix is a highly available control plane: run multiple master nodes spread ac
 - Verify node communication with `kubectl get nodes`.
 - Test pod creation and service connectivity.
 
-### 13. How do you enter a running Pod, and what is the correct way to define Kubernetes objects?
+</details>
+
+<details><summary>Q13. [Basic] How do you enter a running Pod, and what is the correct way to define Kubernetes objects?</summary>
 
 **Answer:**
 
@@ -811,7 +836,9 @@ Objects are declared with `apiVersion`, `kind`, `metadata`, and `spec`, then rev
 
 CRDs extend the API with entirely new object types. A StorageClass, by the way, is a specific storage-provisioning object — not a general-purpose Kubernetes "class" of anything.
 
-### 14. What is the command to access a pod, and how can you define or create a Kubernetes object?
+</details>
+
+<details><summary>Q14. [Basic] What is the command to access a pod, and how can you define or create a Kubernetes object?</summary>
 
 To access a pod in Kubernetes, you can use the `kubectl exec` command. This command allows you to run commands inside a running pod.
 
@@ -863,7 +890,9 @@ In Kubernetes, there isn't a concept specifically called a "Kubernetes class." H
 - **Custom Resource Definitions (CRDs)** allow you to define your own resource types in Kubernetes, enabling you to extend the Kubernetes API.
 - **Storage Classes** define different types of storage (like SSDs, HDDs) that can be dynamically provisioned for Persistent Volumes in Kubernetes.
 
-### 15. What is the difference between `kubectl exec` and `kubectl run`?
+</details>
+
+<details><summary>Q15. [Basic] What is the difference between <code>kubectl exec</code> and <code>kubectl run</code>?</summary>
 
 **`kubectl exec`** - runs a command inside an *existing* Pod's container.
 
@@ -892,7 +921,9 @@ The `--rm` flag in the `debug` example is worth calling out specifically - it de
 
 `kubectl exec` runs a command inside a Pod that's already running - useful for inspecting a live application. `kubectl run` creates a brand-new standalone Pod, which is mainly useful for spinning up a temporary debug/test Pod (often with `--rm` so it cleans itself up) rather than working with an existing workload.
 
-### 16. What is a CustomResourceDefinition (CRD), and when would you create one?
+</details>
+
+<details><summary>Q16. [Intermediate] What is a CustomResourceDefinition (CRD), and when would you create one?</summary>
 
 **Answer:**
 
@@ -941,7 +972,9 @@ I reach for a CRD when the concept has a genuinely meaningful declarative lifecy
 
 A production CRD needs a structural schema, clear defaults and validation, status Conditions, printer columns where they're useful, RBAC, versioning, and a conversion or migration plan before its stored schema ever changes.
 
-### 17. What is a custom Kubernetes controller, and how does its reconciliation (making actual state match desired state) loop work?
+</details>
+
+<details><summary>Q17. [Advanced] What is a custom Kubernetes controller, and how does its reconciliation (making actual state match desired state) loop work?</summary>
 
 **Answer:**
 
@@ -968,7 +1001,9 @@ If a controller isn't reconciling, I check CRD or version discovery, the control
 
 Tests cover reconciling the same state repeatedly, a lost watch or restart, a conflict, a dependency outage, deletion, a schema upgrade, and partial creation — not just the happy path.
 
-### 18. How do you design a Kubernetes operator?
+</details>
+
+<details><summary>Q18. [Advanced] How do you design a Kubernetes operator?</summary>
 
 **Answer:**
 
@@ -979,3 +1014,5 @@ The controller watches the custom resource and the objects it owns, and reconcil
 I use owner references for anything Kubernetes should clean up automatically, least-privilege RBAC, conflict and retry handling, events, metrics, and logs, leader election, rate limits, and validation, defaulting, or conversion webhooks only when they're actually needed. Calls to external systems need idempotency keys — something that makes it safe to repeat the same call — and a cleanup or finalizer timeout.
 
 Tests cover reconciling the same state repeatedly, partial failure, deletion, an upgrade or schema conversion, and a dependency outage — not just the happy path. A good operator encodes the real lifecycle of its domain, not just a wrapper around a Deployment.
+
+</details>

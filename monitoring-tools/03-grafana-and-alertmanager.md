@@ -190,7 +190,7 @@ Grafana can add Prometheus Alertmanager as a data source to inspect alerts and m
 
 ## Interview Questions
 
-### 1. What is Grafana's role compared with Prometheus or CloudWatch?
+<details><summary>Q1. [Basic] What is Grafana's role compared with Prometheus or CloudWatch?</summary>
 
 **Answer:**
 
@@ -198,7 +198,9 @@ Prometheus and CloudWatch each collect, store, and query monitoring data in thei
 
 Grafana doesn't create good observability by itself. You still need correct instrumentation, real SLOs, clear ownership, sensible retention, and runbooks. Grafana just makes all of that easier to see and act on.
 
-### 2. How do you configure a useful Grafana dashboard?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you configure a useful Grafana dashboard?</summary>
 
 **Answer:**
 
@@ -216,7 +218,9 @@ I avoid misleading averages, cramming in too many panels, and variables with too
 
 SSO, role-based access, credential isolation, and backups are part of the setup, not an afterthought.
 
-### 3. Should an alert be defined in Prometheus or Grafana?
+</details>
+
+<details><summary>Q3. [Intermediate] Should an alert be defined in Prometheus or Grafana?</summary>
 
 **Answer:**
 
@@ -226,7 +230,9 @@ Grafana Alerting makes more sense when a rule needs to combine data from multipl
 
 The choice comes down to high availability, who owns the rule, and how the data source is run day to day. Whichever I pick, I treat it as the one source of truth, version it, and test that notifications actually deliver. I never define the same alert in both places — that just creates confusion about which one is authoritative.
 
-### 4. How do you configure alerts in Prometheus and Grafana, and which one should you use?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you configure alerts in Prometheus and Grafana, and which one should you use?</summary>
 
 You can configure alerts in both Prometheus and Grafana, but they serve slightly different purposes.
 
@@ -272,7 +278,9 @@ Grafana sends notifications directly to Email, Microsoft Teams, Slack, PagerDuty
 
 > "Alerts can be configured in both Prometheus and Grafana. In production, I typically use Prometheus Alertmanager for Kubernetes and infrastructure alerts because it evaluates PromQL rules and provides features like grouping, routing, and silencing before sending notifications to Teams, Slack, or email. Grafana also supports alerting, and I mainly use it for dashboard-based or application-level alerts. Both integrate well with Prometheus, but Alertmanager is generally the preferred solution for Kubernetes monitoring."
 
-### 5. How does Alertmanager reduce alert noise?
+</details>
+
+<details><summary>Q5. [Intermediate] How does Alertmanager reduce alert noise?</summary>
 
 **Answer:**
 
@@ -282,7 +290,9 @@ I use stable labels for team, service, environment, and severity, and I design t
 
 I also regularly review alerts that never lead to any action. If an alert doesn't drive a response, I remove it or demote it, rather than just spacing out how often it repeats.
 
-### 6. How do you integrate Alertmanager with Slack, Teams or PagerDuty securely?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you integrate Alertmanager with Slack, Teams or PagerDuty securely?</summary>
 
 **Answer:**
 
@@ -295,3 +305,5 @@ Grouping and inhibition stop this from turning into a flood of messages during a
 To test it, I fire a non-production test alert and check that it reaches the right receiver, that the firing and resolved messages both look correct, and that escalation works as expected. Slack and Teams are good for collaboration, but critical pages also go through PagerDuty or a similar tool, because a chat message can easily be missed.
 
 Credentials get rotated on a regular schedule, and any change to the routing configuration goes through review.
+
+</details>

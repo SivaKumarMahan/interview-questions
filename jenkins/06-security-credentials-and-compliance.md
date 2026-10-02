@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What does shift-left mean in DevOps?
+<details><summary>Q1. [Basic] What does shift-left mean in DevOps?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ Runtime monitoring, dynamic security testing, patching, and incident response ar
 
 I track how fast feedback comes back, how many defects still escape to production, how many false positives show up, how long fixes take, and how often developers just bypass the check. If a scan takes hours or produces findings nobody can act on, people will ignore it. Good shift-left controls are automated, focused on real risk, and fast.
 
-### 2. How do you integrate SonarQube, Trivy, and Slack in a Jenkins quality pipeline?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you integrate SonarQube, Trivy, and Slack in a Jenkins quality pipeline?</summary>
 
 **Answer:**
 
@@ -42,7 +44,9 @@ post {
 
 Tokens live in Jenkins credentials, reports get kept, scanner versions are pinned, and any vulnerability exception needs an owner and an expiry date. I test this by deliberately failing the quality gate and confirming it actually blocks the image from being published.
 
-### 3. How do you implement compliance checks in Jenkins? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement compliance checks in Jenkins? <em>(scenario)</em></summary>
 
 **Answer:** Add compliance scan stage (e.g., Checkov, OPA), fail builds on violations, and generate compliance reports automatically. Mini-case: A Jenkins job blocked deployment because S3 buckets were public — policy-as code ensured compliance.
 
@@ -55,7 +59,9 @@ If I suspect something was compromised, I stop any promotion in progress, revoke
 
 Regular patching, restricting outbound network access, keeping audit logs, and practicing recovery drills cover the things a scanner can't catch on its own.
 
-### 4. How do you handle Jenkins credentials securely? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you handle Jenkins credentials securely? <em>(scenario)</em></summary>
 
 **Answer:** Store in Jenkins Credentials Manager → Inject at runtime → Rotate periodically → Integrate with Vault/Key Vault.
 
@@ -68,7 +74,9 @@ Agents are short-lived, isolated, run as non-root where possible, and get a shor
 
 I also back up configuration and plugins regularly, and test that the backups actually restore.
 
-### 5. Jenkins Pipeline Security
+</details>
+
+<details><summary>Q5. [Intermediate] Jenkins Pipeline Security</summary>
 
 #### The pipeline
 
@@ -122,7 +130,9 @@ The secret `db-password-prod` is stored in Jenkins' built-in Credentials store (
 
 "The password is hardcoded directly in the Jenkinsfile, which means it's stored in plain text in version control and could leak into build logs. I'd store it in Jenkins Credentials (or an external vault) and reference it with `credentials('db-password-prod')` in the `environment` block, so Jenkins injects it at runtime and automatically masks it in the console output, instead of it ever appearing in source code."
 
-### 6. How do you secure Jenkins pipeline logs containing secrets? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you secure Jenkins pipeline logs containing secrets? <em>(scenario)</em></summary>
 
 **Answer:** Mask credentials with Jenkins plugins → Store secrets in vaults → Disable console echo for sensitive vars.
 
@@ -135,7 +145,9 @@ Agents are short-lived, isolated, run as non-root where possible, and get a shor
 
 I also back up configuration and plugins regularly, and test that the backups actually restore.
 
-### 7. How do you secure Jenkins from unauthorized access? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] How do you secure Jenkins from unauthorized access? <em>(scenario)</em></summary>
 
 **Answer:** Enable RBAC → Integrate with LDAP/SSO → Restrict anonymous access → Enable audit logs → Run Jenkins behind reverse proxy (NGINX).
 
@@ -147,3 +159,5 @@ Credentials live in the Jenkins credential store or an external vault, scoped to
 Agents are short-lived, isolated, run as non-root where possible, and get a short-lived cloud identity instead of a long-lived key. If a secret still ends up in a log, masking isn't enough on its own. I treat it as a real exposure: revoke and rotate the secret, restrict or delete the logs that captured it where policy allows, check who accessed it, and fix the step that printed it.
 
 I also back up configuration and plugins regularly, and test that the backups actually restore.
+
+</details>

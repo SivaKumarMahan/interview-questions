@@ -22,7 +22,7 @@ Promotion must never rebuild the package. For containers, promotion and deployme
 
 ## Interview Questions
 
-### 1. Artifacts in Azure DevOps
+<details><summary>Q1. [Basic] Artifacts in Azure DevOps</summary>
 
 **A:** In Azure DevOps, artifacts refer to the files or packages produced as a result of a build or release pipeline. They can include compiled code, binaries, libraries, configuration files, or any other output that needs to be stored and shared for deployment or further processing.
 
@@ -58,7 +58,9 @@ In this example, after building a Maven project, the build artifacts are publish
 
 Overall, Azure DevOps provides a robust system for managing artifacts, enabling teams to streamline their CI/CD processes and ensure that the right files are available for deployment and distribution.
 
-### 2. How do you publish and consume artifacts in Azure DevOps?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you publish and consume artifacts in Azure DevOps?</summary>
 
 **Answer:**
 
@@ -76,7 +78,9 @@ Pipeline artifacts suit build outputs; Azure Artifacts feeds host NuGet, npm, Ma
 
 I restrict write permissions, scan/sign artifacts, avoid secrets, and clean by retention policy. During investigation I verify artifact ID/digest and that the deployed environment used the same version tested in staging.
 
-### 3. How do you handle large artifacts efficiently in pipelines?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you handle large artifacts efficiently in pipelines?</summary>
 
 **A:** Handling large artifacts efficiently in pipelines requires a combination of strategies to optimize storage, transfer, and processing. Here are some best practices to manage large artifacts effectively:
 
@@ -93,7 +97,9 @@ I restrict write permissions, scan/sign artifacts, avoid secrets, and clean by r
 
 By following these strategies, you can efficiently manage large artifacts in your pipelines, ensuring smooth and reliable CI/CD processes.
 
-### 4. How do you handle large artifacts efficiently in Azure Pipelines?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you handle large artifacts efficiently in Azure Pipelines?</summary>
 
 **Answer:**
 
@@ -105,7 +111,9 @@ I monitor upload/download time, size trend, storage cost, and deployment time.
 
 For very large datasets or VM images, I use the appropriate storage/image service and pass a versioned reference through the pipeline rather than transferring it as a normal pipeline artifact.
 
-### 5. How do you implement versioning and release management using Nexus Repository?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you implement versioning and release management using Nexus Repository?</summary>
 
 **Answer:**
 
@@ -133,7 +141,9 @@ I avoid overwriting a released coordinate. If `2.4.0` is incorrect, I publish `2
 
 Nexus Pro's staging and build-promotion features can formalize this process. On other editions, the pipeline can do controlled publication and promotion itself through the repository APIs. Either way, it must verify that the source and destination bytes and checksums are identical.
 
-### 6. What are snapshot and release repositories, and why are they kept separate?
+</details>
+
+<details><summary>Q6. [Basic] What are snapshot and release repositories, and why are they kept separate?</summary>
 
 **Answer:**
 
@@ -151,7 +161,9 @@ Maven can turn a snapshot into timestamped snapshot artifacts internally, while 
 
 Keeping them separate stops an unstable build from being mistaken for a release. It also lets each side have its own retention, write access and deployment policy. Production should never resolve an unpinned snapshot.
 
-### 7. How do you automate artifact promotion from Development to Production using Nexus Repository?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you automate artifact promotion from Development to Production using Nexus Repository?</summary>
 
 **Answer:**
 
@@ -187,3 +199,5 @@ With Nexus Pro, I use supported staging/build-promotion capabilities when they m
 It then downloads or queries the destination to verify equality.
 
 For Maven, snapshot and release coordinates are different things. I do not just rename a mutable snapshot and call it the tested release. The release workflow has to establish the exact immutable release bytes and their provenance in its own right.
+
+</details>

@@ -49,7 +49,7 @@ Rollback in GitOps is usually a reviewed Git revert to the last known-good image
 
 ## Interview Questions
 
-### 1. How do you implement GitOps in DevOps workflows? *(scenario)*
+<details><summary>Q1. [Intermediate] How do you implement GitOps in DevOps workflows? <em>(scenario)</em></summary>
 
 **Answer:** Use Argo CD or Flux, keep infra and app configs in Git, sync automatically with Kubernetes, and roll back by reverting the Git commit.
 
@@ -62,7 +62,9 @@ A manual emergency change might pause sync temporarily, but it has to be capture
 
 Secrets go through an external-secrets or encrypted-secret workflow — never as plaintext in Git. I monitor sync failures, drift, controller access, and audit events, and destructive pruning has explicit safeguards so a deletion in Git can't silently wipe out something important.
 
-### 2. How do you implement GitOps for both apps and infra while preventing config drift? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you implement GitOps for both apps and infra while preventing config drift? <em>(scenario)</em></summary>
 
 **Answer:** Keep declarative manifests and Helm charts in Git, use Argo CD or Flux to auto-sync clusters, set up automated drift detection with auto-revert, and require pull requests plus branch protection for any change.
 
@@ -76,7 +78,9 @@ A manual emergency change might pause sync temporarily, but it has to be capture
 
 Secrets go through an external-secrets or encrypted-secret workflow — never as plaintext in Git. I monitor sync failures, drift, controller access, and audit events, and destructive pruning has explicit safeguards so a deletion in Git can't silently wipe out something important.
 
-### 3. How do you implement GitOps rollback? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement GitOps rollback? <em>(scenario)</em></summary>
 
 **Answer:** Revert the commit in Git, and Argo CD or Flux automatically syncs the cluster back — that's the whole rollback.
 
@@ -86,7 +90,10 @@ I use a deployment strategy with realistic readiness and startup probes, gracefu
 I deploy a specific image digest that won't change underneath me, watch `kubectl rollout status`, pod events, error rate, latency, and business checks, and pause if the new ReplicaSet looks unhealthy. To roll back, I use `kubectl rollout undo deployment/<name>`, or in GitOps, a Git revert — then I verify it worked.
 
 PodDisruptionBudgets, spreading across multiple zones, backward-compatible config and database changes, and a tested rollback path are what make the update genuinely low-risk.
-### 4. How do you run a GitOps workflow with Terraform?
+
+</details>
+
+<details><summary>Q4. [Intermediate] How do you run a GitOps workflow with Terraform?</summary>
 
 #### The idea
 
@@ -150,7 +157,9 @@ Atlantis and Spacelift do this pull-request workflow for you, including plan com
 
 "Git holds the desired state and nothing is applied by hand. A pull request triggers plan and policy checks and posts the result for review, and merging to main triggers the apply with approval. A nightly drift job compares reality with Git and opens an issue if they differ. Tools like Atlantis or Spacelift give this workflow out of the box with plan comments and approvals."
 
-### 5. How would you design a GitOps workflow for more than 20 teams with independent release cycles?
+</details>
+
+<details><summary>Q5. [Advanced] How would you design a GitOps workflow for more than 20 teams with independent release cycles?</summary>
 
 **Answer:**
 
@@ -167,3 +176,5 @@ ApplicationSets, or generated configuration, cut down on repetition without coll
 I add branch protection, CODEOWNERS, schema and policy tests, external secret references, sync ordering for dependencies, safe pruning, and rollback through a Git revert. Dashboards track sync health, drift, controller permissions, rollout SLOs, and how long reconciliation actually takes.
 
 Break-glass changes are time-limited and get captured back into Git immediately.
+
+</details>

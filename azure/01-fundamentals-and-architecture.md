@@ -127,7 +127,7 @@ These are conceptual comparisons, not always exact feature-for-feature equivalen
 
 ## Interview Questions
 
-### 1. What is Microsoft Azure?
+<details><summary>Q1. [Basic] What is Microsoft Azure?</summary>
 
 **Answer:**
 
@@ -139,7 +139,9 @@ Azure organizes things using tenants for identity, management groups and subscri
 
 In an interview, I try to describe the actual services, the availability target, the security model, day-to-day operations, and cost controls — not just say "Azure hosts applications."
 
-### 2. What is the difference between IaaS, PaaS, and serverless in Azure?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between IaaS, PaaS, and serverless in Azure?</summary>
 
 **Answer:**
 
@@ -151,7 +153,9 @@ I pick IaaS for legacy software or when I need OS-level control, PaaS for manage
 
 I weigh compliance, how much runtime control I need, scaling, latency and cold start, how long execution can run, networking, operational effort, and steady-state cost. "Serverless" doesn't mean there are no servers — it just means Azure runs them instead of you.
 
-### 3. What is the difference between a SaaS application and an enterprise application?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between a SaaS application and an enterprise application?</summary>
 
 **A:** A **SaaS (Software as a Service)** application is cloud-based software that's hosted and run by a third-party provider. Users access it over the internet without installing or maintaining anything themselves.
 
@@ -164,3 +168,5 @@ They're typically used for core business processes like ERP (Enterprise Resource
 - A SaaS application is hosted and managed by a third party — you just subscribe and use it through a browser.
 - An enterprise application, by contrast, is developed or managed internally, often on the company's own infrastructure, and built around its specific processes.
 - SaaS is about ease of use and scaling quickly. Enterprise applications are about deep customization and tying into internal systems.
+
+</details>

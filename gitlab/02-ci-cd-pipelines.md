@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What is GitLab CI/CD?
+<details><summary>Q1. [Basic] What is GitLab CI/CD?</summary>
 
 **Answer:**
 
@@ -20,7 +20,9 @@ commit → build/test → code and dependency scans → image build/scan
 
 I keep the pipeline definition in Git, use templates so I'm not repeating job configuration, protect production environments, use short-lived credentials, and make sure every artifact traces back to a commit. Monitoring and post-deployment checks are what actually confirm a deployment succeeded — a green pipeline on its own doesn't prove the application is healthy.
 
-### 2. What are stages, jobs, and runners in GitLab CI?
+</details>
+
+<details><summary>Q2. [Basic] What are stages, jobs, and runners in GitLab CI?</summary>
 
 **Answer:**
 
@@ -43,7 +45,9 @@ build-image:
 
 I tag runners by capability, keep protected runners isolated, patch them regularly, make sure they don't retain secrets between jobs, and autoscale where it makes sense. Using `needs`, a job can start as soon as its own dependencies finish, instead of waiting for the whole previous stage to complete.
 
-### 3. How do you define a simple GitLab CI pipeline?
+</details>
+
+<details><summary>Q3. [Basic] How do you define a simple GitLab CI pipeline?</summary>
 
 **Answer:**
 
@@ -78,7 +82,9 @@ package:
 
 I lint the file with GitLab's CI Lint tool, pin tool images to specific versions, set timeouts, avoid plaintext secrets, and make sure merge-request pipelines can't deploy to production. A real production image job would also authenticate securely, scan the image, and only push it after the required gates pass.
 
-### 4. What is the difference between `only/except` and `rules`?
+</details>
+
+<details><summary>Q4. [Basic] What is the difference between <code>only/except</code> and <code>rules</code>?</summary>
 
 **Answer:**
 
@@ -94,7 +100,9 @@ deploy-prod:
 
 I prefer `rules` for new pipelines and avoid mixing the two styles in the same job. I test the behavior across push, merge-request, tag, schedule, and API pipelines, since a mistake in the rules can create duplicate pipelines or accidentally expose a deployment job.
 
-### 5. How do artifacts and cache differ in GitLab CI?
+</details>
+
+<details><summary>Q5. [Basic] How do artifacts and cache differ in GitLab CI?</summary>
 
 **Answer:**
 
@@ -116,3 +124,5 @@ artifacts:
 I never put secrets in either one. Artifacts use controlled retention and stay immutable once created.
 
 Cache keys include the lock file, and sometimes the branch protection level, to prevent cache poisoning. Production deployment always uses the approved artifact — never whatever happens to be sitting in a cache.
+
+</details>

@@ -252,7 +252,7 @@ ansible_play_batch
 
 ## Interview Questions
 
-### 1. What is an Ansible module?
+<details><summary>Q1. [Basic] What is an Ansible module?</summary>
 
 **Answer:**
 
@@ -262,7 +262,9 @@ Modules return structured facts like `changed`, `failed`, and their output. A we
 
 A task calls one module. A playbook organizes plays, variables, handlers, and tasks together. I use fully qualified names such as `ansible.builtin.copy` so it's always clear where a module comes from.
 
-### 2. What is the difference between the `command` and `shell` modules?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between the <code>command</code> and <code>shell</code> modules?</summary>
 
 **Answer:**
 
@@ -271,3 +273,5 @@ A task calls one module. A playbook organizes plays, variables, handlers, and ta
 `ansible.builtin.shell` runs through a shell, so use it only when you genuinely need shell features.
 
 Given the choice, I prefer a dedicated Ansible module over either one. Where I can, I use `creates`/`removes` or a module that's already idempotent, and I quote any variables carefully when `shell` really is unavoidable.
+
+</details>

@@ -1,0 +1,5 @@
+# Used only by Dockerfile.after (BuildKit reads <Dockerfile name>.dockerignore).
+# Keeps the build context small and stops stray files reaching the image.
+*.txt
+*.md
+.git

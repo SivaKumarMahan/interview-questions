@@ -171,7 +171,7 @@ Log both stdout and stderr while still showing them on screen, for example with 
 
 ## Interview Questions
 
-### 1. What does `echo $?` indicate in Linux shell scripting?
+<details><summary>Q1. [Basic] What does <code>echo $?</code> indicate in Linux shell scripting?</summary>
 
 **Answer:**
 
@@ -189,7 +189,9 @@ fi
 
 For a pipeline, I turn on `set -o pipefail`, since otherwise `$?` only reflects the last command in the chain. In production scripts I handle expected failures explicitly and give them useful context, rather than treating `set -e` as a substitute for real error handling.
 
-### 2. Write a Bash script to add two numbers.
+</details>
+
+<details><summary>Q2. [Basic] Write a Bash script to add two numbers.</summary>
 
 **Answer:**
 
@@ -209,7 +211,9 @@ printf '%s\n' "$(( $1 + $2 ))"
 
 For example, `./add.sh 10 20` returns `30`, and `./add.sh ten 20` returns a usage error instead of a wrong answer. For numbers bigger than Bash's integer range, or for decimals, I'd use `bc`, Python, or another tool built for real math.
 
-### 3. How do you debug automation scripts?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you debug automation scripts?</summary>
 
 **Answer:**
 
@@ -224,7 +228,10 @@ bash -x deploy.sh --dry-run   # trace; avoid when secrets may print
 I check the shebang line, the executable bit, PATH, the working directory, the user running it, environment variables, file permissions, exit codes, quoting, pipelines, network/DNS, and dependency versions. Scheduled jobs often fail simply because cron runs with a much smaller environment than an interactive shell.
 
 I add `set -Eeuo pipefail` carefully, log useful context, and use `trap 'echo "failed at line $LINENO" >&2' ERR`. Once it's fixed, I test the success case, invalid input, a timeout, partial output, running it twice in a row, and cleanup. I redact secrets before sharing any trace output.
-### 4. Shell Script Error Handling
+
+</details>
+
+<details><summary>Q4. [Intermediate] Shell Script Error Handling</summary>
 
 #### The script
 
@@ -365,12 +372,16 @@ For critical deployment automation, combine `set -euo pipefail` with explicit ch
 Without error handling: `cp fails → script continues` ❌
 With `set -e`: `cp fails → script stops` ✅
 Production: `set -euo pipefail` + explicit checks for critical operations
-### 5. common shell interview questions (quick-fire)
+
+</details>
+
+<details><summary>Q5. [Basic] common shell interview questions (quick-fire)</summary>
 
 **1. Why use `#!/usr/bin/env bash`?**
 It's the shebang, telling the OS to use Bash. `env` finds Bash through `PATH`, which is more portable than hardcoding `/bin/bash` (which doesn't exist at that path on every system).
 
 **2. What is `set -Eeuo pipefail`?**
+
 - `-e` - exit immediately on a command failure.
 - `-E` - preserves `ERR` traps inside functions and subshells (without it, `-e`'s effect can silently not propagate into a function).
 - `-u` - treats unset variables as errors instead of expanding to empty strings.
@@ -443,3 +454,5 @@ Checks a service's state purely through its exit code, without printing status o
 
 **20. "What shell automation have you done?"**
 Disk monitoring, old log cleanup, backup verification, service restart/health checks, user account workflows, email/Slack alerts, and CI/CD automation.
+
+</details>

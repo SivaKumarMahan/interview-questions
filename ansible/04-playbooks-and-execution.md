@@ -252,7 +252,7 @@ A handler should normally react to a configuration or deployed artifact change. 
 
 ## Interview Questions
 
-### 1. Simpler Nginx playbook - and a validation trap
+<details><summary>Q1. [Intermediate] Simpler Nginx playbook - and a validation trap</summary>
 
 A shorter version, often used to test whether a candidate actually understands what each module does rather than pattern-matching keywords:
 
@@ -282,3 +282,5 @@ Real validation has to come from somewhere else:
 - Use the `template` module's `validate` option (as in the fuller playbook above), which validates the *rendered* file before it's put in place.
 
 Interview takeaway: don't assume a task name describes what a module actually does - check what the module's documented behavior is.
+
+</details>

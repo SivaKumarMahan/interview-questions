@@ -1,0 +1,23 @@
+# AFTER: a multi-stage build.
+# Stage 1 compiles a static binary. Stage 2 copies only that binary into a tiny,
+# non-root, distroless runtime image.
+
+# ---- build stage ----
+FROM golang:1.23 AS build
+WORKDIR /src
+
+# Copy the module file first so dependency downloads are cached
+# when only the source code changes.
+COPY go.mod ./
+RUN go mod download
+
+COPY main.go ./
+# CGO_ENABLED=0 gives a static binary; -s -w strips debug symbols.
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/app .
+
+# ---- runtime stage ----
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/app /app
+USER nonroot:nonroot
+EXPOSE 8080
+ENTRYPOINT ["/app"]

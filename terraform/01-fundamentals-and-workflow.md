@@ -240,7 +240,7 @@ write code -> init -> fmt -> validate -> plan -> review -> apply -> verify
 
 ## Interview Questions
 
-### 1. How have you used Terraform?
+<details><summary>Q1. [Intermediate] How have you used Terraform?</summary>
 
 #### Short answer
 
@@ -273,7 +273,9 @@ State was kept in a remote backend that was encrypted, versioned, and locked.
 
 "I used Terraform to create repeatable environments. For example, I built a VPC with subnets, security groups, a load balancer, auto scaling servers, and an RDS database. I kept reusable code in modules and environment values in separate folders. All changes went through pull requests, and the pipeline ran plan first and applied only after approval."
 
-### 2. What is the difference between Terraform and OpenTofu?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between Terraform and OpenTofu?</summary>
 
 Terraform and OpenTofu are Infrastructure as Code tools with very similar configuration language and workflows. OpenTofu began as a fork after HashiCorp changed Terraform's license.
 
@@ -300,7 +302,9 @@ tofu apply
 
 Many configurations and providers work with both, but they are developed independently and compatibility should be tested before switching an existing project. Terraform can be practical for teams that use HashiCorp support and HCP Terraform. OpenTofu is attractive to teams that require an open-source, community-governed tool.
 
-### 3. How would you create cloud resources with Terraform?
+</details>
+
+<details><summary>Q3. [Basic] How would you create cloud resources with Terraform?</summary>
 
 #### Steps
 
@@ -326,7 +330,9 @@ terraform apply tfplan
 
 "First I gather requirements, then I set the provider and remote backend and pin versions. I write resources using modules and variables. I run fmt, init, validate, plan, review the plan, and then apply the saved plan. After apply I check the resource in the cloud, because a successful apply only means the API calls worked."
 
-### 4. What happens during init, plan, and apply?
+</details>
+
+<details><summary>Q4. [Basic] What happens during init, plan, and apply?</summary>
 
 | Command | What it does |
 |---|---|
@@ -344,7 +350,9 @@ terraform apply tfplan
 
 "`init` prepares the working directory and downloads providers and modules. `plan` shows the difference between my code and the real infrastructure without changing anything. `apply` performs those changes and updates the state file. In pipelines I save the plan with `-out` and apply that file, so I apply exactly what was reviewed."
 
-### 5. `terraform refresh` vs `terraform plan` *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Basic] <code>terraform refresh</code> vs <code>terraform plan</code> <em>(asked in interview round)</em></summary>
 
 | `terraform refresh` | `terraform plan` |
 |---|---|
@@ -363,7 +371,9 @@ terraform apply -refresh-only    # record it in state, no infrastructure change
 
 "Refresh updates the state file to match the real world; plan shows what apply would do. Plan refreshes in memory first and then shows the difference, without changing anything. The standalone refresh command is deprecated, so I use `plan -refresh-only` to review drift and `apply -refresh-only` when I want to record it in state."
 
-### 6. What is the difference between stateful and stateless resources?
+</details>
+
+<details><summary>Q6. [Basic] What is the difference between stateful and stateless resources?</summary>
 
 | Stateful | Stateless |
 |---|---|
@@ -380,7 +390,9 @@ The Terraform state file is not a backup of your data. It only records resource 
 
 "Stateful resources hold business data, like databases, disks, and buckets, so replacing them needs backups, replication, and a cutover plan. Stateless resources such as web servers keep no data and can be recreated behind a load balancer. I also mention that the Terraform state file is not a data backup; it only tracks resource details."
 
-### 7. What dependencies are needed for an IP address or networking resource?
+</details>
+
+<details><summary>Q7. [Intermediate] What dependencies are needed for an IP address or networking resource?</summary>
 
 **Answer:**
 
@@ -394,7 +406,9 @@ Where one resource references another, like `subnet_id = aws_subnet.public.id`, 
 
 After apply, I check the real thing: that routing works, ACLs and security groups behave as expected, DNS resolves, and the application port responds from the actual source.
 
-### 8. How do you gather requirements before writing Terraform code?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you gather requirements before writing Terraform code?</summary>
 
 #### Questions I ask
 
@@ -419,7 +433,9 @@ Turn the repeated patterns into modules, keep environment values outside modules
 
 "I write a short requirements list first: resources, environments, networking, security, naming and tagging standards, scaling, availability, backup, cost, and ownership. I also check what already exists and must be imported. Then I turn repeated patterns into modules, keep environment values at the root, and agree on acceptance tests and a rollback plan before I start coding."
 
-### 9. What challenges have you faced with Terraform?
+</details>
+
+<details><summary>Q9. [Intermediate] What challenges have you faced with Terraform?</summary>
 
 #### Common challenges
 
@@ -436,3 +452,5 @@ Turn the repeated patterns into modules, keep environment values outside modules
 #### Interview answer
 
 "The most common ones are drift from manual changes, state conflicts when two people apply together, slow plans on large projects, accidental replacement of resources, and provider version upgrades breaking things. I handle them with locked remote state, smaller state files, pinned versions, reviewed plans, and production approvals."
+
+</details>

@@ -279,7 +279,7 @@ By default Bake looks up its configuration file in a defined lookup order (e.g. 
 
 ## Interview Questions
 
-### 1. How do you optimize a Dockerfile for performance and security?
+<details><summary>Q1. [Intermediate] How do you optimize a Dockerfile for performance and security?</summary>
 
 **Answer:**
 
@@ -289,7 +289,9 @@ CI builds the image reproducibly, tests it, generates an SBOM, scans it, signs i
 
 I measure build time, cache hit rate, image size, startup time, vulnerability count, and actual application performance. Alpine isn't automatically the best choice — its different C library (musl) can cause subtle compatibility issues, so a "slim" or distroless image is sometimes the safer bet.
 
-### 2. Explain Docker image layering and how it can cause cache busting.
+</details>
+
+<details><summary>Q2. [Intermediate] Explain Docker image layering and how it can cause cache busting.</summary>
 
 **Answer:**
 
@@ -309,9 +311,12 @@ Put the steps that change often (like copying source code) later in the file, an
 
 Caching makes builds faster, but I don't let a stale cache block a needed patch. `docker history` and build timing help spot exactly where cache is being invalidated.
 
-### 3. How do you reduce Docker image size for faster deployments? *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you reduce Docker image size for faster deployments? <em>(asked in interview round)</em></summary>
 
 **Answer:**
+
 - Use a smaller base image, like Alpine.
 - Use multi-stage builds.
 - Remove unused packages and cache in the same layer you added them.
@@ -324,7 +329,9 @@ I keep the number of packages installed to a minimum, and I clean up package cac
 
 Alpine isn't always the right choice — sometimes its different C library (musl) causes compatibility issues, so a "slim" or distroless image can be a safer trade-off.
 
-### 4. What are Docker multi-stage builds, and how do they help optimize Docker images?
+</details>
+
+<details><summary>Q4. [Basic] What are Docker multi-stage builds, and how do they help optimize Docker images?</summary>
 
 Multi-stage builds let you separate the build environment from the runtime environment. In the first stage, you compile or package your app using all the tools you need. In the final stage, you copy just the build output into a lightweight image, like Alpine.
 
@@ -352,7 +359,9 @@ In this example:
 - The second stage uses the lightweight `alpine` image and copies over only the compiled binary.
 - The result is a much smaller final image that contains only what's needed to run the app.
 
-### 5. Docker Image Optimization for a React App
+</details>
+
+<details><summary>Q5. [Intermediate] Docker Image Optimization for a React App</summary>
 
 #### The Dockerfile
 
@@ -400,6 +409,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 Improvements:
+
 - **Multi-stage build**: Node is only used to build the static files; the final image is just `nginx:alpine` (a few MB) serving static content — no Node, no source code, no `node_modules` in production.
 - **Better layer caching**: copying `package*.json` first means `npm ci` only re-runs when dependencies actually change, not on every source edit.
 - **`npm ci` instead of `npm install`**: faster, reproducible installs based on `package-lock.json`.
@@ -409,7 +419,9 @@ Improvements:
 
 "A built React app is just static files, so shipping the full Node image to run `npm start` is unnecessarily large and uses a dev server not meant for production. I'd use a multi-stage build — build the app in a `node` stage with `npm ci`, then copy only the compiled `build` output into a lightweight `nginx:alpine` stage to actually serve it. I'd also copy `package.json` before the rest of the source so Docker can cache the dependency install layer properly."
 
-### 6. Write and explain a multi-stage Dockerfile for a Maven application.
+</details>
+
+<details><summary>Q6. [Intermediate] Write and explain a multi-stage Dockerfile for a Maven application.</summary>
 
 **Answer:**
 
@@ -433,3 +445,5 @@ ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 The build stage has Maven, the source code, and everything needed to compile. The runtime stage only has a JRE and the final JAR — nothing else carries over. Copying `pom.xml` in before the source code means dependency downloads stay cached across builds.
 
 A `.dockerignore` file excludes `.git`, local build output, credentials, and anything else that doesn't belong in the build context. In production, I'd pin the base images by digest, scan and sign the result, set sensible JVM and container resource limits, and test that shutdown signals and health checks both work.
+
+</details>

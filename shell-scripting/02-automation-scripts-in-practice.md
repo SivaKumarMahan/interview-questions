@@ -127,6 +127,7 @@ A command returning exit code zero is not proof that the data can be recovered.
 ### Safe Bash Backup Rotation Example
 
 This example dumps a PostgreSQL database from a container, checks the output isn't empty, and removes backups older than seven days. In production, credentials should come from a protected runtime source, and backups should also be encrypted, copied to separate storage, monitored, and tested by actually restoring them.
+
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -188,7 +189,7 @@ Shell scripting is a good fit for small tasks. Once you're dealing with heavier 
 
 ## Interview Questions
 
-### 1. How would you write a script to download the latest backup file from a remote server using SSH?
+<details><summary>Q1. [Intermediate] How would you write a script to download the latest backup file from a remote server using SSH?</summary>
 
 **Answer:**
 
@@ -218,7 +219,9 @@ echo "Downloaded and verified: $local_dir/$name"
 
 I use a dedicated read-only SSH key, verify host keys, restrict what the remote account can do, check local free space, and alert on failure. A checksum match only proves the file transferred correctly — a real restore test is what proves the backup is actually useful.
 
-### 2. Write a Bash script to find the biggest file in a folder.
+</details>
+
+<details><summary>Q2. [Basic] Write a Bash script to find the biggest file in a folder.</summary>
 
 **Answer:**
 
@@ -241,7 +244,9 @@ printf 'Largest file: %q (%s bytes)\n' "$path" "$size"
 
 Filenames can contain newlines, so a fully general production version would use null-delimited processing or a different language. I also don't delete the result automatically — first I check whether it's an active log, an open file, a database file, or a protected backup.
 
-### 3. Shell Script Disk Monitoring Bug
+</details>
+
+<details><summary>Q3. [Intermediate] Shell Script Disk Monitoring Bug</summary>
 
 #### The script
 
@@ -281,7 +286,9 @@ fi
 
 "The bug is that `df -h` includes a `%` sign in the usage field, so the variable holds something like `85%`, and comparing that with `-gt` in a numeric test fails or behaves unexpectedly. The fix is to strip the `%` character with `tr -d '%'` before the comparison, and use `df -P` instead of `-h` for reliable single-line, script-friendly output."
 
-### 4. Write a shell script that starts Nginx only when it is not running.
+</details>
+
+<details><summary>Q4. [Basic] Write a shell script that starts Nginx only when it is not running.</summary>
 
 **Answer:**
 
@@ -311,7 +318,9 @@ In automation I'd run this through a properly authorized service account or a co
 
 A monitoring system should be the one that catches the outage in the first place — this script is a fix, not a substitute for a health check.
 
-### 5. What is an example of a complex automation script you have written?
+</details>
+
+<details><summary>Q5. [Intermediate] What is an example of a complex automation script you have written?</summary>
 
 **Answer:**
 
@@ -331,7 +340,9 @@ My flow is:
 
 I use `set -Eeuo pipefail`, a cleanup trap, structured logs, quoted variables, explicit exit codes, and a dry-run mode. In an interview I like to describe one real failure I found — for example, a health endpoint that passed while database authentication was actually failing — and how I added a dependency smoke test so it wouldn't happen again.
 
-### 6. Shell Script for 500 Servers
+</details>
+
+<details><summary>Q6. [Advanced] Shell Script for 500 Servers</summary>
 
 #### The script
 
@@ -382,6 +393,7 @@ xargs -a "$SERVERS_FILE" -P "$MAX_PARALLEL" -I{} bash -c 'check_server "$@"' _ {
 ```
 
 Key improvements:
+
 - `xargs -P` runs checks in parallel with a controlled limit (20 at a time), instead of one at a time.
 - `-o ConnectTimeout` prevents one dead server from hanging the whole run.
 - Each server's output is logged to its own file for later review.
@@ -391,7 +403,9 @@ Key improvements:
 
 "With 500 servers, running SSH sequentially is far too slow and has no error handling — a hung or unreachable server can block everything indefinitely. I'd add `ConnectTimeout` to fail fast on unreachable hosts, run checks in parallel with a controlled concurrency limit using something like `xargs -P`, log each server's output to its own file, and print a clear success/failure summary instead of silently continuing past errors."
 
-### 7. How can PowerShell help with cost optimization?
+</details>
+
+<details><summary>Q7. [Intermediate] How can PowerShell help with cost optimization?</summary>
 
 **Answer:**
 
@@ -407,7 +421,9 @@ My process is: report, then owner review, then approval, then deletion after a r
 
 I use a managed identity, `-WhatIf` where it's supported, scope restrictions, exclusions for protected resources, audit logs, and a recoverable holding period before anything is actually deleted. The goal is to save money without hurting availability, performance, or the retention rules we're required to follow.
 
-### 8. Was PowerShell part of CI or CD?
+</details>
+
+<details><summary>Q8. [Basic] Was PowerShell part of CI or CD?</summary>
 
 **Answer:**
 
@@ -418,7 +434,10 @@ In CI it can validate configuration, run Pester tests, calculate version numbers
 I keep scripts in Git as modules or functions instead of writing large blocks of inline pipeline code. The pipeline passes explicit parameters, secrets come from the platform's secret store, and scripts return a non-zero exit code on failure.
 
 Any function that changes something destructive supports `ShouldProcess`/`-WhatIf`. I test the script on its own and pin the Az module version, so an automatic module upgrade can't quietly change production behavior.
-### 9. Kubernetes deployment rollout status check
+
+</details>
+
+<details><summary>Q9. [Intermediate] Kubernetes deployment rollout status check</summary>
 
 Waits for a rollout to finish and, if it doesn't, dumps enough context (pods + recent events) to start troubleshooting immediately instead of just failing silently.
 
@@ -446,7 +465,9 @@ echo "Deployment successful"
 
 `kubectl rollout status --timeout=180s` blocks until the rollout completes or the timeout is hit. `$?` captures its exit code - non-zero means the rollout didn't finish cleanly, so the script pulls the current pod list and the 20 most recent namespace events (sorted by timestamp) before exiting non-zero itself, so a calling CI/CD pipeline stage also fails.
 
-### 10. Docker disk cleanup script
+</details>
+
+<details><summary>Q10. [Intermediate] Docker disk cleanup script</summary>
 
 ```bash
 #!/bin/bash
@@ -469,7 +490,9 @@ echo "Cleanup completed"
 
 This is a build-agent housekeeping script, not something to run against a host with images you might still need - `-a` is aggressive.
 
-### 11. Linux disk usage monitoring script
+</details>
+
+<details><summary>Q11. [Intermediate] Linux disk usage monitoring script</summary>
 
 ```bash
 #!/bin/bash
@@ -490,7 +513,9 @@ fi
 
 `USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')` gets the disk usage of the root filesystem: `df /` prints the filesystem table, `awk 'NR==2 {print $5}'` grabs the `Use%` column from the second line (the data row), and `sed 's/%//'` strips the `%` sign so the value can be compared numerically. A non-zero exit code on breach makes this usable directly as a monitoring/cron check.
 
-### 12. Log backup script
+</details>
+
+<details><summary>Q12. [Intermediate] Log backup script</summary>
 
 ```bash
 #!/bin/bash
@@ -508,3 +533,5 @@ ls -lh "$BACKUP_DIR/myapp-$DATE.tar.gz"
 ```
 
 `mkdir -p` ensures the backup directory exists without erroring if it already does. `tar -czf` creates a gzip-compressed archive (`c` = create, `z` = gzip, `f` = file) named with the current date, so re-running the script on a different day produces a separate, non-overwriting backup file.
+
+</details>

@@ -68,7 +68,7 @@ Multi-region recovery normally uses separate clusters, replicated data, independ
 
 ## Interview Questions
 
-### 1. What metrics are monitored to ensure cluster health?
+<details><summary>Q1. [Intermediate] What metrics are monitored to ensure cluster health?</summary>
 
 **Answer:**
 
@@ -80,7 +80,9 @@ Alerts focus on actionable symptoms — SLO burn, zero Ready replicas, node pres
 
 I keep metric cardinality under control, since it's easy to let it explode. And healthy nodes don't automatically mean healthy users.
 
-### 2. How do you monitor Kubernetes clusters?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you monitor Kubernetes clusters?</summary>
 
 **Answer:** Use Prometheus + Grafana for metrics, ELK/EFK stack for logs, and Kubernetes liveness/readiness probes for pod health.
 
@@ -93,7 +95,9 @@ At scale, I combine or downsample older metrics, sample traces intelligently, an
 
 I verify alert delivery and recovery regularly, and tune out noisy or unactionable signals.
 
-### 3. What logging and monitoring solutions do you recommend for Kubernetes?
+</details>
+
+<details><summary>Q3. [Intermediate] What logging and monitoring solutions do you recommend for Kubernetes?</summary>
 
 **Answer:**
 
@@ -105,7 +109,9 @@ The observability platform also has to observe itself: scrape and ingest failure
 
 I define SLO dashboards and alerts, and run incident drills that trace one request across ingress, service, and database. The number of tools matters far less than having reliable, correlated signals and clear ownership of them.
 
-### 4. How do you implement centralized monitoring for multiple Kubernetes clusters in Azure? What tools would you use, and why?
+</details>
+
+<details><summary>Q4. [Advanced] How do you implement centralized monitoring for multiple Kubernetes clusters in Azure? What tools would you use, and why?</summary>
 
 A centralized place to monitor:
 
@@ -179,7 +185,9 @@ Instrument applications running in the clusters with Application Insights SDKs f
 
 This approach ensures you have a robust, scalable, and centralized monitoring solution for multiple Kubernetes clusters in Azure.
 
-### 5. How do you monitor logs in Kubernetes?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you monitor logs in Kubernetes?</summary>
 
 **Answer:** Use kubectl logs for quick debugging → For centralized logging, use EFK (Elasticsearch + Fluentd + Kibana) or Loki + Grafana.
 
@@ -192,7 +200,9 @@ At scale, I combine or downsample older metrics, sample traces intelligently, an
 
 I verify alert delivery and recovery regularly, and tune out noisy or unactionable signals.
 
-### 6. What command gets logs from a Pod?
+</details>
+
+<details><summary>Q6. [Basic] What command gets logs from a Pod?</summary>
 
 **Answer:**
 
@@ -208,7 +218,9 @@ Production logs should be structured and centralized, because Pod logs themselve
 
 I compare the logs against deployment history, metrics, and traces rather than treating one log line as proof on its own.
 
-### 7. Command to get logs in Kubernetes *(asked in interview round)*
+</details>
+
+<details><summary>Q7. [Basic] Command to get logs in Kubernetes <em>(asked in interview round)</em></summary>
 
 ```bash
 kubectl logs <pod>                      # current logs
@@ -217,9 +229,12 @@ kubectl logs -f <pod>                   # follow (tail)
 kubectl logs <pod> --previous           # logs from previous crashed container
 kubectl logs -l app=web --tail=100      # by label selector
 ```
+
 Pod logs disappear once the pod is deleted, so for logs you need to keep, send them to a centralized logging system (see §8.4).
 
-### 8. How do you view Pod logs with kubectl logs?
+</details>
+
+<details><summary>Q8. [Basic] How do you view Pod logs with kubectl logs?</summary>
 
 Use `kubectl logs` to read the output of an application running in a pod.
 
@@ -238,7 +253,9 @@ Use `kubectl logs` to read the output of an application running in a pod.
 | `kubectl logs deployment/myapp` | Show logs from a pod managed by a Deployment |
 | `kubectl logs job/my-job` | Show logs from a Job |
 
-### 9. How would you debug a sudden spike in latency across services?
+</details>
+
+<details><summary>Q9. [Advanced] How would you debug a sudden spike in latency across services?</summary>
 
 **Answer:**
 
@@ -252,7 +269,9 @@ Mitigation might mean rolling back, shifting traffic, scaling the actual bottlen
 
 I validate the user's actual transaction, latency, and error rate, and watch it recover. The root-cause review identifies the change that started it and any amplification — a retry storm or pool exhaustion, for example — and adds a test, more capacity, a timeout or retry budget, an alert, or a deployment gate.
 
-### 10. How do you implement chaos engineering in Kubernetes?
+</details>
+
+<details><summary>Q10. [Advanced] How do you implement chaos engineering in Kubernetes?</summary>
 
 **Answer:** Use Chaos Mesh/LitmusChaos → Inject pod/node failures → Test resilience → Monitor recovery.
 
@@ -265,7 +284,9 @@ Tools like Chaos Mesh can inject Pod, network, or resource faults, but access to
 
 I compare what actually recovered against the hypothesis, record any gaps, fix the probes, capacity, retries, or runbooks, and rerun it. Chaos engineering is never just unlimited random failure — it's a controlled experiment.
 
-### 11. What is the role of etcd and how do you back it up?
+</details>
+
+<details><summary>Q11. [Intermediate] What is the role of etcd and how do you back it up?</summary>
 
 **Answer:**
 
@@ -281,7 +302,9 @@ I encrypt it, store it off-cluster with a retention policy, control access and a
 
 I monitor quorum and member health, fsync latency, DB size, and available space. Checking snapshot status is not the same as testing a real restore.
 
-### 12. What is your strategy for backup and restore in a cluster?
+</details>
+
+<details><summary>Q12. [Intermediate] What is your strategy for backup and restore in a cluster?</summary>
 
 A comprehensive backup and restore strategy for a Kubernetes cluster involves several key components to ensure data integrity, availability, and quick recovery in case of failures. Here's a general approach:
 
@@ -313,7 +336,9 @@ A comprehensive backup and restore strategy for a Kubernetes cluster involves se
 
 By following this strategy, you can ensure that your Kubernetes cluster is well-protected against data loss and can be quickly restored in the event of a failure.
 
-### 13. How do you use Velero for backup and restore in Azure Kubernetes Service?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you use Velero for backup and restore in Azure Kubernetes Service?</summary>
 
 Velero is an open-source tool that provides backup, restore, and disaster recovery capabilities for Kubernetes clusters.
 
@@ -378,7 +403,9 @@ Replace `<backup-name>` with the name of the backup you want to delete.
 
 By following these steps, you can effectively use Velero to manage backups and restores in your Azure Kubernetes Service (AKS) cluster.
 
-### 14. How do you prepare for disaster recovery in Kubernetes?
+</details>
+
+<details><summary>Q14. [Advanced] How do you prepare for disaster recovery in Kubernetes?</summary>
 
 **Answer:** Backup cluster state with Velero → Store manifests in Git → Automate redeployment in DR cluster.
 
@@ -391,7 +418,9 @@ I automate restoring into a clean environment and validate integrity, applicatio
 
 Regular drills record the actual recovery time, any missing dependency, and any manual step needed, and that feeds back into updating the runbook, capacity planning, DNS TTLs, contact paths, and backup retention.
 
-### 15. An entire Kubernetes region goes down. How do you fail over workloads?
+</details>
+
+<details><summary>Q15. [Advanced] An entire Kubernetes region goes down. How do you fail over workloads?</summary>
 
 **Answer:**
 
@@ -405,7 +434,9 @@ Failing back is also planned: reconcile the data, restore the primary region, te
 
 Just having manifests in Git isn't disaster recovery if the data, DNS, secrets, quota, or dependencies aren't actually available in the second region.
 
-### 16. Why is a single Kubernetes control plane for multi-region deployments risky?
+</details>
+
+<details><summary>Q16. [Advanced] Why is a single Kubernetes control plane for multi-region deployments risky?</summary>
 
 **Answer:**
 
@@ -419,7 +450,9 @@ Access, policy, and observability are standardized across regions without coupli
 
 The trade-off is more clusters and more work keeping them operationally consistent, which is addressed through automation and fleet management. I test losing a whole region or control plane, not just a single Pod failure.
 
-### 17. How do you implement cross-region failover for Kubernetes control planes?
+</details>
+
+<details><summary>Q17. [Advanced] How do you implement cross-region failover for Kubernetes control planes?</summary>
 
 **Answer:** Run HA clusters with regional control planes, replicate etcd across zones, set up DNS failover, and test regularly. Mini-case: A zone failure in us-central caused automatic API server failover to backup region; developers continued kubectl operations without noticing.
 **Detailed interview approach:**
@@ -431,7 +464,9 @@ I automate restoring into a clean environment and validate integrity, applicatio
 
 Regular drills record the actual recovery time, any missing dependency, and any manual step needed, and that feeds back into updating the runbook, capacity planning, DNS TTLs, contact paths, and backup retention.
 
-### 18. How do you implement multi-region deployments in Kubernetes?
+</details>
+
+<details><summary>Q18. [Advanced] How do you implement multi-region deployments in Kubernetes?</summary>
 
 **Answer:** Use multiple clusters across regions → Manage via Anthos (GCP) or Azure Arc → Route traffic with global load balancer.
 
@@ -444,7 +479,9 @@ I automate restoring into a clean environment and validate integrity, applicatio
 
 Regular drills record the actual recovery time, any missing dependency, and any manual step needed, and that feeds back into updating the runbook, capacity planning, DNS TTLs, contact paths, and backup retention.
 
-### 19. How do you manage multi-cloud Kubernetes deployments?
+</details>
+
+<details><summary>Q19. [Advanced] How do you manage multi-cloud Kubernetes deployments?</summary>
 
 **Answer:** Use Rancher, Anthos (GCP), or Azure Arc → Standardize with Helm/ArgoCD → Centralized monitoring/logging.
 
@@ -456,3 +493,5 @@ A central inventory or fleet layer reports versions, policy compliance, capacity
 Deployments roll out from a representative canary cluster to waves of others, and stop automatically on an SLO or policy failure. Cross-cluster traffic uses private connectivity, explicit DNS or service discovery, mTLS identity, and narrow firewall rules.
 
 I test what happens if a whole cluster or region is lost, avoid any hidden shared control-plane dependency, and automate upgrades and drift correction with audited exceptions.
+
+</details>

@@ -55,7 +55,7 @@ Some services are global (IAM, Route 53, CloudFront). Keep those in one global s
 
 ## Interview Questions
 
-### 1. How do you handle provider or module version problems?
+<details><summary>Q1. [Intermediate] How do you handle provider or module version problems?</summary>
 
 #### Where to look
 
@@ -97,7 +97,9 @@ Do not delete `.terraform.lock.hcl` just to make CI pass. Find out why local and
 
 "I check `required_version`, the provider constraints, the lock file, and the module version, and `terraform providers` shows which module needs what. I pin ranges and commit the lock file. Upgrades happen in their own pull request after reading the release notes, testing in a lower environment, and comparing plans. I never delete the lock file just to make the pipeline pass."
 
-### 2. How do you handle provider version conflicts? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you handle provider version conflicts? <em>(scenario)</em></summary>
 
 #### Pin the versions
 
@@ -130,7 +132,9 @@ terraform init -upgrade    # only when upgrading on purpose
 
 "I pin `required_version` and provider constraints and commit the lock file so CI and laptops resolve the same versions. `terraform providers` shows which module is pulling in a conflicting constraint, which is usually an old module needing an update. Upgrades happen deliberately in their own pull request, and I never delete the lock file just to make the pipeline pass."
 
-### 3. Have you written a custom provider or used external data sources?
+</details>
+
+<details><summary>Q3. [Intermediate] Have you written a custom provider or used external data sources?</summary>
 
 #### Honest answer
 
@@ -166,7 +170,9 @@ An internal API that needs proper create, read, update, delete behaviour, schema
 
 "I have not written a production provider, and I would be honest about that. I first look for an official provider, then a REST or HTTP provider, then a read-only `external` data source. I have used data sources to look up existing networks, images, and account details so modules do not hardcode IDs. A custom provider is worth it only for an internal API that needs proper CRUD, validation, and import support, plus tests and ownership."
 
-### 4. How do you extend Terraform when no provider exists?
+</details>
+
+<details><summary>Q4. [Advanced] How do you extend Terraform when no provider exists?</summary>
 
 #### Options from easiest to hardest
 
@@ -198,7 +204,9 @@ Your internal system needs full create, read, update, delete behaviour, schema v
 
 "First I check whether an official or community provider already exists. For simple read-only needs I use the `http` or `external` data source. A custom provider written in Go with the Plugin Framework is worth it only when an internal API needs real CRUD support, schema validation, and import, and when someone will own and test it long term."
 
-### 5. How do you handle multiple regions and multiple accounts?
+</details>
+
+<details><summary>Q5. [Advanced] How do you handle multiple regions and multiple accounts?</summary>
 
 #### Multiple regions: provider alias
 
@@ -253,7 +261,9 @@ resource "aws_instance" "app" {
 
 "For multiple regions I use provider aliases, and for multiple accounts I use a provider with `assume_role` into a Terraform role in the target account. I keep separate state per account and region but share the same modules so everything is built the same way. Stacks exchange values through remote state outputs or stable interfaces like DNS."
 
-### 6. You need infrastructure in 10 AWS regions. How do you structure it?
+</details>
+
+<details><summary>Q6. [Advanced] You need infrastructure in 10 AWS regions. How do you structure it?</summary>
 
 #### Approach
 
@@ -274,7 +284,9 @@ Provider aliases work for a small fixed list, but with one state:
 
 "I build one regional module and give every region its own state so a failure in one region does not block the rest. A pipeline matrix runs the plans in parallel and controls apply concurrency. Region-specific values like CIDRs and availability zones come from variables. Global resources like IAM and DNS live in a separate global stack."
 
-### 7. How do you provision resources across two accounts?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you provision resources across two accounts?</summary>
 
 #### Example
 
@@ -335,7 +347,9 @@ resource "aws_s3_bucket_policy" "logs" {
 
 "I define one provider alias per account, with `assume_role` pointing at a Terraform role in the target account, then set `provider = aws.<alias>` on each resource. The trust and resource policies together allow cross-account access. In larger setups there is a management account holding the Terraform roles and a separate account for state, all with least-privilege permissions."
 
-### 8. How do you structure Terraform for multi-cloud?
+</details>
+
+<details><summary>Q8. [Advanced] How do you structure Terraform for multi-cloud?</summary>
 
 #### Approach
 
@@ -361,7 +375,9 @@ provider "azurerm" {
 
 "I use provider-specific modules instead of one generic module that pretends the clouds are the same, and I separate state by cloud, account, environment, and region. Each cloud gets its own least-privilege identity and pipeline stage. What I share across clouds is the standards: naming, tagging, policy checks, and review process. That way one cloud outage or provider bug does not block everything."
 
-### 9. How do you migrate infrastructure from one cloud to another? *(scenario)*
+</details>
+
+<details><summary>Q9. [Advanced] How do you migrate infrastructure from one cloud to another? <em>(scenario)</em></summary>
 
 #### Steps
 
@@ -380,7 +396,9 @@ You cannot "migrate state" from AWS to Azure. The resources are different. You w
 
 "State does not move between clouds, because the resource types are different, so I write new code for the target cloud in its own state. I run both sides in parallel, copy the data, and shift traffic with DNS so rollback is possible. If some resources already exist in the target cloud, I import them instead of recreating them. The old environment is destroyed only after an agreed rollback window."
 
-### 10. Migrating Terraform state across clouds
+</details>
+
+<details><summary>Q10. [Advanced] Migrating Terraform state across clouds</summary>
 
 When migrating infrastructure across providers - for example AWS to Azure - don't try to reuse the old state. The resources and providers are fundamentally different; there's nothing to "migrate" at the resource level, only at the process level.
 
@@ -412,7 +430,9 @@ This copies existing state into the new backend configuration - no resource recr
 
 I don't try to reuse state across providers - the resource types are different, so there's nothing to carry over directly. I back up the old state with `terraform state pull`, stand up the new infrastructure (importing anything that needs to be brought under management), validate with `plan` until it's clean, cut traffic over once the new side is verified healthy, and only then decommission the old infrastructure. If it's just a backend change within the same provider, `terraform init -migrate-state` handles that without any of this.
 
-### 11. How do you create IAM roles in Terraform?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you create IAM roles in Terraform?</summary>
 
 #### Two parts of a role
 
@@ -455,7 +475,9 @@ resource "aws_iam_role_policy_attachment" "app_s3" {
 
 "I separate the trust policy from the permission policy. I build both with `aws_iam_policy_document` so the JSON is valid and can use variables. I keep permissions least privilege and avoid wildcards. When the same role pattern repeats, I put it in a module with required tags and boundaries, and I test the access after applying."
 
-### 12. How do you create an EKS cluster with Terraform?
+</details>
+
+<details><summary>Q12. [Intermediate] How do you create an EKS cluster with Terraform?</summary>
 
 #### What you need
 
@@ -504,3 +526,5 @@ API access, node status, system pods, DNS, storage class, autoscaling, and a tes
 #### Interview answer
 
 "I use a pinned EKS module with a VPC, private subnets, cluster and node IAM roles, managed node groups, and the core add-ons. AWS runs the control plane, which is the API server, etcd, scheduler, and controllers, while worker nodes run kubelet and my pods. I plan cluster, node, and add-on upgrades separately. After apply I check API access, node readiness, system pods, DNS, and a sample workload, because a successful apply alone does not prove the cluster works."
+
+</details>

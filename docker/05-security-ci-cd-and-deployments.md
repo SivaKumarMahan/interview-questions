@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you ensure Docker container security at runtime? *(asked in interview round)*
+<details><summary>Q1. [Intermediate] How do you ensure Docker container security at runtime? <em>(asked in interview round)</em></summary>
 
 **Answer:** Use Falco or AquaSec to watch for suspicious behavior. Restrict root access. Apply AppArmor or SELinux profiles.
 
@@ -17,7 +17,9 @@ At runtime I drop capabilities the container doesn't need, use seccomp/AppArmor/
 
 If startup is slow or a push keeps failing, I measure things instead of guessing: layer size and cache hits, registry DNS/auth/TLS, disk space, and application startup time. Once I find the cause, I rebuild from a patched base and re-check that everything still works.
 
-### 2. How do you handle secrets inside containers?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you handle secrets inside containers?</summary>
 
 **Answer:**
 
@@ -29,7 +31,9 @@ Secret files get narrow file permissions and a short lifecycle, and logs and dia
 
 I test that the image's history and any exported copy contain no secret, that only authorized workloads can read it, and that rotating a secret doesn't cause downtime.
 
-### 3. Are you aware of security scanning tools? How do you scan Docker images — both during build and at the registry level?
+</details>
+
+<details><summary>Q3. [Intermediate] Are you aware of security scanning tools? How do you scan Docker images — both during build and at the registry level?</summary>
 
 I scan images at two points: during the build, and again once they land in the registry.
 
@@ -100,7 +104,9 @@ az acr run --cmd "acr scan show --name <registry>" --registry <acrName>
 
 View results under `Security` → `Vulnerabilities`.
 
-### 4. How do you enforce policy as code for Docker security?
+</details>
+
+<details><summary>Q4. [Advanced] How do you enforce policy as code for Docker security?</summary>
 
 **Answer:**
 
@@ -112,7 +118,9 @@ I test each rule against both compliant and non-compliant examples, version the 
 
 Policy as code works alongside runtime controls, RBAC, network segmentation, monitoring, and regular patching — it's one layer, not the whole defense. I usually start new rules in audit-only mode so I can see their impact before actually blocking anything.
 
-### 5. How do you ensure Docker image immutability? *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you ensure Docker image immutability? <em>(asked in interview round)</em></summary>
 
 **Answer:** Tag images with a version or commit hash. Push that exact tag to the registry and never overwrite it. Block `latest` from being used in pipelines.
 
@@ -123,7 +131,9 @@ I tag every build with a commit hash or version number, and I reference images b
 
 This makes rollback simple and reliable: to go back, you just redeploy the previous tag or digest, knowing it's exactly the same bytes that were tested before.
 
-### 6. How do you secure Docker containers in CI/CD pipelines? *(asked in interview round)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you secure Docker containers in CI/CD pipelines? <em>(asked in interview round)</em></summary>
 
 **Answer:** Run image scans with Trivy or Anchore. Use non-root users. Apply resource limits. Keep images updated.
 
@@ -132,14 +142,18 @@ Security in the pipeline happens at a few checkpoints. During the build, I use a
 
 At deploy time, containers run with dropped capabilities, a read-only filesystem where possible, resource limits, and no access to the Docker socket. I also keep base images current by rebuilding regularly, not just when something breaks.
 
-### 7. How is Docker useful and how do you use it in a pipeline? *(scenario)*
+</details>
+
+<details><summary>Q7. [Basic] How is Docker useful and how do you use it in a pipeline? <em>(scenario)</em></summary>
 
 - **Consistency:** the same image runs in CI, staging, and production.
 - **Isolation and density:** you can run many containers on one host, each with its resource usage capped by cgroups.
 - **Fast, reliable deploys:** once an image is built and tagged, that exact build never changes — you ship an image tag, and rolling back just means re-deploying the previous tag.
 - **In a pipeline:** build the image, run unit and integration tests inside it, scan it for vulnerabilities (with a tool like Trivy or Grype), push it to a registry (like ECR or GHCR) under a fixed tag, then deploy it to Kubernetes or ECS. Multi-stage builds keep the final image small and free of build tools.
 
-### 8. Can Docker containers be used as CI/CD agents? *(scenario)*
+</details>
+
+<details><summary>Q8. [Intermediate] Can Docker containers be used as CI/CD agents? <em>(scenario)</em></summary>
 
 Yes — this is standard practice:
 
@@ -149,7 +163,9 @@ Yes — this is standard practice:
 
 The benefits are isolation, reproducibility, no "snowflake" build agents that drift out of sync, and easy control over which tool versions each job uses.
 
-### 9. How to rollback a failed deployment in Docker and Kubernetes?
+</details>
+
+<details><summary>Q9. [Intermediate] How to rollback a failed deployment in Docker and Kubernetes?</summary>
 
 If a deployment using a new image fails, you can roll back by running a container from the previous working image instead.
 
@@ -172,7 +188,9 @@ kubectl rollout status deployment <deployment_name>
 kubectl get pods -o wide
 ```
 
-### 10. How do you handle multi-cloud Docker deployments with compliance restrictions?
+</details>
+
+<details><summary>Q10. [Advanced] How do you handle multi-cloud Docker deployments with compliance restrictions?</summary>
 
 **Answer:**
 
@@ -181,3 +199,5 @@ I build one approved image in a single controlled pipeline, generate its SBOM an
 Controls cover where data can live, where the registry is located and how it's encrypted, identity federation across clouds, private network connectivity, vulnerability policy, who holds the signing keys, audit log retention, and runtime security. Terraform modules and policy-as-code enforce a common baseline, and each cloud gets its own tightly scoped identities and state.
 
 I test that unapproved regions, unapproved registries, and unsigned images all get rejected. Disaster recovery planning has to account for registry availability too — replication needs to stay trustworthy, not just fast, and can't be used as an excuse to skip compliance checks.
+
+</details>

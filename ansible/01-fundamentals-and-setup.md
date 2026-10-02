@@ -138,7 +138,7 @@ Do not change `sshd_config` to enable password or root login as a default setup 
 
 ## Interview Questions
 
-### 1. How have you used Ansible? Give a real example.
+<details><summary>Q1. [Intermediate] How have you used Ansible? Give a real example.</summary>
 
 **Answer:**
 
@@ -193,7 +193,9 @@ I run `ansible-playbook --check --diff` in a lower environment first, then deplo
 
 Running the same playbook again should report no unnecessary changes. That's what "idempotent" means, and it's a property I design every playbook around.
 
-### 2. How do you configure an Ansible agent?
+</details>
+
+<details><summary>Q2. [Basic] How do you configure an Ansible agent?</summary>
 
 **Answer:**
 
@@ -226,3 +228,5 @@ ansible web -m setup -a 'filter=ansible_distribution*'
 ```
 
 If `ping` fails, I add `-vvvv` and check DNS/IP reachability, port 22, SSH keys, host-key verification, the username, whether Python is available, and sudo permissions. On Windows, Ansible usually connects over WinRM or SSH instead, so the setup looks different, but there's still no permanently installed Ansible agent.
+
+</details>

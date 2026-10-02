@@ -136,7 +136,7 @@ Never copy broad `rm -rf` examples from a cheat sheet straight into production.
 
 ## Interview Questions
 
-### 1. Do you have hands-on Linux experience? Which platform?
+<details><summary>Q1. [Basic] Do you have hands-on Linux experience? Which platform?</summary>
 
 **Answer:**
 
@@ -146,7 +146,9 @@ Then I give a real example. Once a disk filled up because logs were not being ro
 
 I also make clear which tasks I owned myself versus which were handled by a managed service or a separate cloud team.
 
-### 2. What are common Linux commands you use?
+</details>
+
+<details><summary>Q2. [Basic] What are common Linux commands you use?</summary>
 
 **Answer:**
 
@@ -154,7 +156,9 @@ I group commands by what they're for. For files: `ls`, `find`, `cp`, `mv`, `stat
 
 I use them carefully. I quote file paths, gather read-only evidence before changing anything, use `--` before an untrusted filename, look at what a recursive or delete command will touch before running it, and keep a record of commands and their output during an incident. I pick a command to test one specific idea. Running a pile of commands without understanding what they show is not troubleshooting.
 
-### 3. Walk through the Linux boot process from firmware to login.
+</details>
+
+<details><summary>Q3. [Intermediate] Walk through the Linux boot process from firmware to login.</summary>
 
 **Answer:**
 
@@ -165,3 +169,5 @@ The kernel initializes drivers, mounts the initial root filesystem, and starts P
 If boot fails, I use the bootloader's options, the emergency or rescue target, `journalctl -b`, kernel messages, filesystem checks, and a look at any recent configuration changes.
 
 I keep a known-good kernel and a rescue path available before changing any boot configuration.
+
+</details>

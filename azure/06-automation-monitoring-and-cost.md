@@ -28,7 +28,7 @@ Operationally mature systems should include structured logs, correlation IDs, us
 
 ## Interview Questions
 
-### 1. How do you manage infrastructure with Terraform in Azure?
+<details><summary>Q1. [Intermediate] How do you manage infrastructure with Terraform in Azure?</summary>
 
 **Answer:**
 
@@ -49,7 +49,9 @@ The flow goes `fmt` → `validate` → lint, security, and policy checks → pla
 
 When something fails, I check the Terraform state, the provider's error, the Azure Activity Log, policy, quota, IAM, and networking. I never just rerun it blindly, and I never edit state without a backup and a plan to bring things back in sync.
 
-### 2. How do you monitor Azure resources?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you monitor Azure resources?</summary>
 
 **Answer:**
 
@@ -59,7 +61,23 @@ I define what to watch based on what actually matters: availability, latency, er
 
 During an incident, I pin down the time and scope, compare recent deployments and Activity Log changes, trace the problem from the user's symptom down through the application to its dependencies to the infrastructure, and confirm the fix with the original query or transaction. I also tune out noisy alerts and actually test that notifications get routed correctly, rather than just assuming the configuration works.
 
-### 3. How do you control Azure costs?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you monitor Azure services?</summary>
+
+**Answer:**
+
+I turn on platform metrics, diagnostic settings pointed at Log Analytics, Event Hub, or Storage as needed, Application Insights or OpenTelemetry for application traces, alerts with action groups, workbooks, and whatever health signals the service itself provides.
+
+Monitoring is driven by what actually matters to the business: availability, latency, errors, traffic, how close resources are to their limits, dependency failures, queue age, capacity, and security-relevant changes. Every alert has an owner, a runbook, and gets tested.
+
+When investigating an issue, I pin down the time window and scope, compare the Activity Log and recent deployments against the metrics, follow a request through its dependencies using a correlation or trace ID, fix the immediate problem, then confirm the original user-facing transaction actually works again.
+
+Retention, access control, sampling, how many unique label combinations get tracked, and ingestion cost all get designed deliberately — not left at whatever the defaults happen to be.
+
+</details>
+
+<details><summary>Q4. [Intermediate] How do you control Azure costs?</summary>
 
 **Answer:**
 
@@ -75,3 +93,5 @@ I combine four things: allocation, prevention, optimization, and review.
 - Reviewing network egress and managed-service tiers at the architecture level
 
 If costs spike, I compare spend by service, resource, tag, and day, check it against recent deployments and usage, safely stop anything that's clearly waste, and loop in the resource owner. I always check that savings don't come at the cost of reliability or performance — deleting something that looks idle without confirming ownership and a recovery plan is risky.
+
+</details>

@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What best practices would you follow when deploying Nexus Repository in Production?
+<details><summary>Q1. [Intermediate] What best practices would you follow when deploying Nexus Repository in Production?</summary>
 
 **Answer:**
 
@@ -33,7 +33,9 @@ My Production checklist includes:
 
 I test representative restore, download, publish and client builds before declaring the service production-ready.
 
-### 2. How would you configure retention policies or clean up old artifacts in Nexus Repository?
+</details>
+
+<details><summary>Q2. [Intermediate] How would you configure retention policies or clean up old artifacts in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -69,7 +71,9 @@ Cleanup only soft-deletes content at first. Blob-store compaction is the step th
 
 Nexus Pro offers additional retention controls such as retaining selected versions. Exact criteria depend on format and product version.
 
-### 3. How do you monitor the health and storage utilization of a Nexus Repository server?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you monitor the health and storage utilization of a Nexus Repository server?</summary>
 
 **Answer:**
 
@@ -103,7 +107,9 @@ In Azure, I send host/container and Nexus logs to Azure Monitor/Log Analytics an
 
 I forecast capacity rather than waiting for a disk-full outage. The repository size shown in the UI may not include all of the metadata, index and storage overhead, so I also watch the underlying blob-store metrics directly.
 
-### 4. How do you back up and restore a Nexus Repository instance?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you back up and restore a Nexus Repository instance?</summary>
 
 **Answer:**
 
@@ -133,7 +139,9 @@ I test restore regularly and measure the actual recovery point and recovery time
 
 I avoid taking an uncoordinated live filesystem copy. If the database metadata and the blob content are captured at slightly different moments, they can end up inconsistent with each other.
 
-### 5. How would you configure high availability or disaster recovery for Nexus Repository?
+</details>
+
+<details><summary>Q5. [Advanced] How would you configure high availability or disaster recovery for Nexus Repository?</summary>
 
 **Answer:**
 
@@ -175,7 +183,9 @@ DR plan:
 
 HA reduces node downtime. It does not replace backup or regional disaster recovery.
 
-### 6. How would you migrate artifacts from JFrog Artifactory to Nexus Repository?
+</details>
+
+<details><summary>Q6. [Advanced] How would you migrate artifacts from JFrog Artifactory to Nexus Repository?</summary>
 
 **Answer:**
 
@@ -207,3 +217,5 @@ Plan:
 Configuration, permissions, virtual/group order, properties and metadata do not necessarily migrate one-to-one. Component counts and storage sizes may also differ because repository managers store indexes/metadata differently.
 
 I do not just blindly redirect every URL. I update clients to point at explicit Nexus endpoints and verify the behavior works.
+
+</details>

@@ -17,7 +17,7 @@ git restore --staged <file>        # unstage without deleting work
 
 ## Interview Questions
 
-### 1. How do you undo a bad commit that has already been pushed to the protected main branch?
+<details><summary>Q1. [Intermediate] How do you undo a bad commit that has already been pushed to the protected main branch?</summary>
 
 **Answer:**
 
@@ -36,7 +36,9 @@ I run tests and follow the normal review and deployment process, and pause or ro
 
 I avoid `reset --hard` plus a force push on a shared main branch, since that rewrites history and disrupts everyone else's clone. A leaked secret is a different case: I revoke it immediately, and may still need to coordinate a history rewrite, because a revert alone leaves the value sitting in history.
 
-### 2. A team member deleted a critical Git branch. How do you recover it?
+</details>
+
+<details><summary>Q2. [Intermediate] A team member deleted a critical Git branch. How do you recover it?</summary>
 
 **Answer:**
 
@@ -53,7 +55,9 @@ Before pushing, I compare the recovered commit against the last deployed build a
 
 I avoid running garbage collection or cleanup commands until the recovery is done.
 
-### 3. You committed sensitive information to Git. How do you remove it from history?
+</details>
+
+<details><summary>Q3. [Advanced] You committed sensitive information to Git. How do you remove it from history?</summary>
 
 **Answer:**
 
@@ -75,10 +79,14 @@ git push --force --tags origin
 
 I use `--force-with-lease` where I can, but a full history cleanup sometimes needs a coordinated force update instead. To prevent this from happening again: pre-commit secret scanning, server-side scanning, protected branches, short-lived credentials, and never storing secrets in a tracked `.env` file.
 
-### 4. `git pull` says "not a git repository." How do you troubleshoot?
+</details>
+
+<details><summary>Q4. [Basic] <code>git pull</code> says "not a git repository." How do you troubleshoot?</summary>
 
 **Answer:**
 
 I start by running `pwd` and `git rev-parse --show-toplevel`. This error usually means the command ran outside the cloned directory, the `.git` folder is missing, or a script changed the working directory without me noticing. I `cd` to the repository root and confirm with `git status` and `git remote -v`.
 
 If `.git` was deleted or the checkout is corrupted, I save any uncommitted files first, clone a fresh copy, restore just the work I need, then pull the intended branch. I don't run `git init` inside an unfamiliar directory — that creates unrelated history and can hide what actually went wrong.
+
+</details>

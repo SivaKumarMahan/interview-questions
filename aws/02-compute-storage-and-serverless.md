@@ -32,7 +32,7 @@ EC2, ECS, and EKS workloads get narrowly scoped pull permissions through their o
 
 ## Interview Questions
 
-### 1. What is Amazon S3, and which storage classes would you choose?
+<details><summary>Q1. [Basic] What is Amazon S3, and which storage classes would you choose?</summary>
 
 **Answer:**
 
@@ -42,7 +42,9 @@ For storage class, I pick Standard for data accessed often, Intelligent-Tiering 
 
 I weigh retrieval time, minimum storage duration, and availability trade-offs, and I use lifecycle rules to move objects automatically instead of doing it by hand. Versioning, blocking public access, KMS encryption where required, bucket policies scoped to only what's needed, and regularly testing restores are the baseline controls I'd expect.
 
-### 2. EBS versus S3: when would you use each?
+</details>
+
+<details><summary>Q2. [Basic] EBS versus S3: when would you use each?</summary>
 
 **Answer:**
 
@@ -50,7 +52,9 @@ EBS is low-latency block storage attached to a single EC2 instance in one Availa
 
 EBS isn't a shared object store, and S3 isn't a mounted filesystem by default. The choice comes down to how the data is accessed, latency needs, whether it needs to be shared, durability, lifecycle management, and how you'd recover it.
 
-### 3. What is AWS Lambda, and where is it a good fit?
+</details>
+
+<details><summary>Q3. [Basic] What is AWS Lambda, and where is it a good fit?</summary>
 
 **Answer:**
 
@@ -60,7 +64,9 @@ I set memory, timeout, and concurrency deliberately, give the execution role onl
 
 For long-running work, workloads that hold many connections, or anything needing a specialized runtime, containers or another compute service are usually a better fit.
 
-### 4. How do you create an AWS Lambda function and publish its artifact safely?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you create an AWS Lambda function and publish its artifact safely?</summary>
 
 **Answer:**
 
@@ -78,7 +84,9 @@ I check that invocations work, look at logs and traces, and watch error rate, th
 
 Keeping artifact history, recording provenance (where the artifact came from and how it was built), signing code where required, and reserving concurrency all help protect the release.
 
-### 5. What is API Gateway, and when would you use it?
+</details>
+
+<details><summary>Q5. [Basic] What is API Gateway, and when would you use it?</summary>
 
 **Answer:**
 
@@ -88,7 +96,9 @@ I reach for it when those managed features actually add value. For a simple inte
 
 I scope backend permissions down to only what's needed, add WAF or auth where required, set quotas and rate limits, and make sure timeouts and error behavior are explicit and observable.
 
-### 6. Explain a CloudFront + S3 + API Gateway + Lambda request flow.
+</details>
+
+<details><summary>Q6. [Intermediate] Explain a CloudFront + S3 + API Gateway + Lambda request flow.</summary>
 
 **Answer:**
 
@@ -100,7 +110,9 @@ Lambda runs the business logic and reaches dependent services using its own role
 
 At each boundary I add TLS and a custom domain, WAF, logs and traces, cache invalidation or versioned assets, error handling, throttling, and alarms.
 
-### 7. What does email signing mean, and how would you implement it for an AWS-hosted email service?
+</details>
+
+<details><summary>Q7. [Intermediate] What does email signing mean, and how would you implement it for an AWS-hosted email service?</summary>
 
 **Answer:**
 
@@ -115,3 +127,5 @@ I also set up SPF to say which infrastructure is allowed to send mail, and DMARC
 A custom MAIL FROM domain, proper bounce and complaint handling, suppression lists, an SES identity with only the permissions it needs, TLS, sending quotas, and CloudWatch/SNS events all help protect the sending reputation.
 
 I test the DKIM/SPF/DMARC headers against real recipients, plan for key rotation, confirm subdomain ownership, and check how things behave on failure. Signing proves the domain sent the message and that it wasn't altered — it doesn't encrypt the content. For that you'd need S/MIME or PGP.
+
+</details>

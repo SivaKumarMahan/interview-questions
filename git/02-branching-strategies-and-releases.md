@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. Explain the Gitflow branching strategy.
+<details><summary>Q1. [Basic] Explain the Gitflow branching strategy.</summary>
 
 **Answer:**
 
@@ -21,7 +21,9 @@ It gives you explicit control over releases, which suits products with scheduled
 
 For teams delivering continuously, trunk-based development with short feature branches and feature flags is usually simpler. I pick a strategy based on release frequency, regulatory requirements, team size, and how long releases need to be supported — not by defaulting to Gitflow.
 
-### 2. What branching strategy would you recommend for a team of more than 20 developers?
+</details>
+
+<details><summary>Q2. [Intermediate] What branching strategy would you recommend for a team of more than 20 developers?</summary>
 
 **Answer:**
 
@@ -35,7 +37,9 @@ I track lead time, how long pull requests stay open, change-failure rate, how of
 
 CODEOWNERS, component-level tests, and clearly defined repository boundaries help a large team work independently without weakening code review.
 
-### 3. What branching strategy do you follow / recommend for a 20+ dev team? (justify) *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Intermediate] What branching strategy do you follow / recommend for a 20+ dev team? (justify) <em>(asked in interview round)</em></summary>
 
 Here are the common options and when each one makes sense:
 
@@ -45,7 +49,9 @@ Here are the common options and when each one makes sense:
 
 For a 20+ dev team doing continuous delivery, I recommend trunk-based development with feature flags, pull request reviews, and strong CI with branch protection. It keeps integration continuous and avoids the long-lived branches that GitFlow tends to create.
 
-### 4. What branching strategy keeps releases clean, and how do you handle a production hotfix?
+</details>
+
+<details><summary>Q4. [Intermediate] What branching strategy keeps releases clean, and how do you handle a production hotfix?</summary>
 
 **Answer:**
 
@@ -59,7 +65,9 @@ I tag the fixed release and document the incident.
 
 The branch itself doesn't guarantee stability — the controls around it do. I require reproducible builds, tests, security checks, code owners, traceable approvals, and a verified rollback path. I also delete or close stale release branches so they don't drift out of sync.
 
-### 5. How should Dev, QA, UAT, and Production be represented in Git?
+</details>
+
+<details><summary>Q5. [Intermediate] How should Dev, QA, UAT, and Production be represented in Git?</summary>
 
 **Answer:**
 
@@ -73,7 +81,9 @@ Secrets stay as external references, never checked into the repo.
 
 If an organization insists on environment branches, I define one-way promotion, automated comparison between environments, branch protection, and rules that block direct commits to production. But I'd also explain the drift risk this creates and push toward artifact-based promotion instead.
 
-### 6. How do you handle release tags?
+</details>
+
+<details><summary>Q6. [Basic] How do you handle release tags?</summary>
 
 **Answer:**
 
@@ -88,3 +98,5 @@ git show v2.4.1
 CI builds a versioned artifact or image and records the commit SHA, tag, checksums, and release notes. Promoting to production reuses that same artifact rather than rebuilding from a branch that keeps moving.
 
 I restrict who can create or delete tags, sign tags when required, and never quietly move a published release tag. If something needs fixing, it gets a new version instead.
+
+</details>
