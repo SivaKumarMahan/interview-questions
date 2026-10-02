@@ -131,19 +131,23 @@ Once it's fixed, I verify the Pod is Ready with stable restarts, the Service end
 <details><summary>Q3. [Intermediate] A pod is not responding / stuck in Pending — troubleshooting approach <em>(asked in interview round)</em></summary>
 
 Start with this general flow:
+
 ```bash
 kubectl get pods -o wide
 kubectl describe pod <name>     # EVENTS section is the key signal
 kubectl logs <name> [--previous]
 kubectl get events --sort-by=.lastTimestamp
 ```
+
 A pod stuck in **Pending** almost always means the scheduler can't place it. Read the events to see why:
+
 - **Insufficient CPU or memory** — no node has room. Add nodes, adjust the requests, or let the cluster autoscaler add capacity.
 - **Unschedulable due to taints, affinity, or a nodeSelector** — no node matches the pod's requirements.
 - **PVC unbound** — there's no matching PV or StorageClass, or a zone mismatch.
 - **ImagePullBackOff** (a different phase) — the image name or tag is wrong, or the registry credentials are missing.
 
 If the pod is running but not responding, or keeps restarting:
+
 - `CrashLoopBackOff` means the app crashes on startup. Check `logs --previous`, the config, missing env vars or secrets, and any failing dependency.
 - Failing liveness or readiness probes can restart a healthy app or keep it out of the Service. Check the probe's path, port, and timeout.
 - `OOMKilled` (shown by `describe`) means the container ran out of memory. Raise the memory limit or fix the leak.
@@ -576,8 +580,8 @@ I classify the cause: OOM, a failed liveness probe, an application error, a comp
 I compare against the image, config, node, and an unaffected replica. To mitigate, I roll back, scale, or pull it out of traffic, and for a hang I capture a memory dump before it restarts again. Then I fix the code, config, probe, resources, or dependency, and deploy that fix through the controller.
 
 I confirm the restart count has stabilized — keeping in mind the counter itself persists for the life of the Pod — readiness is good, transactions succeed, and SLOs hold over an observation window. To prevent it recurring, I add an alert on restart rate and reason, tune startup and liveness settings, test for memory leaks, add a dependency timeout or circuit breaker, run a config preflight check, and use a canary rollout.
-Kubernetes Scenario-Based Interview Questions
-==============================================
+
+**Kubernetes Scenario-Based Interview Questions**
 
 The following questions focus on production incidents and design decisions. Each answer explains the investigation flow, likely evidence, corrective action, verification, and preventive measures expected in an interview.
 

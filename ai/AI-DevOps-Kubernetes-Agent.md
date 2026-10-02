@@ -7,6 +7,7 @@ The supplied project folder contains a high-level design and five staged impleme
 In an interview, I should therefore say **“I designed and prototyped this workflow”** unless I have separately built, executed, and validated the application.
 
 I should claim that it is fully implemented or production-deployed only when I can show the working code, test evidence, security review, deployment and measured results.
+
 ---
 
 ## One-Line Project Explanation
@@ -64,6 +65,7 @@ User logs in
 ### What was the end goal?
 
 The end goal was not to replace the DevOps or SRE engineer. It was to reduce mean time to understand an incident, standardize the initial investigation, preserve a useful history and help engineers move from a Kubernetes symptom to an evidence-backed next action.
+
 ---
 
 ## High-Level Architecture
@@ -117,6 +119,7 @@ This is an **on-demand troubleshooting application**, not a Kubernetes controlle
 We deliberately used `kubectl` rather than the Kubernetes Python SDK for the initial prototype because it kept the investigation steps easy to understand and demonstrate.
 
 For a larger production system, I would evaluate the SDK because it provides typed APIs, watches, cancellation and avoids some command-construction risk.
+
 ---
 
 ## How We Implemented It in Five Stages
@@ -622,6 +625,7 @@ It supports audit, handover, repeated-incident detection and evaluation of model
 ### What result can you confidently claim from the supplied repository?
 
 I can confidently claim a complete staged design and implementation plan for an AI-assisted Kubernetes troubleshooting product. I cannot claim a working production deployment or measured MTTR improvement from this supplied folder alone because it contains prompts/HLD rather than application source and test evidence.
+
 ---
 
 ## Final Interview Closing Statement

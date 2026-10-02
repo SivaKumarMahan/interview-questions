@@ -19,4 +19,3 @@ After it's built, I look at real metrics, and I'll change the decision if the ev
 I build a supported paved road: versioned modules, pipeline templates, policies, examples, and self-service automation, with secure defaults and room to extend it. Hard controls protect the things that really can't be compromised, and any legitimate exception is scoped, approved, owned by someone, and set to expire.
 
 I track adoption, exceptions, failure rate, and what developers actually think. If a team keeps bypassing a standard, I look into whether the control is unclear or the platform is just missing something they genuinely need, instead of just adding more restrictions.
-

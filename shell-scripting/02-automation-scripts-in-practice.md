@@ -127,6 +127,7 @@ A command returning exit code zero is not proof that the data can be recovered.
 ### Safe Bash Backup Rotation Example
 
 This example dumps a PostgreSQL database from a container, checks the output isn't empty, and removes backups older than seven days. In production, credentials should come from a protected runtime source, and backups should also be encrypted, copied to separate storage, monitored, and tested by actually restoring them.
+
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -392,6 +393,7 @@ xargs -a "$SERVERS_FILE" -P "$MAX_PARALLEL" -I{} bash -c 'check_server "$@"' _ {
 ```
 
 Key improvements:
+
 - `xargs -P` runs checks in parallel with a controlled limit (20 at a time), instead of one at a time.
 - `-o ConnectTimeout` prevents one dead server from hanging the whole run.
 - Each server's output is logged to its own file for later review.

@@ -28,6 +28,7 @@ flowchart LR
 The incident commander (IC) **coordinates**; they do not usually fix things themselves. The model comes from the Incident Command System used by emergency services and was adopted by tech companies for on-call.
 
 The IC:
+
 - Owns the incident until it is handed over or resolved.
 - Sets and changes the severity.
 - Assigns roles and tasks, and makes sure each task has one owner.
@@ -49,6 +50,7 @@ Define severities **before** incidents happen, based on impact, not on how hard 
 | SEV4 | Low: no current user impact | Disk at 75%; a non-critical alert flapping | Normal backlog |
 
 Rules of thumb:
+
 - **When in doubt, go higher.** Downgrading is cheap; under-reacting is expensive.
 - **Severity can change** during the incident. Announce it when it does.
 - Tie severities to SLOs where possible, for example "error budget burning faster than 10x".
@@ -230,6 +232,7 @@ The aim at 15 minutes: everyone knows who is in charge, what the impact is, and 
 On a fixed cadence: about every 15 to 30 minutes for SEV1, every 30 to 60 for SEV2. I always say when the next update will be, and I send it even if there is no news.
 
 Each update has:
+
 - Severity and title
 - Current impact and when it started
 - What we have done and what we are doing now
@@ -349,6 +352,7 @@ I would start small, with clear severities, an IC role, and a channel template, 
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** the system, the symptom, and the impact, in two sentences.
 - **Task:** your role, for example IC, and the pressure: time, customers, visibility.
 - **Action:** severity call, roles assigned, how you chose the mitigation, how you communicated, any escalation or handover.

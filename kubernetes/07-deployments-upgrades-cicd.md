@@ -263,7 +263,7 @@ PodDisruptionBudgets, spreading across multiple zones, backward-compatible confi
 
 <details><summary>Q10. [Intermediate] How do you handle a failed deployment in Kubernetes?</summary>
 
-**Answer:** Use kubectl describe pod and kubectl logs to check errors → If critical, rollback with kubectl rollout undo deployment <name> → Fix and redeploy.
+**Answer:** Use kubectl describe pod and kubectl logs to check errors → If critical, rollback with `kubectl rollout undo deployment <name>` → Fix and redeploy.
 
 **Detailed interview approach:**
 I use a Deployment strategy with realistic readiness and startup probes, a graceful shutdown, and enough spare capacity. I pick `maxUnavailable` and `maxSurge` based on the replica count and the availability target — setting zero unavailable only makes sense if the cluster can actually host the surge capacity that requires.

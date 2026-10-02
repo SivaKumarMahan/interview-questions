@@ -121,6 +121,7 @@ Credentials stay in an approved vault or CI identity, never in plaintext invento
 I generate the key pair on whatever starts the automation — an engineer's approved workstation for personal admin work, or, better, a dedicated CI/control-node identity for shared automation.
 
 The private key stays there or in a credential manager. Only the public key goes into the target user's `~/.ssh/authorized_keys`.
+
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/ansible_prod
 ssh-copy-id -i ~/.ssh/ansible_prod.pub automation@server

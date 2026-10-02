@@ -788,6 +788,7 @@ Remember, direct manipulation of etcd should be done with extreme caution and ty
 The pods already running on the worker nodes keep running normally. Worker nodes and their `kubelet` processes keep the containers alive on their own.
 
 But no new pods can be scheduled and no changes can be applied, because:
+
 - The scheduler is down.
 - The API server is unreachable.
 - The control plane can't make any decisions.

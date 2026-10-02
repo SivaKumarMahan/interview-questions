@@ -316,6 +316,7 @@ Caching makes builds faster, but I don't let a stale cache block a needed patch.
 <details><summary>Q3. [Intermediate] How do you reduce Docker image size for faster deployments? <em>(asked in interview round)</em></summary>
 
 **Answer:**
+
 - Use a smaller base image, like Alpine.
 - Use multi-stage builds.
 - Remove unused packages and cache in the same layer you added them.
@@ -408,6 +409,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 Improvements:
+
 - **Multi-stage build**: Node is only used to build the static files; the final image is just `nginx:alpine` (a few MB) serving static content — no Node, no source code, no `node_modules` in production.
 - **Better layer caching**: copying `package*.json` first means `npm ci` only re-runs when dependencies actually change, not on every source edit.
 - **`npm ci` instead of `npm install`**: faster, reproducible installs based on `package-lock.json`.

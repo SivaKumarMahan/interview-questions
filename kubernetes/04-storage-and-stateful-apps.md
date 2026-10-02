@@ -354,6 +354,7 @@ Once things are stable, I stop the temporary replication, rotate the migration c
 StatefulSets give pods a stable network identity (`pod-0`, `pod-1`), ordered deployment and scaling, and stable per-pod storage through `volumeClaimTemplates`.
 
 The main challenges:
+
 - Storage is tied to a zone. An EBS volume lives in one availability zone, so its pod is pinned there too. Plan topology spread and multi-AZ replication at the application layer.
 - Scaling down does not delete PVCs — this is by design, to protect data. Orphaned volumes still cost money, so clean them up deliberately once you confirm the data isn't needed.
 - Ordered operations make rollouts slower, and upgrades must respect the application's quorum rules, as with databases.

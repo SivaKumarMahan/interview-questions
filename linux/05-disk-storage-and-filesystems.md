@@ -360,6 +360,7 @@ I fail over or stop writes, back up whatever is still readable, unmount or boot 
 I first check `free -h`, `swapon --show`, how much disk space is available, and whether the workload or platform even supports a swap file. Then:
 
 Example:
+
 ```bash
 sudo fallocate -l 2G /swapfile
 sudo chmod 600 /swapfile

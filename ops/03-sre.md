@@ -174,6 +174,7 @@ The blameless review looks at both technical and organizational contributing fac
 <details><summary>Q13. [Intermediate] How do you perform incident response in DevOps? <em>(scenario)</em></summary>
 
 **Answer:**
+
 - Detect it through monitoring and alerts.
 - Run a root-cause analysis using logs, metrics, and events.
 - Mitigate with a rollback or scaling.

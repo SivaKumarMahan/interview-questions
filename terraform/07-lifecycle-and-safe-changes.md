@@ -421,7 +421,7 @@ resource "azurerm_key_vault" "kv" {
 ```
 
 - **Avoid unnecessary changes to immutable properties** - some resource attributes force replacement when changed (e.g. certain Azure resource name/region/SKU-family fields); changing them without realizing they're immutable is a common accidental-replacement cause.
-- **Use `ignore_changes` only where appropriate** - see [§4](#4-preventing-drift-from-manually-modified-resources) above for the same caution against overusing it.
+- **Use `ignore_changes` only where appropriate** - see the question on preventing drift from manually modified resources in [08-drift-import-and-refactoring.md](08-drift-import-and-refactoring.md) for the same caution against overusing it.
 - **Import existing resources** rather than letting Terraform "adopt" them by recreating them under a new identity.
 - **Prefer `for_each` over `count`** when the resources have a stable identity that matters. With `count`, removing an item from the middle of a list shifts every subsequent resource's index - and Terraform destroys/recreates everything after that index to realign. `for_each` keys resources by a stable value (like a name), so removing one item only affects that one resource.
 - **Version modules**, so a module update doesn't silently change resource configuration for every consumer at once.

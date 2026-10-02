@@ -1,0 +1,17 @@
+# Link checker settings, used by .github/workflows/docs-quality.yml
+max_retries = 3
+retry_wait_time = 5
+timeout = 20
+max_concurrency = 16
+# 429 = rate limited: the link exists, the site is just throttling the checker.
+accept = ["200..=299", "429"]
+# Placeholders and local addresses used in examples.
+exclude = [
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "^https?://(www\\.)?example\\.(com|org|net)",
+  "\\.example\\.com",
+]
+exclude_path = [".git"]
+cache = true
+max_cache_age = "1d"

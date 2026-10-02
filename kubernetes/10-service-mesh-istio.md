@@ -270,6 +270,7 @@ Other common causes: Service ports not named or not using `appProtocol` (Istio t
 The general analysis is in [Networking and traffic](03-networking-and-traffic.md) Q38. The Istio-specific levers are:
 
 1. **Scope the config.** By default every sidecar gets config for every service in the mesh. A `Sidecar` resource (or `discoverySelectors` in meshConfig) limits each namespace to what it actually calls. This is usually the biggest memory win.
+
    ```yaml
    apiVersion: networking.istio.io/v1
    kind: Sidecar
@@ -280,6 +281,7 @@ The general analysis is in [Networking and traffic](03-networking-and-traffic.md
      egress:
        - hosts: ["./*", "istio-system/*", "shared/redis.shared.svc.cluster.local"]
    ```
+
 2. **Right-size proxies.** The default request is 100m CPU and 128Mi memory per sidecar. Measure real use and set `sidecar.istio.io/proxyCPU` and `proxyMemory` per workload.
 3. **Cut telemetry.** Lower trace sampling, drop high-cardinality metric labels, and turn access logs on only where needed.
 4. **Move to ambient** for services that need only mTLS and L4 policy: one ztunnel per node instead of one Envoy per Pod. Add waypoints only where L7 is needed.

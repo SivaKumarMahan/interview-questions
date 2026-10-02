@@ -323,6 +323,7 @@ The problem: if Terraform creates a parameter with `value = var.db_password`, th
 Options, best first:
 
 1. **Write-only arguments** (Terraform 1.11+ with AWS provider support): `value_wo` plus `value_wo_version`. The value is sent to AWS but never stored in state or plan. Bump the version to update it.
+
    ```hcl
    resource "aws_ssm_parameter" "db_password" {
      name             = "/payments/prod/db_password"
@@ -332,6 +333,7 @@ Options, best first:
      value_wo_version = 2
    }
    ```
+
 2. **Let AWS generate it:** use Secrets Manager rotation or RDS `manage_master_user_password = true`, so the secret never passes through Terraform.
 3. **Create the parameter with a placeholder** and `lifecycle { ignore_changes = [value] }`, then set the real value out of band. The placeholder is in state, the real value is not.
 4. **Protect state anyway:** encrypted S3 backend with a KMS key, strict bucket policy, versioning. OpenTofu (1.7+) also has client-side state encryption.
@@ -422,6 +424,7 @@ Fixes, cheapest first:
 3. **Use ECS `secrets`:** values are fetched by ECS at task start, which still counts against the quota but in one batched call per task.
 4. **Retry with backoff and jitter:** the AWS SDKs do this, but check the retry mode is `standard` or `adaptive`.
 5. **Turn on higher throughput** (charged) if the steady load really needs it:
+
    ```bash
    aws ssm update-service-setting \
      --setting-id arn:aws:ssm:us-east-1:111122223333:servicesetting/ssm/parameter-store/high-throughput-enabled \

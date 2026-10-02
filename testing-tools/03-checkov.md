@@ -71,6 +71,7 @@ I combine it with `terraform fmt -check`, `validate`, a reviewed plan, provider/
 The pipeline uses a pinned Checkov version and checks out the reviewed commit. It scans the correct root modules and variable/plan context, writes a machine-readable report where required, and blocks based on the organization's agreed policy.
 
 The job has no cloud credentials when scanning the source doesn't need them. Access to the report and its artifacts is restricted, because findings can reveal how the infrastructure is built.
+
 ```yaml
 - name: Scan Terraform with Checkov
   run: checkov --directory infrastructure --framework terraform

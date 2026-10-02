@@ -13,4 +13,3 @@ Possible fixes: a carefully designed index, rewriting the query, refreshing stat
 Every index adds cost on writes and storage, so I test with production-like data, check locks and plan stability, roll it out gradually, and measure both query and application latency afterward.
 
 I always keep a rollback plan for schema or index changes, and I never kill a session or add an index blindly without checking the impact first.
-

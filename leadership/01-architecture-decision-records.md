@@ -144,6 +144,7 @@ An ADR is a short, numbered document that records one significant technical deci
 A DevOps team uses ADRs because platform decisions are long-lived and affect many teams. Things like the IaC tool, the container platform, or the state backend get questioned again and again. Without a record, people repeat old debates, or they undo a decision without knowing why it was made.
 
 Benefits I would mention:
+
 - New joiners understand the "why" quickly.
 - Reviews in pull requests make decisions visible and inclusive.
 - Auditors and security teams get a clear trail.
@@ -214,6 +215,7 @@ adr new -s 4 "Use OpenTofu instead of Terraform"   # -s marks ADR 4 as supersede
 ```
 
 To keep them discoverable:
+
 - A `README.md` index table: number, title, status, date.
 - Reference ADR numbers in PR descriptions, module READMEs, and code comments.
 - Link the ADR folder from the team onboarding page.
@@ -234,6 +236,7 @@ To keep them discoverable:
 5. **Merge** with status `Accepted`, or close it with status `Rejected` and keep the file.
 
 To stop stalling:
+
 - Make it clear the goal is a good-enough decision, not unanimous agreement ("disagree and commit").
 - If the decision owner is unclear, escalate to the tech lead or architect to name one.
 - Time-box research spikes and record what was learned.
@@ -342,6 +345,7 @@ Success signal: people start linking ADR numbers in discussions without being as
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** the system and the problem, in two sentences.
 - **Task:** what decision you owned and the constraints (time, cost, skills, risk).
 - **Action:** options you compared, how you gathered data (spike, cost estimate, security review), who you consulted, how you wrote it up (ADR), and how you handled disagreement.

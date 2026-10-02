@@ -248,11 +248,13 @@ LIMIT 100;
 **Answer:**
 
 1. **Event history first** (fast, last 90 days). `DeleteBucket` is a management event in the bucket's Region.
+
    ```bash
    aws cloudtrail lookup-events --region us-east-1 \
      --lookup-attributes AttributeKey=ResourceName,AttributeValue=payments-exports \
      --query 'Events[].{time:EventTime,name:EventName,user:Username}'
    ```
+
 2. **Read the full event.** Look at `userIdentity.type` and `arn`. For `AssumedRole`, the session name often shows the human (SSO email) or the pipeline. `sessionContext.sessionIssuer` shows the role. `sourceIPAddress` and `userAgent` show whether it was the console, Terraform, or a script.
 3. **Follow the chain.** If the role was assumed by another role, search for the `AssumeRole` event that created that session (match the access key ID in `userIdentity.accessKeyId`) to find the original caller.
 4. **Check what happened just before.** A bucket can only be deleted when empty, so look for `DeleteObject` data events or a lifecycle rule, and `PutBucketPolicy` changes.

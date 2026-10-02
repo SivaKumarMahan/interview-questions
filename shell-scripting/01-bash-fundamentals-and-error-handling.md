@@ -381,6 +381,7 @@ Production: `set -euo pipefail` + explicit checks for critical operations
 It's the shebang, telling the OS to use Bash. `env` finds Bash through `PATH`, which is more portable than hardcoding `/bin/bash` (which doesn't exist at that path on every system).
 
 **2. What is `set -Eeuo pipefail`?**
+
 - `-e` - exit immediately on a command failure.
 - `-E` - preserves `ERR` traps inside functions and subshells (without it, `-e`'s effect can silently not propagate into a function).
 - `-u` - treats unset variables as errors instead of expanding to empty strings.

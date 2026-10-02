@@ -5,11 +5,13 @@
 The supplied project contains one detailed assessment prompt and an Apache 2.0 license. It does not contain an implemented application, cluster collector, AI integration, assessment output, automated tests, upgrade execution logs or production results.
 
 In an interview, I should say **“I designed an AI-assisted Kubernetes upgrade assessment workflow”** unless I have separately implemented and validated it against real clusters. The prompt defines what the assessment must do; it is not evidence that a cluster was successfully upgraded.
+
 ---
 
 ## One-Line Project Explanation
 
 I designed an AI-assisted readiness tool that combines live Kubernetes evidence, manifests, release notes and vendor compatibility matrices to decide whether a cluster upgrade is safe, what could break, what must be fixed first, and how to validate and roll back the change.
+
 ---
 
 ## 30-Second Interview Answer

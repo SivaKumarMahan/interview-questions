@@ -265,6 +265,7 @@ If policy or old compatibility requires RSA instead, I use RSA 3072 or 4096. I i
 ssh-keygen -t ed25519 -C "you@example.com"      # modern, preferred
 ssh-keygen -t rsa -b 4096 -C "you@example.com"  # if ed25519 unsupported
 ```
+
 This creates a private key at `~/.ssh/id_ed25519` and a public key at `~/.ssh/id_ed25519.pub`. Never share the private key. To copy the public key to a server, run `ssh-copy-id user@host` — it appends the key to `~/.ssh/authorized_keys`.
 
 </details>

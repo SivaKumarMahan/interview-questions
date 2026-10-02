@@ -18,6 +18,7 @@ The Go toolchain was unavailable in the current review environment, so the exist
 ## One-Line Project Explanation
 
 I built a Go service that compares Terraform's expected state with live AWS resources, detects missing resources and configuration changes, stores scan history and supports CLI, API, dashboard and scheduled execution; I then designed an AI layer to explain verified drift and propose safe, reviewable fix.
+
 ---
 
 ## 30-Second Interview Answer
@@ -713,6 +714,7 @@ I would use a job queue, horizontally scalable workers, account/region concurren
 ### What was the most important lesson from this project?
 
 Drift accuracy depends more on collection completeness and canonical modeling than on the comparison loop. A simple equality check is easy; proving that two representations refer to the same resource and that missing data is authoritative is the difficult part.
+
 ---
 
 ## Honest Closing Statement

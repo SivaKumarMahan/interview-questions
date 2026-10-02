@@ -348,10 +348,12 @@ Pipeline for the policy repo: lint (Regal for Rego), unit tests, run the policie
 **Answer:**
 
 - **PSA** sets the baseline per namespace: `restricted` for app namespaces, `baseline` or `privileged` only for system agents. It is built in, fast, and has no webhook to fail.
+
   ```bash
   kubectl label ns payments pod-security.kubernetes.io/enforce=restricted \
     pod-security.kubernetes.io/warn=restricted pod-security.kubernetes.io/audit=restricted
   ```
+
 - **Kyverno or Gatekeeper** add what PSA cannot: approved registries, signed images, required labels and limits, ingress host rules, per-workload exceptions, mutation, and generating default NetworkPolicies.
 - **VAP** handles simple CEL checks with no extra component.
 - **Checkov, Trivy, and Conftest in CI** catch the same issues in Terraform and manifests before merge, plus cloud resources that admission never sees (S3, IAM, security groups).

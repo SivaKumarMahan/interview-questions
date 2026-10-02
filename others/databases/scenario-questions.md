@@ -36,6 +36,7 @@ If any threshold fails, it stops traffic and rolls back to the previous artifact
 ## 4. How do you handle database credential rotation in CI/CD pipelines?
 
 **Answer:**
+
 - Store database credentials in Secret Manager or Key Vault.
 - Fetch secrets at runtime in the pipeline.
 - Use Kubernetes secrets/ConfigMaps.
@@ -58,4 +59,3 @@ I use an expand-and-contract migration. First I take and test a backup, measure 
 I deploy code that works with both the old and new schema, backfill data in small batches that can safely resume if interrupted, and monitor locks, replication lag, latency, and errors, then switch reads and writes over. Only once every old version of the application is gone do I remove the old schema, in a later release.
 
 The pipeline uses a migration lock, a timeout, a named owner, and a verification query. Rolling back usually means switching to compatible application behavior, or rolling forward with a corrective migration — reversing a destructive migration can lose data.
-

@@ -64,6 +64,7 @@ There are two syntaxes:
 **Example — shared named volume across containers.** Note: `-v <name>:/path` (no leading `/`) creates a **named volume**, not a true bind mount (a bind mount requires an absolute host path like `-v /host/dir:/app/log`).
 
 That is why the shared data below is *not* visible on the host filesystem — it lives in Docker-managed storage.
+
 ```bash
 mkdir docker-bind-mount
 docker run -t -d -v docker-bind-mount:/app/log --name captain-america busybox
@@ -151,6 +152,7 @@ What each file is for:
 The `docker-compose.yml` defines two services, `app` and `db`, on the same network, with these characteristics: `app` port 5000 is exposed to host port 5000 and `db` port 5432 to host port 5432; `app` depends on `db`; a health check on `db` ensures Postgres is ready before `app` connects; a named volume persists the database; and environment variables hold the Postgres credentials and database name.
 
 A configuration matching that description:
+
 ```yaml
 services:
   app:

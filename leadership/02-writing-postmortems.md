@@ -165,6 +165,7 @@ A postmortem nobody reads only half works. Ways to spread it:
 A blameless postmortem is a written review of an incident that focuses on how the system and process allowed the failure, not on who to punish. It assumes people acted reasonably with what they knew at the time.
 
 It matters because:
+
 - People share the full, honest timeline, including their own mistakes.
 - You fix the system, so the next person cannot make the same mistake.
 - Engineers are not afraid to declare incidents early.
@@ -204,6 +205,7 @@ Example: the trigger was an expired TLS certificate. Contributing factors: manua
 I ask "why?" repeatedly, starting from the symptom, until I reach something we can change in the system. I write each step in the postmortem so reviewers can challenge it.
 
 Limits:
+
 - It follows one linear chain, but incidents have many contributing factors. I run it on each branch.
 - It can wrongly stop at a person ("because the engineer made a typo"). I keep asking why the system allowed the typo to reach production.
 - "Five" is arbitrary. Sometimes three is enough; sometimes you need more.
@@ -247,6 +249,7 @@ A good action item is specific, testable, owned by one person, has a due date, a
 | Update docs | Rewrite and test the DB failover runbook in a game day |
 
 To get them done:
+
 - Label tickets `postmortem` and review open ones in the weekly ops meeting.
 - Agree with the product owner that postmortem fixes get a share of capacity.
 - Report the closure rate and overdue items monthly.
@@ -343,6 +346,7 @@ I would report these quarterly. A rising number of reported incidents is not alw
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** the incident in one or two sentences, with the impact.
 - **Task:** your role: incident commander, author, facilitator.
 - **Action:** how you gathered the timeline, how you kept it blameless, the contributing factors you found, and how you got action items prioritised.

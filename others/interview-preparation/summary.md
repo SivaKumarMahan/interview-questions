@@ -63,6 +63,7 @@ Mention only tools and responsibilities you have actually used, and distinguish 
 Describe the application stack in layers: client/frontend, API or Java framework, synchronous and asynchronous integration, database/cache, build tool, artifact/container registry, compute platform, CI/CD, IaC, secrets, and observability.
 
 For example, replace placeholders with your real stack rather than claiming all of them:
+
 ```text
 React -> Java/Spring Boot REST services -> PostgreSQL/Redis/Kafka
 Maven -> Docker/ECR -> EC2 or EKS

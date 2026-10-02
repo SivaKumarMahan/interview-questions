@@ -122,6 +122,7 @@ I test a shared library upgrade in a sample pipeline before rolling it out by ve
 A typical multibranch pipeline starts from a reviewed Git change or a webhook.
 
 `Checkout` records the commit. `Validate` runs formatting and linting. `Test` runs unit tests and publishes the reports. `Quality/Security` runs static analysis, dependency, secret, and policy checks. `Build` creates the package and a multi-stage container image. `Publish` pushes the image digest, which never changes after it's built, along with a software bill of materials, to the registry. `Deploy` then promotes that same digest through the lower environments before an approved, gradual rollout to production.
+
 ```groovy
 pipeline {
   agent none

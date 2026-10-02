@@ -163,7 +163,7 @@ server = smtplib.SMTP("smtp.gmail.com", 587)
 server.starttls()
 ```
 
-In practice, `smtplib` is more common for legacy/on-prem notification flows; Slack/Teams webhooks (as in [§4](#4-cicd-automation)) are more common in modern pipelines.
+In practice, `smtplib` is more common for legacy/on-prem notification flows; Slack/Teams webhooks (as in the CI/CD automation section of this file) are more common in modern pipelines.
 
 ### Report generation
 

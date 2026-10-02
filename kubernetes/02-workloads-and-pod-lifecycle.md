@@ -67,6 +67,7 @@ A ReplicaSet is defined by a label selector, a Pod template, and a desired repli
 It keeps reconciling continuously, so if you delete one Pod it manages, a replacement shows up.
 
 In practice I create a Deployment rather than a ReplicaSet directly, because a Deployment adds versioned rollout and rollback and manages multiple ReplicaSets underneath. If replicas aren't appearing, I check the Deployment and ReplicaSet conditions, events, whether the selector matches the template labels, quota, admission, and scheduling:
+
 ```bash
 kubectl describe deploy api
 kubectl describe rs <name>
@@ -585,6 +586,7 @@ kubectl delete pod <name>            # deletes; a controller (Deployment/RS) rec
 kubectl scale deploy <name> --replicas=0   # actually stop the workload
 kubectl delete deploy <name>         # remove workload entirely
 ```
+
 If a Deployment manages the pod, deleting the pod alone just triggers a replacement. To actually stop the workload, scale the Deployment to zero replicas or delete the Deployment itself.
 
 </details>
@@ -609,10 +611,12 @@ For automatic scaling, I configure the metrics, min and max, and behavior settin
 <details><summary>Q25. [Basic] How do you replicate a pod? <em>(asked in interview round)</em></summary>
 
 Don't manage pods directly. Use a Deployment (or a ReplicaSet or StatefulSet) and set the replica count:
+
 ```bash
 kubectl scale deployment <name> --replicas=3
 # or in the manifest:  spec.replicas: 3
 ```
+
 The ReplicaSet controller keeps the pod count at whatever you set. For automatic scaling, use an HPA (see §3.6).
 
 </details>

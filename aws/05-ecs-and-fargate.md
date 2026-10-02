@@ -413,10 +413,12 @@ Then I fix the one cause, deploy, and watch `runningCount` reach `desiredCount` 
 The app works locally, so the problem is between the ALB and the task. I check in this order:
 
 1. **Target health reason:**
+
    ```bash
    aws elbv2 describe-target-health --target-group-arn <tg-arn> \
      --query 'TargetHealthDescriptions[].{ip:Target.Id,state:TargetHealth.State,reason:TargetHealth.Reason,desc:TargetHealth.Description}'
    ```
+
    - `Target.Timeout`: the ALB cannot reach the port. Usually the task security group does not allow the port from the ALB security group, or the app listens on `127.0.0.1` instead of `0.0.0.0`.
    - `Target.ResponseCodeMismatch`: the path returns 301, 401, or 404. For example `/health` redirects to `/health/`, or auth middleware protects it.
 2. **Health check settings:** port should be "traffic port", path correct, matcher `200` or `200-399` if redirects are expected.

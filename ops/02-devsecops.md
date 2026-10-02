@@ -87,6 +87,7 @@ Pin your scanner versions and policy baselines, scan both pull requests and rele
 <details><summary>Q3. [Intermediate] How do you ensure security in DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:**
+
 - Scan code with SonarQube.
 - Scan images with Trivy or Anchore.
 - Give IAM roles in GCP/Azure only the access they need.
@@ -331,6 +332,7 @@ I periodically pick a release and trace it end-to-end, from the original ticket 
 <details><summary>Q20. [Intermediate] How do you ensure compliance and governance in DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:**
+
 - Enforce policy as code with tools like OPA/Conftest.
 - Restrict which Terraform modules are allowed, for compliance.
 - Enable audit logging in GCP/Azure.
@@ -350,6 +352,7 @@ Runtime and audit monitoring catch changes that happen outside CI. I track excep
 <details><summary>Q21. [Intermediate] How do you ensure auditability in DevOps? <em>(scenario)</em></summary>
 
 **Answer:**
+
 - Store IaC in Git for versioning.
 - Enable Cloud Audit Logs (GCP/Azure).
 - Use Jenkins pipeline logs.

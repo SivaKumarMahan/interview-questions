@@ -127,6 +127,7 @@ pipeline {
 <details><summary>Q9. [Intermediate] How do you create GitHub Actions? — example <em>(asked in interview round)</em></summary>
 
 Add YAML under `.github/workflows/`:
+
 ```yaml
 name: ci
 on:

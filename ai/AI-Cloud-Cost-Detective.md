@@ -4,11 +4,13 @@
 
 The supplied project contains a README, architecture and request-flow documents, and five staged implementation prompts. It does not contain the generated backend or frontend source code, automated test evidence, deployment files, screenshots, measured savings, or production results.
 In an interview, I should therefore say **“I designed and prototyped this solution”** unless I have separately implemented and tested it. I should not claim that an AI recommendation saved a specific amount of money without billing data, utilization metrics, approval records, and measured before-and-after results.
+
 ---
 
 ## One-Line Project Explanation
 
 I designed an AI-assisted FinOps application that inventories resources in an Azure Resource Group, detects possible waste and configuration problems, explains the findings in simple language, and presents reviewable optimization commands while keeping a history of every analysis.
+
 ---
 
 ## 30-Second Interview Answer
@@ -290,6 +292,7 @@ signup/login
 ```
 
 The UI shows total resources scanned, issue count and estimated saving, followed by individual findings with severity badges, explanation and copyable commands. A copy button does not mean a command is safe: the report must show prerequisites, scope, expected impact, verification and rollback guidance.
+
 ---
 
 ## How the Cost Investigation Works

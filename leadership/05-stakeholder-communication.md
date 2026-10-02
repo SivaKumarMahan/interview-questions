@@ -88,6 +88,7 @@ flowchart TD
 ```
 
 Tips:
+
 - **Lead with the problem and the ask** on the first slide or first paragraph.
 - **Quantify** where you honestly can: hours saved per month, incidents avoided, cost per month.
 - **Show you considered alternatives**, including doing nothing.
@@ -280,6 +281,7 @@ Rules: bottom line first, numbers not adjectives, plain words, no blame on indiv
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** who the stakeholder was (role, not name), and what they asked for.
 - **Task:** why you needed to push back: risk, capacity, cost, compliance.
 - **Action:** how you understood their goal, the trade-off you showed, the options you offered, and how the decision was made and recorded.
@@ -302,6 +304,7 @@ Rules: bottom line first, numbers not adjectives, plain words, no blame on indiv
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** the problem and why it needed a decision.
 - **Task:** your role in building and presenting the case.
 - **Action:** how you gathered evidence, the options and costs you compared, how you tailored it to the audience, and how you handled objections.

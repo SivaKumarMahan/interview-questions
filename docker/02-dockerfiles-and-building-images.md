@@ -264,17 +264,20 @@ CMD ["java", "-jar", "app.jar"]
 #### Problems
 
 **Security:**
+
 - `ENV DB_PASSWORD=Production123` bakes a real secret into the image layers — anyone who can pull or inspect the image (`docker history`) can see it.
 - `ubuntu:latest` is an unpinned, mutable tag — the image can silently change over time, breaking reproducibility and potentially introducing vulnerabilities.
 - No non-root user — the container runs as `root` by default, which is a bigger blast radius if the app is compromised.
 - Installs the full JDK (includes compilers/dev tools) instead of just a JRE, growing the attack surface unnecessarily.
 
 **Reliability:**
+
 - `RUN apt-get update` on its own line, separate from `apt-get install`, can use a stale cached layer for `update` while installing a newer package list — a classic Docker caching pitfall. They should be combined in one `RUN`.
 - No version pinning for `openjdk-17-jdk` — install could silently pull a different patch version between builds.
 - `COPY . /app` copies everything, including potentially unnecessary files (`.git`, local configs, secrets) — no `.dockerignore` mentioned.
 
 **Image size / optimization:**
+
 - `ubuntu:latest` + full JDK is a large base; no multi-stage build to strip build-time dependencies from the final image.
 
 #### Corrected Dockerfile

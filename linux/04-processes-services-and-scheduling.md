@@ -191,6 +191,7 @@ kill -9 <PID>            # force-kill, last resort
 pkill -f <pattern>       # kill by command pattern
 kill -HUP <PID>          # reload config for many daemons
 ```
+
 Try a plain `kill` first so the process can clean up after itself. Only use `-9` if it ignores that and refuses to stop.
 
 </details>

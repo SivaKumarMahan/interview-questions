@@ -920,32 +920,40 @@ Pods show `1/1 Running`, but users get HTTP 502/504.
 #### Troubleshooting approach, layer by layer
 
 **1. Application Gateway layer**
+
 ```bash
 az network application-gateway show-backend-health \
   --resource-group <rg> --name <appgw-name>
 ```
+
 Check if App Gateway considers the backend pool healthy. A 502 often means App Gateway couldn't reach its configured backend (misconfigured health probe path, backend pool pointing to the wrong target, or an expired/mismatched TLS cert on the backend).
 
 **2. Ingress / Service layer**
+
 ```bash
 kubectl get ingress
 kubectl describe ingress payment-ingress
 kubectl get endpoints payment-service
 kubectl logs -n <ingress-namespace> <ingress-controller-pod>
 ```
+
 Confirm the Ingress is correctly routing to the Service, and the Service has healthy endpoints.
 
 **3. Pod / application layer**
+
 ```bash
 kubectl logs <pod> --tail=100
 kubectl top pod
 ```
+
 A 504 (timeout) often means the app is alive but responding too slowly — check CPU throttling (`resources.limits.cpu` too low), thread pool exhaustion, or slow downstream calls.
 
 **4. Database layer**
+
 ```bash
 kubectl exec -it <pod> -- pg_isready -h <postgres-host>
 ```
+
 Check PostgreSQL connection pool exhaustion, slow queries, or network latency/connectivity from AKS to PostgreSQL (especially if PostgreSQL is behind a private endpoint/VNet peering — check NSGs and DNS resolution).
 
 **5. Timeouts across layers**

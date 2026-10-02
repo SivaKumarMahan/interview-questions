@@ -244,6 +244,7 @@ iotop               # per-process IO
 dstat / sar -d      # historical
 pidstat -d 1        # per-process disk IO
 ```
+
 Watch `await` (the average I/O wait time in milliseconds) and `%util` — close to 100% means the device is saturated. Also check the `wa` column in `vmstat`, which shows CPU time spent waiting on I/O, and look for processes stuck in uninterruptible sleep (`D` state) with `ps aux | awk '$8 ~ /D/'`.
 
 Common causes are an undersized or degraded disk (for example, EBS gp2 running out of burst credits and getting throttled), a noisy neighbor, swapping, heavy fsync activity, or filesystem fragmentation. Fix it by adding IOPS or throughput, adding caching, batching writes, or moving hot data to faster storage.

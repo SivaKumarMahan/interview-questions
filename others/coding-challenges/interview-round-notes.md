@@ -7,6 +7,7 @@
 ### 11.1 Shell script: log rotation & system cleanup with error handling + notifications
 
 Key elements to demonstrate:
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail                      # fail fast, catch undefined vars, pipe failures
@@ -23,11 +24,13 @@ deleted=$(find "$LOG_DIR" -type f -name '*.gz' -mtime +"$RETENTION_DAYS" -print 
 find /tmp -type f -atime +7 -delete
 notify "✅ log-cleanup done: removed $deleted old archives, disk now $(df -h / | awk 'NR==2{print $5}')"
 ```
+
 Talk about: `set -euo pipefail`, `trap ... ERR` for error handling, making the script safe to rerun, using `logrotate` in real setups, and Slack/email notification. Mention scheduling via cron or a systemd timer.
 
 ### 11.2 Python: parse & analyze AWS CloudWatch metrics with visualization
 
 Key elements:
+
 ```python
 import boto3, datetime as dt
 import matplotlib.pyplot as plt
@@ -48,12 +51,14 @@ plt.plot(times, avg, label="Avg CPU %")
 plt.xlabel("Time"); plt.ylabel("CPU %"); plt.legend(); plt.title("EC2 CPU (24h)")
 plt.tight_layout(); plt.savefig("cpu.png")
 ```
+
 Discuss: boto3 client + credentials (IAM role/OIDC), pagination for large ranges, pandas for analysis (rolling averages, anomaly detection), matplotlib/plotly for viz, and error handling.
 
 ### 11.3 Explain list comprehensions in Python & optimize a snippet
 
 - A **list comprehension** is a short, faster way to build a list: `[f(x) for x in it if cond]`. It's faster than a `for`-loop with `.append()` because the iteration and appending happen in C under the hood. Variants: set `{}`, dict `{k:v}`, and a **generator** `( … )`, which is lazy and doesn't build the whole list in memory — good for large or streamed data.
 - **Optimization example:**
+
   ```python
   # slower
   result = []
@@ -65,6 +70,7 @@ Discuss: boto3 client + credentials (IAM role/OIDC), pagination for large ranges
   # best if you only iterate once (no full list in memory)
   result = (x * x for x in range(1000000) if x % 2 == 0)
   ```
+
 - Other tips: use generators for large data, `sum()`/`any()`/`map` built-ins, avoid repeated attribute lookups in loops, and profile before optimizing.
 
 ### 11.4 Terraform multi-tier module (coding round)

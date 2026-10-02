@@ -60,6 +60,7 @@ This is the clever part, and the part I'd highlight most in an interview: **the 
 - `prompts/claude-code-review/repositories/<repo-name>.txt` — a simple text file per repo listing which role files apply. For example, the `infrastructure` repo's mapping file lists `opentofu.md`, `aws.md`, `github.md`, `shell.md`, `identity-and-saas.md`, `data-platforms.md` — because that repo is all Terraform/AWS.
 
 A small bash script (`resolve-claude-code-review-prompt.sh`) does the assembly at run time:
+
 1. Start with `default.md`.
 2. Look up the calling repo's `.txt` mapping file.
 3. Append each listed role file's content.
@@ -71,6 +72,7 @@ If a repo has no mapping file at all, it just gets the generic `default.md` revi
 ### 4. Claude does the review
 
 `anthropic/claude-code-action` runs Claude Code with that assembled prompt. Claude reads the PR diff, applies whatever combination of general + role-specific instructions it was given, and:
+
 - Leaves inline comments on specific lines when it finds real issues (bugs, security holes, hardcoded secrets, bad IAM permissions, missing encryption, etc.)
 - Leaves a short "looks safe" note if there's nothing to flag
 - Never modifies the PR itself — strictly advisory

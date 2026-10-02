@@ -530,7 +530,7 @@ resources:
     memory: 1Gi
 ```
 
-Confirm the limit is actually appropriate for the workload rather than an arbitrary guess - see [§1](#1-resource-requests-and-limits-in-kubernetes) above.
+Confirm the limit is actually appropriate for the workload rather than an arbitrary guess - see the requests and limits questions above.
 
 #### 4. Check the application itself
 
@@ -934,9 +934,11 @@ I load-test both the traffic surge and a node failure, and measure HPA detection
 <details><summary>Q30. [Intermediate] A pod is under heavy load — keep it healthy before it dies (auto-scaling) <em>(asked in interview round)</em></summary>
 
 - Use the Horizontal Pod Autoscaler (HPA) to add or remove replicas based on CPU, memory, or custom/external metrics — for example requests-per-second through the Prometheus Adapter, or KEDA for event-driven scaling.
+
   ```bash
   kubectl autoscale deployment web --cpu-percent=70 --min=3 --max=20
   ```
+
 - Set proper resource requests and limits so the scheduler and HPA make good decisions.
 - Use the Cluster Autoscaler or Karpenter to add nodes when pods can't be scheduled.
 - Use readiness probes together with a PodDisruptionBudget to keep enough healthy replicas during scaling and rollouts.

@@ -43,6 +43,7 @@ Once you're running tens or hundreds of clusters, treat them as a managed fleet 
 - **Central metrics, logs, traces, dashboards, and alert routing** give fleet-wide visibility while still keeping each cluster isolated.
 
 Fleet operations also need a version-skew policy, upgrade rings, admission policy, tenant isolation, capacity and cost reporting, tested backup and restore, and a break-glass process. The goal is repeatable control with a small blast radius per change, not one highly privileged system that can touch every cluster with no safeguards.
+
 ### Teams bots, Adaptive Cards and dashboard visualization (ChatOps)
 
 A cluster of related concepts that shows up in "build a status dashboard/bot" style questions: chat apps, micro frontends, the Teams Bot Framework, Adaptive Cards, and the difference between D3.js and Highcharts for the visualization layer.

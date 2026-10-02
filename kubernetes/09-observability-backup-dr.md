@@ -229,6 +229,7 @@ kubectl logs -f <pod>                   # follow (tail)
 kubectl logs <pod> --previous           # logs from previous crashed container
 kubectl logs -l app=web --tail=100      # by label selector
 ```
+
 Pod logs disappear once the pod is deleted, so for logs you need to keep, send them to a centralized logging system (see §8.4).
 
 </details>

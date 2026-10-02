@@ -282,6 +282,7 @@ I also talk to the expert. Some people feel their value is in being the only one
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** who the person was (role, level, not their name), and the gap or goal.
 - **Task:** what you were asked to do, or what you chose to take on.
 - **Action:** the specific methods: pairing, delegation level, feedback, growth plan, on-call steps.
@@ -304,6 +305,7 @@ I also talk to the expert. Some people feel their value is in being the only one
 **Answer:**
 
 **How to structure it (STAR):**
+
 - **Situation:** the context and why the feedback was needed.
 - **Task:** why it was your job to give it.
 - **Action:** how you prepared, how you used SBI, how you listened, and the plan you agreed.

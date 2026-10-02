@@ -10,4 +10,3 @@ Teams own their own application configuration, while the platform team owns the 
 Guardrails run in CI and at admission, with clear error messages and an exception process that expires automatically. I design for tenant isolation, artifact and secret identity, cost attribution, and disaster recovery from day one.
 
 I measure adoption and quality through onboarding time, pipeline reliability, deployment frequency, security findings, and support tickets. That feedback shapes the next version of the platform, rather than teams forking it to work around it.
-
