@@ -421,7 +421,7 @@ locals {
 
 ## Interview Questions
 
-### 1. What is the difference between `count` and `for_each`?
+<details><summary>Q1. [Basic] What is the difference between <code>count</code> and <code>for_each</code>?</summary>
 
 | `count` | `for_each` |
 |---|---|
@@ -465,7 +465,9 @@ Switching from `count` to `for_each` changes resource addresses, so Terraform ma
 
 "`count` gives numbered instances and is fine when the resources are identical. `for_each` gives named instances from a map or set, which is safer when each item has an identity, because removing one item does not shift the others. If I switch between them, I use `moved` blocks so Terraform does not recreate resources."
 
-### 2. Why does Terraform use `toset()`?
+</details>
+
+<details><summary>Q2. [Basic] Why does Terraform use <code>toset()</code>?</summary>
 
 `toset()` converts a collection into a set. A set contains unique values and does not preserve a meaningful order.
 
@@ -499,7 +501,9 @@ Terraform creates one resource instance for each unique string. The string is al
 | Supports index access | Does not support index access |
 | Use when position or order matters | Use when unique membership matters |
 
-### 3. Why does Terraform use `each.value`?
+</details>
+
+<details><summary>Q3. [Basic] Why does Terraform use <code>each.value</code>?</summary>
 
 Inside a resource or module that uses `for_each`:
 
@@ -534,7 +538,9 @@ When `for_each` uses a set of strings, `each.key` and `each.value` are the same 
 
 `each.value` gives the value of the current item in a `for_each` loop. It is especially useful with maps, where `each.key` identifies the resource instance and `each.value` contains that instance's configuration.
 
-### 4. How do you validate input variables?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you validate input variables?</summary>
 
 #### Simple validation
 
@@ -588,7 +594,9 @@ resource "aws_instance" "app" {
 
 "I use `validation` blocks in variable declarations so bad input fails immediately with a clear message, for example only allowing dev, test, or prod, or only approved instance types. I also use strong types like `map(object({...}))` instead of plain strings, and `precondition` blocks when the rule depends on more than one value. Failing early is much cheaper than failing during apply."
 
-### 5. How do you create resources from external data?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you create resources from external data?</summary>
 
 #### Example: create users from a JSON file
 
@@ -638,7 +646,10 @@ If the external data changes between runs, your plan changes too. Keep the sourc
 #### Interview answer
 
 "I read the data with `jsondecode(file(...))`, the `http` data source, or an `external` data source, turn it into a map in `locals`, and drive `for_each` from that map so each item has a stable key. The important warning is that the plan now depends on outside data, so the source must be stable and read-only, otherwise every run produces a different plan."
-### 6. How do you dynamically retrieve VPC details to create an EC2 instance? Write the code.
+
+</details>
+
+<details><summary>Q6. [Intermediate] How do you dynamically retrieve VPC details to create an EC2 instance? Write the code.</summary>
 
 **Answer:**
 
@@ -674,3 +685,5 @@ resource "aws_instance" "app" {
 For production I'd pick the subnet by a stable key instead of `[0]`, since list ordering can change. I'd also add the instance role, security groups, an encrypted root disk, tags, and a requirement for IMDSv2 (the safer, token-based way instances fetch metadata).
 
 If the VPC is created in the same root module, I just reference its resource or module output directly. A data source isn't needed, and it would only add a weaker, implicit link between the two.
+
+</details>

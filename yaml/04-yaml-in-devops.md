@@ -42,7 +42,7 @@ jobs:
 
 ## Interview Questions
 
-### 1. How is YAML used in Kubernetes?
+<details><summary>Q1. [Basic] How is YAML used in Kubernetes?</summary>
 
 **Answer:**
 
@@ -74,7 +74,9 @@ I validate it with a schema tool and `kubectl apply --dry-run=server -f deployme
 
 I store manifests in Git, review changes, pin images, and keep secrets outside plaintext YAML.
 
-### 2. How is YAML used in CI/CD?
+</details>
+
+<details><summary>Q2. [Basic] How is YAML used in CI/CD?</summary>
 
 **Answer:**
 
@@ -85,7 +87,9 @@ A safe setup runs CI on every pull request, and restricts production deployment 
 I keep build and deployment jobs separate. I build one artifact and reuse it everywhere rather than rebuilding per environment, since rebuilding risks producing a slightly different artifact each time. I use secret references instead of raw values, pin external tasks and actions to a specific version, and add timeouts and rollback checks.
 I validate using the platform's linter and a test branch. A YAML parser only proves the file parses correctly — it says nothing about whether the job permissions, conditions, or deployment logic are actually right.
 
-### 3. How do you manage environment-specific YAML?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you manage environment-specific YAML?</summary>
 
 **Answer:**
 
@@ -99,3 +103,5 @@ I keep a common base and store only differences per environment. The mechanism d
 I do not duplicate entire manifests because fixes then drift between environments. Secrets stay in a secret manager.
 
 CI renders the final configuration, validates schemas and policies, displays a reviewable diff, and promotes the same application version. After deployment I verify the environment received the intended values without exposing sensitive output.
+
+</details>

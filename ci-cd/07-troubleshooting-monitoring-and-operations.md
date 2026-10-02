@@ -24,7 +24,7 @@ flowchart TD
 
 ## Interview Questions
 
-### 1. What happens when a pipeline fails? Give a real example.
+<details><summary>Q1. [Intermediate] What happens when a pipeline fails? Give a real example.</summary>
 
 **Answer:**
 
@@ -38,7 +38,9 @@ Production was never reached.
 
 Afterward, we scheduled regular base-image updates, assigned ownership for vulnerability exceptions, started retaining SBOMs, and built a dashboard to track aging critical findings.
 
-### 2. How do you debug CI/CD pipeline flakiness? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you debug CI/CD pipeline flakiness? <em>(scenario)</em></summary>
 
 **Answer:** Identify the tests that fail unpredictably, add retries with backoff (waiting longer between each retry), isolate shared resources, and watch job history trends.
 Mini-case: A flaky integration test broke builds one time in ten. Containerizing the test database eliminated the shared-state issue.
@@ -50,7 +52,9 @@ Logs capture the seed, test ID, and container and dependency versions — but ne
 
 A small, limited retry can help classify a known temporary issue, but it shouldn't just turn a failing test green without recording it. I only isolate a flaky test with an owner and an expiry date, then fix the real cause and track the flake rate until it hits zero.
 
-### 3. A deployment works in staging but fails in production. What differences do you compare?
+</details>
+
+<details><summary>Q3. [Intermediate] A deployment works in staging but fails in production. What differences do you compare?</summary>
 
 **Answer:**
 
@@ -64,7 +68,9 @@ If the impact is still active, I pause or roll back and confirm recovery before 
 
 The long-term fix is environment parity where it's practical, explicit versioned differences where it isn't, promoting one immutable artifact everywhere, testing with production-like load and policy, validating the config schema, running preflight dependency checks, and detecting drift.
 
-### 4. A deployment succeeded, but traffic still reaches the old version. Where do you start?
+</details>
+
+<details><summary>Q4. [Advanced] A deployment succeeded, but traffic still reaches the old version. Where do you start?</summary>
 
 **Answer:**
 
@@ -76,7 +82,9 @@ Common causes are a mutable tag resolving to something unexpected, a deployment 
 
 I capture evidence, make the smallest reversible fix to routing or rollout, and confirm live requests are hitting the new version — using version headers or metrics — before closing the incident.
 
-### 5. How do you ensure deployments are successful, and what monitoring/logging tools do you use to detect failures? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you ensure deployments are successful, and what monitoring/logging tools do you use to detect failures? <em>(scenario)</em></summary>
 
 **Answer:** ArgoCD monitors resource health. Liveness and readiness probes check the app itself. Prometheus, Grafana, and CloudWatch logs cover monitoring. Alertmanager and PagerDuty handle alerting. Post-deploy synthetic transaction jobs confirm things actually work, and failures trigger an automatic rollback.
 
@@ -87,7 +95,9 @@ For monitoring, I run Prometheus on EKS with Grafana dashboards for key metrics,
 
 Alerting is configured in Prometheus Alertmanager, integrated with PagerDuty for critical issues. After deploying, automated Kubernetes Jobs run synthetic transactions to check end-to-end functionality — and if any check fails, ArgoCD automatically rolls back to the last known-good state.
 
-### 6. How do you implement CI/CD notifications? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you implement CI/CD notifications? <em>(scenario)</em></summary>
 
 **Answer:** Integrate Jenkins or Azure DevOps with Slack, Teams, or email, and send success and failure alerts with logs.
 
@@ -98,7 +108,9 @@ Success messages are grouped or limited, while production failures, approval wai
 
 I test notification formatting and deduplication, and link back to the retained evidence. Chat is a communication channel, not the source of truth — the CI system and the change record hold the actual audit data.
 
-### 7. How do you manage a ServiceNow task assigned to you?
+</details>
+
+<details><summary>Q7. [Basic] How do you manage a ServiceNow task assigned to you?</summary>
 
 **Answer:**
 
@@ -109,3 +121,5 @@ I document investigation timestamps, the commands and results I ran (without sec
 If I'm blocked, I update the ticket with the owner, the reason, the next action, and an expected time — I don't leave it silent.
 
 I only close a ticket once the requester or a defined test confirms success. I link related incident, problem, or change records, and write a knowledge article or automation if the issue is likely to repeat.
+
+</details>

@@ -14,7 +14,7 @@
 
 ## Interview Questions
 
-### 1. What should you do when a Docker container exits immediately after startup?
+<details><summary>Q1. [Intermediate] What should you do when a Docker container exits immediately after startup?</summary>
 
 **Answer:**
 
@@ -28,7 +28,9 @@ Common causes: a shell-form command that breaks signal handling, a wrong file pa
 
 Once I find the cause, I fix the image or deployment config, rebuild, and re-verify startup, health, logs, clean shutdown, and the restart policy. I never just run `tail -f /dev/null` to paper over a broken main process.
 
-### 2. How do you debug slow Docker container startup? *(asked in interview round)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you debug slow Docker container startup? <em>(asked in interview round)</em></summary>
 
 **Answer:** Check the image size. Optimize the Dockerfile. Preload dependencies. Monitor entrypoint logs.
 
@@ -39,7 +41,9 @@ Common causes are a bloated image, dependencies being installed at container sta
 
 Once I find the bottleneck, I fix the Dockerfile — usually with multi-stage builds and better layer ordering — rebuild, and confirm startup time actually improved.
 
-### 3. If Docker containers are consuming too much disk space, how do you fix it?
+</details>
+
+<details><summary>Q3. [Intermediate] If Docker containers are consuming too much disk space, how do you fix it?</summary>
 
 **Check disk usage by Docker**
 
@@ -86,18 +90,24 @@ sudo du -sh /var/lib/docker/containers/*/*-json.log | sort -hr | head
 sudo truncate -s 0 /var/lib/docker/containers/<container-id>/<container-id>-json.log
 ```
 
-### 4. What's the difference between `docker system prune` and `docker system prune -a`?
+</details>
+
+<details><summary>Q4. [Basic] What's the difference between <code>docker system prune</code> and <code>docker system prune -a</code>?</summary>
 
 - `docker system prune` removes unused containers, networks, and dangling images (images with no tag).
 - `docker system prune -a` goes further and removes all unused images, even ones that are still tagged.
 
-### 5. How do you prevent Docker from filling the disk again?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you prevent Docker from filling the disk again?</summary>
 
 - Prune unused images regularly.
 - Set logging limits so container logs can't grow forever.
 - Store Docker's data on a dedicated volume or partition, separate from the rest of the OS.
 
-### 6. What are dangling Docker objects?
+</details>
+
+<details><summary>Q6. [Basic] What are dangling Docker objects?</summary>
 
 **Answer:**
 
@@ -113,7 +123,9 @@ I check what's there before cleaning anything up. A volume might still hold impo
 
 Any automated cleanup should have filters, disk thresholds, exclusions, logging, and a check that it isn't touching anything a live workload depends on.
 
-### 7. How do you delete all Docker resources in one command?
+</details>
+
+<details><summary>Q7. [Basic] How do you delete all Docker resources in one command?</summary>
 
 **Answer:**
 
@@ -123,7 +135,9 @@ My actual approach: run `docker system df -v` to see what's using space, check w
 
 After cleanup, I check that running containers are unaffected, disk and inode usage looks right, the app is healthy, and images can still be pulled. Anything destructive gets logged and approved beforehand.
 
-### 8. How do you remove all containers and images safely?
+</details>
+
+<details><summary>Q8. [Basic] How do you remove all containers and images safely?</summary>
 
 **Answer:**
 
@@ -140,7 +154,9 @@ In production, I never blindly remove every container or run `docker system prun
 
 Instead, I check `docker system df`, remove only the stopped containers and unused images that are actually approved for removal, confirm the registry still has the images we might need, and keep volume backups. Ongoing cleanup should run on a retention policy with disk alerts, not as an emergency measure — and in production I'd rather replace a host than deep-clean a live one.
 
-### 9. What happens if you delete `/var/lib/docker/overlay` on a Docker host?
+</details>
+
+<details><summary>Q9. [Advanced] What happens if you delete <code>/var/lib/docker/overlay</code> on a Docker host?</summary>
 
 **Answer:**
 
@@ -152,7 +168,9 @@ If that directory has already been deleted, I stop making further changes, prese
 
 I then restore any persistent application data from a proper volume backup, validate the workloads, bring the host back into service, and add capacity alerts and automated cleanup so this doesn't happen again. Docker's internal storage directory is not something an operator should ever touch by hand.
 
-### 10. You need live patching of a Docker host kernel without downtime. How do you achieve it?
+</details>
+
+<details><summary>Q10. [Advanced] You need live patching of a Docker host kernel without downtime. How do you achieve it?</summary>
 
 **Answer:**
 
@@ -161,3 +179,5 @@ My default approach is redundancy and rotation: take one host out of scheduling 
 Kernel live-patching tools — Canonical Livepatch, kpatch, or a cloud provider's own offering — can apply some security fixes without a reboot, but not every patch qualifies for live patching. I check kernel and patch compatibility first, test it on a lower environment, monitor closely, and still schedule a periodic reboot onto a fully updated kernel.
 
 On a single host, you can't truly guarantee zero downtime for the application — the architecture needs another instance to fail over to.
+
+</details>

@@ -102,7 +102,7 @@ Common uses include database migration Jobs, validation, backups, and cleanup. D
 
 ## Interview Questions
 
-### 1. How do you roll back a Helm release?
+<details><summary>Q1. [Basic] How do you roll back a Helm release?</summary>
 
 **Answer:**
 
@@ -119,7 +119,9 @@ After rolling back, I check the Deployment status, the pods, Service endpoints, 
 
 I keep the failed revision's logs and rendered manifests around for the post-mortem, fix the chart, test the fix in a lower environment, and then ship a new version — rather than repeatedly retrying the same broken release in production.
 
-### 2. How do you use Helm in Kubernetes? Explain charts, deployments, upgrades and the complete rollback procedure.
+</details>
+
+<details><summary>Q2. [Intermediate] How do you use Helm in Kubernetes? Explain charts, deployments, upgrades and the complete rollback procedure.</summary>
 
 **Interviewer:** How are you using Helm in Kubernetes? Explain Helm charts, deployments, upgrades, and the complete rollback procedure.
 
@@ -372,7 +374,9 @@ Verify Pods + Application
 - Verify the rollout (`kubectl rollout status`) after every install/upgrade rather than assuming success from Helm's own exit code.
 - Roll back immediately on a failed deployment rather than trying to hotfix forward under pressure.
 
-### 3. What are Helm hooks and how are they used?
+</details>
+
+<details><summary>Q3. [Intermediate] What are Helm hooks and how are they used?</summary>
 
 **Answer:**
 
@@ -389,3 +393,5 @@ metadata:
 I make hook Jobs safe to run more than once (idempotent), give them a timeout, use a tightly scoped ServiceAccount, and set a clear cleanup policy. A failing hook can block the whole release, so I check the Job, its pod logs, events, and the hook resource itself when something goes wrong.
 
 Anything as critical as a database migration needs its own explicit compatibility and recovery plan — you shouldn't assume a Helm rollback will undo it for you.
+
+</details>

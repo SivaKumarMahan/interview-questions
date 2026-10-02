@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you build a Jenkins pipeline for multi-environment deployment?
+<details><summary>Q1. [Intermediate] How do you build a Jenkins pipeline for multi-environment deployment?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ I use environment locks, concurrency limits, timeouts, smoke tests, monitoring, 
 
 If one environment fails, promotion to the next stops, and I keep the evidence and artifacts around for investigation.
 
-### 2. How do you implement multi-environment CI/CD while preventing configuration drift?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you implement multi-environment CI/CD while preventing configuration drift?</summary>
 
 **Answer:**
 
@@ -32,7 +34,9 @@ Before deploying, I compare desired state against live state. Afterward, I recor
 
 This makes drift visible, without pretending every environment has identical capacity or integrations.
 
-### 3. How do you ensure consistency between environments (Dev, QA, Prod)? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you ensure consistency between environments (Dev, QA, Prod)? <em>(scenario)</em></summary>
 
 **Answer:** Use Terraform workspaces or separate variable files, use Helm values for Kubernetes, and keep infrastructure-as-code in Git.
 
@@ -45,7 +49,9 @@ I compare rendered manifests and plans between stages, run smoke and contract te
 
 This makes any difference in production explainable instead of accidental.
 
-### 4. How do you manage different environments (Dev, QA, Staging, Production) in your application deployment pipeline? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you manage different environments (Dev, QA, Staging, Production) in your application deployment pipeline? <em>(scenario)</em></summary>
 
 **Answer:** Use separate Terraform workspace states per environment, environment-specific `.tfvars` files, dedicated EKS clusters, ArgoCD per environment, and separate prod and non-prod AWS accounts.
 
@@ -58,7 +64,9 @@ For application deployments, ArgoCD uses environment-specific application manife
 
 Production and non-production live in separate AWS accounts for strong isolation, with Terraform managing cross-account access where it's needed.
 
-### 5. How do you ensure that configurations are appropriately handled across environments? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you ensure that configurations are appropriately handled across environments? <em>(scenario)</em></summary>
 
 **Answer:** Combine Terraform variables with Kubernetes ConfigMaps and Secrets, use environment-specific `.tfvars` and Helm values files, store secrets in Vault and inject them at deploy time, and let ArgoCD enforce the desired state.
 
@@ -71,7 +79,9 @@ Sensitive configuration lives in HashiCorp Vault and gets injected at deploy tim
 
 Terraform outputs expose the infrastructure values that applications need, and ArgoCD consumes those during deployment.
 
-### 6. What strategies do you use to promote code from one environment to another? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] What strategies do you use to promote code from one environment to another? <em>(scenario)</em></summary>
 
 **Answer:** Use branch-based promotion — `feature/*` goes to dev, `develop` goes to staging, `main` goes to prod. Build one SHA-tagged image and promote that exact image everywhere. Use ArgoCD application sets, protected-branch approvals, and a manual sync step for production.
 
@@ -84,7 +94,9 @@ ArgoCD is set up with environment-specific application sets that deploy these im
 
 Merges to protected branches require approval in GitHub, and ArgoCD sync for production requires manual approval through RBAC policies.
 
-### 7. How do you implement release approvals in CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] How do you implement release approvals in CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Use a Jenkins input step or Azure DevOps approval gates, and require manager or lead approval before deploying to production.
 
@@ -97,7 +109,9 @@ The same build gets promoted rather than rebuilt. Production credentials only be
 
 Approval, rejection, identity, timestamp, and deployment result all get retained. Any emergency bypass is limited, audited, and followed by a review.
 
-### 8. Is it acceptable to deploy a critical banking application directly to production without automated testing because the developer is confident and time is limited? (True or False)
+</details>
+
+<details><summary>Q8. [Basic] Is it acceptable to deploy a critical banking application directly to production without automated testing because the developer is confident and time is limited? (True or False)</summary>
 
 **Answer:**
 
@@ -110,3 +124,5 @@ For a genuine emergency, I'd use an approved break-glass process instead: define
 Any lower-priority tests that got skipped run immediately afterward, and the emergency path itself gets reviewed.
 
 Emergency governance can move faster — but it's still governance, not the absence of it.
+
+</details>

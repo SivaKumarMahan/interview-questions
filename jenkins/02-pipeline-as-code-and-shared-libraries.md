@@ -18,7 +18,7 @@ Declarative Pipeline `post` conditions — `success`, `failure`, `unstable`, `ch
 
 ## Interview Questions
 
-### 1. How do you manage Jenkins pipelines as code?
+<details><summary>Q1. [Intermediate] How do you manage Jenkins pipelines as code?</summary>
 
 **Answer:**
 
@@ -37,7 +37,9 @@ Credentials are referenced by ID and scoped to the smallest block that needs the
 
 I test pipeline changes in a sandbox or multibranch job first, and require reviewers on any change to the Jenkinsfile or shared library, because that code can reach production credentials.
 
-### 2. Where do you write a Jenkins Declarative Pipeline?
+</details>
+
+<details><summary>Q2. [Basic] Where do you write a Jenkins Declarative Pipeline?</summary>
 
 **Quick/test method** - write it directly in the Jenkins UI:
 
@@ -96,7 +98,9 @@ Jenkins Dashboard -> New Item -> Pipeline
 
 **Interview answer:** for a quick test, write it directly as a Pipeline script in the UI. For real projects, use "Pipeline script from SCM" so the Jenkinsfile is version-controlled, reviewable, and travels with the application code.
 
-### 3. How do you manage Jenkins pipelines as code? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you manage Jenkins pipelines as code? <em>(scenario)</em></summary>
 
 **Answer:** Use Jenkinsfile (declarative pipeline) → Store in Git → Version control changes → Reuse shared libraries.
 
@@ -109,7 +113,9 @@ Multibranch jobs discover branches and pull requests through authenticated GitHu
 
 I test a shared library upgrade in a sample pipeline before rolling it out by version. I limit manual UI edits and replays, or reconcile them back into Git, so everything stays auditable.
 
-### 4. Walk through a Jenkins CI/CD workflow you have operated and the stages in its Jenkinsfile.
+</details>
+
+<details><summary>Q4. [Intermediate] Walk through a Jenkins CI/CD workflow you have operated and the stages in its Jenkinsfile.</summary>
 
 **Answer:**
 
@@ -132,7 +138,9 @@ Production uses protected credentials, an approval step where required, health a
 
 I keep the commit, test results, scan results, artifact digest, approval record, deployment record, and verification result as evidence for the release.
 
-### 5. Jenkins Declarative Pipeline Missing Structure
+</details>
+
+<details><summary>Q5. [Basic] Jenkins Declarative Pipeline Missing Structure</summary>
 
 #### The pipeline
 
@@ -211,7 +219,9 @@ pipeline {
 
 "This pipeline is missing the required top-level `agent`, has no test stage before deploying, and has no `post` block for failure notifications or cleanup. I'd add `agent any`, insert a `Test` stage between build and deploy, add `options` like a timeout and `disableConcurrentBuilds`, and add a `post` block to handle success/failure notifications and workspace cleanup."
 
-### 6. What are Jenkins shared libraries, and how do you write and use them safely?
+</details>
+
+<details><summary>Q6. [Intermediate] What are Jenkins shared libraries, and how do you write and use them safely?</summary>
 
 **Answer:**
 
@@ -225,7 +235,9 @@ Production jobs pin a specific version rather than silently tracking `main`. Par
 
 Because a trusted library can bypass parts of the Groovy sandbox and reach credentials, I keep ownership and write access to it tightly restricted. I roll out a new version to a few jobs first, watch it, and keep the previous version around in case I need to roll back.
 
-### 7. How do you use Jenkins shared libraries? Explain their typical structure and how they are integrated into their Jenkinsfiles?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you use Jenkins shared libraries? Explain their typical structure and how they are integrated into their Jenkinsfiles?</summary>
 
 In our Jenkins setup, we use **Shared Libraries** to centralize and reuse pipeline logic across multiple projects.
 The library is a separate Git repository with a standard structure — `vars/` for global scripts, `src/` for Groovy classes, and `resources/` for templates.
@@ -292,7 +304,9 @@ In this example:
 
 By using Jenkins Shared Libraries, you can streamline your Jenkins pipelines, reduce duplication, and ensure that best practices are consistently applied across your CI/CD processes.
 
-### 8. Ten Jenkins jobs have nearly the same configuration. How do you manage them?
+</details>
+
+<details><summary>Q8. [Intermediate] Ten Jenkins jobs have nearly the same configuration. How do you manage them?</summary>
 
 **Answer:**
 
@@ -301,7 +315,10 @@ I avoid maintaining ten separately-edited UI jobs. If one workflow just varies b
 For jobs that are genuinely different, I generate them with Job DSL or Jenkins Configuration as Code, and put the shared logic in a reviewed shared library. Multibranch Pipelines make sense when each repository or branch really does own its own pipeline.
 
 Parameters and templates cut down on duplication, but production credentials and permissions still need to stay separate — a generic job should never let an untrusted parameter pick a privileged deployment target.
-### 9. You have 30 CI/CD pipelines and need to add one environment variable to all of them. How do you avoid updating each pipeline manually?
+
+</details>
+
+<details><summary>Q9. [Intermediate] You have 30 CI/CD pipelines and need to add one environment variable to all of them. How do you avoid updating each pipeline manually?</summary>
 
 **Interviewer:** You have 30 CI/CD pipelines and need to add one environment variable to all of them. How would you avoid updating each pipeline manually?
 
@@ -364,3 +381,5 @@ All pipelines reference the same Variable Group. If I change the variable there,
 #### 2.3 Interview summary
 
 > "I would not update 30 pipelines individually. I would centralize common environment variables. In Jenkins, I would use a Shared Library or centralized Jenkins configuration. In Azure DevOps, I would use a Variable Group. This gives us one place to maintain the variable and prevents configuration drift across pipelines."
+
+</details>

@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. Your Jenkins pipeline takes 45 minutes to complete — how would you reduce the execution time?
+<details><summary>Q1. [Intermediate] Your Jenkins pipeline takes 45 minutes to complete — how would you reduce the execution time?</summary>
 
 My approach starts with analyzing where the pipeline spends most time using Jenkins **Stage View** or **Blue Ocean**.
 Then I optimize by parallelizing independent stages, caching dependencies, using faster ephemeral agents, and reusing artifacts.
@@ -44,7 +44,9 @@ stage('Parallel Testing') {
 
 By applying these strategies, you can effectively reduce the execution time of your Jenkins pipeline from 45
 
-### 2. How do you handle Jenkins job failures due to long build times? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you handle Jenkins job failures due to long build times? <em>(scenario)</em></summary>
 
 **Answer:** Break into smaller jobs → Run in parallel stages → Use distributed builds with agents → Cache dependencies.
 
@@ -55,7 +57,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 3. How do you optimize Jenkins job execution time? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you optimize Jenkins job execution time? <em>(scenario)</em></summary>
 
 **Answer:** Use pipeline libraries, parallelization, caching layers, and containerized builds with lightweight agents.
 
@@ -66,7 +70,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 4. How do you troubleshoot a slow Jenkins pipeline? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot a slow Jenkins pipeline? <em>(scenario)</em></summary>
 
 **Answer:** Identify bottleneck stage → Enable parallel execution → Cache dependencies → Scale Jenkins agents horizontally.
 
@@ -77,7 +83,9 @@ I reproduce the failure on the same versioned agent image with the same credenti
 
 Once it's fixed, I rerun the failed test and the full pipeline, compare the duration and failure rate against past runs, and add monitoring or a regression test so the problem doesn't come back unnoticed.
 
-### 5. Runbook: how do you troubleshoot a slow Jenkins pipeline stage by stage?
+</details>
+
+<details><summary>Q5. [Intermediate] Runbook: how do you troubleshoot a slow Jenkins pipeline stage by stage?</summary>
 
 ```
 Pipeline slow
@@ -108,7 +116,9 @@ Check each stage in turn - checkout, build, unit tests, Docker build, security s
 
 **Interview answer:** first use Stage View or Blue Ocean to identify the slow stage, then check logs and the agent's CPU/memory/disk/network. Check external dependencies - if repeated dependency downloads are the issue, add caching; if the agent is overloaded, move the build or increase capacity.
 
-### 6. How do you optimize Docker build speed in Jenkins pipelines? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you optimize Docker build speed in Jenkins pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Use caching layers → Multi-stage builds → Use local/private registry for faster pulls.
 
@@ -121,7 +131,9 @@ At runtime I drop unnecessary Linux capabilities, use seccomp/AppArmor/SELinux, 
 
 If a build is slow to start or push fails, I measure layer size and cache hits, registry DNS/auth/TLS, disk space, and application startup time instead of just retrying it. I rebuild from patched base images and re-check functionality and security findings before moving on.
 
-### 7. How do you optimize CI/CD pipelines in Jenkins? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] How do you optimize CI/CD pipelines in Jenkins? <em>(scenario)</em></summary>
 
 **Answer:** Use parallel stages, caching (e.g., Docker layers, Maven cache), and parameterized builds to save time.
 
@@ -133,7 +145,10 @@ If the delay is in the queue, that usually means more agent capacity or better l
 I use versioned agents that come pre-built with the tools already installed and get thrown away after each job, and I use `stash` only for small amounts of data. Timeouts stop jobs from hanging forever, and I fix flaky tests directly instead of hiding them behind broad retry logic.
 
 I compare a clean-cache run against a warm-cache run, make sure running things in parallel doesn't overload a shared dependency, and track lead time and failure rate after making these changes.
-### 8. What techniques optimize a Jenkins pipeline?
+
+</details>
+
+<details><summary>Q8. [Intermediate] What techniques optimize a Jenkins pipeline?</summary>
 
 Main goals: reduce build time, avoid unnecessary work, use resources efficiently, improve reliability. Always identify the bottleneck first, using Stage View and logs, rather than optimizing blind:
 
@@ -226,3 +241,5 @@ post {
 Don't destroy useful caches unnecessarily - a workspace clean that also wipes a dependency cache defeats the point of caching in the first place.
 
 **Key five interview points:** parallel execution + caching + conditional stages + optimized agents + Docker optimization.
+
+</details>

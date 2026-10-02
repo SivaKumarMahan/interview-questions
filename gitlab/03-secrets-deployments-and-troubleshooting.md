@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you manage GitLab repository secrets?
+<details><summary>Q1. [Intermediate] How do you manage GitLab repository secrets?</summary>
 
 **Answer:**
 
@@ -18,7 +18,9 @@ Masking hides a value in the log output, but it's not the real security boundary
 
 I test that unprotected branches and fork pipelines cannot reach production variables. If a value does leak, I revoke it first, check job logs and audit events, rotate the affected credentials, and remove any retained artifacts that might contain it.
 
-### 2. How do you manage secrets in GitLab CI?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you manage secrets in GitLab CI?</summary>
 
 **Answer:**
 
@@ -34,7 +36,9 @@ Controls I rely on:
 
 If a secret shows up in a job log, I revoke it right away, check who could have read that log, rotate the related credentials, remove the retained output where I can, and fix the pipeline before running it again.
 
-### 3. How do you deploy to Kubernetes from GitLab CI?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you deploy to Kubernetes from GitLab CI?</summary>
 
 **Answer:**
 
@@ -57,7 +61,9 @@ deploy-staging:
 
 I use a dedicated ServiceAccount or workload identity with only the access it actually needs, plus protected environments, readiness probes, smoke tests, deployment metrics, and a rollback path. I save the image digest and the Helm revision so the exact release stays traceable.
 
-### 4. What are manual jobs and environments in GitLab CI?
+</details>
+
+<details><summary>Q4. [Basic] What are manual jobs and environments in GitLab CI?</summary>
 
 **Answer:**
 
@@ -76,7 +82,9 @@ deploy-production:
 
 I protect the production environment so only the release group can run it, and I require that the artifact already passed the checks in lower environments first. Clicking the manual button isn't the whole control by itself — I also need separation of duties, traceable change approval, health checks, rollback, and audit logs.
 
-### 5. How do you optimize GitLab CI pipeline speed?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you optimize GitLab CI pipeline speed?</summary>
 
 **Answer:**
 
@@ -92,7 +100,9 @@ I measure queue time and job duration first, then fix the actual bottleneck inst
 
 I never skip required tests just to make the pipeline finish faster. After making changes, I compare median and high-percentile duration, queue time, cache hit rate, flakiness, and infrastructure cost.
 
-### 6. How do you troubleshoot GitLab CI failures?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you troubleshoot GitLab CI failures?</summary>
 
 **Answer:**
 
@@ -106,3 +116,5 @@ First I narrow down where the problem actually is: pipeline creation, scheduling
 6. Reproduce the job locally with the same container image and commands, using safe test credentials.
 
 I fix the root cause, and only rerun the job once I know it's safe to run again — a job is idempotent if running it twice causes no harm. I validate the downstream outputs, and add something to prevent a repeat: pinning a version, improving an error message, setting a timeout, or monitoring runner capacity.
+
+</details>

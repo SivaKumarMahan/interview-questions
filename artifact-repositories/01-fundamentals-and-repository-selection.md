@@ -91,7 +91,7 @@ Whatever tool is involved, the approach stays the same: build once, publish a ve
 
 ## Interview Questions
 
-### 1. What are the advantages of using Nexus Repository instead of storing build artifacts directly in Azure DevOps Pipeline Artifacts?
+<details><summary>Q1. [Basic] What are the advantages of using Nexus Repository instead of storing build artifacts directly in Azure DevOps Pipeline Artifacts?</summary>
 
 **Answer:**
 
@@ -115,3 +115,5 @@ The two can coexist:
 test report -> Azure Pipeline Artifact
 approved JAR/npm/NuGet/image -> Nexus Repository
 ```
+
+</details>

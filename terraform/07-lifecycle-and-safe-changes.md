@@ -111,7 +111,7 @@ resource "aws_lb_target_group" "web" {
 
 ## Interview Questions
 
-### 1. What is a lifecycle block?
+<details><summary>Q1. [Basic] What is a lifecycle block?</summary>
 
 #### The four options
 
@@ -153,7 +153,9 @@ resource "aws_instance" "web" {
 
 "`lifecycle` changes how Terraform handles a resource. I use `prevent_destroy` on production databases, and `create_before_destroy` when the old and new resource can exist together. I use `ignore_changes` when another system owns a field like a tag, and `replace_triggered_by` when a change elsewhere must force a replacement. These are helpers, not full protection, so I also use cloud deletion protection and approvals."
 
-### 2. Explain the resource lifecycle and `create_before_destroy`.
+</details>
+
+<details><summary>Q2. [Basic] Explain the resource lifecycle and <code>create_before_destroy</code>.</summary>
 
 #### What Terraform decides for each resource
 
@@ -194,7 +196,9 @@ lifecycle {
 
 "Terraform compares code, state, and reality and decides to do nothing, update in place, replace, create, or destroy. Replacement destroys first and then creates, which causes downtime. `create_before_destroy` reverses that order so the new resource comes up first. It is not a guarantee, because unique names, quotas, and attached resources can block having two at once, so I always confirm the order in the plan."
 
-### 3. How do you allow plan and apply but block deletion?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you allow plan and apply but block deletion?</summary>
 
 #### Layers of protection
 
@@ -212,7 +216,9 @@ There is no single Terraform switch that says "allow every update but never dele
 
 "There is no single flag for it, so I use layers. `prevent_destroy` on critical resources, deletion protection on the cloud side, a policy check that rejects plans containing deletes, and pipeline credentials without delete rights. Init, validate, and plan stay allowed because they only read. When a delete is genuinely needed, it goes through a documented break-glass approval."
 
-### 4. How do you avoid deleting something by accident?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you avoid deleting something by accident?</summary>
 
 #### Layers
 
@@ -249,7 +255,9 @@ terraform show -json tfplan | jq '.resource_changes[] | select(.change.actions[]
 
 "I never approve a plan without reading the destroy section. On top of that I use `prevent_destroy` and cloud deletion protection on critical resources, separate state files to limit blast radius, pipeline credentials without delete rights, and mandatory approval for production. For the most critical systems there is a break-glass procedure with two approvers and tested backups."
 
-### 5. How do you stop someone deleting a critical resource? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you stop someone deleting a critical resource? <em>(scenario)</em></summary>
 
 #### Protection layers
 
@@ -278,7 +286,9 @@ Stop new runs, check what is actually gone, restore from backup or replica, impo
 
 "I use layers: `prevent_destroy` and cloud deletion protection on critical resources, a policy check that rejects plans containing deletes, approval gates, and pipeline credentials without delete rights. If a destroy has already started, I stop the runs, check what really disappeared, restore from backup, and import anything that survived instead of applying blindly."
 
-### 6. Preventing accidental deletion of critical resources
+</details>
+
+<details><summary>Q6. [Intermediate] Preventing accidental deletion of critical resources</summary>
 
 Four layers, used together rather than any single one alone:
 
@@ -304,7 +314,9 @@ Avoid unnecessary destructive changes in the first place - renaming a resource b
 
 I use `lifecycle.prevent_destroy` on resources that must never be destroyed by Terraform, review every `plan` before `apply` - especially anything showing `-` or `-/+` - and back that with RBAC restricting who can apply against production, plus a CI/CD approval gate so a human sees the plan before it's applied.
 
-### 7. The plan wants to destroy and recreate a production database. What do you do?
+</details>
+
+<details><summary>Q7. [Advanced] The plan wants to destroy and recreate a production database. What do you do?</summary>
 
 #### Steps
 
@@ -333,7 +345,9 @@ I use `lifecycle.prevent_destroy` on resources that must never be destroyed by T
 
 "I stop and find out which argument forces the replacement, since the plan marks it. I check the provider docs to see whether the field is immutable and whether the change can be done in place instead. If a real replacement is needed, I treat it as a data migration: build the new database, replicate the data, test the application, switch traffic, keep the old one for a rollback window, and only then destroy it. A lifecycle flag alone is not a downtime plan."
 
-### 8. Terraform wants to destroy something critical. How do you react? *(scenario)*
+</details>
+
+<details><summary>Q8. [Intermediate] Terraform wants to destroy something critical. How do you react? <em>(scenario)</em></summary>
 
 #### Steps
 
@@ -353,7 +367,9 @@ terraform show -json tfplan | jq -r '.resource_changes[] | select(.change.action
 
 "I stop and find out why. Either the resource block was removed from the code by mistake, or an immutable field is forcing replacement, and the plan says which one. I check the provider docs to see whether the change can be done in place, and I verify backups before doing anything. I also run a jq check over the plan JSON so deletes are never buried in a long output."
 
-### 9. How do you stop Terraform replacing resources unexpectedly? *(scenario)*
+</details>
+
+<details><summary>Q9. [Intermediate] How do you stop Terraform replacing resources unexpectedly? <em>(scenario)</em></summary>
 
 #### Find out why first
 
@@ -387,7 +403,9 @@ Keep the list narrow. A wide `ignore_changes` hides real drift.
 
 "I read the plan to see which argument is marked `forces replacement`, because that tells me whether the field is immutable. If the change is not needed I revert the code; if another system owns the field I add a narrow `ignore_changes`; if replacement really is needed I plan for it with create-before-destroy and a traffic cutover. For anything holding data, I treat it as a migration, not a replace."
 
-### 10. Preventing Terraform from accidentally replacing resources
+</details>
+
+<details><summary>Q10. [Intermediate] Preventing Terraform from accidentally replacing resources</summary>
 
 - **Always review `terraform plan`.** A plan showing `-/+` means destroy-and-recreate, not an in-place update - that's the single most important thing to catch before `apply`.
 - **Use `lifecycle.prevent_destroy`** for resources that must never be destroyed:
@@ -413,7 +431,9 @@ resource "azurerm_key_vault" "kv" {
 
 The plan is the safety net - `-/+` always means destroy-and-recreate, and I review every plan against production for that specifically. `lifecycle.prevent_destroy` backs that up for resources that must never go away. For collections of similar resources, I use `for_each` over `count` specifically because `count` reindexes and can trigger cascading replacement when an item is removed from the middle of the list, while `for_each` only touches the one resource whose key actually changed.
 
-### 11. What are `taint` and `untaint`?
+</details>
+
+<details><summary>Q11. [Basic] What are <code>taint</code> and <code>untaint</code>?</summary>
 
 #### What they do
 
@@ -440,7 +460,9 @@ terraform apply tfplan
 
 "`taint` marks a resource in state so it gets recreated on the next apply, and `untaint` removes that mark. It is deprecated now, so I prefer `terraform apply -replace=<address>` because the replacement is visible in the plan instead of hidden in state. For databases or disks I never use replacement as a quick troubleshooting step."
 
-### 12. A resource is not updating properly. Do taint and untaint help?
+</details>
+
+<details><summary>Q12. [Intermediate] A resource is not updating properly. Do taint and untaint help?</summary>
 
 #### First find out why it is not updating
 
@@ -460,7 +482,9 @@ terraform apply tfplan
 
 "I do not start with taint. First I check the plan, the provider error, whether the field is immutable, and whether `ignore_changes` is hiding it. If the object really needs to be rebuilt, I use `apply -replace` so the change is visible in the plan. If someone tainted a healthy resource by mistake, `untaint` avoids an unnecessary replacement."
 
-### 13. You changed a variable and want to see the impact. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q13. [Basic] You changed a variable and want to see the impact. What do you do? <em>(scenario)</em></summary>
 
 #### Run a plan
 
@@ -489,7 +513,9 @@ It hides everything else.
 
 "I run a plan with the right var file and read the whole thing, not just the resource I expected to change, because an immutable field can turn a small value change into a replacement. I look specifically for `forces replacement`, destroys, and changed outputs that other stacks depend on. I avoid `-target`, because narrowing the plan hides exactly what I am trying to catch."
 
-### 14. How do you get zero-downtime updates?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you get zero-downtime updates?</summary>
 
 #### Techniques
 
@@ -527,7 +553,9 @@ resource "aws_autoscaling_group" "web" {
 
 "For stateless tiers I use immutable replacement: a new launch template version, an autoscaling instance refresh with a minimum healthy percentage, and health checks before traffic is sent. For bigger changes I use blue-green, so traffic moves only after the new stack is verified and rollback is just switching back. Databases need their own plan with replicas, backups, and application-level migration."
 
-### 15. How do you create an autoscaling group?
+</details>
+
+<details><summary>Q15. [Intermediate] How do you create an autoscaling group?</summary>
 
 #### Two pieces
 
@@ -574,7 +602,9 @@ resource "aws_autoscaling_group" "web" {
 
 "I create a launch template with the approved image, security groups, and instance profile. Then I add an autoscaling group that spreads across availability zones, with min, desired, and max capacity, target group attachment, and health checks. I add a scaling policy on a real metric like CPU or request count. After apply I test scale-out and instance replacement, because seeing the resource created is not proof it works."
 
-### 16. How do you do immutable infrastructure? *(scenario)*
+</details>
+
+<details><summary>Q16. [Intermediate] How do you do immutable infrastructure? <em>(scenario)</em></summary>
 
 #### The idea
 
@@ -610,7 +640,9 @@ resource "aws_autoscaling_group" "web" {
 
 "Instead of changing servers in place, I build a new versioned image, point the launch template at it, and let the autoscaling instance refresh replace instances gradually while health checks protect the rollout. Rollback is just pointing back at the previous image version. Data stays outside the instances, in managed services, so replacing a server is never risky."
 
-### 17. How do you handle database schema changes?
+</details>
+
+<details><summary>Q17. [Intermediate] How do you handle database schema changes?</summary>
 
 #### Separate the two jobs
 
@@ -655,7 +687,9 @@ output "db_endpoint" {
 
 "I keep them separate: Terraform creates the database instance, networking, backups, and users, and a dedicated migration tool like Flyway or Liquibase handles the schema through the deployment pipeline. Before a migration the pipeline takes a snapshot, and migrations are written to be backward compatible so the previous application version still works if we need to roll back."
 
-### 18. How do you roll back a bad deployment? *(scenario)*
+</details>
+
+<details><summary>Q18. [Intermediate] How do you roll back a bad deployment? <em>(scenario)</em></summary>
 
 #### Terraform has no rollback command
 
@@ -687,7 +721,9 @@ Restoring an old **state** file is not a rollback. It only makes Terraform belie
 
 "There is no rollback command. I revert the code to the last good commit and apply a new reviewed plan. But I always say clearly that this does not bring back deleted data or undo a database migration, so real rollback safety comes from backups, blue-green deployment, and deletion protection. Restoring an old state file is not a rollback; it just makes Terraform believe something untrue."
 
-### 19. How do you implement rollback? *(scenario)*
+</details>
+
+<details><summary>Q19. [Intermediate] How do you implement rollback? <em>(scenario)</em></summary>
 
 #### There is no rollback command
 
@@ -711,3 +747,5 @@ terraform apply rollback.tfplan
 #### Interview answer
 
 "Rollback is reverting the code and applying a new reviewed plan, not restoring an old state file. Applying old code cannot bring back deleted data or undo a migration, so I design for rollback up front. That means blue-green so rollback is just a traffic switch, backward-compatible migrations, deletion protection, and backups that have actually been restored once in a test."
+
+</details>

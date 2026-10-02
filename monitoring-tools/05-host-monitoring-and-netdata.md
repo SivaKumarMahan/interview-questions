@@ -118,7 +118,7 @@ A good-looking dashboard isn't the whole job. Alerts still need an owner and a r
 
 ## Interview Questions
 
-### 1. What do you monitor on Linux and Windows servers?
+<details><summary>Q1. [Basic] What do you monitor on Linux and Windows servers?</summary>
 
 **Answer:**
 
@@ -130,7 +130,9 @@ On Linux I'd typically use node-exporter, journald, and process or service expor
 
 Alerts should be based on sustained conditions, owned by a specific team, and linked to a runbook.
 
-### 2. What is Netdata, and when would you use it?
+</details>
+
+<details><summary>Q2. [Basic] What is Netdata, and when would you use it?</summary>
 
 **Answer:**
 
@@ -140,7 +142,9 @@ I use it for fast infrastructure visibility: troubleshooting CPU, memory, disk, 
 
 It can sit alongside Prometheus, Grafana or cloud monitoring rather than replace them. I still need to define application SLIs, retention, access control and who owns each incident. Installing a tool by itself does not prove the service is available to customers.
 
-### 3. How is Netdata different from Prometheus and Grafana?
+</details>
+
+<details><summary>Q3. [Basic] How is Netdata different from Prometheus and Grafana?</summary>
 
 **Answer:**
 
@@ -150,7 +154,9 @@ The three can coexist. Netdata handles rapid diagnosis on a single node, Prometh
 
 I pick between them based on scale, retention needs, query language, how well application instrumentation is exposed, integrations, operational effort, access and data residency requirements, and cost — not by declaring one tool universally better.
 
-### 4. How does Netdata Parent-Child monitoring work?
+</details>
+
+<details><summary>Q4. [Intermediate] How does Netdata Parent-Child monitoring work?</summary>
 
 **Answer:**
 
@@ -162,7 +168,9 @@ When central monitoring is critical, I plan for more than one parent, or a clear
 
 I test what happens on connection loss and reconnection. I don't just assume centralized monitoring is highly available.
 
-### 5. How would you deploy Netdata securely in production?
+</details>
+
+<details><summary>Q5. [Intermediate] How would you deploy Netdata securely in production?</summary>
 
 **Answer:**
 
@@ -174,7 +182,9 @@ For centralized monitoring, Child Agents stream to resilient Parent capacity, or
 
 I also define retention and storage limits, labels, alert receivers and backups, and test agent and parent upgrades in a lower environment first.
 
-### 6. How do you investigate a high-CPU alert safely?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you investigate a high-CPU alert safely?</summary>
 
 **Answer:**
 
@@ -186,7 +196,9 @@ To stabilize things, I shift traffic away, scale out, or stop a task I've confir
 
 Afterward I confirm user-facing latency and errors are back to normal, check CPU under real load, and improve the alert or add a regression test so it's caught earlier next time.
 
-### 7. Netdata shows high CPU. How do you investigate?
+</details>
+
+<details><summary>Q7. [Intermediate] Netdata shows high CPU. How do you investigate?</summary>
 
 **Answer:**
 
@@ -198,7 +210,9 @@ To mitigate, I shift traffic, roll back, scale out, or stop a runaway task I've 
 
 A host-level CPU alert is supporting evidence. It is not the root cause by itself.
 
-### 8. How do you monitor disk exhaustion?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you monitor disk exhaustion?</summary>
 
 **Answer:**
 
@@ -208,7 +222,9 @@ When investigating, I look for what's actually growing: a specific directory, fi
 
 I clean up using supported rotation and cleanup tools, and I never delete a file in production if I don't know what it is. To prevent this from recurring, I rely on retention policies, quotas, separate capacity where it makes sense, and alerts that fire early enough to act safely.
 
-### 9. How do you identify and investigate the ten highest-memory processes?
+</details>
+
+<details><summary>Q9. [Basic] How do you identify and investigate the ten highest-memory processes?</summary>
 
 **Answer:**
 
@@ -225,3 +241,5 @@ That gives one header line plus the ten highest processes. I sort by RSS rather 
 I don't assume the top process is leaking from a single sample. I check `free -h`, `vmstat 1`, swap usage, and OOM logs. Then I watch that specific PID over time with `pidstat -r -p <pid> 1`, along with application and runtime metrics and historical monitoring data.
 
 I compare the growth pattern against traffic, deployments, and scheduled jobs. If the impact is severe, I scale out or restart gracefully, but only after preserving diagnostics first. Then I fix the actual leak, cache or heap configuration, workload sizing, or resource limit, and confirm memory, latency, and error rate are back to normal under regular load.
+
+</details>

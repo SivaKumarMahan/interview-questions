@@ -101,7 +101,7 @@ print(say_hello("Momen"))
 
 ## Interview Questions
 
-### 1. What is a decorator in Python?
+<details><summary>Q1. [Intermediate] What is a decorator in Python?</summary>
 
 **Answer:**
 
@@ -133,3 +133,5 @@ print(add(2, 3))
 `@wraps` keeps the original function's name, docstring, and other metadata intact, which helps debugging and any framework that inspects the function. A decorator that takes its own arguments just adds one more outer function layer.
 
 For async functions, the wrapper needs to be async too, and it needs to `await` the original call. I never log arguments blindly, in case one of them is sensitive.
+
+</details>

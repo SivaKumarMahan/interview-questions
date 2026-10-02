@@ -370,7 +370,7 @@ Think of it as personal notes versus a shared company drive.
 
 ## Interview Questions
 
-### 1. How did you set up Terraform in CI/CD?
+<details><summary>Q1. [Intermediate] How did you set up Terraform in CI/CD?</summary>
 
 #### On a pull request
 
@@ -402,7 +402,9 @@ The plan summary is posted as a PR comment. The full plan file is kept as a prot
 
 "On a pull request the pipeline runs fmt, init, validate, a security scan, and a plan with read-only credentials, and posts the plan summary for review. After merge, a protected stage applies the reviewed plan for that same commit, with production approval and only one job per state. Credentials come from workload identity, and after apply I run a smoke test."
 
-### 2. How do you run Terraform safely in a pipeline?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you run Terraform safely in a pipeline?</summary>
 
 #### Safety list
 
@@ -420,7 +422,9 @@ The plan summary is posted as a PR comment. The full plan file is kept as a prot
 
 "I pin versions, use locked remote state per environment, and get short-lived credentials from workload identity. PRs run plan and policy checks; production applies the reviewed plan after approval, one job at a time. If an apply fails halfway, the pipeline stops and an engineer compares state with the real resources instead of blindly retrying or destroying."
 
-### 3. How do you build a CI/CD pipeline for Terraform? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you build a CI/CD pipeline for Terraform? <em>(scenario)</em></summary>
 
 #### Stages
 
@@ -459,7 +463,9 @@ jobs:
 
 "The pull request stage runs fmt, validate, a security scan, and a plan with read-only credentials, and posts the plan for review. After merge, a protected environment requires approval and applies that same reviewed plan, followed by a smoke test. Credentials come from OIDC, state is locked, and only one apply runs per state."
 
-### 4. How do you make sure changes are peer reviewed? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you make sure changes are peer reviewed? <em>(scenario)</em></summary>
 
 #### Pipeline on a pull request
 
@@ -488,7 +494,9 @@ Only the protected job applies, using the same commit and the reviewed plan, aft
 
 "Every change goes through a pull request that runs fmt, validate, security scans, and a plan, and the plan summary is posted as a comment so reviewers can see creates, updates, and destroys. Branch protection requires an approval, and code owners review modules and production folders. Apply only happens from the protected job on that same commit after approval."
 
-### 5. How do you automate plan reviews? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you automate plan reviews? <em>(scenario)</em></summary>
 
 #### In the pipeline
 
@@ -517,7 +525,9 @@ Atlantis and Spacelift post plans and handle apply approval automatically.
 
 "The pipeline saves the plan and posts a readable summary as a pull request comment, and it also converts the plan to JSON so policy checks can run automatically and any deletes are listed clearly. Reviewers usually miss deletes in a long plan, so highlighting them is the most useful automation. Atlantis or Spacelift give this workflow out of the box."
 
-### 6. Testing before production *(asked in interview round)*
+</details>
+
+<details><summary>Q6. [Intermediate] Testing before production <em>(asked in interview round)</em></summary>
 
 | Stage | What runs |
 |---|---|
@@ -528,7 +538,9 @@ Atlantis and Spacelift post plans and handle apply approval automatically.
 | Tests | `terraform test` or Terratest against a sandbox |
 | Promotion | Apply in dev, then staging, then production with approval |
 
-### 7. How do you test Terraform code?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you test Terraform code?</summary>
 
 #### Layers of testing
 
@@ -577,7 +589,9 @@ func TestVpc(t *testing.T) {
 
 "I test in layers: `fmt` and `validate` for basics, `tflint` for lint, `tfsec` or `checkov` for security, and a reviewed plan on every pull request. For modules I use the native `terraform test` framework or Terratest to deploy into a sandbox, assert the outputs, and destroy. Policy checks with OPA or Sentinel run before apply, and the pipeline blocks a merge if any layer fails."
 
-### 8. How do you test Terraform before deploying? *(scenario)*
+</details>
+
+<details><summary>Q8. [Intermediate] How do you test Terraform before deploying? <em>(scenario)</em></summary>
 
 #### Order of checks
 
@@ -596,7 +610,9 @@ Then deploy to dev, verify, and promote the same code to test and production.
 
 "I run fmt and validate for the basics, tflint for lint, tfsec or Checkov for security, and a reviewed plan on every pull request. Modules also have `terraform test` or Terratest cases that build a real example in a sandbox and destroy it. Then the change is proven in dev before the same code is promoted upward."
 
-### 9. What is TFLint, and how do you use it in CI/CD?
+</details>
+
+<details><summary>Q9. [Basic] What is TFLint, and how do you use it in CI/CD?</summary>
 
 #### 16.1 What is TFLint?
 
@@ -712,7 +728,9 @@ If TFLint finds issues, the pipeline fails, preventing low-quality Terraform cod
 
 > "TFLint is a linting tool for Terraform that performs static analysis on Terraform code. While `terraform validate` checks syntax and configuration validity, TFLint goes further by identifying best practice violations, deprecated arguments, unused variables, and provider-specific configuration issues. We typically run TFLint in our CI/CD pipeline before `terraform plan` so that configuration problems are caught early and only high-quality Infrastructure as Code is deployed."
 
-### 10. What are tfsec, Checkov and Trivy, and how do they compare?
+</details>
+
+<details><summary>Q10. [Basic] What are tfsec, Checkov and Trivy, and how do they compare?</summary>
 
 These are all Infrastructure as Code (IaC) security scanning tools, but they have different purposes.
 
@@ -802,7 +820,9 @@ It reports vulnerabilities such as Critical, High, Medium and Low. This helps pr
 
 > "tfsec and Checkov are Infrastructure as Code security scanners that check Terraform code for misconfigurations before deployment, such as public storage accounts or open security groups. Checkov supports more frameworks than tfsec, including Kubernetes, Helm and Dockerfiles, and can enforce compliance standards like CIS. Trivy is different - it is mainly a vulnerability scanner for container images, and it also scans filesystems, Kubernetes clusters, IaC files and committed secrets. In a pipeline, I run tfsec or Checkov on the Terraform code and Trivy on the built Docker image before pushing it to ACR."
 
-### 11. How do you manage secrets in Terraform?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you manage secrets in Terraform?</summary>
 
 #### Rules
 
@@ -843,7 +863,9 @@ variable "db_password" {
 
 "I keep secrets out of Git. The pipeline logs in with a short-lived identity and reads secrets from Key Vault, Vault, or Secrets Manager. I mark variables and outputs as sensitive, but I explain that this only hides them in output, not in state, so the backend must be encrypted with restricted access. Where possible, the application reads the secret at runtime instead of Terraform passing it."
 
-### 12. Terraform Hardcoded Credentials
+</details>
+
+<details><summary>Q12. [Intermediate] Terraform Hardcoded Credentials</summary>
 
 #### The code
 
@@ -890,7 +912,9 @@ Azure DevOps issues a short-lived OIDC token that Azure trusts via a federated c
 
 "Hardcoded client secrets in Terraform files are a serious risk since they land in source control and in state. I'd remove them from the provider block entirely and authenticate through an Azure DevOps service connection using Workload Identity Federation (OIDC) where possible, or environment variables (`ARM_*`) backed by a Key Vault–stored secret otherwise — never committed to the repo."
 
-### 13. How do you keep secrets out of state?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you keep secrets out of state?</summary>
 
 #### What I do
 
@@ -917,7 +941,9 @@ Better still, the application reads the secret at runtime using its managed iden
 
 "Secrets never go into Git or plain tfvars. The pipeline authenticates with workload identity and pulls values from a secret manager. I mark variables and outputs sensitive, but I explain that this only hides output, so the backend must be encrypted with restricted read access. Where possible Terraform creates the secret container and grants access, while the application reads the actual value at runtime."
 
-### 14. How do you use a secret manager with Terraform?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you use a secret manager with Terraform?</summary>
 
 #### Vault example
 
@@ -958,7 +984,9 @@ Any value used in a resource can end up in state, so:
 
 "I keep the secret in Vault, Key Vault, or Secrets Manager and read it with a data source at run time, so nothing is hardcoded. I mark outputs sensitive and encrypt the backend, because the value can still end up in state. For the most sensitive values I prefer that Terraform only grants access and the application reads the secret at runtime."
 
-### 15. How do you encrypt secrets in the state file? *(scenario)*
+</details>
+
+<details><summary>Q15. [Intermediate] How do you encrypt secrets in the state file? <em>(scenario)</em></summary>
 
 #### What you can do
 
@@ -992,7 +1020,9 @@ Terraform does not encrypt individual values inside state. The whole file is pro
 
 "Terraform does not encrypt single values inside state, so I protect the whole file: an encrypted bucket with a customer-managed key, TLS in transit, versioning, and tight IAM so read access is as restricted as write. The better fix is to avoid putting secrets in state at all, by letting the application read them at runtime through managed identity."
 
-### 16. Encrypting secrets in Terraform state
+</details>
+
+<details><summary>Q16. [Intermediate] Encrypting secrets in Terraform state</summary>
 
 - Store production state **remotely** (e.g. Azure Storage), never locally.
 - Use **encryption at rest** on the state storage.
@@ -1015,7 +1045,9 @@ variable "db_password" {
 
 I keep production state remote with encryption at rest, RBAC, and private network access, and I enable versioning so a bad state write is recoverable. Secrets themselves come from Azure Key Vault rather than being hardcoded, and I mark sensitive variables - but I'm careful to explain that `sensitive = true` only hides the value in CLI output; it does not encrypt it inside the state file, so protecting the state storage itself is what actually matters.
 
-### 17. How do you secure a Terraform pipeline? *(scenario)*
+</details>
+
+<details><summary>Q17. [Advanced] How do you secure a Terraform pipeline? <em>(scenario)</em></summary>
 
 #### Controls
 
@@ -1033,7 +1065,9 @@ I keep production state remote with encryption at rest, RBAC, and private networ
 
 "The pipeline uses short-lived credentials from workload identity instead of stored keys, with a separate least-privilege identity per environment. Code is protected with branch rules and code owners, and the actions and provider versions are pinned. Every run does security and policy scanning, and apply only happens in a protected environment after approval. Logs are kept for audit but sensitive output is redacted."
 
-### 18. How do you secure Terraform code in GitHub? *(scenario)*
+</details>
+
+<details><summary>Q18. [Intermediate] How do you secure Terraform code in GitHub? <em>(scenario)</em></summary>
 
 #### Repository settings
 
@@ -1062,7 +1096,9 @@ Rotate it immediately. Removing it from history is not enough, it has already be
 
 "Branch protection with required reviews and status checks, code owners on modules and production folders, and secret scanning with push protection. The workflow uses OIDC instead of stored keys, pins actions, and applies only through a protected environment with required reviewers. If a secret ever gets committed, I rotate it immediately, because cleaning the history does not make it un-leaked."
 
-### 19. How do you keep shared modules secure? *(scenario)*
+</details>
+
+<details><summary>Q19. [Intermediate] How do you keep shared modules secure? <em>(scenario)</em></summary>
 
 #### Controls
 
@@ -1087,7 +1123,9 @@ Make the safe option the default, and make the unsafe option something you have 
 
 "Modules live in a protected repo with code owner review and their own security scanning, and they are released with semantic versions so nothing reaches consumers silently. The important part is secure defaults: encryption on, public access off, so a team has to deliberately opt out of safety rather than remember to opt in."
 
-### 20. How do you set up least privilege IAM in Terraform? *(scenario)*
+</details>
+
+<details><summary>Q20. [Intermediate] How do you set up least privilege IAM in Terraform? <em>(scenario)</em></summary>
 
 #### Rules
 
@@ -1120,7 +1158,9 @@ resource "azurerm_role_assignment" "app_reader" {
 
 "I grant a narrow role at the smallest possible scope, on the single bucket or resource group rather than the whole project or subscription, and I avoid primitive roles like Owner or Editor. Identities use workload identity or managed identity so there are no static keys to leak. When something is denied, I read the audit log to find the exact missing permission instead of widening the role to make it pass."
 
-### 21. How do you manage GCP IAM or Azure RBAC in Terraform? *(scenario)*
+</details>
+
+<details><summary>Q21. [Intermediate] How do you manage GCP IAM or Azure RBAC in Terraform? <em>(scenario)</em></summary>
 
 #### Keep bindings in code, not in the console
 
@@ -1152,7 +1192,9 @@ resource "google_project_iam_member" "app_logs" {
 
 "I keep role assignments in Terraform so access is reviewed like any other change, granting narrow roles at the smallest scope. One thing I always mention is that in GCP the `_policy` and `_binding` resources are authoritative and can remove existing access, so I use `_member` unless I truly intend to own the whole policy."
 
-### 22. How do you enforce tagging and encryption rules?
+</details>
+
+<details><summary>Q22. [Intermediate] How do you enforce tagging and encryption rules?</summary>
 
 #### Enforce at more than one layer
 
@@ -1187,7 +1229,9 @@ Keep an exception process with an expiry date.
 
 "I enforce rules in layers. CI runs Checkov or tfsec on the code, Sentinel or OPA checks the plan before apply, and cloud-native policies catch anything created outside Terraform. Rules cover required tags, encryption, allowed regions, and private networking. I classify rules as advisory, soft mandatory, or hard mandatory, keep a time-limited exception process, and test policies with both passing and failing examples."
 
-### 23. How do you enforce policy as code? *(scenario)*
+</details>
+
+<details><summary>Q23. [Intermediate] How do you enforce policy as code? <em>(scenario)</em></summary>
 
 #### Two places
 
@@ -1221,7 +1265,9 @@ deny[msg] {
 
 "For Terraform I scan the code with Checkov or tfsec and check the plan with Sentinel or OPA, and the pull request fails if a rule is broken. For Kubernetes I use Gatekeeper or Kyverno as admission controllers so anything applied directly to the cluster is also checked. I keep an exception process with an expiry date, otherwise people work around the gate."
 
-### 24. Policy-as-code for Terraform and Kubernetes
+</details>
+
+<details><summary>Q24. [Intermediate] Policy-as-code for Terraform and Kubernetes</summary>
 
 **Terraform pipeline:**
 
@@ -1251,7 +1297,9 @@ The two ecosystems are structurally similar - a policy engine evaluates a desire
 
 For Terraform, I run `tfsec`/`Checkov`/`Trivy` plus `TFLint` in the pipeline before `plan`, enforcing things like approved regions, mandatory tags, encryption, and no public storage exposure. For Kubernetes, I use an admission-control policy engine - OPA Gatekeeper, Kyverno, or Azure Policy for AKS - to enforce non-root containers, approved registries, required resource limits, and no privileged containers at the point resources are created, not after the fact.
 
-### 25. How do you enforce rules like naming and tagging? *(scenario)*
+</details>
+
+<details><summary>Q25. [Intermediate] How do you enforce rules like naming and tagging? <em>(scenario)</em></summary>
 
 #### Where the checks run
 
@@ -1289,7 +1337,9 @@ provider "aws" {
 
 "I start with variable validation and provider default tags, so the right thing happens by default and bad input fails early with a clear message. Then a policy check on the plan with OPA or Sentinel enforces the rules in CI, and a cloud-native policy catches whatever is created outside Terraform. Layering them means one gap does not let everything through."
 
-### 26. What is Terraform Enterprise?
+</details>
+
+<details><summary>Q26. [Basic] What is Terraform Enterprise?</summary>
 
 #### Simple definition
 
@@ -1312,7 +1362,9 @@ Terraform Enterprise is HashiCorp's self-hosted version of Terraform Cloud. You 
 
 "Terraform Enterprise is HashiCorp's self-hosted platform for running Terraform centrally. It gives remote runs, managed state, workspaces, Git integration, role-based access, policy enforcement with Sentinel, a private module registry, and audit logs. Companies use it when they need those controls inside their own network. It does not replace good module design or cloud IAM."
 
-### 27. Explain the Terraform Enterprise architecture.
+</details>
+
+<details><summary>Q27. [Advanced] Explain the Terraform Enterprise architecture.</summary>
 
 #### Flow
 
@@ -1343,3 +1395,5 @@ TLS, secret management, backups of state and metadata, monitoring, an upgrade pl
 #### Interview answer
 
 "A Git webhook or API call reaches the Terraform Enterprise application, which manages workspaces, variables, policies, and the run queue. A worker then runs init, plan, and apply, talking to module sources and cloud APIs, and returns logs and a new state version stored in object storage. In production I also plan for TLS, secrets, backups, monitoring, upgrades, and disaster recovery, and I make sure the workers have the network access they need, not just the UI."
+
+</details>

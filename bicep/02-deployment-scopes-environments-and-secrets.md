@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you deploy a Bicep file?
+<details><summary>Q1. [Basic] How do you deploy a Bicep file?</summary>
 
 **Answer:**
 
@@ -31,7 +31,9 @@ CI runs lint/build, validation, policy and security checks, and what-if. A revie
 
 Afterward I check the deployment operations, policy results, resource health, diagnostics, and run an application smoke test.
 
-### 2. What deployment scopes does Bicep support?
+</details>
+
+<details><summary>Q2. [Basic] What deployment scopes does Bicep support?</summary>
 
 **Answer:**
 
@@ -52,7 +54,9 @@ Subscription scope can create resource groups and policy assignments. Management
 
 Cross-scope modules make ownership clear.
 
-### 3. How do you handle different environments in Bicep?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you handle different environments in Bicep?</summary>
 
 **Answer:**
 
@@ -72,7 +76,9 @@ Secrets come from Key Vault or a secure deployment input, never from a plain par
 
 The pipeline renders what-if for each environment, checks Azure Policy, and promotes the same module version through each stage. Post-deployment checks confirm tags, networking, diagnostics, capacity, and that the application actually behaves correctly.
 
-### 4. How do you secure secrets in Bicep deployments?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you secure secrets in Bicep deployments?</summary>
 
 **Answer:**
 
@@ -87,3 +93,5 @@ Ideally, the workload uses a managed identity and pulls secrets from Key Vault d
 
 CI authenticates with workload identity federation, and only reads protected values when a resource API genuinely requires them.
 I check what-if output, logs, parameter files, outputs, and generated templates for any leakage. Key Vault access follows least privilege — only the permissions actually needed — plus private networking where required, audit logging, rotation, and recovery protection.
+
+</details>

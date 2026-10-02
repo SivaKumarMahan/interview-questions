@@ -81,7 +81,7 @@ If `mysql-1` is recreated, it keeps the same identity and reconnects to its own 
 
 ## Interview Questions
 
-### 1. Can you attach a volume to a Deployment? How is it different from a StatefulSet?
+<details><summary>Q1. [Basic] Can you attach a volume to a Deployment? How is it different from a StatefulSet?</summary>
 
 **Answer:**
 
@@ -95,7 +95,9 @@ I check the PVC and PV access mode, the StorageClass, the reclaim policy, topolo
 
 If you need shared content, use a storage backend that's actually built for multiple writers — don't assume switching to a Deployment changes the underlying storage rules.
 
-### 2. What could cause a StatefulSet Pod to fail when rescheduled to a different availability zone?
+</details>
+
+<details><summary>Q2. [Intermediate] What could cause a StatefulSet Pod to fail when rescheduled to a different availability zone?</summary>
 
 **Answer:**
 
@@ -107,7 +109,9 @@ I check the Pod's events, the PVC and PV, the PV's node affinity, the StorageCla
 
 For data that already exists, I schedule the Pod back in the volume's zone, restore or replicate it to supported storage, or move to a storage architecture actually designed for multi-zone availability. I don't edit the PV's affinity blindly — the physical location of the storage doesn't move just because I changed a field.
 
-### 3. How do PV and PVC behave across zones in EKS or Kubernetes in general?
+</details>
+
+<details><summary>Q3. [Intermediate] How do PV and PVC behave across zones in EKS or Kubernetes in general?</summary>
 
 **Answer:**
 
@@ -121,7 +125,9 @@ If the Pod is Pending after the PVC is already bound, I check the PV's node affi
 
 Multi-AZ availability for an application needs replicated application data or storage designed for that — not a single zonal disk that somehow spans zones on its own.
 
-### 4. What happens when a StatefulSet Pod cannot mount its volume after moving to another node?
+</details>
+
+<details><summary>Q4. [Intermediate] What happens when a StatefulSet Pod cannot mount its volume after moving to another node?</summary>
 
 **Answer:**
 
@@ -141,7 +147,9 @@ The fix might be rescheduling to the correct zone, carefully recovering a failed
 
 Once it mounts, I check the filesystem and application data and keep monitoring — I don't just consider the job done because the Pod shows Running.
 
-### 5. If you create a PVC with `ReadWriteOnce` access mode, can multiple Pods on the same node access it simultaneously?
+</details>
+
+<details><summary>Q5. [Intermediate] If you create a PVC with <code>ReadWriteOnce</code> access mode, can multiple Pods on the same node access it simultaneously?</summary>
 
 **Answer:**
 
@@ -165,7 +173,9 @@ accessModes:
 - ReadWriteMany  # Instead of ReadWriteOnce
 ```
 
-### 6. If a Persistent Volume gets corrupted, can multiple PVCs bound to it cause cascading failures across different namespaces?
+</details>
+
+<details><summary>Q6. [Advanced] If a Persistent Volume gets corrupted, can multiple PVCs bound to it cause cascading failures across different namespaces?</summary>
 
 **Answer:**
 
@@ -200,7 +210,9 @@ parameters:
 - Use separate storage backends for critical namespaces.
 - Monitor storage health across all namespaces.
 
-### 7. How do you debug failed persistent volume (PV) mounts in Kubernetes?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you debug failed persistent volume (PV) mounts in Kubernetes?</summary>
 
 **Answer:** Check PVC status (kubectl describe pvc) → Validate storage class → Check node permissions → Fix provisioner issues.
 
@@ -211,7 +223,9 @@ I confirm the access mode, requested capacity, zone or node affinity, reclaim po
 
 I repair whichever layer is broken — binding, CSI, permissions, or storage — remount it through the controller, and validate that the application can actually read, write, and fail over. Regular snapshots, restore tests, CSI monitoring, and sensible topology settings are what prevent this.
 
-### 8. All pods in a StatefulSet are trying to connect to the same storage volume. What's wrong, and how do you fix it?
+</details>
+
+<details><summary>Q8. [Intermediate] All pods in a StatefulSet are trying to connect to the same storage volume. What's wrong, and how do you fix it?</summary>
 
 **Issue:** StatefulSets should have unique PVCs per pod, but they're sharing storage.
 
@@ -238,7 +252,9 @@ spec:
 
 Each StatefulSet pod gets its own PVC with the naming pattern `<claim-name>-<pod-name>-<ordinal>` (e.g., `data-mysql-0`, `data-mysql-1`).
 
-### 9. When using a StatefulSet with 3 replicas and you delete replica-1, will replica-2 and replica-3 be renamed to maintain sequential ordering?
+</details>
+
+<details><summary>Q9. [Basic] When using a StatefulSet with 3 replicas and you delete replica-1, will replica-2 and replica-3 be renamed to maintain sequential ordering?</summary>
 
 **Answer:**
 
@@ -253,7 +269,9 @@ StatefulSet naming behavior:
 
 This is crucial for applications requiring stable network identities like databases or distributed systems.
 
-### 10. What happens to a StatefulSet pod when its node goes into NotReady state? How is that different from a Deployment pod?
+</details>
+
+<details><summary>Q10. [Advanced] What happens to a StatefulSet pod when its node goes into NotReady state? How is that different from a Deployment pod?</summary>
 
 **Answer:**
 
@@ -284,7 +302,9 @@ I hit exactly this in a banking environment. A node went `NotReady` at 11pm and 
 
 We lost two hours before someone force deleted the pod. That production context is what the interviewer is really looking for.
 
-### 11. How do you manage stateful applications in Kubernetes?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you manage stateful applications in Kubernetes?</summary>
 
 **Answer:** Use StatefulSets → PersistentVolumeClaims → Ensure proper storage class → Backup with Velero.
 
@@ -295,7 +315,9 @@ I confirm the access mode, requested capacity, zone or node affinity, reclaim po
 
 I repair whichever layer is broken — binding, CSI, permissions, or storage — remount it through the controller, and validate that the application can actually read, write, and fail over. Regular snapshots, restore tests, CSI monitoring, and sensible topology settings are what prevent this.
 
-### 12. How do you handle stateful service failover in Kubernetes across zones/regions?
+</details>
+
+<details><summary>Q12. [Advanced] How do you handle stateful service failover in Kubernetes across zones/regions?</summary>
 
 **Answer:** Use StatefulSets with appropriate storage classes, enable cross-zone replication for the datastore (e.g., multi-zone DB clusters), design DNS failover and leader election, and test failover procedures.
 
@@ -307,7 +329,9 @@ I confirm the access mode, requested capacity, zone or node affinity, reclaim po
 
 I repair whichever layer is broken — binding, CSI, permissions, or storage — remount it through the controller, and validate that the application can actually read, write, and fail over. Regular snapshots, restore tests, CSI monitoring, and sensible topology settings are what prevent this.
 
-### 13. How would you migrate a stateful application to Kubernetes with minimal downtime?
+</details>
+
+<details><summary>Q13. [Advanced] How would you migrate a stateful application to Kubernetes with minimal downtime?</summary>
 
 **Answer:**
 
@@ -323,7 +347,9 @@ The old environment stays read-only during an agreed rollback window. Rolling ba
 
 Once things are stable, I stop the temporary replication, rotate the migration credentials, verify another restore still works, and record the actual downtime and recovery behavior for next time.
 
-### 14. Challenges with StatefulSets & persistent storage *(asked in interview round)*
+</details>
+
+<details><summary>Q14. [Intermediate] Challenges with StatefulSets &amp; persistent storage <em>(asked in interview round)</em></summary>
 
 StatefulSets give pods a stable network identity (`pod-0`, `pod-1`), ordered deployment and scaling, and stable per-pod storage through `volumeClaimTemplates`.
 
@@ -335,3 +361,5 @@ The main challenges:
 - Rescheduling a pod to a new node requires the CSI driver to detach and reattach the volume, which can be slow.
 
 Best practice: use CSI drivers with dynamic provisioning and a proper StorageClass, run stateful workloads through mature operators where possible, and back up regularly.
+
+</details>

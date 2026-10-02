@@ -281,7 +281,7 @@ When troubleshooting, work through: `docker inspect` on the container, its netwo
 
 ## Interview Questions
 
-### 1. What Docker network types exist, and which is common in production?
+<details><summary>Q1. [Basic] What Docker network types exist, and which is common in production?</summary>
 
 **Answer:**
 
@@ -291,7 +291,9 @@ A user-defined bridge network is a sensible default for local or single-host wor
 
 In production, platforms like Kubernetes and ECS usually bring their own networking layer (a CNI plugin or VPC networking) instead of exposing Docker's raw network types directly. The right choice comes down to isolation needs, service discovery, policy requirements, observability, and how failures should be contained.
 
-### 2. What are the Docker network types (bridge, host, none, overlay, macvlan), and which one do you use?
+</details>
+
+<details><summary>Q2. [Basic] What are the Docker network types (bridge, host, none, overlay, macvlan), and which one do you use?</summary>
 
 Docker provides several network drivers that define how containers communicate with each other and the outside world.
 
@@ -399,7 +401,9 @@ instead of using an IP address.
 
 > "Docker supports Bridge, Host, None, Overlay, and Macvlan networks. I mostly use the Bridge network for standalone containers because it provides secure communication between containers on the same host while allowing controlled external access through port mapping. For Kubernetes environments, networking is managed by the cluster's CNI plugin rather than Docker network drivers."
 
-### 3. What is the difference between `EXPOSE` in a Dockerfile and `-p` in `docker run`?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between <code>EXPOSE</code> in a Dockerfile and <code>-p</code> in <code>docker run</code>?</summary>
 
 `EXPOSE 80` documents that the application expects traffic on container port 80.
 
@@ -425,7 +429,9 @@ Think of it like this:
 - **`EXPOSE`:** The restaurant has a door at a known location.
 - **`-p`:** The host opens a route that customers can use to reach that door.
 
-### 4. How do you run NGINX on a Linux server using Docker?
+</details>
+
+<details><summary>Q4. [Basic] How do you run NGINX on a Linux server using Docker?</summary>
 
 ```bash
 docker pull nginx:1.27-alpine
@@ -454,7 +460,9 @@ The container listens on port 80, and Docker maps it to host port 8080. The `-v`
 
 Open `http://<your-server-ip>:8080` to view the website.
 
-### 5. How do you troubleshoot container DNS resolution failures?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot container DNS resolution failures?</summary>
 
 **Answer:**
 
@@ -470,7 +478,9 @@ docker network inspect appnet
 
 I also check the search domain, the DNS record type, whether a stale cache (TTL) is the culprit, and which network the container is actually attached to. I avoid "fixing" this by hardcoding an IP address — that just hides the real problem. Once I fix it, I re-test both the intended hostname and an external one, and keep an eye out for it recurring.
 
-### 6. What strategies do you use for debugging container networking issues?
+</details>
+
+<details><summary>Q6. [Intermediate] What strategies do you use for debugging container networking issues?</summary>
 
 **Answer:**
 
@@ -480,7 +490,9 @@ Along the way I check `docker ps` and its port mappings, `docker inspect`, the n
 
 The usual culprits: the app is bound to `localhost` instead of `0.0.0.0`, the wrong host port was published, the containers are on different networks, DNS isn't resolving, the host firewall is blocking traffic, two networks have overlapping IP ranges, MTU is misconfigured, or a proxy is in the way. I make the smallest fix that addresses the real cause, re-test in both directions, confirm the app is healthy, and write the working network configuration down so it doesn't get lost.
 
-### 7. What are Docker volumes and bind mounts, and when would you use each?
+</details>
+
+<details><summary>Q7. [Basic] What are Docker volumes and bind mounts, and when would you use each?</summary>
 
 **Answer:**
 
@@ -494,7 +506,9 @@ docker run --mount type=bind,src="$PWD/config",dst=/app/config,readonly app
 
 For anything persistent, I plan backup, restore, ownership, encryption, and capacity up front. Removing a container doesn't automatically remove its volume. In an orchestrated environment I use the platform's own persistent volumes rather than assuming a local Docker volume gives high availability.
 
-### 8. What is Docker Compose?
+</details>
+
+<details><summary>Q8. [Basic] What is Docker Compose?</summary>
 
 **Answer:**
 
@@ -516,7 +530,9 @@ It's great for local development, integration tests, and small single-host setup
 
 For production running across multiple nodes, an orchestrator like Kubernetes or ECS is normally what handles scheduling, high availability, secrets, and scaling.
 
-### 9. How do you run multi-container applications in production without Compose?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you run multi-container applications in production without Compose?</summary>
 
 **Answer:**
 
@@ -525,3 +541,5 @@ I use an orchestrator such as Kubernetes, ECS, or AKS. Each component gets its o
 The delivery pipeline publishes signed, fixed images, and then Helm, plain manifests, or GitOps declares how the application should run. Databases usually run as a managed service rather than as a container, and secrets come from a dedicated secret manager.
 
 I make sure there's redundancy, health probes, a rolling or canary rollout strategy, network policies, monitoring, logging, backups, and a disaster recovery plan. Compose is a good way to model services locally, but production needs a real cluster scheduler and the operational pieces around it.
+
+</details>

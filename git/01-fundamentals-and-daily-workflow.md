@@ -93,7 +93,7 @@ Before committing, I review the staged diff and run secret scanning so credentia
 
 ## Interview Questions
 
-### 1. What is the difference between `origin` and `upstream` remotes?
+<details><summary>Q1. [Basic] What is the difference between <code>origin</code> and <code>upstream</code> remotes?</summary>
 
 **Answer:**
 
@@ -109,7 +109,9 @@ git push --force-with-lease origin feature/login
 
 The flow is simple: fetch the latest changes from the original project through `upstream`, update my feature branch, then push that branch to my fork through `origin`. These names aren't special to Git — they can be changed. So when troubleshooting, I always check `git remote -v` instead of assuming what they point to.
 
-### 2. What is the difference between `git fetch` and `git pull`?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between <code>git fetch</code> and <code>git pull</code>?</summary>
 
 **Answer:**
 
@@ -128,7 +130,9 @@ I prefer fetch when I want to see what changed before integrating it, especially
 
 Before pulling, I check `git status` and commit or stash any local work, so the pull doesn't mix unrelated changes together.
 
-### 3. What is the difference between GitHub, Azure Repos, and GitLab?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between GitHub, Azure Repos, and GitLab?</summary>
 
 **Answer:**
 
@@ -140,7 +144,9 @@ All three host Git repositories and support pull or merge requests, permissions,
 
 When comparing them, I look at identity integration, compliance needs, how runners work, network placement, availability, cost, migration effort, developer experience, and the existing toolchain. Repository hosting alone is rarely the deciding factor — CI/CD, security, governance, and who owns operations usually matter more.
 
-### 4. How do you generate a GitHub token?
+</details>
+
+<details><summary>Q4. [Basic] How do you generate a GitHub token?</summary>
 
 **Answer:**
 
@@ -149,3 +155,5 @@ For automation, I prefer GitHub Apps or OpenID Connect, because they give short-
 I store the token in a CI secret store or an OS credential manager — never in source code or command history. I test one operation that should work and one that should be denied, to prove the permissions are as tight as they should be. I also record who owns the token and when it expires, and set up rotation alerts.
 
 If a token leaks, I revoke it right away, review GitHub's audit and access logs, rotate any downstream credentials it could have reached, remove the value from history and pipeline output, and investigate how it leaked.
+
+</details>

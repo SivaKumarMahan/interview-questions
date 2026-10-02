@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you configure Maven, Gradle, npm or NuGet clients to use Nexus Repository?
+<details><summary>Q1. [Intermediate] How do you configure Maven, Gradle, npm or NuGet clients to use Nexus Repository?</summary>
 
 **Answer:**
 
@@ -86,7 +86,9 @@ dotnet nuget push package.nupkg \
 
 I verify the Nexus repository's NuGet API version and endpoint. Version 3 group endpoints end in `/index.json`.
 
-### 2. How do developers consume artifacts stored in Nexus Repository?
+</details>
+
+<details><summary>Q2. [Basic] How do developers consume artifacts stored in Nexus Repository?</summary>
 
 **Answer:**
 
@@ -112,7 +114,9 @@ Nexus searches the group members in order and returns either an internal hosted 
 
 Credentials are supplied through the developer's approved credential/token mechanism, not committed in project files. CI uses a separate non-human read identity.
 
-### 3. How do you upload Docker images to Nexus Repository?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you upload Docker images to Nexus Repository?</summary>
 
 **Answer:**
 
@@ -162,7 +166,9 @@ Important controls:
 - Enable the Docker Bearer Token Realm.
 - Separate pull endpoints/groups from write endpoints unless an approved Pro writable-group design is used.
 
-### 4. How do you integrate Nexus Repository with Azure DevOps, Jenkins or GitHub Actions?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you integrate Nexus Repository with Azure DevOps, Jenkins or GitHub Actions?</summary>
 
 **Answer:**
 
@@ -221,7 +227,9 @@ For release publishing, I use a protected GitHub Environment. I restrict which r
 
 If Nexus is integrated with an enterprise identity/token broker, I prefer short-lived credentials. Otherwise I rotate the dedicated Nexus token/password through Azure Key Vault and keep its repository permissions minimal.
 
-### 5. How would you configure Azure DevOps to publish artifacts to Nexus Repository?
+</details>
+
+<details><summary>Q5. [Intermediate] How would you configure Azure DevOps to publish artifacts to Nexus Repository?</summary>
 
 **Answer:**
 
@@ -313,7 +321,9 @@ In a real pipeline I prefer one Maven invocation, such as `mvn clean deploy`, ru
 
 The CI identity gets `add/edit` only on the required hosted repository. It does not get Nexus administration or delete permission. Pull-request pipelines never get publishing credentials at all.
 
-### 6. How can Nexus Repository improve build performance in an enterprise environment?
+</details>
+
+<details><summary>Q6. [Intermediate] How can Nexus Repository improve build performance in an enterprise environment?</summary>
 
 **Answer:**
 
@@ -341,3 +351,5 @@ I measure:
 - Client concurrency.
 
 A proxy can also make builds slower. That happens if Nexus is undersized, its blob or database storage is slow, it does too many remote checks, or network latency is high. Cache settings need to balance freshness against performance.
+
+</details>

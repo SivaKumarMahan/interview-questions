@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you troubleshoot a failed Azure Pipeline?
+<details><summary>Q1. [Intermediate] How do you troubleshoot a failed Azure Pipeline?</summary>
 
 **Answer:**
 
@@ -14,7 +14,9 @@ I look at the logs, the timeline, any recent changes to YAML, templates, or task
 
 I reproduce it with the same tool image and parameters in a safe environment, fix the actual cause, rerun only the stage that's safe to repeat, and confirm the output downstream looks right. To prevent it happening again, I might pin a version, add an earlier check, add a timeout or more capacity, or make the error message clearer.
 
-### 2. How do you troubleshoot a failed GCP Cloud Build or Azure DevOps pipeline? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you troubleshoot a failed GCP Cloud Build or Azure DevOps pipeline? <em>(scenario)</em></summary>
 
 **Answer:** Check the build logs, validate the service account's permissions, verify the YAML pipeline definition, and retry with verbose logging.
 
@@ -28,7 +30,9 @@ I reproduce the problem using the same identity and agent, without ever printing
 
 I prefer workload identity federation or managed identity over long-lived PATs, scope each service connection to only the pipelines that need it, rotate any credential that's been exposed, and after the fix, confirm a real read or deploy actually works and check the audit logs.
 
-### 3. How do you troubleshoot Azure DevOps "401 Unauthorized" errors? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you troubleshoot Azure DevOps "401 Unauthorized" errors? <em>(scenario)</em></summary>
 
 **Answer:** Check the service connection, rotate the PAT or service-principal credentials, then validate RBAC.
 
@@ -42,7 +46,9 @@ I reproduce the problem using the same identity and agent, without ever printing
 
 I prefer workload identity federation or managed identity over long-lived PATs, scope each service connection to only the pipelines that need it, rotate any credential that's been exposed, and after the fix, confirm a real read or deploy actually works and check the audit logs.
 
-### 4. How do you troubleshoot Azure DevOps pipeline stuck at "queued"? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot Azure DevOps pipeline stuck at "queued"? <em>(scenario)</em></summary>
 
 **Answer:** No available agents. Check the agent pool, scale up agents, and verify concurrency limits.
 
@@ -54,7 +60,9 @@ I check **Manage Nodes**, queue and build metrics, agent pod or VM events, netwo
 
 To prevent this going forward: use ephemeral, autoscaled agents, set up capacity and queue-time alerts, use sensible labels and quotas, check agent image health, set timeouts, and keep long or privileged jobs separate from the rest.
 
-### 5. How do you troubleshoot Azure DevOps pipeline agent errors? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot Azure DevOps pipeline agent errors? <em>(scenario)</em></summary>
 
 **Answer:** Check the agent logs, verify network connectivity, restart the agent service, and re-register the agent if needed.
 
@@ -65,7 +73,10 @@ I look at the queue reason, executor usage, node labels, offline status, and the
 I check **Manage Nodes**, queue and build metrics, agent pod or VM events, network and credentials, then restore or scale the right agent pool. I don't just add more executors to the controller as a shortcut.
 
 To prevent this going forward: use ephemeral, autoscaled agents, set up capacity and queue-time alerts, use sensible labels and quotas, check agent image health, set timeouts, and keep long or privileged jobs separate from the rest.
-### 6. Azure DevOps Pipeline Not Triggering for Feature Branches
+
+</details>
+
+<details><summary>Q6. [Intermediate] Azure DevOps Pipeline Not Triggering for Feature Branches</summary>
 
 #### The YAML
 
@@ -107,3 +118,5 @@ Using `branches: include:` (instead of the short list form) is required once you
 #### Short interview answer
 
 "Yes, this is expected — the trigger only lists `main`, so pushes to any other branch, including `feature/payment-api`, are correctly ignored by design, not a bug. To make it trigger for both, I'd rewrite the trigger using the `branches: include:` form with both `main` and `feature/*` listed, since wildcard patterns require that expanded syntax instead of the short list form."
+
+</details>

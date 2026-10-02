@@ -125,7 +125,7 @@ A tool by itself isn't observability. To get real value out of it:
 
 ## Interview Questions
 
-### 1. What are the four golden signals?
+<details><summary>Q1. [Basic] What are the four golden signals?</summary>
 
 **Answer:**
 
@@ -133,7 +133,9 @@ Latency, traffic, errors, and saturation. Saturation means how close a resource 
 
 Together these connect user impact to demand and capacity better than CPU alone would. I define an SLO around them, alert on sustained impact or error-budget burn, and drop into component-level detail only for diagnosis.
 
-### 2. How do you compare metrics, logs and traces?
+</details>
+
+<details><summary>Q2. [Basic] How do you compare metrics, logs and traces?</summary>
 
 **Answer:**
 
@@ -143,7 +145,9 @@ In practice, I narrow the time window, compare against healthy traffic, pick a t
 
 I keep an eye on cardinality — the number of unique label combinations a metric can produce — since unbounded cardinality can overwhelm a metrics system. I also retain error and tail traces appropriately and redact sensitive log and trace fields. After a fix, I confirm all three signals recover, along with the actual business transaction.
 
-### 3. How would you implement a comprehensive observability strategy for a microservices architecture deployed across multiple Kubernetes clusters?
+</details>
+
+<details><summary>Q3. [Advanced] How would you implement a comprehensive observability strategy for a microservices architecture deployed across multiple Kubernetes clusters?</summary>
 
 **Answer:**
 
@@ -157,7 +161,9 @@ For distributed tracing, I'd instrument every service with OpenTelemetry, adjust
 
 All observability data carries consistent metadata — cluster, namespace, service, version — so it can be correlated across systems. This is what takes MTTR from hours down to minutes: you can trace the root cause of a problem that spans several services instead of hunting through each one separately.
 
-### 4. How do you observe serverless or multi-cloud workflows?
+</details>
+
+<details><summary>Q4. [Advanced] How do you observe serverless or multi-cloud workflows?</summary>
 
 **Answer:**
 
@@ -165,7 +171,9 @@ I propagate trace context and an event ID across API, function, queue and depend
 
 Dashboards are organized around the business flow rather than individual services. I only replay failed events after the underlying cause is fixed, and only with idempotency controls in place — meaning it's safe to process the same event twice. Sampling, privacy, retention, cardinality and cost all need to be designed for deliberately, not left as defaults.
 
-### 5. Compare Dynatrace, Datadog, New Relic and OpenTelemetry.
+</details>
+
+<details><summary>Q5. [Intermediate] Compare Dynatrace, Datadog, New Relic and OpenTelemetry.</summary>
 
 **Answer:**
 
@@ -177,7 +185,9 @@ When choosing between them, I look at runtime, cloud, and Kubernetes coverage, t
 
 These tools' built-in automation can point toward a likely cause, but any actual change still needs evidence and a safe approval process. I don't let a vendor's suggestion skip review.
 
-### 6. How do you design SLO-based alerting with low fatigue?
+</details>
+
+<details><summary>Q6. [Advanced] How do you design SLO-based alerting with low fatigue?</summary>
 
 **Answer:**
 
@@ -187,7 +197,9 @@ Capacity trends that aren't urgent go to tickets or dashboards instead of pages.
 
 Every page includes an owner, supporting evidence, the SLO impact, and a runbook. Grouping, deduplication, inhibition and maintenance windows cut down on alert storms. After incidents, I test that alerts actually get delivered and review false positives, missed incidents, how actionable each alert was, and overall page volume.
 
-### 7. Multiple critical alerts fire together. How do you prioritize?
+</details>
+
+<details><summary>Q7. [Advanced] Multiple critical alerts fire together. How do you prioritize?</summary>
 
 **Answer:**
 
@@ -195,7 +207,9 @@ I prioritize by customer or business impact, security or data-integrity risk, SL
 
 One responder stabilizes the situation — a known rollback, a traffic shift, or isolating the failing component — while another preserves evidence for later. After recovery, the incident timeline is used to improve dependency mapping, severities and runbooks.
 
-### 8. Infrastructure is healthy and dashboards are green, but the system feels slow. What do you check first?
+</details>
+
+<details><summary>Q8. [Advanced] Infrastructure is healthy and dashboards are green, but the system feels slow. What do you check first?</summary>
 
 **Answer:**
 
@@ -205,7 +219,9 @@ I compare against a healthy baseline across p95/p99 latency, errors by route, cl
 
 Then I add the missing user-facing SLI and alert on it, so the dashboard reflects the actual service outcome instead of just infrastructure reachability.
 
-### 9. How do you use APM to find a latency regression?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you use APM to find a latency regression?</summary>
 
 **Answer:**
 
@@ -219,7 +235,9 @@ Once I've proven the bottleneck, I fix it: a rollback, added capacity, or a targ
 
 Finally, I re-check the original slow user transaction to confirm it's actually fixed, and I add a regression test or an SLO alert so it doesn't slip through unnoticed next time.
 
-### 10. How do you troubleshoot high latency on a load balancer?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you troubleshoot high latency on a load balancer?</summary>
 
 **Answer:**
 
@@ -229,7 +247,9 @@ Then I check backend CPU/memory, queue depth, pod readiness, application traces,
 
 I mitigate safely — by removing bad targets, scaling, rolling back, or shifting traffic — then confirm p95/p99 latency and error rate have actually recovered, and write down the root cause.
 
-### 11. How do you monitor API performance in Azure API Management or an API gateway?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you monitor API performance in Azure API Management or an API gateway?</summary>
 
 **Answer:**
 
@@ -239,7 +259,9 @@ When latency increases, I compare gateway time against backend time, break it do
 
 Alerts are tied to actual SLO/error-budget impact, and synthetic tests exercise both authentication and a real, lightweight API call.
 
-### 12. How do you monitor API performance in Apigee/Azure API Management? *(scenario)*
+</details>
+
+<details><summary>Q12. [Intermediate] How do you monitor API performance in Apigee/Azure API Management? <em>(scenario)</em></summary>
 
 **Answer:** Collect API response time, error rate, and request logs. Add dashboards for the service target, configure useful alerts, and apply rate limiting where needed.
 
@@ -255,7 +277,9 @@ At scale, I combine or downsample old metrics, sample traces intelligently, and 
 
 I regularly check that alerts actually fire and recover as expected, and I tune out noisy or unactionable ones.
 
-### 13. How do you investigate high API latency in GCP/Azure APIs? *(scenario)*
+</details>
+
+<details><summary>Q13. [Intermediate] How do you investigate high API latency in GCP/Azure APIs? <em>(scenario)</em></summary>
 
 **Answer:** Check Cloud Trace / Application Insights → Identify slow endpoints → Scale backend pods → Add caching/CDN.
 
@@ -269,7 +293,9 @@ At scale, I combine or downsample old metrics, sample traces intelligently, and 
 
 I regularly check that alerts actually fire and recover as expected, and I tune out noisy or unactionable ones.
 
-### 14. How do you handle high latency issues in GCP/Azure services? *(scenario)*
+</details>
+
+<details><summary>Q14. [Intermediate] How do you handle high latency issues in GCP/Azure services? <em>(scenario)</em></summary>
 
 **Answer:**
 
@@ -288,7 +314,9 @@ At scale, I combine or downsample old metrics, sample traces intelligently, and 
 
 I regularly check that alerts actually fire and recover as expected, and I tune out noisy or unactionable ones.
 
-### 15. How does AIOps use observability data without becoming another source of noise?
+</details>
+
+<details><summary>Q15. [Advanced] How does AIOps use observability data without becoming another source of noise?</summary>
 
 **Answer:**
 
@@ -297,3 +325,5 @@ I give AIOps consistent service topology, clear ownership, deployment history, a
 Done well, it groups related symptoms together, ranks impact, and supplies evidence for a probable cause — instead of raising a new alert for every anomaly score it produces. Only signals that are actionable and confident enough about user impact should page anyone. Forecasts and weak anomalies go to dashboards or tickets instead.
 
 I monitor the underlying models for missing data, drift, precision and false-positive rate. Any automated remediation is limited to narrow, pre-approved runbooks, with approval steps where needed and SLO verification after it acts.
+
+</details>

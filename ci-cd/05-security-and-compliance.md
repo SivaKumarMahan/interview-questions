@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you integrate code-quality tools like SonarQube?
+<details><summary>Q1. [Intermediate] How do you integrate code-quality tools like SonarQube?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ Tokens are stored securely, and I make sure the scanner and server versions are 
 
 I keep the report link on the pull request. If something's a false positive, it gets a reviewed exception with a reason and an expiry — developers don't just disable the rule. I also test the gate against a known failing branch to make sure it actually blocks.
 
-### 2. What security tools and scans do you use in pipelines?
+</details>
+
+<details><summary>Q2. [Basic] What security tools and scans do you use in pipelines?</summary>
 
 **Answer:**
 
@@ -34,7 +36,9 @@ Findings get prioritized by severity, exploitability, exposure, and environment.
 
 Scanning alone isn't complete security. Protected branches, isolated runners, pinned dependencies and actions, workload identity, runtime monitoring, patching, and an incident response plan are all still necessary.
 
-### 3. What SAST and DAST tools do you prefer?
+</details>
+
+<details><summary>Q3. [Basic] What SAST and DAST tools do you prefer?</summary>
 
 **Answer:**
 
@@ -44,7 +48,9 @@ SAST runs early against source code. DAST tests a running, authorized, non-produ
 
 I tune the rules, keep evidence, set severity gates with expiring exceptions, and track the true-positive and fix rate. No single scanner proves an application is secure.
 
-### 4. How do you manage code vulnerabilities?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you manage code vulnerabilities?</summary>
 
 **Answer:**
 
@@ -58,7 +64,9 @@ I track metrics like the age of open critical findings, time to fix, recurrence,
 
 For an actively exploited issue, I identify which releases are affected, block new deployments, patch and rebuild, rotate any exposed secrets, watch for indicators of compromise, and keep people updated on status.
 
-### 5. How do you securely store secrets in CI/CD pipelines?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you securely store secrets in CI/CD pipelines?</summary>
 
 **Answer:**
 
@@ -68,7 +76,9 @@ I make sure secrets never end up in Git, YAML, artifacts, cache, Docker layers, 
 
 I test that forked or unprotected pipelines can't reach production secrets. If a secret does leak, I revoke and rotate it first, check audit logs and downstream access, remove any retained output, and fix the pipeline.
 
-### 6. How do you secure pipelines against supply-chain attacks?
+</details>
+
+<details><summary>Q6. [Advanced] How do you secure pipelines against supply-chain attacks?</summary>
 
 **Answer:**
 
@@ -78,7 +88,9 @@ Builds generate SBOMs, scan dependencies, images, and IaC, and sign artifacts us
 
 I review transitive dependencies, runner images, who owns each plugin or action, and the artifact promotion path. My incident plan covers revoking signing credentials, blocking compromised artifacts, identifying which versions are deployed, rebuilding from trusted sources, and rotating any affected secrets.
 
-### 7. How do you make CI/CD pipelines auditable for compliance?
+</details>
+
+<details><summary>Q7. [Advanced] How do you make CI/CD pipelines auditable for compliance?</summary>
 
 **Answer:**
 
@@ -88,7 +100,9 @@ For every release I retain the commit, the pull request and its reviewers, test/
 
 I map this evidence to the actual control requirements, and I test that emergency or bypass paths are still audited. Good compliance automation makes the approved path the easy path — manual screenshots are fragile and easy to miss things with.
 
-### 8. How do you handle multi-tenant CI/CD pipelines? *(scenario)*
+</details>
+
+<details><summary>Q8. [Advanced] How do you handle multi-tenant CI/CD pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Isolate jobs by namespace or project, use separate credentials, and apply RBAC per team.
 
@@ -98,3 +112,5 @@ I isolate tenants by repository, project, credential scope, runner pool or names
 Jobs run in ephemeral sandboxes, as non-root containers, with restricted network egress, workload identity, and per-tenant concurrency and resource limits. Shared templates are versioned centrally, but changes are compatibility-tested and rolled out gradually.
 
 Audit events carry the tenant and actor identity, so usage and cost can be attributed correctly. High-security or mutually untrusted tenants get dedicated runners or clusters, because namespace or container boundaries alone might not meet the threat model.
+
+</details>

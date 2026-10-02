@@ -96,7 +96,7 @@ In production I also generate an SBOM (a software bill of materials — a list o
 
 ## Interview Questions
 
-### 1. What types of testing do you include in your CI/CD pipeline, and at what stages do they run? *(scenario)*
+<details><summary>Q1. [Intermediate] What types of testing do you include in your CI/CD pipeline, and at what stages do they run? <em>(scenario)</em></summary>
 
 **Answer:** Unit tests on every commit with coverage → Trivy image scan after build → integration tests in dev → `terraform plan` validation → e2e (Cypress) + performance (k6) in staging → post-deploy smoke tests → required PR checks + ArgoCD health gates.
 **Detailed interview approach:**
@@ -110,7 +110,9 @@ Post-deployment smoke tests verify core functionality in every environment. Each
 
 ArgoCD's health checks provide an additional validation layer after deployment.
 
-### 2. How do you automate unit, integration, and end-to-end tests in your pipeline? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you automate unit, integration, and end-to-end tests in your pipeline? <em>(scenario)</em></summary>
 
 **Answer:** GitHub Actions automates all layers → unit tests in build stage → integration tests against dev EKS via OIDC → Cypress e2e against staging → artifacts uploaded → ArgoCD readiness gates → failed tests auto-create issues.
 
@@ -123,7 +125,9 @@ End-to-end tests with Cypress run in dedicated GitHub Actions runners with brows
 
 ArgoCD deployments include readiness gates that verify system health before the deployment completes. Failed tests in GitHub Actions automatically create an issue for developers, with a link to the run and its logs.
 
-### 3. How do you ensure integration tests work across different environments? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you ensure integration tests work across different environments? <em>(scenario)</em></summary>
 
 **Answer:** Tests read config from env vars/Terraform outputs → Kubernetes Jobs seed fixtures → Wiremock for external dependencies → env-specific databases via Terraform + migrations → cleanup jobs → ArgoCD keeps consistent app state.
 
@@ -136,7 +140,9 @@ For external dependencies, I use Wiremock containers deployed alongside the appl
 
 After tests complete, cleanup jobs remove test data, and ArgoCD ensures consistent application state across environments, making integration tests reliable across the pipeline.
 
-### 4. How do you enforce code quality checks before merging in CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you enforce code quality checks before merging in CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Add mandatory linting, unit tests, SonarQube scans in Jenkins/GitHub Actions → Fail build if checks don’t pass → Protect main branch with approval rules.
 
@@ -152,3 +158,5 @@ Findings get an agreed severity and SLA. Exceptions are allowed, but only for a 
 If I suspect a compromise, I stop promotion right away. I revoke runner and signing credentials, isolate the affected artifacts, and preserve audit evidence. Then I rebuild from a trusted runner and source, and verify signatures before redeploying.
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
+
+</details>

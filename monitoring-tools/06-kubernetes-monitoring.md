@@ -108,7 +108,7 @@ Application teams should emit structured logs to stdout/stderr with service, env
 
 ## Interview Questions
 
-### 1. What metrics prove Kubernetes cluster health?
+<details><summary>Q1. [Intermediate] What metrics prove Kubernetes cluster health?</summary>
 
 **Answer:**
 
@@ -124,7 +124,9 @@ Most importantly, I watch the application itself: availability, latency, traffic
 
 Alerts focus on symptoms that actually need action — an SLO burning too fast, zero Ready replicas, a node under pressure. Diagnostic detail belongs in dashboards, not alerts. I validate every alert, tag it with cluster, version, and deployment labels, and keep an eye on cardinality — too many unique label combinations driving up cost and noise.
 
-### 2. How do you implement centralized monitoring for many Kubernetes or AKS clusters?
+</details>
+
+<details><summary>Q2. [Advanced] How do you implement centralized monitoring for many Kubernetes or AKS clusters?</summary>
 
 **Answer:**
 
@@ -136,7 +138,9 @@ Logs flow through buffered node agents into a central backend — Log Analytics,
 
 I design for high availability, retention, cost, network and private access, and tenant isolation. I watch for dropped data and backpressure, and I test what happens when a cluster, backend, or network link fails. Central visibility isn't an excuse to give every team access to every cluster, and it shouldn't turn into one shared failure domain that takes every cluster down at once.
 
-### 3. How do you monitor Kubernetes logs?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you monitor Kubernetes logs?</summary>
 
 **Answer:**
 
@@ -147,7 +151,10 @@ In production, applications write structured logs to stdout/stderr. A DaemonSet 
 Every log line should carry service, namespace, Pod, version, and trace ID, but never secrets or personal data.
 
 I configure buffers, backpressure handling, multiline parsing, retention, and access controls, and I alert when the collector itself fails or drops records. During an incident, I start from the affected transaction and its trace ID instead of searching every log in the cluster.
-### 4. How do you troubleshoot missing metrics in Prometheus and Grafana?
+
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot missing metrics in Prometheus and Grafana?</summary>
 
 If a target's metrics aren't showing up in Grafana, work through it in order:
 
@@ -157,3 +164,5 @@ If a target's metrics aren't showing up in Grafana, work through it in order:
 4. **Check ServiceMonitor/PodMonitor** - confirm a `ServiceMonitor` or `PodMonitor` resource exists and its label selector actually matches the target Service/Pod.
 5. **Check NetworkPolicies/firewalls** - confirm nothing is blocking Prometheus from reaching the target's metrics port.
 6. **Review Prometheus logs** - scrape errors (TLS, auth, timeouts) usually show up here.
+
+</details>

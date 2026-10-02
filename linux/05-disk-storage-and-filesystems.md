@@ -34,7 +34,7 @@ find /tmp -type f -mtime +30              # Files older than 30 days
 
 ## Interview Questions
 
-### 1. How do you check disk usage?
+<details><summary>Q1. [Basic] How do you check disk usage?</summary>
 
 **Answer:**
 
@@ -44,7 +44,9 @@ I compare what `df` and `du` report, and check mount points, reserved blocks, sp
 
 I never delete files I don't recognize, or system or database files. Instead I stop whatever is generating the growth, rotate or archive the data that's safe to remove, or add storage, then confirm the service can still write, and add alerts based on retention and capacity forecasts.
 
-### 2. How do you check disk partitions and usage?
+</details>
+
+<details><summary>Q2. [Basic] How do you check disk partitions and usage?</summary>
 
 **Answer:**
 
@@ -54,7 +56,9 @@ For LVM, I also run `pvs`, `vgs`, and `lvs -a -o +devices` to see how physical v
 
 Cloud disk size, partition size, LVM size, filesystem size, and actual mounted capacity are all separate layers, and growing one doesn't automatically grow the others.
 
-### 3. What happens when `/` is 100% full?
+</details>
+
+<details><summary>Q3. [Intermediate] What happens when <code>/</code> is 100% full?</summary>
 
 **Answer:**
 
@@ -66,7 +70,9 @@ I make sure I can still get in, find the filesystem that's growing and the safes
 
 Once it's recovered, I restart only the services that were actually affected, check filesystem and application integrity, confirm monitoring is working, and fix retention or capacity so it can't silently happen again.
 
-### 4. The `/` partition is full. How do you find and delete large files safely?
+</details>
+
+<details><summary>Q4. [Intermediate] The <code>/</code> partition is full. How do you find and delete large files safely?</summary>
 
 **Answer:**
 
@@ -81,7 +87,9 @@ Before deleting anything, I check who owns it, when it was last modified, whethe
 
 I make the smallest cleanup that actually recovers space, confirm `df`, service health, and logs afterward, then set up rotation, quotas, alerts, or an expansion. I also check `lsof +L1` if `du` can't explain what `df` is reporting.
 
-### 5. A disk is 95% full. How do you find what is consuming space?
+</details>
+
+<details><summary>Q5. [Intermediate] A disk is 95% full. How do you find what is consuming space?</summary>
 
 **Answer:**
 
@@ -97,7 +105,9 @@ The last command finds deleted-but-open files, a common reason `du` and `df` dis
 
 I preserve the evidence and apply retention, rotation, resizing, or a controlled cleanup — I don't delete unknown production data just to make an alert go away.
 
-### 6. How do you handle a disk full issue in Linux? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you handle a disk full issue in Linux? <em>(scenario)</em></summary>
 
 **Answer:** Run `df -h` to check usage, clear logs from `/var/log`, remove unused Docker images and containers, and expand the disk if needed.
 
@@ -108,7 +118,9 @@ I separate a genuine capacity problem from a leak, an open-deleted file, unrotat
 
 Afterward I check application health and the resource trend, then put in retention, limits, and alerts rather than relying on manual restarts or deletions going forward.
 
-### 7. How do you troubleshoot high disk usage in Linux servers used for CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] How do you troubleshoot high disk usage in Linux servers used for CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Run `du -sh /*` to find the big directories, clear `/var/log`, remove old Docker images, and archive old build artifacts.
 
@@ -119,7 +131,9 @@ Then I work out what's actually happening: is it real growth, a leak, an open-bu
 
 Once things are stable, I check that the application is healthy and look at the resource trend over time. Then I add retention rules, limits, and alerts, or fix the underlying code or config, instead of just scheduling blind restarts or deletions.
 
-### 8. How do you find large unused files across multiple partitions?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you find large unused files across multiple partitions?</summary>
 
 **Answer:**
 
@@ -134,7 +148,9 @@ This finds files bigger than 1 GB that haven't been touched in over 30 days. Mod
 
 I archive or move a small, approved batch first, confirm the service is fine, and only then delete anything. If this keeps happening, I set up retention or log rotation instead of doing manual cleanup over and over.
 
-### 9. How do you list the top 10 largest files anywhere on a Linux system?
+</details>
+
+<details><summary>Q9. [Basic] How do you list the top 10 largest files anywhere on a Linux system?</summary>
 
 **Answer:**
 
@@ -159,7 +175,9 @@ For the exact logical size with GNU tools, I can use `find ... -printf '%s\t%p\n
 
 Once I find a large file, I check it with `stat`, `file`, and `lsof`, and confirm the owner and retention policy. I don't delete it just because it's big.
 
-### 10. Deleted large files but disk space is not freeing up. Why?
+</details>
+
+<details><summary>Q10. [Intermediate] Deleted large files but disk space is not freeing up. Why?</summary>
 
 **Answer:**
 
@@ -173,7 +191,9 @@ The output shows the process, PID, file descriptor, and how much space it's hold
 
 In an emergency, truncating through `/proc/<pid>/fd/<fd>` is possible but risky, and I'd only do it following an approved procedure. I confirm the space is freed with `df`, then fix the rotation setup so it properly signals the service next time.
 
-### 11. What happens when a file is deleted but still open by a process?
+</details>
+
+<details><summary>Q11. [Intermediate] What happens when a file is deleted but still open by a process?</summary>
 
 **Answer:**
 
@@ -183,7 +203,9 @@ I demonstrate or diagnose this with `lsof +L1` and by checking `/proc/<pid>/fd/<
 
 This is also why replacing a deployed binary on disk doesn't automatically change the code a running process already has loaded in memory.
 
-### 12. Why do `df -h` and `du -sh` show different usage?
+</details>
+
+<details><summary>Q12. [Intermediate] Why do <code>df -h</code> and <code>du -sh</code> show different usage?</summary>
 
 **Answer:**
 
@@ -195,7 +217,9 @@ I make sure both commands are looking at the same mount (`findmnt` and `du -x`),
 
 I fix whatever the actual cause turns out to be, rather than trusting either number blindly.
 
-### 13. What is inode exhaustion and how do you resolve it?
+</details>
+
+<details><summary>Q13. [Intermediate] What is inode exhaustion and how do you resolve it?</summary>
 
 **Answer:**
 
@@ -209,7 +233,9 @@ For a lasting fix, I might move the workload, redesign how storage or objects ar
 
 I add monitoring for file count as well as bytes used.
 
-### 14. The server has high load and an application reports "disk full", but `df -h` shows free space. What do you check?
+</details>
+
+<details><summary>Q14. [Advanced] The server has high load and an application reports "disk full", but <code>df -h</code> shows free space. What do you check?</summary>
 
 **Answer:**
 
@@ -219,7 +245,9 @@ I also check the actual mount namespace (`findmnt`, or the container's own names
 
 High load can also just be I/O wait from a storage problem rather than actual CPU work, so I check `iostat`, `vmstat`, latency and error metrics, and kernel logs. I fix the specific constraint I find, confirm the application can write again and what actually caused it, then set alerts for both bytes and inode usage.
 
-### 15. How do you extend a partition without unmounting it?
+</details>
+
+<details><summary>Q15. [Intermediate] How do you extend a partition without unmounting it?</summary>
 
 **Answer:**
 
@@ -236,7 +264,9 @@ sudo xfs_growfs /data              # XFS, use mount point
 
 The exact device names vary every time, so I never just paste commands without checking them against the real layout. I verify each layer afterward with `pvs`/`lvs`, `lsblk`, and `df -hT`. Shrinking is a very different, riskier operation, and XFS can't be shrunk in place at all.
 
-### 16. What steps are needed to add a new disk to a Linux server?
+</details>
+
+<details><summary>Q16. [Intermediate] What steps are needed to add a new disk to a Linux server?</summary>
 
 **Answer:**
 
@@ -246,7 +276,9 @@ I create the mount point, mount it temporarily, set ownership, and test that I c
 
 I validate with `findmnt --verify` and `mount -a` before actually rebooting, then confirm capacity and permissions. I also update backups, monitoring, and application configuration to cover the new location.
 
-### 17. How do you mount and unmount filesystems in Linux?
+</details>
+
+<details><summary>Q17. [Basic] How do you mount and unmount filesystems in Linux?</summary>
 
 **Answer:**
 
@@ -258,7 +290,9 @@ Before running `umount /data`, I stop or redirect whatever applications are usin
 
 After unmounting, I confirm it's gone from `findmnt` — writing beneath a mount point that isn't actually mounted, or leaving a stray mount point, can quietly fill up the root filesystem.
 
-### 18. How do you attach and detach a file system in Linux?
+</details>
+
+<details><summary>Q18. [Basic] How do you attach and detach a file system in Linux?</summary>
 
 "In Linux, we attach a file system by mounting it with the `mount` command — for example, `mount /dev/sdb1 /mnt/data`. To detach it, we use `umount /mnt/data`.
 
@@ -305,7 +339,9 @@ sudo fuser -vm /mnt/mydata
 
 Then stop or kill that process and try again.
 
-### 19. How do you remount a filesystem read-write without rebooting?
+</details>
+
+<details><summary>Q19. [Basic] How do you remount a filesystem read-write without rebooting?</summary>
 
 **Answer:**
 
@@ -315,7 +351,9 @@ But if the kernel remounted it read-only itself because of I/O or filesystem err
 
 I fail over or stop writes, back up whatever is still readable, unmount or boot into rescue mode, run the proper filesystem repair tool, and only remount once the underlying storage problem is actually fixed.
 
-### 20. How do you create and mount a swap file?
+</details>
+
+<details><summary>Q20. [Intermediate] How do you create and mount a swap file?</summary>
 
 **Answer:**
 
@@ -333,7 +371,9 @@ I confirm it with `swapon --show` and `free -h`, then add `/swapfile none swap s
 
 Swap can prevent a sudden OOM kill for some workloads, but it's much slower than RAM and isn't a substitute for fixing a memory leak or sizing memory correctly. I also pick and document an appropriate `vm.swappiness` value rather than changing it without evidence.
 
-### 21. How do you fix a corrupted filesystem using `fsck`?
+</details>
+
+<details><summary>Q21. [Intermediate] How do you fix a corrupted filesystem using <code>fsck</code>?</summary>
 
 **Answer:**
 
@@ -345,7 +385,9 @@ For ext4, I might first run a read-only check with `e2fsck -fn /dev/mapper/vg-lv
 
 Afterward I mount it read-only first if that makes sense, check `lost+found`, validate the application's data, and look into whatever underlying disk, power, or kernel issue caused the corruption in the first place, rather than treating it as a one-off event.
 
-### 22. A Linux server is not booting due to filesystem corruption. How do you recover it?
+</details>
+
+<details><summary>Q22. [Advanced] A Linux server is not booting due to filesystem corruption. How do you recover it?</summary>
 
 **Answer:**
 
@@ -355,7 +397,9 @@ With the affected filesystems unmounted, I run the right checker — `e2fsck` fo
 
 I only rebuild initramfs or the bootloader if the evidence points there, reboot through console, verify all mounts and services and application consistency, and restore from backup if the repair can't guarantee the data is intact.
 
-### 23. How do you recover a deleted file in Linux?
+</details>
+
+<details><summary>Q23. [Intermediate] How do you recover a deleted file in Linux?</summary>
 
 **Answer:**
 
@@ -364,3 +408,5 @@ I stop or reduce writes right away, since new data can overwrite the blocks the 
 If none of that works, I unmount or snapshot the filesystem and do any forensic recovery on a copy, using filesystem-specific tools. Recovery isn't guaranteed, especially on SSDs with TRIM enabled, so I set that expectation up front and preserve the evidence.
 
 Once I have a recovered file, I check it with a checksum or against the application, restore the correct owner and permissions, document the incident, and push for better tested backups and deletion controls.
+
+</details>

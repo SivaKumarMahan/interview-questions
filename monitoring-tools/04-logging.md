@@ -80,7 +80,7 @@ During an incident, narrow the time range and service scope right away. Start fr
 
 ## Interview Questions
 
-### 1. How do ELK/OpenSearch and Loki differ?
+<details><summary>Q1. [Basic] How do ELK/OpenSearch and Loki differ?</summary>
 
 **Answer:**
 
@@ -90,7 +90,9 @@ Loki takes a different approach: it indexes only the labels attached to a log st
 
 Which one I pick depends on the kind of search needed, log volume, retention requirements, how much operational effort the team can spend, tenant and security requirements, and cost.
 
-### 2. Prometheus versus Splunk, and what is an SPL search?
+</details>
+
+<details><summary>Q2. [Basic] Prometheus versus Splunk, and what is an SPL search?</summary>
 
 **Answer:**
 
@@ -104,7 +106,9 @@ SPL is Splunk's query language, Search Processing Language. A safe investigation
 
 I avoid unlimited all-time searches, and I make sure sensitive fields are masked before the data is even ingested.
 
-### 3. What information should structured logs contain?
+</details>
+
+<details><summary>Q3. [Basic] What information should structured logs contain?</summary>
 
 **Answer:**
 
@@ -112,7 +116,9 @@ A structured log line should carry a timestamp, severity, event name, service, e
 
 Clock synchronization and the W3C trace context standard are what actually let you correlate these across services. Request IDs belong in logs and traces, not as metric labels — a unique value per request would blow up a metrics system.
 
-### 4. How do you handle a sudden log explosion?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you handle a sudden log explosion?</summary>
 
 **Answer:**
 
@@ -122,7 +128,9 @@ If I need to act fast, I reduce debug verbosity or sample a known repetitive eve
 
 Once things are stable, I fix the root cause: rate and size limits, structured log levels, buffering with backpressure, and tiered retention. I add alerts on log volume, queue age, dropped records, and forecasted capacity, and I confirm the logs actually needed for troubleshooting and compliance are still available.
 
-### 5. How do you find the ten largest files under `/var/log`?
+</details>
+
+<details><summary>Q5. [Basic] How do you find the ten largest files under <code>/var/log</code>?</summary>
 
 **Answer:**
 
@@ -144,7 +152,9 @@ I compare the `df` and `du` numbers, and I also run `sudo lsof +L1`. A deleted l
 
 The real fix is almost always the log level, rotation, compression, or retention settings — not deleting the largest file and hoping it doesn't come back.
 
-### 6. How do you find all `.log` files larger than 100 MB?
+</details>
+
+<details><summary>Q6. [Basic] How do you find all <code>.log</code> files larger than 100 MB?</summary>
 
 **Answer:**
 
@@ -163,7 +173,9 @@ sudo find /var/log -xdev -type f -name '*.log' -size +100M \
 
 This pattern won't catch rotated files like `app.log.1` or `app.log.2.gz`, so I widen it when I need to see total retention. A large active log file can also be completely normal — I check its growth rate, what's writing to it, its log level, its rotation policy, and how much disk time is left before I touch anything.
 
-### 7. How do you delete `.log` files older than 30 days safely?
+</details>
+
+<details><summary>Q7. [Basic] How do you delete <code>.log</code> files older than 30 days safely?</summary>
 
 **Answer:**
 
@@ -188,3 +200,5 @@ sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -delete
 ```
 
 I avoid deleting the log a process is actively writing to, since it can keep writing to the old file handle without freeing any disk space. Afterward I check `df -hT`, confirm the service is still logging, confirm rotation works, confirm central logs are still searchable, and make sure alerts and retention policy prevent this from happening again.
+
+</details>

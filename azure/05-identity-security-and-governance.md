@@ -166,7 +166,7 @@ Azure can move many resource types between resource groups, but support and depe
 
 ## Interview Questions
 
-### 1. What is Microsoft Entra ID?
+<details><summary>Q1. [Basic] What is Microsoft Entra ID?</summary>
 
 **Answer:**
 
@@ -178,7 +178,9 @@ I use groups instead of assigning access to individual users, turn on MFA and Co
 
 When authentication fails, I check the tenant, the identity's state, credentials or federation, Conditional Access rules, the token's audience and scopes, consent, and the sign-in logs. Once authentication is confirmed, authorization failures point me to roles and policies instead.
 
-### 2. What is Azure Managed Identity?
+</details>
+
+<details><summary>Q2. [Basic] What is Azure Managed Identity?</summary>
 
 **Answer:**
 
@@ -188,7 +190,9 @@ For example: a Function has a user-assigned identity that's been granted Blob Da
 
 I scope roles as narrowly as I can, and I use separate identities when workloads need different levels of access. When access fails, I check which identity is attached, whether the right principal or client ID was selected, the token's audience, the RBAC role and its scope, whether the assignment has propagated, and any network restrictions.
 
-### 3. How do you use managed identity in Azure?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you use managed identity in Azure?</summary>
 
 **Answer:**
 
@@ -200,7 +204,9 @@ For example, an App Service gets `Key Vault Secrets User` on one vault, and read
 
 I test both allowed and denied operations, check sign-in and resource logs, and give role assignments time to propagate. If access fails, I check the principal ID, the token's audience, the role and its scope, network rules and private DNS, and whether the service uses RBAC or the older access-policy model.
 
-### 4. How do you manage secrets in Azure?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you manage secrets in Azure?</summary>
 
 **Answer:**
 
@@ -214,7 +220,9 @@ I track who owns each secret, who consumes it, when it expires, and how it gets 
 
 If access fails, I check whether it's a management-plane or data-plane issue, the RBAC or access-policy mode, the scope, the identity, the secret's version and status, network restrictions, and the logs. If a secret is ever exposed, I rotate or revoke it first, investigate who accessed it, and only then clean up the leaked value from code, logs, and artifacts.
 
-### 5. What is Azure Key Vault?
+</details>
+
+<details><summary>Q5. [Basic] What is Azure Key Vault?</summary>
 
 **Answer:**
 
@@ -224,7 +232,9 @@ Applications use managed identity with a narrow role, like Key Vault Secrets Use
 
 When troubleshooting, I check the identity making the request, whether the vault uses RBAC or the older access-policy model, the role and its scope, whether the role assignment has actually propagated yet, the object's version and state, the token's audience, firewall and private DNS settings, and the audit logs. I test rotation with the actual consumers of the secret, not just in isolation.
 
-### 6. How do you use Key Vault with App Service or Functions?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you use Key Vault with App Service or Functions?</summary>
 
 **Answer:**
 
@@ -236,7 +246,9 @@ I test startup and rotation, both allowed and denied identities, slot-specific i
 
 No secret value ever gets printed in diagnostics.
 
-### 7. How do you secure Azure Key Vault?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you secure Azure Key Vault?</summary>
 
 - **Enable Soft Delete** - deleted secrets, keys, or certificates are retained and recoverable during the retention period, instead of being gone immediately.
 - **Enable Purge Protection** - prevents a *permanent* purge during that retention period, so even someone with delete permissions can't irreversibly destroy a secret before the retention window ends.
@@ -249,7 +261,9 @@ No secret value ever gets printed in diagnostics.
 
 I secure Key Vault with Soft Delete and Purge Protection so secrets can't be irrecoverably destroyed, Managed Identity instead of embedded credentials, least-privilege Azure RBAC, diagnostic logging for auditability, and private network access via Private Endpoints or firewall rules instead of public exposure.
 
-### 8. How do you design a secure Azure landing zone?
+</details>
+
+<details><summary>Q8. [Advanced] How do you design a secure Azure landing zone?</summary>
 
 **Answer:**
 
@@ -264,7 +278,9 @@ A landing zone is the governed foundation that workloads get deployed into. I st
 
 I test policies in audit mode first, check that allowed and denied deployments actually behave as expected, verify private connectivity and DNS, and document any exceptions. A landing zone has to let teams work safely — policies so strict they block necessary work aren't mature governance, they're just an obstacle.
 
-### 9. What is Azure Policy?
+</details>
+
+<details><summary>Q9. [Basic] What is Azure Policy?</summary>
 
 **Answer:**
 
@@ -274,7 +290,9 @@ For example: audit storage accounts for public access, deploy diagnostic setting
 
 I test both compliant and non-compliant deployments, watch the compliance trend, and require exceptions to have an owner, a justification, and an expiry date. Policy is about governance — RBAC is what actually controls who can act.
 
-### 10. How do you enforce governance in Azure?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you enforce governance in Azure?</summary>
 
 **Answer:**
 
@@ -286,7 +304,9 @@ Exceptions always need a business justification, an owner, a scope, and an expir
 
 I watch compliance trends, failed deployments, how many people hold privileged roles, and how policies are actually behaving. Governance is working when it produces consistent evidence and lets people self-serve safely — not when its only effect is adding another manual approval.
 
-### 11. Do Azure tags automatically flow to child resources?
+</details>
+
+<details><summary>Q11. [Basic] Do Azure tags automatically flow to child resources?</summary>
 
 **Answer:**
 
@@ -294,7 +314,9 @@ No — tags aren't inherited by child resources automatically.
 
 Azure Policy with a `modify` effect, infrastructure-as-code modules, or automation can enforce or copy the tags you need. I require ownership, environment, cost-center, and data-classification tags at deployment time, monitor for compliance, and handle exceptions explicitly, so cost allocation and incident ownership stay reliable.
 
-### 12. Can a resource belong to more than one Azure resource group?
+</details>
+
+<details><summary>Q12. [Basic] Can a resource belong to more than one Azure resource group?</summary>
 
 **Answer:**
 
@@ -302,10 +324,14 @@ No — an Azure resource belongs to exactly one resource group at a time.
 
 A resource group is a management and lifecycle boundary. The resources inside it can still live in different regions. I group resources by ownership, lifecycle, access, and cost — not by assuming a resource group is also a network boundary.
 
-### 13. Why does an Azure resource group have a location?
+</details>
+
+<details><summary>Q13. [Basic] Why does an Azure resource group have a location?</summary>
 
 **Answer:**
 
 That location just stores the resource group's own management metadata — deployment history, tags, locks, and similar information. It doesn't force every resource inside the group into that same region.
 
 I still choose it deliberately for governance and support reasons, while setting each individual resource's location based on what that workload actually needs for performance, data residency, and resilience.
+
+</details>

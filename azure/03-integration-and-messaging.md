@@ -88,7 +88,7 @@ Power Apps can call the Function and use its response interactively. Power Autom
 
 ## Interview Questions
 
-### 1. What is Azure Service Bus?
+<details><summary>Q1. [Basic] What is Azure Service Bus?</summary>
 
 **Answer:**
 
@@ -98,7 +98,9 @@ A producer sends a durable message; a consumer picks it up under a lock, process
 
 Managed identity and roles scoped to just sending or just receiving protect access. I choose Service Bus when messages genuinely need to be processed reliably — not just when I need to announce that something happened.
 
-### 2. What is Azure Event Grid?
+</details>
+
+<details><summary>Q2. [Basic] What is Azure Event Grid?</summary>
 
 **Answer:**
 
@@ -110,7 +112,9 @@ The event payload usually just describes what happened; the consumer goes and fe
 
 I monitor delivery failures and dead-lettered events, and secure webhook validation and identity. Event Grid isn't a substitute for the richer guarantees of a real command queue.
 
-### 3. What is the difference between Service Bus and Event Grid?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between Service Bus and Event Grid?</summary>
 
 **Answer:**
 
@@ -121,3 +125,5 @@ I use Service Bus for something like order processing, where each message needs 
 The two can work together: Event Grid spots an event and routes the important work into Service Bus for controlled processing.
 
 I decide between them based on delivery guarantees, ordering, transactions, retention, throughput, how consumers are structured, retry behavior, and what the payload needs to carry.
+
+</details>

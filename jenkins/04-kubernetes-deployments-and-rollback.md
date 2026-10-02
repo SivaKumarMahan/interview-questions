@@ -267,7 +267,7 @@ Helm installs the application if it is new or upgrades it if it already exists. 
 
 ## Interview Questions
 
-### 1. How do you communicate with a Jenkins server and an Azure Kubernetes cluster?
+<details><summary>Q1. [Intermediate] How do you communicate with a Jenkins server and an Azure Kubernetes cluster?</summary>
 
 **A:** To communicate with a Jenkins server and an Azure Kubernetes Service (AKS) cluster, you typically follow these steps:
 
@@ -354,11 +354,15 @@ pipeline {
 
 This example demonstrates how to authenticate to Azure, connect to an AKS cluster, and deploy a Kubernetes manifest using Jenkins. Adjust the pipeline stages and steps according to your specific requirements.
 
-### 2. Walk through a Jenkins CI/CD pipeline that deploys to AKS.
+</details>
+
+<details><summary>Q2. [Intermediate] Walk through a Jenkins CI/CD pipeline that deploys to AKS.</summary>
 
 This Jenkins pipeline checks out the code, builds and tests it with Maven, runs SonarQube analysis and a quality gate, scans dependencies and the Docker image, and pushes the image to ACR. It deploys the image to development AKS with Helm, verifies it with rollout and smoke tests, pauses for approval, and promotes the same tested image to production. Credentials should come from secure identity or secret management rather than being hardcoded.
 
-### 3. Which applications and deployment tools do you pair with Jenkins pipelines?
+</details>
+
+<details><summary>Q3. [Basic] Which applications and deployment tools do you pair with Jenkins pipelines?</summary>
 
 **Answer:**
 
@@ -370,7 +374,9 @@ Jenkins orchestrates the tests, policy checks, artifact publication, approvals, 
 
 I pass artifact digests and versioned manifests between stages, then check application health, logs, metrics, and a real transaction. This keeps Jenkins swappable later on, and avoids giant imperative scripts that hide what state the deployment is actually in.
 
-### 4. Write a basic Jenkins pipeline that builds, pushes to ACR and deploys to AKS with Helm.
+</details>
+
+<details><summary>Q4. [Intermediate] Write a basic Jenkins pipeline that builds, pushes to ACR and deploys to AKS with Helm.</summary>
 
 ```groovy
 pipeline {
@@ -476,7 +482,9 @@ pipeline {
 }
 ```
 
-### 5. How do you explain the basic Jenkins AKS pipeline stage by stage in an interview?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you explain the basic Jenkins AKS pipeline stage by stage in an interview?</summary>
 
 Explain it stage by stage instead of reading the code line by line.
 
@@ -574,7 +582,9 @@ Publish Test Reports
 
 > "This is a Jenkins Declarative Pipeline that automates the complete CI/CD process. It first checks out the code from Git, builds and tests the application using Maven, then creates a Docker image and pushes it to Azure Container Registry. Next, it deploys the image to the Development AKS cluster using Helm and verifies the rollout. After successful testing, the pipeline pauses for manual approval before promoting the same Docker image to the Production AKS cluster. Finally, it publishes the JUnit test reports. Using the same image for both environments ensures consistency and avoids environment-specific build differences."
 
-### 6. What is a basic Jenkins pipeline missing for production-grade CI/CD?
+</details>
+
+<details><summary>Q6. [Intermediate] What is a basic Jenkins pipeline missing for production-grade CI/CD?</summary>
 
 For a production-grade DevOps pipeline, the basic pipeline is missing a few important stages:
 
@@ -600,7 +610,9 @@ For a production-grade DevOps pipeline, the basic pipeline is missing a few impo
 
 This is the typical enterprise CI/CD flow.
 
-### 7. Write an enterprise Jenkins pipeline for AKS with SonarQube and quality gates.
+</details>
+
+<details><summary>Q7. [Advanced] Write an enterprise Jenkins pipeline for AKS with SonarQube and quality gates.</summary>
 
 ```groovy
 pipeline {
@@ -809,7 +821,9 @@ pipeline {
 }
 ```
 
-### 8. What additional enterprise improvements can you add to a Jenkins AKS pipeline?
+</details>
+
+<details><summary>Q8. [Advanced] What additional enterprise improvements can you add to a Jenkins AKS pipeline?</summary>
 
 If you're targeting senior DevOps or Azure DevOps interviews, you can also mention these practices:
 
@@ -824,7 +838,9 @@ If you're targeting senior DevOps or Azure DevOps interviews, you can also menti
 
 This version is much closer to what you'll see in enterprise environments and is suitable for discussing in DevOps interviews.
 
-### 9. How do you perform blue-green deployment using Jenkins + Kubernetes? *(scenario)*
+</details>
+
+<details><summary>Q9. [Intermediate] How do you perform blue-green deployment using Jenkins + Kubernetes? <em>(scenario)</em></summary>
 
 **Answer:** Jenkins pipeline deploys Green → Run tests → Switch traffic to Green (via service or ingress) → Keep Blue as rollback option.
 
@@ -835,7 +851,9 @@ The pipeline runs prechecks, deploys to a small or no-traffic target first, runs
 
 If any of those thresholds are breached, it stops sending traffic and rolls back to the previous artifact or config. Database changes need to expand first and contract later, in separate steps, because rolling back the application can't undo a destructive schema change. Afterward I confirm the service actually recovered, record what happened, and improve whichever test or guard should have caught the problem earlier.
 
-### 10. How do you roll back in Jenkins if a deployment causes issues? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] How do you roll back in Jenkins if a deployment causes issues? <em>(scenario)</em></summary>
 
 **Answer:** Keep artifact versioning → Redeploy the last stable build from Jenkins → Or trigger rollback pipeline.
 
@@ -847,3 +865,5 @@ If health checks or SLOs fail after a deploy, the pipeline stops promoting and t
 I confirm readiness, error rate, latency, and that a real business transaction still works, then send a notification with the failed commit and the recovery result. Database and schema changes have to stay backward-compatible, because rolling back the application alone can't undo a schema change.
 
 Automatic rollback has a timeout and a manual fallback in case it doesn't finish cleanly. Once things are stable, I preserve the evidence and fix whatever test, health probe, configuration, or capacity guard should have caught the problem first.
+
+</details>

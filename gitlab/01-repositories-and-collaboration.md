@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What is GitLab?
+<details><summary>Q1. [Basic] What is GitLab?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ A typical flow: a developer pushes a branch and opens a merge request. The pipel
 
 Before choosing GitLab, I would still check runner security, backup and restore, identity integration, licensing, availability, and who owns it operationally.
 
-### 2. What is a merge request in GitLab?
+</details>
+
+<details><summary>Q2. [Basic] What is a merge request in GitLab?</summary>
 
 **Answer:**
 
@@ -28,7 +30,9 @@ I keep changes small enough to review properly. I mark a merge request as draft 
 
 Before merging, I check the generated artifact or infrastructure plan if one exists. After merging, I verify the deployment worked and link the release back to the merge request, so there's a clear audit trail.
 
-### 3. How do you handle code review quality in GitLab?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you handle code review quality in GitLab?</summary>
 
 **Answer:**
 
@@ -43,7 +47,9 @@ I combine process with automation:
 
 I ask reviewers to explain the risk in a change, not just point out style preferences. Recurring style issues get moved into a linter instead of repeated in review comments. I track review time, defect escape rate, and oversized merge requests. Adding more required approvals without improving review quality just slows delivery down.
 
-### 4. How do you protect branches in GitLab?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you protect branches in GitLab?</summary>
 
 **Answer:**
 
@@ -53,7 +59,9 @@ I also protect tags and deployment environments. If someone can create a product
 
 I test the controls using a normal developer account: a direct push, a force push, an unauthorized merge, and access to protected variables should all fail. I also review access periodically and remove stale users and tokens.
 
-### 5. How do GitLab groups and projects help access management?
+</details>
+
+<details><summary>Q5. [Intermediate] How do GitLab groups and projects help access management?</summary>
 
 **Answer:**
 
@@ -63,7 +71,9 @@ I grant access through groups rather than to individual users, and I give each p
 
 I review inherited permissions, deploy tokens, access tokens, runner scope, protected environments, and external collaborators on a regular basis. Ownership is documented, so every access request and removal has someone accountable for approving it.
 
-### 6. What are GitLab tags and releases used for?
+</details>
+
+<details><summary>Q6. [Basic] What are GitLab tags and releases used for?</summary>
 
 **Answer:**
 
@@ -75,7 +85,9 @@ I never move a tag that's already published. A correction ships as a new version
 
 Release notes cover user-visible changes, migrations, known issues, deployment steps, and rollback information. After deployment, I check application health and keep enough artifact and pipeline evidence to reproduce exactly what reached production.
 
-### 7. How do you migrate a repository to GitLab?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you migrate a repository to GitLab?</summary>
 
 **Answer:**
 
@@ -90,3 +102,5 @@ git push --mirror <gitlab-url>
 I recreate permissions, protected branches and tags, runners, variables, and webhooks by hand rather than copying plaintext secrets across. If needed, I migrate issues and review history using supported import tools.
 
 Before cutover, I briefly freeze writes and run a final sync. I compare branch and tag counts and check important commit SHAs match. I test clone, push, merge, pipeline, and release operations on the new side, then switch DNS or repository URLs. The old repository stays read-only for an agreed period, and I keep a documented rollback plan ready.
+
+</details>

@@ -68,7 +68,7 @@ Version tags keep this example readable, but production workflows should pin thi
 
 ## Interview Questions
 
-### 1. What are GitHub Actions?
+<details><summary>Q1. [Basic] What are GitHub Actions?</summary>
 
 **Answer:**
 
@@ -78,7 +78,9 @@ Actions can run CI/CD, scheduled maintenance, issue automation, releases, securi
 
 For production, I keep `permissions` scoped to the minimum needed — least privilege. I use protected environments, OIDC federation instead of long-lived cloud keys, actions pinned to trusted versions, concurrency controls, timeouts, artifact retention, and branch protection for workflow files.
 
-### 2. Why is GitHub Actions popular?
+</details>
+
+<details><summary>Q2. [Basic] Why is GitHub Actions popular?</summary>
 
 **Answer:**
 
@@ -88,7 +90,9 @@ There are trade-offs, though. Hosted runners can't reach private systems without
 
 I choose GitHub Actions when the source already lives in GitHub and the workflow fits its security and runner model. I'd consider Jenkins, Azure Pipelines, GitLab CI, or a dedicated deployment controller instead when customization needs, network placement, governance, or existing platform investment point that way.
 
-### 3. How do you create a GitHub Actions workflow?
+</details>
+
+<details><summary>Q3. [Basic] How do you create a GitHub Actions workflow?</summary>
 
 **Answer:**
 
@@ -126,7 +130,9 @@ I validate the YAML, pin the actions, set explicit permissions and timeouts, cac
 
 For deployment, I add an environment that requires approval, OIDC authentication, a versioned artifact, smoke tests, health monitoring, and a rollback plan.
 
-### 4. What CI/CD tools have you used in your current role?
+</details>
+
+<details><summary>Q4. [Basic] What CI/CD tools have you used in your current role?</summary>
 
 **Answer:**
 
@@ -142,3 +148,5 @@ I like to explain tools through the delivery flow rather than just naming them. 
 I've also worked with, or understand, similar patterns in Jenkins, Azure Pipelines, and GitLab CI. In an interview I say exactly what I configured myself, what another team owned, the scale involved, one failure I investigated, and the outcome.
 
 Which tool I pick depends on the repository platform, how much customization is needed, where the runners sit, governance requirements, cost, and the team's existing skills.
+
+</details>

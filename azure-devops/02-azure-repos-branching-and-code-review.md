@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What is Azure Repos?
+<details><summary>Q1. [Basic] What is Azure Repos?</summary>
 
 **Answer:**
 
@@ -14,7 +14,9 @@ A developer creates a branch, pushes commits, opens a pull request linked to a w
 
 I set up Entra-backed groups, access scoped to only what's needed, no direct or force pushes to main, required reviewers and checks, comment resolution, and an audited bypass path. Git is the normal choice for distributed, modern workflows. TFVC might still exist for centralized legacy needs.
 
-### 2. How do Azure Repos and GitHub differ?
+</details>
+
+<details><summary>Q2. [Basic] How do Azure Repos and GitHub differ?</summary>
 
 **Answer:**
 
@@ -28,7 +30,9 @@ Hosting an application on Azure doesn't automatically mean you need Azure Repos,
 
 I pick whichever combination actually meets the organization's delivery and operational needs.
 
-### 3. How do Azure Repos branch policies work?
+</details>
+
+<details><summary>Q3. [Intermediate] How do Azure Repos branch policies work?</summary>
 
 **Answer:**
 
@@ -38,7 +42,9 @@ I require the relevant automated checks and reviewers for anything touching pipe
 
 There's a balance between safety and speed — flaky or slow checks push people toward bypassing them. I track failed validations, how long reviews take, how often bypass gets used, and defects that show up after merge. Any change to a policy gets reviewed too, since weakening a branch gate affects every release that follows.
 
-### 4. How do you enforce code review in Azure Repos?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you enforce code review in Azure Repos?</summary>
 
 **Answer:**
 
@@ -48,7 +54,9 @@ A good pull request describes its purpose, risk, tests, deployment plan, and rol
 
 I audit bypass permissions and stale groups regularly. Emergency changes still go through a traceable path and get reviewed after the fact. Automated formatting removes the low-value comments so reviewers can focus on risk and design instead.
 
-### 5. What merge strategies are available in Azure Repos?
+</details>
+
+<details><summary>Q5. [Basic] What merge strategies are available in Azure Repos?</summary>
 
 **Answer:**
 
@@ -61,7 +69,9 @@ Azure Repos supports merge commit, squash merge, rebase with fast-forward, and s
 
 I pick one strategy and enforce it consistently, based on what the team needs for audit history and releases. For short feature branches, squash is common. I avoid rewriting shared, protected history, and make sure release tags always point at the final reviewed commit.
 
-### 6. How do you manage permissions in Azure Repos?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you manage permissions in Azure Repos?</summary>
 
 **Answer:**
 
@@ -71,7 +81,9 @@ Service identities only get the specific repository operations they actually nee
 
 I check the effective permissions, including inheritance and any deny rules, test them with real accounts, and review access periodically. When someone leaves or changes teams, removing them from the group removes their access everywhere at once. Audit logs and branch history back up any investigation.
 
-### 7. How do you recover a deleted branch in Azure Repos?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you recover a deleted branch in Azure Repos?</summary>
 
 **Answer:**
 
@@ -87,7 +99,9 @@ After that, I restore and verify branch policies and permissions, since recreati
 
 To prevent this: restrict who can delete protected branches, keep release tags, set retention policies, keep backups or mirrors where needed, and limit who has administrative permission.
 
-### 8. How do you trigger Azure Pipelines from Azure Repos?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you trigger Azure Pipelines from Azure Repos?</summary>
 
 **Answer:**
 
@@ -105,3 +119,5 @@ trigger:
 I'm careful to avoid duplicate runs by understanding the difference between a CI trigger and a PR policy trigger, and I test the path filters. Pipeline resource triggers can kick off a downstream pipeline once an artifact has actually been published.
 
 For releases, I prefer triggering off an explicit artifact version or pipeline completion rather than a broad trigger. Branch policy makes sure the PR validation pipeline is required and can't be quietly skipped by a normal contributor.
+
+</details>

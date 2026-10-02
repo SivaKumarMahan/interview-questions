@@ -44,7 +44,7 @@ A backup job succeeding is not the same as a backup being usable. Treat a backup
 
 ## Interview Questions
 
-### 1. Which database signals would you put on a production dashboard?
+<details><summary>Q1. [Intermediate] Which database signals would you put on a production dashboard?</summary>
 
 **Answer:**
 
@@ -52,7 +52,9 @@ I'd track availability, transaction and query rate, P95/P99 latency, error ratio
 
 I segment these by database, operation, and application, but I avoid unlimited query or user labels, since that drives up cardinality and cost.
 
-### 2. How do you investigate database connection failures?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you investigate database connection failures?</summary>
 
 **Answer:**
 
@@ -62,7 +64,9 @@ I check the endpoint and DNS, the network path, the listener's availability, the
 
 I fix the layer that's actually proven to be the cause, then confirm with a real transaction, latency, pool recovery, and that unauthorized access is still denied.
 
-### 3. How do monitoring and alerts support a safe database migration?
+</details>
+
+<details><summary>Q3. [Advanced] How do monitoring and alerts support a safe database migration?</summary>
 
 **Answer:**
 
@@ -71,3 +75,5 @@ Before the migration, I confirm backup and restore actually work, and I record b
 During an expand-and-contract or blue-green migration, I watch migration progress, lock duration, replication lag, application versions, read/write correctness, and SLOs. Abort thresholds and the owner responsible for that call are agreed on beforehand.
 
 After cutover, I verify data and business transactions through a stability window before removing the old schema or environment.
+
+</details>

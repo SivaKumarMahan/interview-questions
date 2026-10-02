@@ -86,14 +86,16 @@ with open('data.json', 'r') as json_file:
 
 ## Interview Questions
 
-### 1. What are common YAML mistakes?
+<details><summary>Q1. [Basic] What are common YAML mistakes?</summary>
 
 **Answer:**
 
 Common mistakes: tabs, wrong indentation, duplicate keys, missing colons, wrong list nesting, unclear unquoted values, inconsistent types, and multiline text using the wrong block style. In Kubernetes specifically, label-selector mismatches and placing a field under the wrong parent are common logical errors.
 To prevent these, I rely on editor YAML support, `yamllint`, schema validation, small reviewed changes, and rendered-output tests for templates. I avoid copy-pasting between environments by hand, and I never assume that a file parsing successfully means the application configuration is actually correct.
 
-### 2. Kubernetes YAML Indentation
+</details>
+
+<details><summary>Q2. [Intermediate] Kubernetes YAML Indentation</summary>
 
 #### The broken YAML
 
@@ -165,7 +167,9 @@ spec:
 
 "The YAML is broken because every field is at the same indentation level, so the parser can't tell what's nested under `metadata` or `spec`. I'd re-indent it properly (2 spaces per level), add the missing `name` field under each container, and add resource requests/limits, which are missing but important for scheduling and stability."
 
-### 3. How do you validate YAML files?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you validate YAML files?</summary>
 
 **Answer:**
 
@@ -182,3 +186,5 @@ helm template test ./chart | kubeconform -strict
 First comes syntax and style, then schema validation, then target-tool validation, and finally behavioral testing. For pipelines I use the GitHub/GitLab/Azure pipeline linter. CI should fail on invalid YAML before deployment.
 
 If validation fails, I check indentation, duplicate keys, whether a list or map was expected, unavailable API versions, and values that templating may have altered. I inspect the rendered output too, since a correct template can still generate invalid YAML for certain input values.
+
+</details>

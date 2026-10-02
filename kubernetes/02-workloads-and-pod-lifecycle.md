@@ -58,7 +58,7 @@ Readiness gates traffic; liveness should detect an unrecoverable process, not te
 
 ## Interview Questions
 
-### 1. What is a ReplicaSet and how does it ensure the desired Pod count?
+<details><summary>Q1. [Basic] What is a ReplicaSet and how does it ensure the desired Pod count?</summary>
 
 **Answer:**
 
@@ -75,7 +75,9 @@ kubectl get events --sort-by=.metadata.creationTimestamp
 
 A correct replica count only proves the Pods exist — not that the application is actually ready. I still have to check readiness and the Service endpoints separately.
 
-### 2. What is the difference between ReplicaSet, Deployment, StatefulSet, and DaemonSet?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between ReplicaSet, Deployment, StatefulSet, and DaemonSet?</summary>
 
 **Answer:**
 
@@ -88,7 +90,9 @@ I choose based on identity and lifecycle, not just on whether the workload has d
 
 Whatever I pick, it still needs probes, resource limits, security settings, monitoring, and a disruption plan. To verify it's working, I look at the controller's conditions, the desired/current/ready counts, events, and how the workload actually behaves.
 
-### 3. What is the difference between a Deployment and a StatefulSet?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between a Deployment and a StatefulSet?</summary>
 
 **Answer:**
 
@@ -100,7 +104,9 @@ If you delete `db-1`, Kubernetes recreates `db-1` — the other Pods don't get r
 
 Before I use a StatefulSet, I check the storage topology, the Pod management and update strategy, failover behavior, backups, and disruption handling. A managed database can reduce a lot of that operational risk.
 
-### 4. When should you use a StatefulSet instead of a Deployment?
+</details>
+
+<details><summary>Q4. [Intermediate] When should you use a StatefulSet instead of a Deployment?</summary>
 
 **Answer:**
 
@@ -110,7 +116,9 @@ Before choosing it, I ask a few questions. Can replicas be swapped out interchan
 
 I test what happens when a Pod is deleted or rescheduled, when a zone fails and storage has to reattach, an ordered rollout, scaling up and down, backup and restore, and losing quorum. If the application's state actually lives outside the Pods and the Pods are interchangeable, a Deployment is simpler — even if those Pods mount shared, read-only data.
 
-### 5. What is a DaemonSet and when would you use it?
+</details>
+
+<details><summary>Q5. [Basic] What is a DaemonSet and when would you use it?</summary>
 
 **Answer:**
 
@@ -122,7 +130,9 @@ Because this Pod runs on every node, I always set resource requests and limits f
 
 I check the desired, current, ready, and misscheduled counts, events, per-node coverage, logs, and the node-level resource impact. Control-plane nodes need explicit toleration and compatibility — I don't assume every DaemonSet should run there.
 
-### 6. What is a DaemonSet in Kubernetes and when would you use it?
+</details>
+
+<details><summary>Q6. [Basic] What is a DaemonSet in Kubernetes and when would you use it?</summary>
 
 A **DaemonSet** in Kubernetes ensures that a copy of a specific pod runs on all (or selected) nodes in the cluster. It's used for deploying system-level services that need to run on every node, such as log collectors, monitoring agents, or network plugins.
 
@@ -160,7 +170,9 @@ spec:
 
 In this example, a DaemonSet named `log-collector` deploys a Fluentd container on every node in the cluster to collect logs.
 
-### 7. If you want two Pods per node instead of one, what alternatives to DaemonSet can you use?
+</details>
+
+<details><summary>Q7. [Intermediate] If you want two Pods per node instead of one, what alternatives to DaemonSet can you use?</summary>
 
 **Answer:**
 
@@ -172,7 +184,9 @@ Before building either, I ask why two are needed. If it's about throughput, one 
 
 The scheduling policy should express the actual requirement, not lean on a replica-count formula that goes stale the moment the cluster changes shape.
 
-### 8. Can a DaemonSet Pod be scheduled on a master node that has a `NoSchedule` taint without explicitly adding tolerations?
+</details>
+
+<details><summary>Q8. [Intermediate] Can a DaemonSet Pod be scheduled on a master node that has a <code>NoSchedule</code> taint without explicitly adding tolerations?</summary>
 
 **Answer:**
 
@@ -199,7 +213,9 @@ spec:
         effect: NoSchedule
 ```
 
-### 9. What is the difference between a Kubernetes Job and CronJob?
+</details>
+
+<details><summary>Q9. [Basic] What is the difference between a Kubernetes Job and CronJob?</summary>
 
 **Answer:**
 
@@ -211,7 +227,9 @@ The task itself needs to be idempotent — safe to run more than once — becaus
 
 I check the CronJob's last schedule time, the Jobs it created, Pod events and logs, exit codes, the timezone, controller availability, and concurrency. A successful Job doesn't prove the backup is restorable — I still need to test restores separately.
 
-### 10. How do you manage Kubernetes CronJobs efficiently?
+</details>
+
+<details><summary>Q10. [Intermediate] How do you manage Kubernetes CronJobs efficiently?</summary>
 
 **Answer:** Set concurrency policy → Use resource limits → Monitor with Prometheus alerts → Clean up old jobs.
 
@@ -222,7 +240,9 @@ Jobs are idempotent, and use a database or distributed lock whenever duplicate e
 
 Success is a business result, not just a completed Pod, so I alert on the last successful timestamp and duration. `ttlSecondsAfterFinished` and history limits clean up old Jobs without deleting evidence I still need for audit.
 
-### 11. If you have a Job with `parallelism: 3` and one Pod fails with `restartPolicy: Never`, will the Job create a replacement Pod?
+</details>
+
+<details><summary>Q11. [Intermediate] If you have a Job with <code>parallelism: 3</code> and one Pod fails with <code>restartPolicy: Never</code>, will the Job create a replacement Pod?</summary>
 
 **Answer:**
 
@@ -250,7 +270,9 @@ spec:
 
 The Job keeps creating new Pods until it reaches the completion count or hits the backoff limit.
 
-### 12. If a Pod has initContainers that fail but the main container has `restartPolicy: Never`, what happens to the Pod status?
+</details>
+
+<details><summary>Q12. [Intermediate] If a Pod has initContainers that fail but the main container has <code>restartPolicy: Never</code>, what happens to the Pod status?</summary>
 
 **Answer:**
 
@@ -276,7 +298,9 @@ spec:
     image: nginx  # This will never start
 ```
 
-### 13. I want to run a one-time database migration task before my application starts. How can I achieve this in Kubernetes?
+</details>
+
+<details><summary>Q13. [Intermediate] I want to run a one-time database migration task before my application starts. How can I achieve this in Kubernetes?</summary>
 
 Use Init Containers, which run and complete before the main containers start:
 
@@ -296,7 +320,9 @@ spec:
 
 Init containers are perfect for migrations, schema updates, or data seeding.
 
-### 14. Is it possible for a Pod to have multiple containers sharing the same port on localhost, and what happens if they try to bind simultaneously?
+</details>
+
+<details><summary>Q14. [Intermediate] Is it possible for a Pod to have multiple containers sharing the same port on localhost, and what happens if they try to bind simultaneously?</summary>
 
 **Answer:**
 
@@ -325,7 +351,9 @@ containers:
   - containerPort: 8080  # Conflict!
 ```
 
-### 15. What are liveness, readiness, and startup probes?
+</details>
+
+<details><summary>Q15. [Basic] What are liveness, readiness, and startup probes?</summary>
 
 **Answer:**
 
@@ -335,7 +363,9 @@ I keep the liveness probe local and conservative. If it checks something like a 
 
 When a probe fails, I check `kubectl describe`, hit the endpoint manually from inside the Pod, check the path, port, and scheme, the bind address, the timing, resource pressure, and the logs. I fix the probe or the application — I don't just disable the probe permanently to force a rollout through.
 
-### 16. Explain the difference between liveness, readiness, and startup probes. When does getting this wrong take down your production app?
+</details>
+
+<details><summary>Q16. [Advanced] Explain the difference between liveness, readiness, and startup probes. When does getting this wrong take down your production app?</summary>
 
 **Answer:**
 
@@ -374,7 +404,9 @@ A proper readiness probe that checks whether Postgres is accepting connections k
 
 Probe configuration is not a minor detail. It is what stands between a smooth deployment and a 2am incident.
 
-### 17. Kubernetes Probes Killing a Slow-Starting App
+</details>
+
+<details><summary>Q17. [Intermediate] Kubernetes Probes Killing a Slow-Starting App</summary>
 
 #### The setup
 
@@ -431,7 +463,9 @@ If a `startupProbe` isn't available/desired, a simpler (older) fix is to just ra
 
 "The liveness probe starts checking too early — only 5 seconds in — for an app that needs 60 seconds to boot, so Kubernetes kills it mid-startup and it never becomes healthy. The correct fix is to add a `startupProbe` with enough attempts to cover the real startup time, so liveness and readiness checks only begin once the app has actually started."
 
-### 18. How does Kubernetes handle self-healing at Pod and node level?
+</details>
+
+<details><summary>Q18. [Intermediate] How does Kubernetes handle self-healing at Pod and node level?</summary>
 
 **Answer:**
 
@@ -443,7 +477,9 @@ Self-healing has real limits. A standalone Pod isn't recreated. Persistent volum
 
 I validate all this with controlled Pod and node failure tests, watching events, replacement time, readiness, traffic, storage, and SLOs. A PDB protects against voluntary disruption — it does nothing for a node crash.
 
-### 19. What happens when one Pod in a Deployment goes down?
+</details>
+
+<details><summary>Q19. [Basic] What happens when one Pod in a Deployment goes down?</summary>
 
 For normal stateless replicas, pods do not directly coordinate recovery. Kubernetes controllers and Services handle it.
 
@@ -474,7 +510,9 @@ Kubernetes coordinates pod replacement and traffic routing, but it does not mana
 
 When a pod fails, the Deployment creates a replacement to restore the desired replica count. During recovery, the Service routes traffic only to ready pods. Once the new pod passes its readiness probe, it is added to the Service and starts receiving traffic. Distributed applications may also require their own coordination logic for data and leadership.
 
-### 20. How do you implement auto-healing in Kubernetes?
+</details>
+
+<details><summary>Q20. [Intermediate] How do you implement auto-healing in Kubernetes?</summary>
 
 **Answer:** Use liveness probes → If container fails health check, kubelet restarts it → Integrate with Horizontal Pod Autoscaler for scaling.
 
@@ -487,7 +525,9 @@ For an immediate incident, I might safely scale with `kubectl scale deployment <
 
 I verify readiness, load distribution, scaling events, dependency health, a graceful scale-down, and cost. Load tests and capacity alerts are what prove the whole path works before the next real peak.
 
-### 21. How does Kubernetes handle scaling, rolling updates, and self-healing, and how do you scale a deployment manually and automatically?
+</details>
+
+<details><summary>Q21. [Intermediate] How does Kubernetes handle scaling, rolling updates, and self-healing, and how do you scale a deployment manually and automatically?</summary>
 
 **Answer:** Kubernetes uses controllers to keep actual state equal to desired state. A Deployment declares the required image and replica count, while its ReplicaSet keeps that number of Pods running.
 
@@ -517,7 +557,9 @@ kubectl describe hpa api
 
 HPA scales Pods, while Cluster Autoscaler or a provider-specific node autoscaler adds nodes when Pods remain Pending because the cluster lacks capacity. I load-test the complete path and verify scale-up time, maximum limits, Pod distribution, graceful scale-down, and cost alerts.
 
-### 22. How do you stop a Pod in Kubernetes?
+</details>
+
+<details><summary>Q22. [Basic] How do you stop a Pod in Kubernetes?</summary>
 
 **Answer:**
 
@@ -534,7 +576,9 @@ Before stopping anything in production, I check the traffic it's handling, its P
 
 GitOps can revert a manual scale-down on its own, so I either update the actual source of truth or use an approved, temporary override instead.
 
-### 23. How do you stop / delete a pod? *(asked in interview round)*
+</details>
+
+<details><summary>Q23. [Basic] How do you stop / delete a pod? <em>(asked in interview round)</em></summary>
 
 ```bash
 kubectl delete pod <name>            # deletes; a controller (Deployment/RS) recreates it
@@ -543,7 +587,9 @@ kubectl delete deploy <name>         # remove workload entirely
 ```
 If a Deployment manages the pod, deleting the pod alone just triggers a replacement. To actually stop the workload, scale the Deployment to zero replicas or delete the Deployment itself.
 
-### 24. How do you replicate a Pod?
+</details>
+
+<details><summary>Q24. [Basic] How do you replicate a Pod?</summary>
 
 **Answer:**
 
@@ -558,7 +604,9 @@ Before scaling, I check requests, node and IP capacity, the Service's selector a
 
 For automatic scaling, I configure the metrics, min and max, and behavior settings, plus node autoscaling. I verify the Ready replica count, how endpoints are distributed across zones, latency and error rate, and cost. I also update the Git source so GitOps doesn't quietly undo a manual change.
 
-### 25. How do you replicate a pod? *(asked in interview round)*
+</details>
+
+<details><summary>Q25. [Basic] How do you replicate a pod? <em>(asked in interview round)</em></summary>
 
 Don't manage pods directly. Use a Deployment (or a ReplicaSet or StatefulSet) and set the replica count:
 ```bash
@@ -566,3 +614,5 @@ kubectl scale deployment <name> --replicas=3
 # or in the manifest:  spec.replicas: 3
 ```
 The ReplicaSet controller keeps the pod count at whatever you set. For automatic scaling, use an HPA (see §3.6).
+
+</details>

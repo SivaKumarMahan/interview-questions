@@ -36,7 +36,7 @@ Publish the plan for review, apply that exact reviewed plan, and hold onto the p
 
 ## Interview Questions
 
-### 1. How do you design a multi-stage Azure Pipeline?
+<details><summary>Q1. [Intermediate] How do you design a multi-stage Azure Pipeline?</summary>
 
 **Answer:**
 
@@ -69,7 +69,9 @@ In a real pipeline, CI also scans the image and publishes it, staging runs smoke
 
 I set timeouts, concurrency or exclusive locks, artifact retention, and make sure ownership of each stage is clear.
 
-### 2. What are service connections in Azure DevOps?
+</details>
+
+<details><summary>Q2. [Basic] What are service connections in Azure DevOps?</summary>
 
 **Answer:**
 
@@ -79,7 +81,9 @@ I scope the identity to the smallest subscription, resource group, or resource r
 
 If authentication fails, I check that the connection is verified, the tenant and subscription, the federated credential's subject, which pipelines are authorized to use it, the role and its scope, whether RBAC has propagated, the target's network or firewall, and whether the agent can even reach it. I test one allowed and one denied operation to actually prove least privilege is working.
 
-### 3. How do you use variables and variable groups in Azure Pipelines?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you use variables and variable groups in Azure Pipelines?</summary>
 
 **Answer:**
 
@@ -98,7 +102,9 @@ I avoid ever echoing a secret, and I know masking output is a safety net, not a 
 
 I also document how precedence works, since template, pipeline, stage, job, and queue-time values can all override each other. Reading the rendered pipeline and its logs helps track down an unexpected value without printing anything sensitive.
 
-### 4. What is a pipeline template in Azure DevOps?
+</details>
+
+<details><summary>Q4. [Basic] What is a pipeline template in Azure DevOps?</summary>
 
 **Answer:**
 
@@ -120,3 +126,5 @@ steps:
 I keep templates in a controlled repository, pin to a specific ref or tag, use typed parameters, document the inputs, and test changes against the teams actually using them. Breaking changes get proper versioning and migration guidance.
 
 Templates should standardize the important controls, but not hide pipeline behavior so deeply that the team using it can't troubleshoot it themselves.
+
+</details>

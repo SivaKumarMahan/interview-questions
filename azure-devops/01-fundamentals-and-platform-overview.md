@@ -42,7 +42,7 @@ For a split pipeline like this:
 
 ## Interview Questions
 
-### 1. What is Azure DevOps?
+<details><summary>Q1. [Basic] What is Azure DevOps?</summary>
 
 **Answer:**
 
@@ -52,7 +52,9 @@ A typical flow links a Board work item to a branch and a pull request, runs buil
 
 I set up Entra-backed groups, access scoped to only what's needed, protected branches, workload-identity service connections, YAML templates, artifact retention, approvals, and audit logs. The real value here is being able to trace a change all the way from code to work item to build to artifact to release — not just running scripts.
 
-### 2. What is the difference between Azure Pipelines classic release and YAML pipelines?
+</details>
+
+<details><summary>Q2. [Basic] What is the difference between Azure Pipelines classic release and YAML pipelines?</summary>
 
 **Answer:**
 
@@ -63,7 +65,10 @@ Classic releases still show up in older systems, or where a team just prefers ma
 I prefer multi-stage YAML for new work. Changes to production logic go through pull-request review, and environment approvals and checks stay configured outside the YAML file itself, so a code change can't accidentally remove a safety gate.
 
 When migrating, I inventory the tasks, variables, service connections, approvals, artifacts, schedules, and retention settings, rebuild them in YAML and templates, run both pipelines side by side safely, compare the artifacts and deployments they produce, then retire the old credentials once the cutover is done.
-### 3. What frontend and backend applications have you worked on? Explain the end-to-end flow from commit to production.
+
+</details>
+
+<details><summary>Q3. [Intermediate] What frontend and backend applications have you worked on? Explain the end-to-end flow from commit to production.</summary>
 
 **Interviewer:** I am giving an interview for an Azure DevOps Engineer role. What applications have you used in frontend and backend? Give the end-to-end flow.
 
@@ -494,3 +499,5 @@ For a more enterprise-scale version of the same architecture:
 - **TDE (Transparent Data Encryption)** on Azure SQL for encryption at rest.
 - **Redis** as a caching layer between the backend and the database to reduce database load.
 - **GZRS (Geo-Zone-Redundant Storage)** for the storage tier when both zone and region redundancy are required.
+
+</details>

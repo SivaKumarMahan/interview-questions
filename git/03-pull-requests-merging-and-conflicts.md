@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. What is a pull request or merge request?
+<details><summary>Q1. [Basic] What is a pull request or merge request?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ Reviewers check for correctness, maintainability, security, how it behaves in op
 
 Once feedback is resolved and checks pass, the change gets merged using whatever strategy the team has chosen. The linked issue, reviewers, checks, comments, and final commit together form an audit trail.
 
-### 2. How do you protect the main branch?
+</details>
+
+<details><summary>Q2. [Basic] How do you protect the main branch?</summary>
 
 **Answer:**
 
@@ -32,7 +34,9 @@ I block direct pushes and require everyone to go through a pull request. The typ
 
 I test the policy with a normal developer account to confirm that direct pushes and unauthorized bypasses actually fail. I also protect pipeline configuration and infrastructure directories, since changing a workflow file can be just as powerful as changing application code.
 
-### 3. What is the difference between merge, squash, and rebase?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between merge, squash, and rebase?</summary>
 
 **Answer:**
 
@@ -44,7 +48,9 @@ For short feature branches, I often squash a string of small "fix" commits into 
 
 If I rebase a branch I own, I push with `--force-with-lease`, never a plain `--force`.
 
-### 4. How do you resolve merge conflicts?
+</details>
+
+<details><summary>Q4. [Basic] How do you resolve merge conflicts?</summary>
 
 **Answer:**
 
@@ -67,7 +73,9 @@ git commit                 # merge
 
 If the resolution starts to feel unsafe, I run `git merge --abort` or `git rebase --abort`, go back to the original state, and try again after getting clarity. I also compare the final diff against both parent branches, so I don't accidentally drop a valid change.
 
-### 5. How do you find merge conflicts before completing a merge?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you find merge conflicts before completing a merge?</summary>
 
 **Answer:**
 
@@ -85,7 +93,9 @@ If I just want to check without changing anything, `git merge-tree` can show wha
 
 After resolving conflicts, I run the full relevant test set and review the combined diff.
 
-### 6. How do you find / handle merge conflicts? *(asked in interview round)*
+</details>
+
+<details><summary>Q6. [Basic] How do you find / handle merge conflicts? <em>(asked in interview round)</em></summary>
 
 ```bash
 git merge main            # or git rebase main
@@ -97,3 +107,5 @@ grep -rn '<<<<<<<' .      # find conflict markers
 I resolve conflicts by editing the `<<<<<<<` / `=======` / `>>>>>>>` sections to the correct result, then running `git add <file>` and `git commit` (or `git rebase --continue`). A merge tool such as `git mergetool` or VS Code makes this easier to see clearly.
 
 To prevent conflicts in the first place: keep branches short-lived, pull or rebase often, and keep changes small and focused.
+
+</details>

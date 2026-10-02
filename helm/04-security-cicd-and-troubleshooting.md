@@ -64,7 +64,7 @@ Common causes of failure: invalid rendered YAML, missing values, an attempt to c
 
 ## Interview Questions
 
-### 1. How do you manage secrets in Helm charts?
+<details><summary>Q1. [Intermediate] How do you manage secrets in Helm charts?</summary>
 
 **Answer:**
 
@@ -74,7 +74,9 @@ My preferred approach is External Secrets Operator or the Secrets Store CSI Driv
 
 If encrypted values in Git are acceptable for a project, I use SOPS or helm-secrets, with the encryption keys kept outside Git entirely. I restrict RBAC access to Secrets and Helm's release data, make sure CI logs never print rendered values, test that rotation actually works, and confirm that a namespace or service account without permission genuinely can't read the secret.
 
-### 2. How do you sign and verify Helm charts?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you sign and verify Helm charts?</summary>
 
 **Answer:**
 
@@ -86,7 +88,9 @@ For OCI registries, I prefer signing the chart's fixed digest with a supply-chai
 
 Signing proves who — or which workflow — produced an unmodified artifact. It doesn't prove the chart is actually safe. Linting, template and schema validation, security and policy checks, review, and a controlled promotion process are all still needed on top of signing.
 
-### 3. what is email signing and Helm chart signing? which tools do you use to sign Helm charts?
+</details>
+
+<details><summary>Q3. [Basic] what is email signing and Helm chart signing? which tools do you use to sign Helm charts?</summary>
 
 **A:**
 
@@ -122,7 +126,9 @@ helm verify <chart-package>
 
 In summary, email signing and Helm chart signing both serve to verify authenticity and integrity, but they apply to different contexts — email communication and software package distribution, respectively. GPG is the tool commonly used for signing Helm charts.
 
-### 4. How do you troubleshoot Helm chart deployment failures? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you troubleshoot Helm chart deployment failures? <em>(scenario)</em></summary>
 
 **Answer:** Run `helm status` and `helm get manifest` → validate the YAML → check Kubernetes events and logs → roll back with `helm rollback` if needed.
 
@@ -134,3 +140,5 @@ For a release that already failed, I use `helm status <release>`, `helm get valu
 I compare the rendered manifest and values against the last good revision. Then I fix the chart or the environment dependency in Git and run a controlled upgrade. If production is affected, I use `helm rollback <release> <revision>` and check the pods and application metrics afterward.
 
 Tests, schema validation, pinned chart versions, and time-limited atomic upgrades are what prevent this from happening again.
+
+</details>

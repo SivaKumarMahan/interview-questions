@@ -178,7 +178,7 @@ Publicly exposing monitoring ports or using unpinned `latest` images is not a pr
 
 ## Interview Questions
 
-### 1. What is in `prometheus.yml` and how do you validate it?
+<details><summary>Q1. [Intermediate] What is in <code>prometheus.yml</code> and how do you validate it?</summary>
 
 **Answer:**
 
@@ -188,7 +188,9 @@ To validate it, I run `promtool check config`, check the Targets page for discov
 
 I also watch scrape duration and failures, and keep an eye on label cardinality — the number of unique label combinations a metric produces — so a single bad target can't destabilize the whole Prometheus instance.
 
-### 2. How do you alert when disk use exceeds 80%?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you alert when disk use exceeds 80%?</summary>
 
 **Answer:**
 
@@ -208,7 +210,9 @@ I exclude filesystems that don't matter, like read-only ones, include the mount 
 
 A time-to-full forecast and a critical threshold are often more useful than a single fixed percentage. I test both the rule and the receiver before trusting it.
 
-### 3. How do you operate Prometheus for Kubernetes at production scale?
+</details>
+
+<details><summary>Q3. [Advanced] How do you operate Prometheus for Kubernetes at production scale?</summary>
 
 **Answer:**
 
@@ -217,3 +221,5 @@ I deploy a pinned kube-prometheus-stack or a managed service, and configure reso
 For long retention or queries across clusters, I use remote write into Thanos, Mimir, or a managed backend. I monitor Prometheus's own memory and disk usage, rule evaluation time, failed scrapes, remote-write backlog, and cardinality.
 
 I inject test alerts and simulate a lost target to confirm the whole pipeline works. Stable cluster and service labels support multi-cluster queries, but unlimited request or user labels are not allowed — they blow up cardinality.
+
+</details>

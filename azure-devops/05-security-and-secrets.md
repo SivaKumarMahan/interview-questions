@@ -66,7 +66,7 @@ The service connection still needs its own explicit Key Vault data-plane authori
 
 ## Interview Questions
 
-### 1. How do you secure Azure Pipelines?
+<details><summary>Q1. [Intermediate] How do you secure Azure Pipelines?</summary>
 
 **Answer:**
 
@@ -76,7 +76,9 @@ Tasks, templates, and images are pinned to specific versions and reviewed. The p
 
 I review organization and project permissions, which pipelines each service connection is authorized for, agent pools, OAuth token scope, retention settings, and extensions. For a supply-chain incident, I have a plan covering revocation, identifying affected artifacts, and rebuilding from trusted sources.
 
-### 2. Azure DevOps Pipeline Secret Exposure
+</details>
+
+<details><summary>Q2. [Intermediate] Azure DevOps Pipeline Secret Exposure</summary>
 
 #### The pipeline
 
@@ -124,7 +126,9 @@ The script receives the secrets as environment variables at runtime without ever
 
 "There are two problems: real secrets are hardcoded directly in version-controlled YAML, and the script prints them to the build log where anyone with log access can read them. I'd move the secrets into Azure Key Vault, reference them through a linked variable group so they're marked secret and get masked, pass them into the script as environment variables, and remove the `echo` statements that print them entirely."
 
-### 3. How do you enforce least privilege access in GCP or Azure pipelines? *(scenario)*
+</details>
+
+<details><summary>Q3. [Advanced] How do you enforce least privilege access in GCP or Azure pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Use service accounts with the minimum roles they need, rotate keys regularly, and audit pipeline IAM policies.
 
@@ -135,3 +139,5 @@ I start from the exact principal, resource, action, scope, and denial from the e
 I reproduce with a harmless call using the same identity, then grant the narrowest predefined or custom role at the smallest possible scope — never Owner or Admin just to make the pipeline pass. Workload identity or managed identity replaces static service-account keys wherever it can.
 
 If a key has leaked, I disable or revoke it right away, check what it was used for and what it changed, rotate anything related, and rebuild the identity path properly using workload identity. Regular access reviews, expiry dates, policy tests, and audit alerts keep roles from creeping wider over time.
+
+</details>

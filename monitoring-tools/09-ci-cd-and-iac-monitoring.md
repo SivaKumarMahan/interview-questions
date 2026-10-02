@@ -95,7 +95,7 @@ An apply that finishes successfully, and creates an alert resource or a diagnost
 
 ## Interview Questions
 
-### 1. How do you monitor Jenkins or Azure DevOps pipelines?
+<details><summary>Q1. [Intermediate] How do you monitor Jenkins or Azure DevOps pipelines?</summary>
 
 **Answer:**
 
@@ -107,7 +107,9 @@ An alert should include the pipeline, environment, failed stage, owner, and runb
 
 I compare trends against agent image or tool changes, and fix the flaky or constrained stage instead of just adding more retries.
 
-### 2. How do you integrate observability into deployment gates?
+</details>
+
+<details><summary>Q2. [Advanced] How do you integrate observability into deployment gates?</summary>
 
 **Answer:**
 
@@ -119,7 +121,9 @@ If the thresholds fail, promotion stops. A controlled rollback or traffic shift 
 
 Teams can only override the gate through an audited approval path, because automated health checks can be wrong too.
 
-### 3. How do you implement monitoring for Terraform-managed infrastructure?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement monitoring for Terraform-managed infrastructure?</summary>
 
 **Answer:**
 
@@ -133,7 +137,9 @@ CI validates the code and previews the plan before anything is applied. The appl
 
 I also monitor the monitoring resources themselves. That includes cardinality, the number of unique label combinations being produced, since it drives cost and retention just as much as raw data volume does.
 
-### 4. How do you monitor Terraform changes and drift?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you monitor Terraform changes and drift?</summary>
 
 **Answer:**
 
@@ -144,3 +150,5 @@ In production, I record whether the apply succeeded, how long it took, how long 
 Scheduled plans, or the platform's own drift-detection feature, catch changes made outside of Terraform. When that happens, I open a ticket or alert for someone to review. I don't let automation silently overwrite an emergency change someone made by hand.
 
 Terraform state and full plans can contain secrets, so I keep them encrypted and access-controlled rather than sending them to ordinary logs. When a run fails, I compare it against the cloud provider's audit logs, and I make sure the state matches the real resources — reconciling the two — before retrying.
+
+</details>

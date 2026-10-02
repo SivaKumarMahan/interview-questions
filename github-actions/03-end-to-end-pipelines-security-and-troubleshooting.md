@@ -50,7 +50,7 @@ Start troubleshooting with the workflow syntax, event delivery, the first failed
 
 ## Interview Questions
 
-### 1. How are SonarQube, Docker, and Trivy integrated in pipelines?
+<details><summary>Q1. [Intermediate] How are SonarQube, Docker, and Trivy integrated in pipelines?</summary>
 
 **Answer:**
 
@@ -87,3 +87,5 @@ jobs:
 ```
 
 SonarQube checks source code quality and test coverage. Trivy checks the built image and its dependencies. I pin action versions to approved releases, set up a vulnerability exception process with an expiry date, upload scan reports even when a job fails, and never push or deploy an image if a required gate fails.
+
+</details>

@@ -59,7 +59,7 @@ TODO (Siva): replace this generic layout with your real service details, for exa
 
 ## Interview Questions
 
-### 1. How do EC2, EKS, ECS, and databases fit together, and how do you interact with an ECS service?
+<details><summary>Q1. [Basic] How do EC2, EKS, ECS, and databases fit together, and how do you interact with an ECS service?</summary>
 
 **Answer:**
 
@@ -81,7 +81,9 @@ ECS Exec needs SSM integration, IAM authorization, and logging set up, and it on
 
 I check DNS, security group references, TLS, credentials, connection pools, health checks, and how things fail across AZs.
 
-### 2. Design a secure, scalable, highly available AWS architecture for a global SaaS product and explain regional failover.
+</details>
+
+<details><summary>Q2. [Advanced] Design a secure, scalable, highly available AWS architecture for a global SaaS product and explain regional failover.</summary>
 
 **Answer:**
 
@@ -99,7 +101,9 @@ During an actual outage: declare the incident, stop any risky deployments, confi
 
 Afterward I watch errors, latency, data correctness, queue depth, and business metrics. I keep clear rollback criteria, and before failing back I reconcile — make actual state match desired state — the data. Regular game days are how you prove your real RTO and RPO, not just the numbers on paper.
 
-### 3. Design a highly available, scalable microservices architecture on AWS (auto-scaling + DR) *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Advanced] Design a highly available, scalable microservices architecture on AWS (auto-scaling + DR) <em>(asked in interview round)</em></summary>
 
 - Default to **multi-AZ**; add **multi-region** for disaster recovery.
 - **Ingress path:** Route 53 (with health checks, latency-based or failover routing) → CloudFront/WAF → ALB.
@@ -108,7 +112,9 @@ Afterward I watch errors, latency, data correctness, queue depth, and business m
 - **DR strategy:** Pick one based on your recovery targets — backup-and-restore, pilot light, warm standby, or active-active. Define how much downtime and data loss you can tolerate (RTO/RPO), automate the failover, replicate both data and infrastructure code to the DR region, and actually test failover on a regular schedule.
 - **Observability and resilience:** Centralize logs, metrics, and traces. Add circuit breakers and retries, pod disruption budgets, and keep infrastructure defined in Terraform so it's reproducible.
 
-### 4. Design an auto-scaling strategy for a high-traffic app *(asked in interview round)*
+</details>
+
+<details><summary>Q4. [Advanced] Design an auto-scaling strategy for a high-traffic app <em>(asked in interview round)</em></summary>
 
 - **Compute:** Use Auto Scaling Groups for EC2, or HPA plus Cluster Autoscaler/Karpenter for EKS. Put an ALB or NLB in front, spread across multiple AZs.
 - **Scaling policies:** Start with target-tracking as the baseline — for example, keep CPU near 60%, or track ALB requests per target. Add step scaling for sudden bursts, scheduled scaling for predictable peaks, and predictive scaling for known daily patterns.
@@ -116,7 +122,9 @@ Afterward I watch errors, latency, data correctness, queue depth, and business m
 - **Downstream:** Scale the data layer too — RDS read replicas or Aurora Auto Scaling, DynamoDB on-demand. Add CloudFront plus caching, and use SQS to absorb traffic spikes.
 - **Guardrails:** Set min/max bounds, use warm pools so scale-out is fast, add health checks, and set cost alarms.
 
-### 5. What is the difference between an ALB and an NLB?
+</details>
+
+<details><summary>Q5. [Basic] What is the difference between an ALB and an NLB?</summary>
 
 **Answer:**
 
@@ -124,7 +132,9 @@ An Application Load Balancer works at Layer 7 — it understands HTTP/HTTPS and 
 
 I use an ALB for web applications and APIs, and an NLB for non-HTTP protocols, very low-latency TCP/UDP, when I need to preserve the client's IP address, or when I need a static IP. Either way, you still need healthy targets, sensible timeouts, security groups where relevant, observability, and a design that spans multiple AZs.
 
-### 6. How do Route 53 routing policies reduce latency or improve availability?
+</details>
+
+<details><summary>Q6. [Intermediate] How do Route 53 routing policies reduce latency or improve availability?</summary>
 
 **Answer:**
 
@@ -134,7 +144,9 @@ I pick the policy based on the traffic pattern, how consistent the data needs to
 
 DNS routing on its own doesn't replicate data, and it doesn't prevent a split-brain situation.
 
-### 7. How do you back up and restore an EC2 workload?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you back up and restore an EC2 workload?</summary>
 
 **Answer:**
 
@@ -143,3 +155,5 @@ I make sure the application can be recovered — I don't treat a single running 
 An AMI can preserve a tested machine image, but it's not a substitute for backing up application data properly. A restore runbook launches or rebuilds the instance, restores the data, checks security settings, DNS, and secrets, and confirms the application actually works end to end.
 
 I test restores regularly against the recovery time and recovery point targets we've agreed on.
+
+</details>

@@ -166,7 +166,7 @@ A production setup also needs zone distribution, autoscaling, PodDisruptionBudge
 
 ## Interview Questions
 
-### 1. How do you deploy applications to Azure Kubernetes Service?
+<details><summary>Q1. [Intermediate] How do you deploy applications to Azure Kubernetes Service?</summary>
 
 **Answer:**
 
@@ -182,7 +182,9 @@ My delivery flow:
 
 If a rollout fails, I check `kubectl describe`, the events, current and previous logs, whether the image pulled, configuration, probes, scheduling, and dependencies. If user impact is growing, I roll back the traffic or the release, keep the evidence, fix it in a lower environment, then redeploy a fresh, unchanged version.
 
-### 2. What is Azure Container Registry?
+</details>
+
+<details><summary>Q2. [Basic] What is Azure Container Registry?</summary>
 
 **Answer:**
 
@@ -192,7 +194,9 @@ CI builds and scans an image, pushes it with a digest (a fixed reference that al
 
 I restrict public and network access where needed, apply repository permissions, retention rules, auditing, and a vulnerability-scanning workflow. When I see `ImagePullBackOff`, I check the image tag and digest, the registry login and role, network and private DNS settings, node architecture, and the pod's events.
 
-### 3. What are Azure Virtual Machines?
+</details>
+
+<details><summary>Q3. [Basic] What are Azure Virtual Machines?</summary>
 
 **Answer:**
 
@@ -202,7 +206,9 @@ I reach for VMs when I need legacy software, control over the OS or kernel, an u
 
 When something's wrong, I start with Azure's own resource and boot diagnostics and the Activity Log, then move into guest-level CPU, memory, disk, network, and service logs. I always separate "Azure itself has a problem" from "the OS or app has a problem" before I reach for a reboot.
 
-### 4. How do you secure Azure Virtual Machines?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you secure Azure Virtual Machines?</summary>
 
 **Answer:**
 
@@ -214,7 +220,9 @@ I watch for privileged sign-ins, changes to network security group rules, new pu
 
 If I suspect a VM has been compromised, I cut off its network access, preserve evidence following the incident procedure, rotate any credentials it could reach, rebuild from a trusted image, and investigate properly — I don't just reboot it and hope.
 
-### 5. How do you resize an Azure VM, and does it require a reboot?
+</details>
+
+<details><summary>Q5. [Basic] How do you resize an Azure VM, and does it require a reboot?</summary>
 
 **Answer:**
 
@@ -224,7 +232,9 @@ If the size you want isn't available on the current hardware cluster, Azure may 
 
 Before resizing, I check the application's maintenance windows, disk and network compatibility, availability-set or zone constraints, capacity, cost, backups, and how to roll back if needed.
 
-### 6. Can an OS disk be removed from an Azure VM?
+</details>
+
+<details><summary>Q6. [Basic] Can an OS disk be removed from an Azure VM?</summary>
 
 **Answer:**
 
@@ -232,14 +242,19 @@ You can't just detach the OS disk from a running VM the way you'd detach an ordi
 
 I take an application-consistent backup first, confirm what the actual recovery goal is, and use the documented swap or rebuild process rather than attempting a destructive detach.
 
-### 7. Are you charged for an Azure VM that is stopped but not deallocated?
+</details>
+
+<details><summary>Q7. [Basic] Are you charged for an Azure VM that is stopped but not deallocated?</summary>
 
 **Answer:**
 
 Yes. A VM that's stopped from inside the guest OS, or that shows as **Stopped**, can still hold onto its compute allocation and keep incurring compute charges. **Stopped (deallocated)** actually releases that allocation and stops the compute charges — though managed disks, snapshots, public IPs, and other attached resources can still cost money.
 
 I use scheduled deallocation for non-production workloads, and I check the actual power state and the cost of anything still attached, rather than assuming "stopped" means "not costing anything."
-### 8. What is Azure App Service?
+
+</details>
+
+<details><summary>Q8. [Basic] What is Azure App Service?</summary>
 
 **Answer:**
 
@@ -249,7 +264,9 @@ In production I use multiple instances or zones where they're available, a healt
 
 I deploy to a slot, warm it up and test it, then swap it into production — keeping database changes backward-compatible so the swap doesn't break anything. When something fails, I check deployment logs, app logs, instance health, configuration, identity, DNS and networking, dependencies, and platform metrics before I roll back or swap.
 
-### 9. What is the difference between App Service, App Service Plan and Web App?
+</details>
+
+<details><summary>Q9. [Basic] What is the difference between App Service, App Service Plan and Web App?</summary>
 
 This is one of the most common Azure interview questions. Many people confuse these three terms because they are closely related.
 
@@ -456,7 +473,9 @@ Imagine renting office space:
 
 The building determines how much space and power you have, while your office is the actual business running inside it.
 
-### 10. What are Azure Functions?
+</details>
+
+<details><summary>Q10. [Basic] What are Azure Functions?</summary>
 
 **Answer:**
 
@@ -466,7 +485,9 @@ For example: a blob upload triggers a Function that validates and processes it, 
 
 I configure managed identity, Key Vault access, Application Insights, timeouts, concurrency, alerts, and failure handling. Durable Functions is the right tool when the workflow needs orchestration or state.
 
-### 11. What is the difference between App Service and Azure Functions?
+</details>
+
+<details><summary>Q11. [Basic] What is the difference between App Service and Azure Functions?</summary>
 
 **Answer:**
 
@@ -477,3 +498,5 @@ I choose App Service for a full web application or API that needs to always be o
 I weigh cold start, run duration, state, networking, runtime, throughput, and cost.
 
 An architecture can use both at once: App Service serves the API, while queue-triggered Functions handle the asynchronous work behind it.
+
+</details>

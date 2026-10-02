@@ -91,7 +91,7 @@ Environment variables pass down to child processes, and they can leak through de
 
 ## Interview Questions
 
-### 1. `yum` or `apt` installation is failing. How do you troubleshoot?
+<details><summary>Q1. [Intermediate] <code>yum</code> or <code>apt</code> installation is failing. How do you troubleshoot?</summary>
 
 **Answer:**
 
@@ -103,7 +103,9 @@ On Debian-based systems I use `apt-get update`, `apt-cache policy`, `dpkg --audi
 
 I check the repository and package logs, resolve any held or broken dependencies deliberately, and never disable signature checks. Once it's fixed, I install the exact package, confirm its version and that the service works, and put the repository configuration back to what's approved.
 
-### 2. Package manager versus compiling from source: when do you use each?
+</details>
+
+<details><summary>Q2. [Intermediate] Package manager versus compiling from source: when do you use each?</summary>
 
 **Answer:**
 
@@ -112,3 +114,5 @@ I prefer the supported `apt`, `dnf`, or `yum` package, because it gives dependen
 I only compile from source when a needed feature or version isn't available in the approved repositories, and whoever owns the system accepts the extra burden of patching it, knowing where the build came from and how it was built, keeping the build reproducible, and being able to roll it back.
 
 For production, I package the build myself or use a trusted repository, rather than leave untracked binaries sitting under `/usr/local`.
+
+</details>

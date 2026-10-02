@@ -34,7 +34,7 @@ flowchart TB
 
 ## Interview Questions
 
-### 1. Explain a complete CD process.
+<details><summary>Q1. [Intermediate] Explain a complete CD process.</summary>
 
 **Answer:**
 
@@ -46,14 +46,18 @@ Health gates watch readiness, error rate, latency, saturation — meaning how cl
 
 Database changes stay backward compatible and are kept separate from any destructive cleanup step. After deploying, I watch a defined observation window, complete the audit trail, and keep a tested failback path ready.
 
-### 2. Zero-downtime deployments in Jenkins / GitHub Actions *(asked in interview round)*
+</details>
+
+<details><summary>Q2. [Intermediate] Zero-downtime deployments in Jenkins / GitHub Actions <em>(asked in interview round)</em></summary>
 
 - **Rolling update** (the Kubernetes default): new pods come up and pass their readiness check before old pods are terminated. `maxUnavailable` and `maxSurge` control how aggressive this is. Use PodDisruptionBudgets too.
 - **Blue/Green:** stand up the new version next to the old one, then switch traffic over once it's healthy. Rollback is instant — just switch back.
 - **Canary:** send a small percentage of traffic to the new version, watch the metrics, then ramp up gradually.
 - **What actually enables this, regardless of tool:** readiness and liveness probes, graceful shutdown (handling SIGTERM and using `preStop`), backward-compatible database migrations (the expand/contract pattern), and only promoting once health checks pass. The CI tool just triggers these steps — the real zero-downtime behavior lives in how the deployment target is set up.
 
-### 3. How do you implement zero-downtime deployments in Jenkins or GitHub Actions?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement zero-downtime deployments in Jenkins or GitHub Actions?</summary>
 
 **Answer:**
 
@@ -65,7 +69,9 @@ The pipeline deploys to a small slice first, runs smoke and synthetic tests, and
 
 I load-test the strategy itself and simulate a failed readiness check and a rollback. "Zero downtime" is an availability goal that the architecture has to support — adding a deploy command alone doesn't guarantee it.
 
-### 4. How do you implement rolling updates with minimum downtime? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you implement rolling updates with minimum downtime? <em>(scenario)</em></summary>
 
 **Answer:** Configure the Kubernetes deployment strategy, and set `maxUnavailable=0` and `maxSurge=1`.
 
@@ -76,13 +82,17 @@ I deploy an image by its fixed digest, so the version can't shift underneath the
 
 PodDisruptionBudgets, spreading pods across multiple zones, backward-compatible configuration and database changes, and a tested rollback path are what actually make the update low-risk.
 
-### 5. Blue/Green vs Canary — when to choose which *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Intermediate] Blue/Green vs Canary — when to choose which <em>(asked in interview round)</em></summary>
 
 - **Blue/Green:** you run two full environments and cut traffic over all at once. Choose this when you need an instant rollback and can afford double the capacity — for example, major releases where testing on a full parallel environment matters. Downside: cost, and all users move at the same time.
 - **Canary:** you gradually shift a small slice of traffic to the new version while watching metrics. Choose this when you want to limit the blast radius, validate against real production traffic, and roll changes out gradually. It needs good metrics and automation to work well. Downside: more complex routing, and a slower full rollout.
 - Rule of thumb: canary for continuous, risk-managed delivery of high-traffic services; blue-green for big-bang releases that need an instant switch.
 
-### 6. How do you manage blue-green deployments for APIs? *(scenario)*
+</details>
+
+<details><summary>Q6. [Advanced] How do you manage blue-green deployments for APIs? <em>(scenario)</em></summary>
 
 **Answer:** Run two versions behind a load balancer, route traffic gradually, and use Apigee or Azure API Gateway for traffic splitting.
 
@@ -93,7 +103,9 @@ The pipeline runs prechecks, deploys to a small or no-traffic target, runs readi
 
 If any threshold fails, it stops traffic and rolls back to the previous artifact or config. Database changes use the expand-and-contract pattern, because rolling back the application can't undo a destructive schema change. I verify recovery, record what happened, and improve whichever test or guard should have caught the failure earlier.
 
-### 7. What deployment strategies have you used (e.g., Blue-Green, Canary, Rolling updates)? *(scenario)*
+</details>
+
+<details><summary>Q7. [Intermediate] What deployment strategies have you used (e.g., Blue-Green, Canary, Rolling updates)? <em>(scenario)</em></summary>
 
 **Answer:** Rolling updates for stateless apps. Blue-green, switching a Service selector, for critical services. Canary with ALB traffic splitting for high-traffic services. ArgoCD's progressive sync with automatic rollback on top of all of it.
 
@@ -106,7 +118,9 @@ For high-traffic services, I use canary deployments with traffic splitting throu
 
 ArgoCD's progressive sync features help automate all of this, with automatic rollback if health checks fail mid-deployment.
 
-### 8. A team deploys 50 times per day. How do you maintain stability without slowing releases?
+</details>
+
+<details><summary>Q8. [Advanced] A team deploys 50 times per day. How do you maintain stability without slowing releases?</summary>
 
 **Answer:**
 
@@ -120,7 +134,9 @@ Service ownership, SLOs, error budgets, runbooks, and on-call readiness decide w
 
 I track change failure rate, lead time, deployment frequency, recovery time, flaky tests, and rollback success. Delivery is fast and stable when the pipeline catches bad changes early and production limits the blast radius — not when reviews or tests get skipped.
 
-### 9. How do you roll back a faulty deployment?
+</details>
+
+<details><summary>Q9. [Intermediate] How do you roll back a faulty deployment?</summary>
 
 **Answer:**
 
@@ -132,7 +148,9 @@ For canary or blue-green, I shift traffic back quickly. On Kubernetes, I might u
 
 I preserve the logs and the failed version, communicate status, confirm users have actually recovered, and run a root-cause analysis. Prevention might mean better probes, tighter canary thresholds, backward-compatible schemas, or an integration test we were missing.
 
-### 10. How do you design rollback so it still works when the deployment stage itself fails?
+</details>
+
+<details><summary>Q10. [Advanced] How do you design rollback so it still works when the deployment stage itself fails?</summary>
 
 **Answer:**
 
@@ -148,7 +166,9 @@ I test failure at checkout, artifact download, partial rollout, health check, an
 
 Then I preserve the evidence and fix the failed release properly, rather than just retrying it over and over.
 
-### 11. How do you implement CI/CD rollbacks automatically? *(scenario)*
+</details>
+
+<details><summary>Q11. [Intermediate] How do you implement CI/CD rollbacks automatically? <em>(scenario)</em></summary>
 
 **Answer:** The pipeline detects the failure, triggers `kubectl rollout undo` or redeploys the last known-good artifact, and notifies the team.
 
@@ -159,7 +179,9 @@ The pipeline runs prechecks, deploys to a small or no-traffic target, runs readi
 
 If any threshold fails, it stops traffic and rolls back to the previous artifact or config. Database changes use the expand-and-contract pattern, because rolling back the application can't undo a destructive schema change. I verify recovery, record what happened, and improve whichever test or guard should have caught the failure earlier.
 
-### 12. How do you ensure rollback in case of deployment failure? *(scenario)*
+</details>
+
+<details><summary>Q12. [Intermediate] How do you ensure rollback in case of deployment failure? <em>(scenario)</em></summary>
 
 **Answer:** Use Terraform's state history and version control for infrastructure. Use ArgoCD's deployment history and automated health checks for applications. Redeploy a known-good SHA-tagged image, and keep database migrations backward compatible.
 
@@ -169,3 +191,5 @@ For infrastructure managed by Terraform, I keep state history and version contro
 I set up automated health checks that ArgoCD uses to judge whether a deployment succeeded. If something fails, I use ArgoCD's rollback feature to go back to the last successful deployment, or trigger a GitHub Actions workflow to reapply a previous infrastructure state.
 
 Because CI tags every image with its Git SHA, redeploying a specific known-good version is straightforward. For database changes, I use migrations that support rollback and stay backward compatible across adjacent versions.
+
+</details>

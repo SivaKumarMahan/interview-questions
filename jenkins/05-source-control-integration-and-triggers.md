@@ -16,7 +16,7 @@ A revert adds a new commit that undoes a prior commit. It's generally safer than
 
 ## Interview Questions
 
-### 1. What is a webhook, and how do you use it in Jenkins pipelines?
+<details><summary>Q1. [Basic] What is a webhook, and how do you use it in Jenkins pipelines?</summary>
 
 **Answer:**
 
@@ -28,7 +28,9 @@ Branch discovery rules stop an untrusted fork from running trusted code that has
 
 When something breaks, I check the provider's delivery history, DNS/TLS, the reverse proxy, the signature and secret, Jenkins logs, plugin configuration, event filters, and queue capacity. Webhook redelivery needs to be safe to run more than once, so a duplicate event doesn't trigger a duplicate release.
 
-### 2. How do you integrate GitHub Enterprise with Jenkins securely?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you integrate GitHub Enterprise with Jenkins securely?</summary>
 
 **Answer:**
 
@@ -46,7 +48,9 @@ I require branch protection and Jenkins status checks, protect changes to the Je
 
 When troubleshooting, I check the webhook delivery history and signature, DNS/TLS/proxy, GitHub API rate limits, the app's installation permissions, branch discovery, the Jenkins queue, and commit-status permissions.
 
-### 3. How do you integrate Jenkins with GitHub? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you integrate Jenkins with GitHub? <em>(scenario)</em></summary>
 
 **Answer:** Configure GitHub webhook → Connect Jenkins job to repo → Trigger builds automatically on code push/PR.
 
@@ -58,7 +62,10 @@ Behavior that's shared and well-tested — checkout, quality checks, security sc
 Multibranch jobs discover branches and pull requests through authenticated GitHub webhooks and report status back to the commit. I pin tool and agent image versions, protect the library and main branches, sandbox untrusted pull requests, and keep GitHub and Jenkins credentials tightly scoped.
 
 I test a shared library upgrade in a sample pipeline before rolling it out by version. I limit manual UI edits and replays, or reconcile them back into Git, so everything stays auditable.
-### 4. How does Jenkins + GitHub integration work end to end?
+
+</details>
+
+<details><summary>Q4. [Intermediate] How does Jenkins + GitHub integration work end to end?</summary>
 
 ```
 Developer
@@ -165,3 +172,5 @@ Use Jenkins Credentials (or an external secret manager) instead, and reference t
 
 - **GitHub → Jenkins:** webhooks, source checkout, PR/branch events, build triggering.
 - **Jenkins → GitHub:** build status, PR checks, API operations (e.g. posting a commit status).
+
+</details>

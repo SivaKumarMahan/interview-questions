@@ -271,7 +271,7 @@ Each layer between your user and your pod exists because the previous setup was 
 
 ## Interview Questions
 
-### 1. Explain port, targetPort and nodePort in kubernetes?
+<details><summary>Q1. [Basic] Explain port, targetPort and nodePort in kubernetes?</summary>
 
 In Kubernetes, `port` is the port a Service exposes inside the cluster. `targetPort` is the port on the container that traffic actually gets sent to. `nodePort` is the port opened on each worker node so the service can be reached from outside the cluster.
 
@@ -298,7 +298,9 @@ spec:
 
 **NodePort range (by default):** `30000–32767`.
 
-### 2. What are the Kubernetes Service types (ClusterIP, NodePort, LoadBalancer, ExternalName, Headless)?
+</details>
+
+<details><summary>Q2. [Basic] What are the Kubernetes Service types (ClusterIP, NodePort, LoadBalancer, ExternalName, Headless)?</summary>
 
 **Quick definitions:**
 
@@ -456,7 +458,9 @@ Pod:8080 (targetPort)
 - **ExternalName** -> maps a Service to an external DNS name.
 - **Headless Service** -> no virtual IP; DNS returns individual pod IPs for direct access.
 
-### 3. what is port forwarding in kubernetes?
+</details>
+
+<details><summary>Q3. [Basic] what is port forwarding in kubernetes?</summary>
 
 Port forwarding lets you reach a single pod directly from your local machine. You forward a port on your machine to a port on the pod. It's mainly used for debugging or for reaching an app inside a pod without setting up a full service.
 
@@ -496,7 +500,9 @@ This forwards local port `9090` to port `80` on the pods managed by the `my-app`
 
 You can now reach the app at `http://localhost:9090`.
 
-### 4. You need TCP and UDP on the same port. How do you configure it?
+</details>
+
+<details><summary>Q4. [Intermediate] You need TCP and UDP on the same port. How do you configure it?</summary>
 
 **Answer:**
 
@@ -518,7 +524,9 @@ A container can bind the same numeric port for TCP and UDP because they're separ
 
 I confirm how the cloud provider handles health checks for this setup, check the firewall/security group covers both protocols, verify endpoints, and test with `dig` over both UDP and TCP. Passing on one protocol doesn't mean the other one works too.
 
-### 5. What is the difference between a Route and an Ingress?
+</details>
+
+<details><summary>Q5. [Basic] What is the difference between a Route and an Ingress?</summary>
 
 **Answer:**
 
@@ -526,7 +534,9 @@ Ingress is the standard Kubernetes API for HTTP(S) routing to Services, implemen
 
 They serve a similar purpose — routing traffic into the cluster — but they aren't interchangeable, portable APIs. For a new, portable Kubernetes design, I use a supported Ingress controller or the Gateway API, configure TLS, host/path routing, health checks, and security policy, then test the external request path end to end.
 
-### 6. How do you restrict pod-to-pod communication in a Kubernetes cluster?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you restrict pod-to-pod communication in a Kubernetes cluster?</summary>
 
 To restrict pod-to-pod traffic in a cluster, use **Network Policies**. A Network Policy is a rule that controls which pods can talk to which, based on labels, namespaces, and ports.
 
@@ -575,7 +585,9 @@ Here's how to set one up:
 
 Network Policies are the main tool for restricting pod-to-pod traffic. Used well, they improve security and give you clear control over how traffic flows between parts of your application.
 
-### 7. How do you restrict communication between two Pods in the same namespace?
+</details>
+
+<details><summary>Q7. [Intermediate] How do you restrict communication between two Pods in the same namespace?</summary>
 
 **Answer:**
 
@@ -593,7 +605,9 @@ spec:
 
 I confirm the CNI actually enforces this, then test that the API can reach the database, an unrelated pod cannot, and DNS/monitoring still work. Labels are a security-relevant input, so I make sure they're protected by admission control or governance. I monitor denied flows where that's supported, and keep policies in version control.
 
-### 8. How do you design and debug NetworkPolicies between namespaces?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you design and debug NetworkPolicies between namespaces?</summary>
 
 **Answer:**
 
@@ -605,7 +619,9 @@ When something fails, I compare against a direct-IP test, check which policies s
 
 I validate that the result gives least privilege — only the access that's actually needed — while still letting required health checks and monitoring traffic through.
 
-### 9. How can workloads in different Kubernetes namespaces communicate securely?
+</details>
+
+<details><summary>Q9. [Intermediate] How can workloads in different Kubernetes namespaces communicate securely?</summary>
 
 **Answer:**
 
@@ -615,7 +631,9 @@ Being in a different namespace doesn't block traffic on its own, so I add ingres
 
 For an external dependency, an `ExternalName` Service can give it a DNS alias, but it doesn't add network security or health checking on its own. I test DNS resolution, endpoints, policy enforcement, and the full request path before calling it done.
 
-### 10. How do you secure container-to-container communication in Kubernetes? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] How do you secure container-to-container communication in Kubernetes? <em>(scenario)</em></summary>
 
 **Answer:** Use NetworkPolicies → Enable mutual TLS with Istio → Encrypt traffic.
 
@@ -626,7 +644,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 11. How do you secure container-to-container communication with layered controls?
+</details>
+
+<details><summary>Q11. [Intermediate] How do you secure container-to-container communication with layered controls?</summary>
 
 Use multiple layers together - no single control is sufficient on its own:
 
@@ -649,7 +669,9 @@ securityContext:
 
 I layer several controls: Network Policies to restrict which Pods can reach which, mTLS through a service mesh to encrypt and authenticate the traffic that is allowed, RBAC and Service Accounts to control API access, namespaces for isolation, Key Vault or Kubernetes Secrets for credentials, and hardened Pod security settings - non-root, dropped capabilities - so a compromised container has as little to work with as possible even if it did get network access.
 
-### 12. How can you restrict which pod can access other pods in Kubernetes?
+</details>
+
+<details><summary>Q12. [Intermediate] How can you restrict which pod can access other pods in Kubernetes?</summary>
 
 Use Network Policies to control traffic flow between pods:
 
@@ -672,7 +694,9 @@ spec:
 
 Network policies work at L3/L4 and require a CNI that supports them (Calico, Cilium, etc.).
 
-### 13. How can you ensure that only pods with a specific label can talk to your backend service?
+</details>
+
+<details><summary>Q13. [Intermediate] How can you ensure that only pods with a specific label can talk to your backend service?</summary>
 
 Use a NetworkPolicy that selects the backend pods and allows ingress only from pods with the required label:
 
@@ -699,7 +723,9 @@ spec:
 
 Only pods with the label `access-backend: "true"` can reach the backend pods.
 
-### 14. When using network policies, if you don't specify egress rules, are outbound connections blocked by default?
+</details>
+
+<details><summary>Q14. [Intermediate] When using network policies, if you don't specify egress rules, are outbound connections blocked by default?</summary>
 
 **Answer:**
 
@@ -728,7 +754,9 @@ spec:
   # No egress rules = deny all egress
 ```
 
-### 15. I am getting a 503 error when hitting a load balancer URL that routes traffic to applications deployed in a Kubernetes cluster. How will you troubleshoot this?
+</details>
+
+<details><summary>Q15. [Intermediate] I am getting a 503 error when hitting a load balancer URL that routes traffic to applications deployed in a Kubernetes cluster. How will you troubleshoot this?</summary>
 
 Follow this systematic approach:
 
@@ -739,7 +767,10 @@ Follow this systematic approach:
 - **Check ingress/load balancer logs:** Look for backend connection errors.
 - **Verify health checks:** Ensure readiness/liveness probes are configured properly.
 - **Check resource limits:** Pods might be throttled due to resource constraints.
-### 16. How do you troubleshoot 503 errors from a LoadBalancer?
+
+</details>
+
+<details><summary>Q16. [Intermediate] How do you troubleshoot 503 errors from a LoadBalancer?</summary>
 
 **Answer:**
 
@@ -755,7 +786,9 @@ kubectl logs <ingress-controller> --since=15m
 
 I test in order: the pod IP directly, then the Service DNS name, then the Ingress/load balancer. I fix whatever's broken — selector, port, probe, network, or app — or roll back the release, then confirm the fix with a real external request and by watching metrics. To prevent a repeat, I add smoke/synthetic tests, config validation, and an alert on healthy backend count.
 
-### 17. Case: Pod is internally accessible but LoadBalancer fails. What do you check?
+</details>
+
+<details><summary>Q17. [Intermediate] Case: Pod is internally accessible but LoadBalancer fails. What do you check?</summary>
 
 **Answer:**
 
@@ -767,7 +800,9 @@ One thing to watch for: if `externalTrafficPolicy` is set to `Local`, a node wit
 
 I fix the probe, network, ports, or annotation — or roll back — then wait for the change to reconcile (for the cluster's actual state to catch up with the desired state). I confirm multiple zones and backends work, check external TLS and requests, and monitor going forward. I never open the firewall wider as a permanent workaround.
 
-### 18. How do you troubleshoot a Kubernetes service not reachable externally? *(scenario)*
+</details>
+
+<details><summary>Q18. [Intermediate] How do you troubleshoot a Kubernetes service not reachable externally? <em>(scenario)</em></summary>
 
 **Answer:** Check service type (ClusterIP vs LoadBalancer) → Validate Ingress rules → Ensure firewall/load balancer rules are correct.
 
@@ -778,7 +813,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 19. Your Kubernetes cluster is healthy, but requests intermittently return HTTP 503. How do you troubleshoot it?
+</details>
+
+<details><summary>Q19. [Advanced] Your Kubernetes cluster is healthy, but requests intermittently return HTTP 503. How do you troubleshoot it?</summary>
 
 **Answer:**
 
@@ -800,7 +837,9 @@ I split load-balancer and ingress metrics by backend, response code, and upstrea
 
 Afterward I run sustained traffic through the real hostname, confirm error and latency targets are met, simulate a pod being replaced, and alert on endpoint count, upstream 5xx rate, readiness churn, and saturation — how close a resource is to its limit.
 
-### 20. Pod Running but Application Unavailable (HTTP 503)
+</details>
+
+<details><summary>Q20. [Intermediate] Pod Running but Application Unavailable (HTTP 503)</summary>
 
 #### The situation
 
@@ -840,7 +879,9 @@ kubectl run -it --rm debug --image=busybox --restart=Never -- \
 
 "Running doesn't mean healthy. I'd check `kubectl get endpoints` first to see if the Service actually has backends, then check readiness state and pod events, then look at application logs, and finally test connectivity directly inside the cluster to isolate whether the problem is the app, the Service, or the Ingress."
 
-### 21. Kubernetes Pods look healthy, but users receive HTTP 504 responses. How do you troubleshoot?
+</details>
+
+<details><summary>Q21. [Intermediate] Kubernetes Pods look healthy, but users receive HTTP 504 responses. How do you troubleshoot?</summary>
 
 **Answer:**
 
@@ -850,7 +891,9 @@ I compare connect time, response time, and total time at each hop, and check end
 
 A pod that shows as Running can still be slow or unreachable from the proxy's point of view. I stabilize the situation by reducing traffic, scaling the actual bottleneck, rolling back a bad change, or fixing the real timeout/dependency issue — never by just increasing every timeout — then confirm p95/p99 latency and real-user requests look right.
 
-### 22. Application Gateway → AKS → PostgreSQL: HTTP 502/504 with Healthy Pods
+</details>
+
+<details><summary>Q22. [Advanced] Application Gateway → AKS → PostgreSQL: HTTP 502/504 with Healthy Pods</summary>
 
 #### The architecture
 
@@ -912,7 +955,9 @@ Confirm that App Gateway's request timeout, the Ingress controller's proxy timeo
 
 "502/504 with healthy pods means the problem isn't the container process itself — it's somewhere in the request path or the app is too slow to respond. I'd work through the chain in order: check Application Gateway's backend health and probe config, confirm the Ingress and Service actually have healthy endpoints, check the pod's CPU/memory and logs for slow responses, and then check PostgreSQL for connection pool exhaustion or slow queries — also comparing timeout settings across App Gateway, Ingress, and the app, since a mismatched timeout is a very common cause of 504s."
 
-### 23. Case: Pod is not accessible internally. How do you troubleshoot?
+</details>
+
+<details><summary>Q23. [Intermediate] Case: Pod is not accessible internally. How do you troubleshoot?</summary>
 
 **Answer:**
 
@@ -924,7 +969,9 @@ If both fail, I check how the app is bound, NetworkPolicy rules, and the CNI/rou
 
 I note the exact error — timeout, connection refused, or NXDOMAIN — fix the one layer that's broken, and retest from the original source plus readiness and the real user flow. I clean up any debug pods afterward.
 
-### 24. Kubernetes Service Selector Mismatch
+</details>
+
+<details><summary>Q24. [Intermediate] Kubernetes Service Selector Mismatch</summary>
 
 #### The setup
 
@@ -973,7 +1020,9 @@ spec:
 
 "Services route traffic based on label selectors, and here the Service selector doesn't match the Pod labels, so it has no endpoints. I'd confirm with `kubectl get endpoints`, then fix the selector to match the actual Pod labels, and double-check `targetPort` matches the port the container listens on."
 
-### 25. How do you troubleshoot Pod-to-Pod networking issues?
+</details>
+
+<details><summary>Q25. [Intermediate] How do you troubleshoot Pod-to-Pod networking issues?</summary>
 
 **Answer:**
 
@@ -985,7 +1034,9 @@ If same-node traffic works but cross-node traffic fails, suspect the CNI overlay
 
 After the fix, I confirm the traffic that should be allowed works and the traffic that should be blocked stays blocked, test across multiple nodes and zones, and monitor for packet drops. I keep the network config in version control.
 
-### 26. How do you handle Kubernetes pod networking issues? *(scenario)*
+</details>
+
+<details><summary>Q26. [Intermediate] How do you handle Kubernetes pod networking issues? <em>(scenario)</em></summary>
 
 **Answer:** Check CNI plugin logs → Validate IP assignment → Restart kube-proxy or CNI → Apply Network Policies correctly.
 
@@ -996,7 +1047,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 27. How do you troubleshoot network issues in Kubernetes? *(scenario)*
+</details>
+
+<details><summary>Q27. [Intermediate] How do you troubleshoot network issues in Kubernetes? <em>(scenario)</em></summary>
 
 **Answer:** • Check kubectl get svc for service mapping.
 • Validate Network Policies.
@@ -1010,7 +1063,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 28. How do you debug DNS failures inside Kubernetes?
+</details>
+
+<details><summary>Q28. [Intermediate] How do you debug DNS failures inside Kubernetes?</summary>
 
 **Answer:**
 
@@ -1022,7 +1077,9 @@ High latency is often caused by `ndots` search-domain amplification, an overload
 
 Afterward I confirm both internal Service names and external names resolve, check TCP fallback for large responses, and monitor DNS error rate and latency. NodeLocal DNSCache can help at scale, but only after the data shows it's actually needed.
 
-### 29. How do you debug Kubernetes DNS issues? *(scenario)*
+</details>
+
+<details><summary>Q29. [Intermediate] How do you debug Kubernetes DNS issues? <em>(scenario)</em></summary>
 
 **Answer:** Check CoreDNS logs, verify ConfigMaps, run `nslookup` or `dig` from a Pod with `kubectl exec`, and ensure NetworkPolicies allow DNS traffic. Mini-case: Pods could not resolve Services because of an incorrect CoreDNS `stubDomain`; correcting the ConfigMap restored DNS resolution.
 
@@ -1035,7 +1092,9 @@ NetworkPolicy and firewall rules need to allow UDP and TCP on port 53 to cluster
 
 Once I've made the targeted fix — to CoreDNS, a policy, or the upstream resolver — I test both short and full names, run an actual application call, and check DNS latency. If load caused the incident, I also add capacity and alerts.
 
-### 30. How do you troubleshoot DNS issues in Kubernetes? *(scenario)*
+</details>
+
+<details><summary>Q30. [Intermediate] How do you troubleshoot DNS issues in Kubernetes? <em>(scenario)</em></summary>
 
 **Answer:** Run kubectl exec into pod → Test DNS resolution → Check CoreDNS logs → Restart CoreDNS pods → Fix network policies if blocking.
 
@@ -1048,7 +1107,9 @@ NetworkPolicy and firewall rules need to allow UDP and TCP on port 53 to cluster
 
 Once I've made the targeted fix — to CoreDNS, a policy, or the upstream resolver — I test both short and full names, run an actual application call, and check DNS latency. If load caused the incident, I also add capacity and alerts.
 
-### 31. Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?
+</details>
+
+<details><summary>Q31. [Advanced] Your Ingress controller crashes repeatedly under heavy load. How do you stabilize it?</summary>
 
 **Answer:**
 
@@ -1058,7 +1119,9 @@ Fixes usually involve: running multiple replicas spread across zones, a PodDisru
 
 I load-test at peak plus a failure scenario, check p95 latency, error rate, connection resets, and reload metrics, then plan capacity ahead of time and validate config changes with a canary. Scaling the controller alone won't help if the real problem is a saturated backend.
 
-### 32. During peak traffic, Ingress fails to route requests efficiently. How do you diagnose and scale it?
+</details>
+
+<details><summary>Q32. [Advanced] During peak traffic, Ingress fails to route requests efficiently. How do you diagnose and scale it?</summary>
 
 **Answer:**
 
@@ -1070,7 +1133,9 @@ I only tune buffers and timeouts once the evidence points there — a timeout se
 
 Afterward I load-test, set up autoscaling with zone spreading and a PodDisruptionBudget, and monitor saturation — how close a resource is to running out of capacity. I also confirm the cloud load balancer is spreading traffic across healthy controller pods and nodes, and add synthetic tests for the key host/path combinations.
 
-### 33. How do you debug Kubernetes ingress not routing traffic? *(scenario)*
+</details>
+
+<details><summary>Q33. [Intermediate] How do you debug Kubernetes ingress not routing traffic? <em>(scenario)</em></summary>
 
 **Answer:** Check ingress controller logs → Validate annotations/paths → Check DNS → Verify backend service health.
 
@@ -1081,7 +1146,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 34. What are Ingress and CoreDNS in Kubernetes, and how do you troubleshoot routing issues?
+</details>
+
+<details><summary>Q34. [Intermediate] What are Ingress and CoreDNS in Kubernetes, and how do you troubleshoot routing issues?</summary>
 
 **Key points:**
 
@@ -1167,7 +1234,9 @@ A `<pending>` `EXTERNAL-IP` means the cloud load balancer was never provisioned 
 
 > "Ingress controls external HTTP/HTTPS routing to Kubernetes Services, while CoreDNS provides internal name resolution. When troubleshooting, I start from the application by checking Pod readiness, then EndpointSlices, Service selectors and ports, DNS resolution, Ingress rules and controller, and finally the external Load Balancer and firewall."
 
-### 35. How do you secure Kubernetes Ingress traffic? *(scenario)*
+</details>
+
+<details><summary>Q35. [Intermediate] How do you secure Kubernetes Ingress traffic? <em>(scenario)</em></summary>
 
 **Answer:** Use TLS certificates (Cert-Manager) → Enable WAF/firewall rules → Restrict IP access → Use Istio/NGINX for advanced security.
 
@@ -1178,7 +1247,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 36. How do you protect Kubernetes against DDoS attacks? *(scenario)*
+</details>
+
+<details><summary>Q36. [Advanced] How do you protect Kubernetes against DDoS attacks? <em>(scenario)</em></summary>
 
 **Answer:** Use cloud-native DDoS protection (Cloud Armor/Azure DDoS Protection) → Apply rate limiting → Enable WAF on ingress.
 
@@ -1191,7 +1262,9 @@ If I suspect a workload has been exposed, I isolate it, preserve audit and runti
 
 I verify both the denied and allowed paths using real service accounts, and periodically review RBAC for unused permissions, rotate certificates and secrets, check patch levels, confirm backup/restore works, and review policy exceptions.
 
-### 37. How do you layer Azure DDoS Protection, rate limiting, and WAF?
+</details>
+
+<details><summary>Q37. [Advanced] How do you layer Azure DDoS Protection, rate limiting, and WAF?</summary>
 
 Layered protection, applied in this order:
 
@@ -1214,7 +1287,9 @@ Azure DDoS Protection -> Rate Limiting -> WAF on Ingress
 
 I use Azure DDoS Protection at the network layer, rate limiting at the Ingress/API Gateway layer, and WAF for application-layer attacks like SQLi and XSS. On top of that, Network Policies, autoscaling, and monitoring/alerting on unusual traffic give defense in depth rather than relying on any single layer.
 
-### 38. Your service mesh sidecar consumes more resources than the app. How do you analyze and optimize it?
+</details>
+
+<details><summary>Q38. [Advanced] Your service mesh sidecar consumes more resources than the app. How do you analyze and optimize it?</summary>
 
 **Answer:**
 
@@ -1224,7 +1299,9 @@ I tune log/trace sampling, connection pool sizes, retry budgets, metrics volume,
 
 I roll out any change as a canary, load-test mTLS/routing/failure behavior, and watch latency, errors, security posture, resource use, and cost. Removing the sidecar without this care can quietly remove identity, policy enforcement, or observability along with it.
 
-### 39. How do you implement Service Mesh in Kubernetes? *(scenario)*
+</details>
+
+<details><summary>Q39. [Advanced] How do you implement Service Mesh in Kubernetes? <em>(scenario)</em></summary>
 
 **Answer:** Deploy Istio/Linkerd → Enable traffic routing, retries, and observability → Use for canary/blue-green deployments.
 
@@ -1235,7 +1312,9 @@ Identities come from service accounts and short-lived certificates. I move mTLS 
 
 I test certificate rotation, retries/timeouts, what happens if the control plane fails, and any way traffic could bypass the proxy — then roll out gradually. Dashboards and tracing confirm latency and error rates are healthy, and I keep clear upgrade and version-skew procedures so the mesh stays supportable.
 
-### 40. What is a Service Mesh?
+</details>
+
+<details><summary>Q40. [Basic] What is a Service Mesh?</summary>
 
 A Service Mesh is an infrastructure layer that manages communication between microservices without requiring application code changes - the logic lives in a proxy sitting next to each service, not in the service's own code.
 
@@ -1260,7 +1339,9 @@ Each service gets a sidecar proxy injected alongside it. Traffic between service
 
 A Service Mesh manages service-to-service communication using sidecar proxies instead of application code. It handles traffic routing, retries, timeouts, mTLS, and observability transparently - the application just makes a normal network call, and the mesh intercepts it to apply policy and collect telemetry.
 
-### 41. How do you debug cross-cluster service communication failures? *(scenario)*
+</details>
+
+<details><summary>Q41. [Advanced] How do you debug cross-cluster service communication failures? <em>(scenario)</em></summary>
 
 **Answer:** Verify DNS resolution, network routes, firewall rules, service mesh mTLS settings, and mutual TLS cert validity; trace requests with distributed tracing (Jaeger) to identify where traffic is dropped.
 
@@ -1273,7 +1354,9 @@ I check selectors, `port` versus `targetPort`, the ingress class/annotations, TL
 
 I avoid opening broad firewall rules as a shortcut. Health endpoints, synthetic tests, and config validation are what actually prevent this from happening again.
 
-### 42. How would you connect a Kubernetes microservice to an external database through a VPN with high availability and security?
+</details>
+
+<details><summary>Q42. [Advanced] How would you connect a Kubernetes microservice to an external database through a VPN with high availability and security?</summary>
 
 **Answer:**
 
@@ -1285,7 +1368,9 @@ Pods and egress gateways run across multiple zones. The database endpoint, its r
 
 I make sure logs exist at the app, VPN/firewall, and database layers. I avoid retry storms, account for the extra latency of a cross-network path, and make sure secrets never show up in a manifest or log.
 
-### 43. What happens if the firewall between control plane and worker nodes breaks?
+</details>
+
+<details><summary>Q43. [Intermediate] What happens if the firewall between control plane and worker nodes breaks?</summary>
 
 **Answer:**
 
@@ -1296,3 +1381,5 @@ The control plane may reschedule managed pods elsewhere once tolerations expire.
 I identify the required direction and port from the provider's docs, test DNS/route/TCP, and check for recent firewall or NSG changes and flow logs, along with node/kubelet and API server logs. I restore only the specific rules that are needed, then confirm nodes go Ready, leases update, scheduling resumes, logs/exec work again, and the CNI and application are consistent.
 
 To prevent this: manage firewall rules through IaC and policy, monitor node heartbeat and connectivity, build redundant network paths, and actually test how the cluster behaves under a network partition.
+
+</details>

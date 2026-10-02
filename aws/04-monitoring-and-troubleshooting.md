@@ -42,7 +42,7 @@ flowchart TD
 
 ## Interview Questions
 
-### 1. What do you use AWS CloudWatch and CloudTrail for in production?
+<details><summary>Q1. [Basic] What do you use AWS CloudWatch and CloudTrail for in production?</summary>
 
 **Answer:**
 
@@ -56,7 +56,9 @@ I centralize the organization's trails in a protected security account, turn on 
 
 During an incident I compare what CloudWatch shows against deployment or config changes and CloudTrail's API evidence. Neither tool replaces application tracing or full OS-level metrics. CloudTrail is an audit trail, not a real-time performance monitor.
 
-### 2. An EC2 instance reaches 100% CPU. How do you investigate and recover it?
+</details>
+
+<details><summary>Q2. [Intermediate] An EC2 instance reaches 100% CPU. How do you investigate and recover it?</summary>
 
 **Answer:**
 
@@ -72,7 +74,9 @@ The real fix might be profiling the application, improving a query or cache, set
 
 Afterward I confirm latency, errors, and CPU actually recover under real load, and I add alerts for saturation — how close the resource is to its limit — plus credit exhaustion, queueing, and scaling failures.
 
-### 3. A server is healthy and has network connectivity, but logs are not uploading to an S3 bucket. What do you investigate?
+</details>
+
+<details><summary>Q3. [Intermediate] A server is healthy and has network connectivity, but logs are not uploading to an S3 bucket. What do you investigate?</summary>
 
 **Answer:**
 
@@ -89,3 +93,5 @@ CloudTrail data events and S3's own server-side logs show whether AWS actually r
 Once I find the real cause, I fix that one thing — the policy, the key permission, the agent config, the disk space, or file ownership — and then confirm a new object actually lands, with the right encryption and metadata, and that downstream systems pick it up.
 
 Going forward, I use an instance role that only has the permissions it needs, watch agent health and backlog metrics, set limits on any dead-letter or spool queue, and alert if uploads get too old or start failing.
+
+</details>

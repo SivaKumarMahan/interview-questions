@@ -64,7 +64,7 @@ If that prints anything unexpected, stop.
 
 ## Interview Questions
 
-### 1. What is drift and how do you detect it?
+<details><summary>Q1. [Basic] What is drift and how do you detect it?</summary>
 
 #### What drift is
 
@@ -90,7 +90,9 @@ Then send an alert with the plan summary and check the cloud activity log to see
 
 "Drift is when the real resource no longer matches the code, usually after a manual console change. I detect it by running `terraform plan -detailed-exitcode` on a schedule; exit code 2 means drift. I alert with the plan output and check the cloud audit log to see who changed what before deciding what to do."
 
-### 2. What is Terraform drift, and what is meant by a Terraform anomaly?
+</details>
+
+<details><summary>Q2. [Basic] What is Terraform drift, and what is meant by a Terraform anomaly?</summary>
 
 #### 14.1 What is Terraform drift?
 
@@ -198,7 +200,9 @@ terraform apply
 >
 > Terraform anomaly is not an official Terraform term. It generally refers to unexpected situations such as state corruption, partial deployments, provider failures, dependency issues, or infrastructure inconsistencies that require investigation and correction."
 
-### 3. How do you fix drift?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you fix drift?</summary>
 
 #### Steps
 
@@ -218,7 +222,9 @@ terraform apply
 
 "First I find out what changed and why. If the manual change is correct, I put it into the code so the code stays the source of truth. If it is not correct, an approved apply restores the declared value. If the object is not managed at all, I import it. After that I expect a clean plan, and I reduce console write access so it does not happen again."
 
-### 4. How do you handle state drift?
+</details>
+
+<details><summary>Q4. [Intermediate] How do you handle state drift?</summary>
 
 #### Detect
 
@@ -248,7 +254,9 @@ Exit code 2 means drift. Send the report to the team.
 
 "I run scheduled plans to detect drift and alert on exit code 2. Then I check the audit log and decide with the owner whether the manual change should stay. If it should, I update the code; if not, an approved apply restores it. Unmanaged resources get imported. A weekly drift job that posts a summary and opens a ticket keeps this from piling up."
 
-### 5. What is your overall approach to drift?
+</details>
+
+<details><summary>Q5. [Intermediate] What is your overall approach to drift?</summary>
 
 #### Three parts
 
@@ -278,7 +286,9 @@ Limit console write access, use policy as code, and document a break-glass proce
 
 "I detect drift with scheduled read-only plans and alerts, then I check the audit log to see who changed what and why. If the manual change should stay, I put it in the code. If not, an approved apply restores the declared state. I do not silently overwrite an emergency fix. To prevent it, I limit console write access, use policy checks, and require break-glass changes to be reconciled back into code."
 
-### 6. Drift detection and backups *(asked in interview round)*
+</details>
+
+<details><summary>Q6. [Intermediate] Drift detection and backups <em>(asked in interview round)</em></summary>
 
 #### Drift
 
@@ -306,7 +316,9 @@ Run it nightly in the pipeline and alert on exit code 2. Terraform Cloud has bui
 - Never keep state in Git
 - Test the restore before you need it
 
-### 7. What does it mean when Terraform shows drift? *(scenario)*
+</details>
+
+<details><summary>Q7. [Basic] What does it mean when Terraform shows drift? <em>(scenario)</em></summary>
 
 #### It means
 
@@ -326,7 +338,9 @@ Read the diff, check the audit log, decide with the owner, then either update th
 
 "Drift means the real resource no longer matches the code, usually from a manual change, another controller, or a changed provider default. I read the diff and the audit log, decide with the owner whether the new value should stay, and then either put it into the code or apply to restore it. The third cause catches people out, so I always check the provider changelog before assuming a human did it."
 
-### 8. A PR contains only one change, but `terraform plan` shows multiple changes. How do you troubleshoot it?
+</details>
+
+<details><summary>Q8. [Intermediate] A PR contains only one change, but <code>terraform plan</code> shows multiple changes. How do you troubleshoot it?</summary>
 
 **Interviewer:** If a PR contains only one change, but `terraform plan` shows multiple changes, how would you troubleshoot it?
 
@@ -439,7 +453,9 @@ I expect the plan to contain only the intended change.
 
 > "If one PR change produces multiple Terraform changes, I first review the plan and classify the unexpected changes. Then I check the Git diff, state drift using `terraform plan -refresh-only`, Terraform state, provider and module versions, dependencies, and whether the pipeline is using the correct backend and variables. A common reason is infrastructure drift or a provider/module change. I don't blindly apply the plan until I understand why every unexpected resource is changing."
 
-### 9. Terraform Plan Shows Unexpected Changes for a One-Line Edit
+</details>
+
+<details><summary>Q9. [Intermediate] Terraform Plan Shows Unexpected Changes for a One-Line Edit</summary>
 
 #### The situation
 
@@ -479,7 +495,9 @@ Compare the plan's "before/after" values resource by resource to see whether the
 
 "A one-line SKU change causing 15 resources to change usually means either that SKU forces a resource replacement whose ID/attributes other resources depend on, or there's state drift from manual changes outside Terraform. I'd run `terraform plan -out` and inspect the JSON output per resource to see exactly what's changing and why, and use `-target` to isolate whether it's a real dependency chain or unrelated drift that needs a `terraform refresh`/import to reconcile."
 
-### 10. How do you detect drift automatically? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] How do you detect drift automatically? <em>(scenario)</em></summary>
 
 #### Scheduled job
 
@@ -511,7 +529,9 @@ Someone may have made a valid emergency change. A human decides.
 
 "I run a nightly read-only plan with `-detailed-exitcode`; exit code 2 means drift, and the job posts a summary and opens a ticket. I do not auto-apply the fix, because the manual change could be a valid emergency fix. A person checks the audit log, decides whether it should stay, and either updates the code or approves an apply to restore it."
 
-### 11. How do you prevent people making manual changes? *(scenario)*
+</details>
+
+<details><summary>Q11. [Intermediate] How do you prevent people making manual changes? <em>(scenario)</em></summary>
 
 #### Prevention
 
@@ -538,7 +558,9 @@ The person who used break-glass access must open a pull request to put the chang
 
 "The best prevention is removing console write access and making the pipeline the only way to change infrastructure, backed by policy checks. For real emergencies there is a break-glass role, but the rule is that the change must be reconciled back into code afterwards. On top of that, a nightly drift plan alerts us when something differs, so nothing silently stays out of code."
 
-### 12. Preventing drift from manually modified resources
+</details>
+
+<details><summary>Q12. [Intermediate] Preventing drift from manually modified resources</summary>
 
 - **Restrict manual changes with RBAC** - the strongest prevention is simply not letting people have portal/CLI write access to resources Terraform manages.
 - **Run `terraform plan` regularly** (e.g. on a schedule, not just on code changes) to detect drift that RBAC didn't prevent.
@@ -557,7 +579,9 @@ terraform import azurerm_storage_account.sa /subscriptions/<sub-id>/resourceGrou
 
 Prevention comes first: RBAC that restricts who can make manual changes at all, backed by Azure Policy as a governance backstop. Detection comes second: regular `terraform plan` runs against remote state, not just plans triggered by code changes. When drift is found, I either import the resource into management or, for genuinely expected system-managed changes, scope `ignore_changes` narrowly rather than broadly.
 
-### 13. A teammate changed something in the console. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q13. [Intermediate] A teammate changed something in the console. What do you do? <em>(scenario)</em></summary>
 
 #### Steps
 
@@ -572,7 +596,9 @@ Prevention comes first: RBAC that restricts who can make manual changes at all, 
 
 "I run a plan to see exactly what differs and check the audit log for who changed it and why. Then I talk to that person, because a manual change is often a valid emergency fix. If it should stay, I put it in the code so the code stays the source of truth; if not, an approved apply restores it. If it keeps happening, the real fix is removing console write access."
 
-### 14. Terraform created an S3 bucket and someone added a policy manually. How do you fix it?
+</details>
+
+<details><summary>Q14. [Intermediate] Terraform created an S3 bucket and someone added a policy manually. How do you fix it?</summary>
 
 #### Steps
 
@@ -613,7 +639,9 @@ terraform import aws_s3_bucket_policy.app my-bucket
 
 "I check who added the policy and whether it is safe. If it should stay, I write it in Terraform using `aws_iam_policy_document` and import the existing policy so Terraform manages it. Then I plan and confirm no unexpected changes. If it was not approved, Terraform simply replaces it with the reviewed policy."
 
-### 15. How do you prevent drift in a multi-cloud setup? *(scenario)*
+</details>
+
+<details><summary>Q15. [Advanced] How do you prevent drift in a multi-cloud setup? <em>(scenario)</em></summary>
 
 #### Approach
 
@@ -626,7 +654,9 @@ terraform import aws_s3_bucket_policy.app my-bucket
 
 "The approach is the same in each cloud, just applied consistently. That means separate state and identity per cloud, a scheduled drift plan for every stack, the same tagging and policy rules, and read-only console access for normal users. Drift usually appears in whichever cloud has the weakest controls, so the checks have to cover all of them."
 
-### 16. How do you bring existing (unmanaged) resources into Terraform?
+</details>
+
+<details><summary>Q16. [Intermediate] How do you bring existing (unmanaged) resources into Terraform?</summary>
 
 #### Steps
 
@@ -661,7 +691,9 @@ Import only links the real object to a resource address. It does not write your 
 
 "I write the resource block first, back up state, then run `terraform import` with the resource address and the real ID. Import only maps the object into state, so afterwards I run `terraform state show`, copy the important settings into my code, and keep planning until there are no unexpected updates. Related resources like subnets and routes are imported separately."
 
-### 17. A `terraform import` failed. What do you check? *(scenario)*
+</details>
+
+<details><summary>Q17. [Intermediate] A <code>terraform import</code> failed. What do you check? <em>(scenario)</em></summary>
 
 #### Checklist
 
@@ -691,7 +723,9 @@ terraform plan   # keep fixing the code until this is clean
 
 "I check the ID format for that specific resource type, quote the address when it contains brackets, and make sure I am using the right provider alias for the region or account. I also confirm the identity can read the resource and that no other state already manages it. After a successful import I use `state show` to copy the real settings into my code and keep planning until nothing unexpected appears."
 
-### 18. What are the prerequisites before importing a VPC in Terraform?
+</details>
+
+<details><summary>Q18. [Intermediate] What are the prerequisites before importing a VPC in Terraform?</summary>
 
 **Answer:**
 
@@ -705,7 +739,9 @@ Then I import, run `state show` to see what Terraform recorded, and update the c
 
 This process keeps an adoption exercise from accidentally changing production networking.
 
-### 19. How do you pass arguments to a VPC while using `terraform import`?
+</details>
+
+<details><summary>Q19. [Intermediate] How do you pass arguments to a VPC while using <code>terraform import</code>?</summary>
 
 **Answer:**
 
@@ -719,7 +755,9 @@ CIDR, DNS settings, tenancy, and tags belong in the `aws_vpc` resource block, an
 
 Newer import blocks make the mapping reviewable in code, but they still don't replace writing the resource configuration.
 
-### 20. How do you refactor a lot of resources without downtime?
+</details>
+
+<details><summary>Q20. [Advanced] How do you refactor a lot of resources without downtime?</summary>
 
 #### Preferred way: `moved` blocks
 
@@ -755,3 +793,5 @@ Move one module or one group at a time, each with a clean plan.
 #### Interview answer
 
 "I prefer `moved` blocks, because the move is visible in the plan and reviewable, instead of a state command that someone has to remember to run. I back up state first, then check the plan JSON to confirm no deletes are hiding in it. I split the refactor into small pull requests, one group at a time, and each must plan clean before the next one starts."
+
+</details>

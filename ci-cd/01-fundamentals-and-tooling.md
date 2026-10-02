@@ -93,7 +93,7 @@ When troubleshooting, I compare the repository's delivery log against the receiv
 
 ## Interview Questions
 
-### 1. Explain your CI/CD pipeline design. Why did you choose those tools?
+<details><summary>Q1. [Intermediate] Explain your CI/CD pipeline design. Why did you choose those tools?</summary>
 
 **Answer:**
 
@@ -113,7 +113,9 @@ Production runs behind protected environments with a deployment identity that ha
 
 I pick the tool based on the situation: GitHub Actions for GitHub-native teams, Azure Pipelines when the team is already in Azure DevOps, Jenkins when there's a real reason for heavy customization or legacy support, and Argo CD or Flux for pull-based Kubernetes delivery. I compare security, network access for runners, governance, availability, cost, team skills, and ongoing maintenance — not just popularity.
 
-### 2. What CI/CD tools have you used?
+</details>
+
+<details><summary>Q2. [Basic] What CI/CD tools have you used?</summary>
 
 **Answer:**
 
@@ -123,7 +125,9 @@ For example: GitHub or Azure Repos for source control, Jenkins, GitHub Actions, 
 
 I don't claim expert-level with every tool. A convincing answer covers scale, environments, authentication, one pipeline I designed, one failure I investigated, how rollback worked, and a measurable improvement — like a shorter deployment time or a lower change-failure rate.
 
-### 3. How much experience do you have writing pipeline scripts? / end-to-end pipelines? *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Basic] How much experience do you have writing pipeline scripts? / end-to-end pipelines? <em>(asked in interview round)</em></summary>
 
 Answer with specifics: "I've written declarative and scripted Jenkins pipelines in Groovy, GitHub Actions workflows, and GitLab CI pipelines.
 
@@ -131,7 +135,9 @@ End-to-end, I've built pipelines that check out code, build it with Maven or Doc
 
 Name the actual tools you've used and walk through the flow.
 
-### 4. What are GitHub Actions? *(asked in interview round)*
+</details>
+
+<details><summary>Q4. [Basic] What are GitHub Actions? <em>(asked in interview round)</em></summary>
 
 GitHub Actions is a CI/CD platform built into GitHub. It runs **workflows**, which are YAML files stored in `.github/workflows/`. A workflow starts when an event happens, such as a push, a pull request, a schedule, or a manual trigger.
 
@@ -139,7 +145,9 @@ A workflow contains **jobs**, and each job runs on a runner. A job is made up of
 
 GitHub Actions offers hosted or self-hosted runners, secrets management, matrix builds, and reusable or composite workflows.
 
-### 5. Difference between GitHub Actions and Jenkins *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Basic] Difference between GitHub Actions and Jenkins <em>(asked in interview round)</em></summary>
 
 | | GitHub Actions | Jenkins |
 |---|---|---|
@@ -151,6 +159,10 @@ GitHub Actions offers hosted or self-hosted runners, secrets management, matrix 
 | Scaling | GitHub-managed / self-hosted | You manage agent fleet |
 | Best for | GitHub-hosted projects, quick start | Complex/legacy/on-prem, highly customized pipelines |
 
-### 6. Why is GitHub Actions gaining popularity? *(asked in interview round)*
+</details>
+
+<details><summary>Q6. [Basic] Why is GitHub Actions gaining popularity? <em>(asked in interview round)</em></summary>
 
 It's built into GitHub, so there's no extra server to run. The pipeline config lives with the code as YAML, so it's versioned and reviewed through pull requests. It has a huge marketplace of reusable actions and generous hosted runners, and matrix builds are easy to set up. It needs far less maintenance than running Jenkins yourself, and it supports OIDC, so cloud login doesn't need long-lived keys. For teams already on GitHub, this lowers the barrier to CI/CD a lot.
+
+</details>

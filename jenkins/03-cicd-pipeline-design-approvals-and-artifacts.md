@@ -25,7 +25,7 @@ A CI job typically builds, tests, scans, and publishes. A separate CD or GitOps 
 
 ## Interview Questions
 
-### 1. How would you build a CI/CD pipeline from scratch with zero downtime and rollback support?
+<details><summary>Q1. [Advanced] How would you build a CI/CD pipeline from scratch with zero downtime and rollback support?</summary>
 
 **Answer:**
 
@@ -58,7 +58,9 @@ Zero downtime isn't just pipeline syntax — it needs multiple replicas, readine
 
 For rollback, I go back to the previous artifact or Helm revision — the one already built and tested, never rebuilt. Database changes follow an expand-migrate-contract approach, or fall back to a tested restore plan.
 
-### 2. How do you separate CI and CD pipelines in Jenkins, and what triggers each one?
+</details>
+
+<details><summary>Q2. [Intermediate] How do you separate CI and CD pipelines in Jenkins, and what triggers each one?</summary>
 
 **Answer:**
 
@@ -74,7 +76,9 @@ Credentials and permissions are kept separate, so CI can never directly touch pr
 
 Splitting things this way lets each pipeline retry and get approved independently without losing track of what happened. I pass digests and metadata between the two, not workspace files, and I can compare both pipelines by commit, artifact digest, change request, and deployment ID.
 
-### 3. How do you implement CI/CD approval workflows in Jenkins?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you implement CI/CD approval workflows in Jenkins?</summary>
 
 **Answer:**
 
@@ -95,7 +99,9 @@ The approval screen shows the artifact version, the plan or diff, test results, 
 
 For emergencies, I use a separate break-glass path that's still audited and gets a review afterward. I avoid approvals that just ask someone to click a button without giving them enough information to make a real decision.
 
-### 4. How do you implement CI/CD approval workflows in Jenkins? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you implement CI/CD approval workflows in Jenkins? <em>(scenario)</em></summary>
 
 **Answer:** Use Jenkins “input step” for manual approval → Or integrate with Jira/ServiceNow for change approvals before deploying to prod.
 
@@ -108,7 +114,9 @@ The same build artifact gets promoted through environments — it's never rebuil
 
 I keep a record of who approved or rejected it, when, and what the deployment result was. An emergency bypass path exists, but it's limited, audited, and always followed by a review afterward.
 
-### 5. How does Jenkins handle artifacts?
+</details>
+
+<details><summary>Q5. [Basic] How does Jenkins handle artifacts?</summary>
 
 **A:** Jenkins handles artifacts through its built-in artifact management system. When a build is executed, Jenkins can archive files generated during the build process, such as binaries, reports, or logs.
 
@@ -171,3 +179,5 @@ For scalability, Jenkins can push artifacts to:
 - Docker Registry (for container images)
 
 Once archived, artifacts can be downloaded from the Jenkins web interface, used in subsequent build steps, or deployed to external repositories. Jenkins also provides plugins for integrating with artifact repositories like Nexus or Artifactory, allowing for more advanced artifact management and distribution.
+
+</details>

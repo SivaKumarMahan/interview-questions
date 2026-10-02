@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you optimize infrastructure cost without impacting performance or reliability?
+<details><summary>Q1. [Intermediate] How do you optimize infrastructure cost without impacting performance or reliability?</summary>
 
 **Answer:**
 
@@ -22,7 +22,9 @@ Every change has clear performance and rollback criteria, and I canary it where 
 
 After every change, I check that cost per unit actually improved and that SLOs are still being met.
 
-### 2. How would you identify and reduce cloud infrastructure costs without sacrificing performance or reliability? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How would you identify and reduce cloud infrastructure costs without sacrificing performance or reliability? <em>(scenario)</em></summary>
 
 **Answer:** Use tagging and Cost Explorer to find spending patterns, right-size EC2 from CloudWatch data plus autoscaling, use the Cluster Autoscaler and HPA on EKS, use spot instances for non-critical workloads, apply S3 lifecycle rules and DynamoDB autoscaling, and schedule off-hours scaling alongside Reserved Instances or Savings Plans.
 
@@ -39,7 +41,9 @@ Scheduled scaling through Terraform reduces resources during off-hours in non-pr
 
 This approach has cut costs by around 43% in practice while keeping the same performance targets.
 
-### 3. Your cloud bill increases by 40% overnight. How do you investigate it?
+</details>
+
+<details><summary>Q3. [Advanced] Your cloud bill increases by 40% overnight. How do you investigate it?</summary>
 
 **Answer:**
 
@@ -57,7 +61,9 @@ Once it's fixed, I confirm application SLOs are healthy and billing has actually
 
 Finally, I write down whether the spike was waste, an attack, expected traffic growth, or just a tagging/allocation error.
 
-### 4. How do you implement infrastructure cost optimization in Terraform? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you implement infrastructure cost optimization in Terraform? <em>(scenario)</em></summary>
 
 **Answer:** Use variables for instance sizes, add auto-scaling groups, apply resource tags, and use lifecycle policies to clean up unused resources.
 
@@ -68,7 +74,9 @@ I only contain what I've confirmed: budgets, scaling caps, quotas, or stopping n
 
 Required tags, anomaly alerts, right-sizing, schedules, lifecycle retention, reserved vs. spot choices, and owner-level cost visibility keep the optimization ongoing. I always check performance and SLOs after making a cost change.
 
-### 5. How do you set up cost-aware CI/CD pipelines to prevent runaway spend? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you set up cost-aware CI/CD pipelines to prevent runaway spend? <em>(scenario)</em></summary>
 
 **Answer:** Add cost estimation to the pipeline so it estimates the infra cost of each change, set budget checks and alerts, use autoscaling and spot instances where they fit, and block a merge if the estimated cost goes over a threshold.
 
@@ -80,7 +88,9 @@ I only contain what I've confirmed: budgets, scaling caps, quotas, or stopping n
 
 Required tags, anomaly alerts, right-sizing, schedules, lifecycle retention, reserved vs. spot choices, and owner-level cost visibility keep the optimization ongoing. I always check performance and SLOs after making a cost change.
 
-### 6. How do you integrate cost monitoring into DevOps pipelines? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] How do you integrate cost monitoring into DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Pull data from the GCP Billing API or Azure Cost Management, add cost checks into the pipeline, and alert when the estimated cost goes over budget.
 
@@ -91,7 +101,9 @@ I only contain what I've confirmed: budgets, scaling caps, quotas, or stopping n
 
 Required tags, anomaly alerts, right-sizing, schedules, lifecycle retention, reserved vs. spot choices, and owner-level cost visibility keep the optimization ongoing. I always check performance and SLOs after making a cost change.
 
-### 7. How do you scale observability storage and retention cost-effectively? *(scenario)*
+</details>
+
+<details><summary>Q7. [Advanced] How do you scale observability storage and retention cost-effectively? <em>(scenario)</em></summary>
 
 **Answer:** Aggregate and downsample older metrics (Prometheus remote write to Thanos/Cortex), use tiered log retention (hot/warm/cold), and set retention policies that match compliance requirements.
 
@@ -102,3 +114,5 @@ I compare cost by service, account, region, tag, SKU, and usage metric against t
 I only contain what I've confirmed: budgets, scaling caps, quotas, or stopping non-production waste I own — I don't delete stateful production resources without being sure. Terraform plans get cost estimates, and changes above a threshold need policy approval.
 
 Required tags, anomaly alerts, right-sizing, schedules, lifecycle retention, reserved vs. spot choices, and owner-level cost visibility keep the optimization ongoing. I always check performance and SLOs after making a cost change.
+
+</details>

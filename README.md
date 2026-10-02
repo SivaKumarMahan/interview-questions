@@ -104,7 +104,12 @@ kubernetes/
 - **Every file has the same layout:**
   - a one-line scope at the top saying what the file covers
   - `## Key Concepts`: the main ideas, explanations, commands, and examples
-  - `## Interview Questions`: numbered questions with answers, with related questions next to each other
+  - `## Interview Questions`: numbered questions, with related questions next to each other
+- **Answers are hidden so you can test yourself.** Each question is a collapsed row: say your answer out loud first, then click the question to check it.
+- **Difficulty tags:**
+  - **[Basic]:** definitions, "what is X", and "difference between X and Y"
+  - **[Intermediate]:** day-to-day how-to and standard troubleshooting
+  - **[Advanced]:** design at scale, security incidents, multi-team or multi-region trade-offs, and tricky edge cases
 - **Tags show where a question came from:**
   - *(asked in interview round)*: the question was asked in a real interview
   - *(scenario)*: a troubleshooting or design situation

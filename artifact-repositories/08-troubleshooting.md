@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How would you troubleshoot a pipeline that fails to publish artifacts to Nexus?
+<details><summary>Q1. [Intermediate] How would you troubleshoot a pipeline that fails to publish artifacts to Nexus?</summary>
 
 **Answer:**
 
@@ -37,7 +37,9 @@ For Docker, I additionally verify the Docker Bearer Token Realm, connector/subdo
 
 For Maven, I check that the `distributionManagement` repository ID matches the `<server>` ID in `settings.xml`.
 
-### 2. How do you troubleshoot failed Docker image push to registry? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you troubleshoot failed Docker image push to registry? <em>(scenario)</em></summary>
 
 **Answer:** Check registry credentials → Validate image name/tag → Ensure repository exists → Retry with correct login.
 
@@ -50,7 +52,9 @@ At runtime I drop unnecessary capabilities, use seccomp, AppArmor, or SELinux, r
 
 If startup is slow or a push fails, I measure layer size and cache hits, check registry DNS, auth, and TLS, and check disk and application initialization, instead of just retrying blindly. Then I rebuild from patched base images and re-verify functionality and security findings.
 
-### 3. What common issues have you encountered while using Nexus Repository, and how would you troubleshoot them?
+</details>
+
+<details><summary>Q3. [Intermediate] What common issues have you encountered while using Nexus Repository, and how would you troubleshoot them?</summary>
 
 **Answer:**
 
@@ -117,3 +121,5 @@ server, database and blob-store health
 ```
 
 Then I reproduce the problem with the same client, on the same network, using a non-secret verbose mode. I compare Nexus and reverse-proxy logs and fix the root cause. I avoid deleting caches, opening up permissions to a wildcard, or restarting Nexus repeatedly without evidence that any of that will help.
+
+</details>

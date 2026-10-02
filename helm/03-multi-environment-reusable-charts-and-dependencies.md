@@ -146,7 +146,7 @@ For keeping a cluster's actual state continuously matched to its desired state a
 
 ## Interview Questions
 
-### 1. How do you handle multi-environment deployments using Helm?
+<details><summary>Q1. [Intermediate] How do you handle multi-environment deployments using Helm?</summary>
 
 **Answer:**
 
@@ -164,3 +164,5 @@ CI lints the chart, validates its values against a schema, renders every support
 That same application image and chart version get promoted through dev, staging, and production — only the approved values differ between them. Production requires an approval, uses `--atomic --wait`, runs smoke tests, is monitored, and has a documented rollback path. Secrets are always referenced from outside the chart, never stored in it.
 
 I avoid copying whole charts per environment, because fixes then have to be made in multiple places and drift apart. Where a lot of applications share the same pattern, I use a versioned library or base chart, but still let each service set its own resource limits, probes, and scaling.
+
+</details>

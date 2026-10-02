@@ -30,7 +30,7 @@ Use a short list when there are several points:
 
 ## Interview Questions
 
-### 1. What is a Kubernetes Service, and why do you need one?
+<details><summary>Q1. [Basic] What is a Kubernetes Service, and why do you need one?</summary>
 
 **Answer:**
 
@@ -51,7 +51,9 @@ spec:
 
 **How to verify:** `kubectl get endpoints api` should list the Pod IPs. If it is empty, the selector does not match the Pod labels.
 
-### 2. A Service has no endpoints. How do you troubleshoot it? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] A Service has no endpoints. How do you troubleshoot it? <em>(scenario)</em></summary>
 
 **Answer:**
 
@@ -59,11 +61,15 @@ spec:
 2. Check that the Pods are `Ready`. Pods that fail their readiness probe are left out of the endpoints.
 3. Check that `targetPort` matches the port the container listens on.
 
-### 3. How did you expose an internal API in your last project? *(asked in interview round)*
+</details>
+
+<details><summary>Q3. [Advanced] How did you expose internal APIs securely across teams in your last project? <em>(asked in interview round)</em></summary>
 
 **Answer:**
 
 TODO (Siva): add your real example here.
+
+</details>
 
 ---
 
@@ -71,7 +77,9 @@ TODO (Siva): add your real example here.
 
 - **Scope line:** one sentence at the top, starting with `>`.
 - **Sections:** always `## Key Concepts` first, then `## Interview Questions`.
-- **Questions:** number them 1, 2, 3, and keep related questions next to each other.
-- **Tags:** add *(scenario)* for troubleshooting or design situations, and *(asked in interview round)* for questions asked in a real interview.
+- **Questions:** wrap each one in `<details><summary>Q<n>. [Level] question</summary>` ... `</details>`, number them 1, 2, 3, and keep related questions next to each other. Leave a blank line after `<summary>` and before `</details>` so the answer's Markdown renders.
+- **Difficulty:** `[Basic]` for definitions, "what is X", and "difference between X and Y". `[Intermediate]` for day-to-day how-to and standard troubleshooting. `[Advanced]` for design at scale, security incidents, multi-team or multi-region trade-offs, and tricky edge cases.
+- **Tags:** add `<em>(scenario)</em>` for troubleshooting or design situations, and `<em>(asked in interview round)</em>` for questions asked in a real interview, at the end of the summary line.
+- **No Markdown inside `<summary>`:** GitHub does not render it there. Use `<code>` instead of backticks and `<em>` instead of `*`.
 - **Style:** simple English, short sentences, practical examples, and commands in code blocks.
 - **Personal details:** never invent an experience or a company name. Leave a `TODO (Siva):` placeholder.

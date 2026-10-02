@@ -130,7 +130,7 @@ YAML is simple and readable, which is why it's everywhere in configuration files
 
 ## Interview Questions
 
-### 1. What is YAML?
+<details><summary>Q1. [Basic] What is YAML?</summary>
 
 **Answer:**
 
@@ -151,7 +151,9 @@ YAML describes data; the consuming tool decides what that data means. A syntacti
 
 I also avoid putting secrets directly in YAML committed to Git.
 
-### 2. Why is indentation important in YAML?
+</details>
+
+<details><summary>Q2. [Basic] Why is indentation important in YAML?</summary>
 
 **Answer:**
 
@@ -170,7 +172,9 @@ I stick to a consistent two-space convention, turn on whitespace display in my e
 
 Copying YAML through chat or documents can introduce tabs or smart characters, so I validate the actual committed file.
 
-### 3. What is the difference between a YAML list and map?
+</details>
+
+<details><summary>Q3. [Basic] What is the difference between a YAML list and map?</summary>
 
 **Answer:**
 
@@ -194,7 +198,9 @@ The distinction matters because schemas expect a specific type. Kubernetes `meta
 
 If I supply a map where a list is required, parsing may succeed but schema validation fails with a type error.
 
-### 4. How do strings work in YAML?
+</details>
+
+<details><summary>Q4. [Basic] How do strings work in YAML?</summary>
 
 **Answer:**
 
@@ -216,7 +222,9 @@ Single quotes keep most characters literal. Double quotes support escape sequenc
 
 I confirm the consumer's expected type rather than quoting everything automatically.
 
-### 5. What are YAML anchors and aliases?
+</details>
+
+<details><summary>Q5. [Basic] What are YAML anchors and aliases?</summary>
 
 **Answer:**
 
@@ -240,3 +248,5 @@ production:
 Anchors reduce duplication within one YAML document, but support and merge behavior depend on the consuming parser. Kubernetes manifests do not provide a general cross-file templating system through anchors.
 
 For complex reuse I prefer Helm, Kustomize, or pipeline templates because they make environment composition more explicit.
+
+</details>

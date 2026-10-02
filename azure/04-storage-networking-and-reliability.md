@@ -218,7 +218,7 @@ The real recovery point and recovery time come down to how data replication and 
 
 ## Interview Questions
 
-### 1. What is an Azure Storage Account?
+<details><summary>Q1. [Basic] What is an Azure Storage Account?</summary>
 
 **Answer:**
 
@@ -228,7 +228,9 @@ I pick general-purpose v2 in most cases, choose LRS, ZRS, or GRS based on what f
 
 I keep an eye on capacity, transactions, latency, availability, throttling, and data leaving the account. Recovery features and backup get chosen per service — replication by itself doesn't protect against every kind of deletion or corruption.
 
-### 2. What is Azure Blob Storage?
+</details>
+
+<details><summary>Q2. [Basic] What is Azure Blob Storage?</summary>
 
 **Answer:**
 
@@ -240,7 +242,9 @@ Large uploads go in blocks, with retries designed to be safe even if the same bl
 
 I choose Blob over Azure Files when the workload fits object access over HTTP; Files is the better fit for SMB or NFS shares. Monitoring covers request errors, latency, capacity, throttling, and outbound data.
 
-### 3. How do you secure Azure Storage?
+</details>
+
+<details><summary>Q3. [Intermediate] How do you secure Azure Storage?</summary>
 
 **Answer:**
 
@@ -250,7 +254,9 @@ Azure encrypts data at rest by default. I add customer-managed keys or infrastru
 
 I test that allowed access actually works and denied access actually fails. If there's an exposure, I lock down access, revoke SAS tokens or rotate keys, keep the logs, check what was downloaded or changed, restore data if needed, and fix the underlying policy or architecture.
 
-### 4. What is Azure SQL Database?
+</details>
+
+<details><summary>Q4. [Basic] What is Azure SQL Database?</summary>
 
 **Answer:**
 
@@ -260,7 +266,9 @@ I use Entra authentication or managed identity, a firewall or private endpoint, 
 
 When the database is slow, I look at query performance, wait stats, blocking, CPU and IO, the connection pool, indexes and query plans, and any recent changes. Scaling up can help in the moment, but it doesn't replace actually fixing the query or the root cause.
 
-### 5. Can an NSG be attached directly to a virtual network?
+</details>
+
+<details><summary>Q5. [Basic] Can an NSG be attached directly to a virtual network?</summary>
 
 **Answer:**
 
@@ -268,7 +276,9 @@ No. A network security group attaches to a subnet or a network interface — not
 
 The effective rules are the combination of whatever's applied at the subnet and the NIC, evaluated by Azure's priority order. I check the effective security rules and use Network Watcher to confirm the real path traffic takes, rather than assuming a broad default allow rule is fine.
 
-### 6. Can VMs in different subnets of the same VNet communicate?
+</details>
+
+<details><summary>Q6. [Basic] Can VMs in different subnets of the same VNet communicate?</summary>
 
 **Answer:**
 
@@ -276,7 +286,9 @@ Yes — VNet routing allows communication between subnets by default. That can b
 
 I check the effective routes, the NSG flow, DNS, and the target listener before assuming a subnet boundary is doing any actual security work.
 
-### 7. How do you approach Azure disaster recovery?
+</details>
+
+<details><summary>Q7. [Advanced] How do you approach Azure disaster recovery?</summary>
 
 **Answer:**
 
@@ -288,7 +300,9 @@ A runbook needs to cover detection, who has authority to decide, data consistenc
 
 I run actual restore tests and regional exercises, measure the real recovery time and recovery point achieved, and fix whatever gaps show up. Replication is not a backup — corruption or deletion can replicate right along with the good data. I also test failing back, because recovery isn't finished until normal operations are safely restored.
 
-### 8. How do you design high availability in Azure?
+</details>
+
+<details><summary>Q8. [Advanced] How do you design high availability in Azure?</summary>
 
 Broader than just Kubernetes - applies across VMs, databases, and storage too:
 
@@ -317,14 +331,19 @@ Broader than just Kubernetes - applies across VMs, databases, and storage too:
 
 Azure HA spans compute, data, and storage: Availability Zones and VMSS/multiple AKS nodes for compute, HA database configurations, and a storage redundancy tier chosen for the failure domain that actually matters - LRS for datacenter-local redundancy up through GZRS when both zone and region redundancy are required - backed by autoscaling, load balancing, backup/DR, and monitoring across all of it.
 
-### 9. Must an Azure VM and its Recovery Services vault be in the same region for backup?
+</details>
+
+<details><summary>Q9. [Basic] Must an Azure VM and its Recovery Services vault be in the same region for backup?</summary>
 
 **Answer:**
 
 Yes — Azure VM Backup requires the Recovery Services vault and the VM it protects to be in the same region. Redundancy settings affect how the backup data itself gets replicated, but they don't remove that same-region requirement.
 
 I pick the vault's region deliberately, apply retention, immutability, and access controls, and actually run restore tests rather than just checking that backups report success.
-### 10. What is Azure Virtual Network?
+
+</details>
+
+<details><summary>Q10. [Basic] What is Azure Virtual Network?</summary>
 
 **Answer:**
 
@@ -336,7 +355,9 @@ When something's broken, I check DNS, effective routes, effective NSG rules, any
 
 After any IaC change, I confirm both the traffic that should get through and the traffic that should be blocked behave as expected.
 
-### 11. What is Azure Application Gateway?
+</details>
+
+<details><summary>Q11. [Basic] What is Azure Application Gateway?</summary>
 
 **Answer:**
 
@@ -348,7 +369,9 @@ For a 502/503, I check the backend's health-check failure reason, DNS/IP, probe 
 
 Once fixed, I test TLS, the routing paths, health checks, and latency, and confirm WAF is still doing its job — I don't disable protection broadly just to get things working again.
 
-### 12. What is Azure DNS?
+</details>
+
+<details><summary>Q12. [Basic] What is Azure DNS?</summary>
 
 **Answer:**
 
@@ -360,7 +383,9 @@ A hybrid setup, where on-premises and Azure both need to resolve the same names,
 
 To troubleshoot, I use `dig`/`nslookup`, confirm which server is actually authoritative, check the record type, TTL/cache, the VNet link, forwarding rules, and the client's resolver settings. I query from both an internal and an external client, since split-horizon DNS is often deliberately giving different answers to each.
 
-### 13. How do you connect Azure services privately?
+</details>
+
+<details><summary>Q13. [Intermediate] How do you connect Azure services privately?</summary>
 
 **Answer:**
 
@@ -372,7 +397,9 @@ Service endpoints are a different, older option for some services and subnets �
 
 I validate DNS resolution from the actual workload, the route, NSG/firewall rules, endpoint approval, the service's own configuration, and a real TCP/application connection. Hybrid clients also need DNS forwarding and a working VPN/ExpressRoute path. I test that public access is actually denied too, not just that private access works.
 
-### 14. How do you secure Azure networking?
+</details>
+
+<details><summary>Q14. [Intermediate] How do you secure Azure networking?</summary>
 
 **Answer:**
 
@@ -383,3 +410,5 @@ Connectivity to on-premises goes over VPN or ExpressRoute, built with redundancy
 I test from the real source, working layer by layer: DNS resolution, routing, effective NSG rules, firewall logs, service firewalls, private endpoint approval, and the application port. Network Watcher's connection troubleshoot tool and flow logs help find exactly where a connection is being denied.
 
 Changes go through IaC and peer review. I turn on diagnostics, alert on unexpected public exposure, review rules regularly, and check both an allowed flow and one that's meant to be denied.
+
+</details>

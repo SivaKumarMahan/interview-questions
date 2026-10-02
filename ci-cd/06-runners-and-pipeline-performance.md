@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. How do you prevent shared runners from blocking pipelines?
+<details><summary>Q1. [Intermediate] How do you prevent shared runners from blocking pipelines?</summary>
 
 **Answer:**
 
@@ -16,7 +16,9 @@ Self-hosted runners get patched, capacity-tested, and cleaned between jobs.
 
 If queue time spikes, I first check whether it's real demand, offline agents, slow image pulls, slow startup, or one runaway job — before just throwing more capacity at it.
 
-### 2. How do you manage hybrid CI/CD runners (on-prem + cloud)? *(scenario)*
+</details>
+
+<details><summary>Q2. [Advanced] How do you manage hybrid CI/CD runners (on-prem + cloud)? <em>(scenario)</em></summary>
 
 **Answer:** Use self-hosted runners for sensitive or on-prem workloads, cloud runners for elastic builds, and route jobs by label or tag.
 Mini-case: Database migrations ran on on-prem runners, while builds and tests ran on GCP runners. This kept both compliance and speed.
@@ -28,7 +30,9 @@ Labels map a job to an approved pool. Untrusted pull requests never run on privi
 
 I monitor queue time, provisioning failures, utilization, patch age, and network dependencies, and keep spare capacity in both locations. A hybrid design also needs a fallback rule, so a cloud outage doesn't accidentally send sensitive work to the wrong runner.
 
-### 3. A CI/CD pipeline takes 30–60 minutes. How would you reduce it to under five minutes?
+</details>
+
+<details><summary>Q3. [Advanced] A CI/CD pipeline takes 30–60 minutes. How would you reduce it to under five minutes?</summary>
 
 **Answer:**
 
@@ -46,7 +50,9 @@ Getting under five minutes may not be realistic for every full production qualif
 
 I verify the cache is actually correct, run periodic clean builds, track p50/p95 duration and flakiness, and make sure speed improvements never weaken security or reproducibility.
 
-### 4. Your team's CI/CD pipeline has become slow, taking over an hour to complete. How would you approach optimizing it? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] Your team's CI/CD pipeline has become slow, taking over an hour to complete. How would you approach optimizing it? <em>(scenario)</em></summary>
 
 **Answer:** Instrument each stage to find the bottleneck. Add Docker layer caching and multi-stage builds. Parallelize and split tests. Cache dependencies. Use `terraform -target` for dev iterations. Use ArgoCD's selective sync and ephemeral environments.
 
@@ -60,3 +66,5 @@ For infrastructure, I'd use Terraform's `-target` flag to apply only changed res
 For Kubernetes deployments, I'd use ArgoCD's selective sync to update only the applications that changed, instead of doing a full sync every time. I'd also set up ephemeral environments that spin up only what a feature branch actually needs, instead of a full clone of the infrastructure.
 
 Together, these changes can take a pipeline from around 65 minutes down to about 12 minutes for most changes.
+
+</details>

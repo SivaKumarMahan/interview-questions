@@ -158,7 +158,7 @@ CI tests the code, builds and pushes the image, and updates its tag in the GitOp
 
 ## Interview Questions
 
-### 1. What is the difference between RBAC and what Argo CD gives you for access control? Why do most production teams stop using raw RBAC for developer access?
+<details><summary>Q1. [Advanced] What is the difference between RBAC and what Argo CD gives you for access control? Why do most production teams stop using raw RBAC for developer access?</summary>
 
 **Answer:**
 
@@ -189,3 +189,5 @@ Argo CD also gives you drift protection that raw RBAC does not. If someone with 
 Argo CD immediately marks the app `OutOfSync` and can auto-heal it back to what is in Git. Git is the source of truth and nobody can override it silently.
 
 That is the production answer — not just what RBAC is, but why teams move away from managing it manually and what they use instead.
+
+</details>

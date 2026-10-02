@@ -55,7 +55,7 @@ Monitoring cost tracks with ingestion volume, active series, retention, and quer
 
 ## Interview Questions
 
-### 1. How do you control monitoring and logging cost without losing visibility?
+<details><summary>Q1. [Intermediate] How do you control monitoring and logging cost without losing visibility?</summary>
 
 **Answer:**
 
@@ -67,7 +67,9 @@ Budgets and anomaly alerts catch any regression early.
 
 Before I remove any data, I ask what SLO, investigation, security case, or compliance requirement depends on it. After a change, I test the dashboards, alerts, and a real incident query to confirm the cost per transaction actually dropped without creating a blind spot.
 
-### 2. Observability cost rises 40% overnight. What do you investigate?
+</details>
+
+<details><summary>Q2. [Advanced] Observability cost rises 40% overnight. What do you investigate?</summary>
 
 **Answer:**
 
@@ -78,3 +80,5 @@ Then I look at recent deployments and config changes. Common causes are debug lo
 I also check security: an unexpected workload or a compromised credential can generate a flood of monitoring data too.
 
 Once I've confirmed the actual source, I cap only that source safely, preserve any evidence I'm required to keep, and tell the owner what happened. For a permanent fix, I add label limits, a reviewed collection policy, quotas and budgets, anomaly alerts, and a cost test that runs whenever monitoring configuration changes.
+
+</details>

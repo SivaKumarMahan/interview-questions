@@ -68,19 +68,23 @@ Pin your scanner versions and policy baselines, scan both pull requests and rele
 
 ## Interview Questions
 
-### 1. Preferred tools for SAST and DAST *(asked in interview round)*
+<details><summary>Q1. [Basic] Preferred tools for SAST and DAST <em>(asked in interview round)</em></summary>
 
 - **SAST scans source code and dependencies without running the app:** SonarQube, Semgrep, Checkmarx, Snyk Code. For dependency scanning: OWASP Dependency-Check, Snyk, Dependabot. For IaC: tfsec, Checkov, Trivy. For secrets: gitleaks, trufflehog.
 - **DAST scans the app while it's running:** OWASP ZAP, Burp Suite, Nikto.
 - **Containers:** Trivy or Grype for image scanning. Run SAST early in CI, and run DAST against a deployed staging environment.
 
-### 2. Implement code scanning and infrastructure scanning in a DevSecOps pipeline *(asked in interview round)*
+</details>
+
+<details><summary>Q2. [Intermediate] Implement code scanning and infrastructure scanning in a DevSecOps pipeline <em>(asked in interview round)</em></summary>
 
 - **Code:** SAST (SonarQube/Semgrep), dependency scanning (Snyk/Dependabot), and secret scanning (gitleaks) as CI gates on every PR.
 - **Infrastructure:** IaC scanning (Checkov/tfsec/Trivy) on Terraform/Helm/Kubernetes manifests, container image scanning (Trivy), and CIS benchmark checks (kube-bench).
 - **Gate and report:** fail builds on high/critical findings, surface results in PRs, and track them over time. Add admission control and runtime scanning (Falco) so security keeps running after deploy, not just once at the gate — "shift left" plus runtime.
 
-### 3. How do you ensure security in DevOps pipelines? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you ensure security in DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:**
 - Scan code with SonarQube.
@@ -96,7 +100,9 @@ Backend and cloud credentials are never stored in Git — jobs use short-lived w
 
 If a secret gets committed, I revoke and rotate it immediately and audit how it was used — cleaning up history alone doesn't fix it. Audit logs tie together the commit, plan, approval, identity, and apply step.
 
-### 4. Enforce pipeline security from Git to deployment *(asked in interview round)*
+</details>
+
+<details><summary>Q4. [Advanced] Enforce pipeline security from Git to deployment <em>(asked in interview round)</em></summary>
 
 - **Source:** branch protection, signed commits, required PR reviews, secret scanning, pre-commit hooks.
 - **Build/CI:** SAST, SCA, and secret-scan gates that fail the build; ephemeral runners that only have the access they need; verified dependencies.
@@ -104,7 +110,9 @@ If a secret gets committed, I revoke and rotate it immediately and audit how it 
 - **Deploy:** OIDC keyless auth, approvals for production environments, policy as code, and full audit trails.
 - **Runtime:** Falco, network policies, and continuous scanning.
 
-### 5. Secure pipelines against supply chain attacks *(asked in interview round)*
+</details>
+
+<details><summary>Q5. [Advanced] Secure pipelines against supply chain attacks <em>(asked in interview round)</em></summary>
 
 - **Pin and verify dependencies:** use lockfiles, pin by checksum/hash, and pin GitHub Actions to a commit SHA instead of a mutable tag.
 - **Scan dependencies and images in CI** (Snyk/Trivy) to catch vulnerable or malicious packages.
@@ -112,7 +120,9 @@ If a secret gets committed, I revoke and rotate it immediately and audit how it 
 - **Give CI only the access it needs:** short-lived OIDC tokens instead of long-lived secrets, scoped runner permissions, and isolated ephemeral runners.
 - **Protect the pipeline itself:** branch protection, required reviews, secret scanning, trusted internal registries/proxies, and audit logging.
 
-### 6. How do you maintain cybersecurity practices across a DevOps environment?
+</details>
+
+<details><summary>Q6. [Intermediate] How do you maintain cybersecurity practices across a DevOps environment?</summary>
 
 **Answer:**
 
@@ -128,7 +138,9 @@ Incident response has clear ownership: preserve evidence, revoke credentials, co
 
 I track metrics like patch and secret age, time to fix critical findings, policy bypasses, privileged access, restore tests, detection coverage, and failed changes tied to security issues. Security lives inside the normal delivery path — it's not a final manual checklist at the end.
 
-### 7. How do you design IAM for CI/CD agents so each one has only the access it needs? *(scenario)*
+</details>
+
+<details><summary>Q7. [Advanced] How do you design IAM for CI/CD agents so each one has only the access it needs? <em>(scenario)</em></summary>
 
 **Answer:** Give each pipeline its own service account with the smallest set of roles it needs, rotate keys, use workload identity (GCP/Azure managed identities), and never share accounts across pipelines. Mini-case: each Jenkins job used a dedicated service account scoped to just its own resource group, which blocked privilege escalation.
 
@@ -139,7 +151,9 @@ I reproduce a harmless call with the same identity, then grant a narrow predefin
 
 If a key leaked, I disable or revoke it right away, check what it was used for and what it touched, rotate related secrets, and rebuild the workload identity path. Regular access reviews, expiry, policy tests, and audit alerts keep roles from sprawling over time.
 
-### 8. How do you secure CI/CD runner/agent environments? *(scenario)*
+</details>
+
+<details><summary>Q8. [Intermediate] How do you secure CI/CD runner/agent environments? <em>(scenario)</em></summary>
 
 **Answer:** Use ephemeral, containerized agents that run one job and then get destroyed. Limit what the agent can do, sandbox builds, run static and dynamic scans before publishing artifacts, and put sensitive pipelines on their own locked-down agents.
 
@@ -154,14 +168,18 @@ Agents are ephemeral, isolated, run as non-root where possible, and get a short-
 
 Configuration, plugins, and restore procedures are backed up and tested regularly.
 
-### 9. Store secrets in CI/CD securely *(asked in interview round)*
+</details>
+
+<details><summary>Q9. [Intermediate] Store secrets in CI/CD securely <em>(asked in interview round)</em></summary>
 
 - **Never put secrets in code or repos.** Use the platform's secret store (GitHub Actions Secrets/Environments, GitLab CI masked and protected variables, Jenkins Credentials).
 - **Prefer keyless auth:** use **OIDC federation** to assume cloud IAM roles, so there are no long-lived cloud keys at all.
 - **External vaults:** HashiCorp Vault, AWS Secrets Manager, or SSM Parameter Store, injected at runtime with short lifetimes.
 - **Hygiene:** give secrets only the access they need, mask and rotate them, scope them to specific environments, restrict them on PRs from forks, and scan for leaked secrets.
 
-### 10. How do you secure secrets in pipelines? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] How do you secure secrets in pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Use the Jenkins credentials manager, Vault, or a cloud secret manager (GCP Secret Manager, Azure Key Vault) instead of storing secrets in code.
 
@@ -172,7 +190,9 @@ Rotation works with an overlap: issue the new value, update consumers, verify it
 
 Pre-commit and server-side scans, protected logs, minimal access, expiry, and rotation tests all help prevent it from happening again.
 
-### 11. How would you secure secrets for more than 100 microservices without exposing credentials?
+</details>
+
+<details><summary>Q11. [Advanced] How would you secure secrets for more than 100 microservices without exposing credentials?</summary>
 
 **Answer:**
 
@@ -186,7 +206,9 @@ Rotation works with an overlap: issue the new secret, update the consumers, veri
 
 At this scale I also need clear ownership, naming, metadata, expiry, rotation targets, access reviews, audit alerts, a break-glass procedure, and dashboards that flag stale or unused secrets. If something leaks, I revoke it first, check the audit logs to see how it was used, rotate anything downstream that trusted it, rebuild affected artifacts, and then clean up the leaked copies.
 
-### 12. How do you manage secrets and environment-specific configurations securely? *(scenario)*
+</details>
+
+<details><summary>Q12. [Intermediate] How do you manage secrets and environment-specific configurations securely? <em>(scenario)</em></summary>
 
 **Answer:** HashiCorp Vault for application secrets, AWS Secrets Manager for infrastructure secrets, GitHub Actions OIDC for temporary AWS credentials, Vault's Kubernetes injection with dynamically rotating database credentials, and Kustomize overlays per environment with Vault policies keeping them isolated.
 
@@ -197,7 +219,9 @@ GitHub Actions uses OIDC to get temporary AWS credentials, so nothing is stored 
 
 Environment-specific configuration is managed in Argo CD with Kustomize overlays per environment, and Vault policies keep secrets access isolated between environments.
 
-### 13. How do you rotate API keys securely in CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q13. [Intermediate] How do you rotate API keys securely in CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Store keys in Secret Manager or Key Vault, rotate them through automation, update the pipeline's secrets, and invalidate the old keys.
 
@@ -208,7 +232,9 @@ Rotation works with an overlap: issue the new value, update consumers, verify it
 
 Pre-commit and server-side scans, protected logs, minimal access, expiry, and rotation tests all help prevent it from happening again.
 
-### 14. How do you handle secret rotation in the cloud (GCP/Azure)? *(scenario)*
+</details>
+
+<details><summary>Q14. [Intermediate] How do you handle secret rotation in the cloud (GCP/Azure)? <em>(scenario)</em></summary>
 
 **Answer:** Use GCP Secret Manager or Azure Key Vault, turn on automatic key rotation, and have CI/CD pipelines fetch secrets dynamically instead of hardcoding them.
 
@@ -219,7 +245,9 @@ Rotation works with an overlap: issue the new value, update consumers, verify it
 
 Pre-commit and server-side scans, protected logs, minimal access, expiry, and rotation tests all help prevent it from happening again.
 
-### 15. A secret key was accidentally committed to Git. What actions do you take?
+</details>
+
+<details><summary>Q15. [Advanced] A secret key was accidentally committed to Git. What actions do you take?</summary>
 
 **Answer:**
 
@@ -233,7 +261,9 @@ I write down the timeline, scope, evidence of access, and how it was resolved, n
 
 Finally, I test that the old key no longer works and that the new identity only has the access it needs.
 
-### 16. How do you implement fine-grained service-to-service authentication in microservices? *(scenario)*
+</details>
+
+<details><summary>Q16. [Advanced] How do you implement fine-grained service-to-service authentication in microservices? <em>(scenario)</em></summary>
 
 **Answer:** Use mTLS through a service mesh (Istio/Linkerd) or SPIFFE/SPIRE to issue short-lived identities, and enforce policy and RBAC at the sidecar/proxy layer.
 
@@ -246,7 +276,9 @@ Identities come from service accounts and short-lived certificates. I only move 
 
 I test certificate rotation, retries and timeouts, what happens if the control plane fails, and any way traffic could bypass the proxy — then roll it out gradually. Dashboards and tracing confirm latency and error rates stay healthy, and a clear upgrade procedure keeps the mesh supportable long-term.
 
-### 17. How do you ensure security throughout the container lifecycle from build to runtime? *(scenario)*
+</details>
+
+<details><summary>Q17. [Advanced] How do you ensure security throughout the container lifecycle from build to runtime? <em>(scenario)</em></summary>
 
 **Answer:** Pre-commit Dockerfile scans, then Trivy in CI rejecting critical CVEs, then ECR image scanning, then runtime network policies plus OPA Gatekeeper plus Falco, read-only root filesystems and non-root users via Pod Security Standards, and Cosign signing verified at admission.
 
@@ -261,7 +293,9 @@ Falco handles runtime monitoring, watching for suspicious activity and feeding i
 
 Every container runs with a read-only root filesystem and a non-root user, enforced through Kubernetes Pod Security Standards. Images are signed with Cosign and the signature is checked before deployment through admission control.
 
-### 18. How do you implement runtime security beyond image vulnerability scanning?
+</details>
+
+<details><summary>Q18. [Advanced] How do you implement runtime security beyond image vulnerability scanning?</summary>
 
 **Answer:**
 
@@ -277,7 +311,9 @@ When an alert looks real, I isolate the traffic or workload first, while preserv
 
 Afterward I confirm the service has recovered and the attack path is now blocked, then improve policy, patching, key rotation, and detection coverage based on what I learned.
 
-### 19. How do you ensure CI/CD pipelines are auditable for compliance? *(scenario)*
+</details>
+
+<details><summary>Q19. [Intermediate] How do you ensure CI/CD pipelines are auditable for compliance? <em>(scenario)</em></summary>
 
 **Answer:** Store pipeline definitions in Git, enable logging for every job, require approvals for production, and retain build artifacts and logs.
 
@@ -290,7 +326,9 @@ Identities are named or tied to a workload rather than shared, with separation o
 
 I periodically pick a release and trace it end-to-end, from the original ticket through to production and back, then fix any missing evidence before an external audit finds the gap.
 
-### 20. How do you ensure compliance and governance in DevOps pipelines? *(scenario)*
+</details>
+
+<details><summary>Q20. [Intermediate] How do you ensure compliance and governance in DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:**
 - Enforce policy as code with tools like OPA/Conftest.
@@ -307,7 +345,9 @@ Each rule has unit tests with allowed and denied examples, and gives a clear rea
 
 Runtime and audit monitoring catch changes that happen outside CI. I track exceptions, false positives, and time to fix, and periodically check that each control actually maps to a real reduction in risk.
 
-### 21. How do you ensure auditability in DevOps? *(scenario)*
+</details>
+
+<details><summary>Q21. [Intermediate] How do you ensure auditability in DevOps? <em>(scenario)</em></summary>
 
 **Answer:**
 - Store IaC in Git for versioning.
@@ -323,3 +363,5 @@ Every run records who triggered it, the commit, the artifact digest (which never
 Identities are named or tied to a workload rather than shared, with separation of duties and minimal access. Logs and artifacts get access control, integrity protection, retention rules, and time synchronization, and secrets are redacted from them.
 
 I periodically pick a release and trace it end-to-end, from the original ticket through to production and back, then fix any missing evidence before an external audit finds the gap.
+
+</details>

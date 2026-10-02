@@ -60,7 +60,7 @@ variable "instance_type" {
 
 ## Interview Questions
 
-### 1. How do you make Terraform runs faster?
+<details><summary>Q1. [Intermediate] How do you make Terraform runs faster?</summary>
 
 #### First measure where the time goes
 
@@ -87,7 +87,9 @@ Do not make `-target` your normal way to work. It produces an incomplete plan an
 
 "I measure first: is the time going to provider downloads, refresh, or apply? Then I split large states, remove broad data sources and unnecessary `depends_on`, cache providers in CI, and run independent states in parallel. I avoid using `-target` routinely because it hides changes, and I keep a scheduled full plan so the speedups do not hide drift."
 
-### 2. Why is `terraform plan` slow, and how do you speed it up? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] Why is <code>terraform plan</code> slow, and how do you speed it up? <em>(scenario)</em></summary>
 
 #### Where the time goes
 
@@ -109,7 +111,9 @@ Do not make `-target` your normal way to work. It produces an incomplete plan an
 
 "First I find out where the time goes: provider download, refresh, or data sources. Usually it is refresh on a very large state, so the real fix is splitting the state. I also replace broad data sources with variables, remove unnecessary `depends_on`, and cache providers in CI. I avoid `-target` as a routine speedup because the plan then hides changes."
 
-### 3. Why is `terraform apply` slow? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] Why is <code>terraform apply</code> slow? <em>(scenario)</em></summary>
 
 #### Common causes
 
@@ -132,7 +136,9 @@ Lowering parallelism can actually be faster when the provider is throttling you.
 
 "I check whether it is the number of resources, API throttling, or resources that are simply slow to create like databases and clusters. Splitting the state helps most. If the provider is throttling, lowering parallelism and enabling retries is often faster than pushing more requests. Unnecessary `depends_on` also serializes work that could run in parallel."
 
-### 4. How do you reduce total Terraform execution time? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you reduce total Terraform execution time? <em>(scenario)</em></summary>
 
 #### Quick wins
 
@@ -152,7 +158,9 @@ If you optimize by narrowing scope, keep a scheduled full plan so nothing goes u
 
 "The biggest win is splitting large states, because refresh is normally the bottleneck. After that: cache providers in CI, replace broad data sources with variables, and run independent stacks in parallel. I tune parallelism carefully since raising it can trigger throttling. And whatever I narrow for speed, I keep a scheduled full plan so nothing is hidden."
 
-### 5. How do you handle provider API rate limits?
+</details>
+
+<details><summary>Q5. [Intermediate] How do you handle provider API rate limits?</summary>
 
 #### Options
 
@@ -187,7 +195,9 @@ resource "time_sleep" "wait" {
 
 "I reduce `-parallelism`, turn on the provider's retry and backoff settings, and split large configurations into smaller states so fewer API calls happen at the same time. If one specific resource type always triggers throttling, I add a short `time_sleep` between the stages. I also check whether a quota increase is the real fix."
 
-### 6. Apply is failing because of API rate limits. What do you do? *(scenario)*
+</details>
+
+<details><summary>Q6. [Intermediate] Apply is failing because of API rate limits. What do you do? <em>(scenario)</em></summary>
 
 #### Fixes
 
@@ -223,7 +233,9 @@ provider "google" {
 
 "I lower `-parallelism`, enable the provider's retry and backoff settings, and split large configurations so fewer API calls happen at once. If it keeps happening I request a quota increase and stagger the pipelines, because throttling is usually caused by many jobs starting at the same time rather than one big apply."
 
-### 7. Apply succeeded but the resource is not working. How do you debug?
+</details>
+
+<details><summary>Q7. [Intermediate] Apply succeeded but the resource is not working. How do you debug?</summary>
 
 #### Important point
 
@@ -249,7 +261,9 @@ TF_LOG=DEBUG terraform plan   # use briefly, logs can show secrets
 
 "A successful apply only proves the API calls worked. I start from the failing user path and check DNS, routing, security groups, IAM, and application logs. I compare my code, the plan, and `terraform state show` with what the console shows. I enable `TF_LOG` only briefly because it can expose sensitive values, and I never edit state to fix a runtime problem."
 
-### 8. How do you debug a failed apply in a big module setup?
+</details>
+
+<details><summary>Q8. [Intermediate] How do you debug a failed apply in a big module setup?</summary>
 
 #### Steps
 
@@ -278,7 +292,9 @@ export TF_LOG_PATH=./tf.log
 
 "I stop retries and find the exact resource address and provider error, then check permissions, quotas, name conflicts, network, and provider version. I use `terraform console` and `state show` to inspect module inputs and outputs, and I enable `TF_LOG` only briefly because logs can contain sensitive data. If the API created something Terraform did not record, I import it instead of recreating it. Then I fix the cause, run a full plan, and verify the application, not just the resource."
 
-### 9. A production apply failed halfway. How do you recover?
+</details>
+
+<details><summary>Q9. [Advanced] A production apply failed halfway. How do you recover?</summary>
 
 #### Steps
 
@@ -300,7 +316,9 @@ Do not run `terraform destroy` to "clean up". It can delete working dependencies
 
 "Terraform records the resources that succeeded, so I stop retries, keep evidence, and find out exactly what was created. If something exists in the cloud but not in state, I import it; if state has something that no longer exists, I decide carefully before removing it. Then I fix the real cause, run a fresh full plan, review it, and apply. I never destroy everything to clean up."
 
-### 10. What if the apply fails halfway? *(scenario)*
+</details>
+
+<details><summary>Q10. [Intermediate] What if the apply fails halfway? <em>(scenario)</em></summary>
 
 #### What Terraform does
 
@@ -325,7 +343,9 @@ Do not run destroy to "clean up", and do not blindly re-run apply hoping it work
 
 "Terraform keeps whatever succeeded in state, so it is not all-or-nothing. I stop retries, read the exact error, and compare state with the real resources. If something was created but not recorded, I import it; if state has something that no longer exists, I decide carefully. Then I fix the actual cause, run a fresh full plan, and apply. I never destroy everything to clean up."
 
-### 11. Terraform cannot authenticate to the cloud. How do you debug it? *(scenario)*
+</details>
+
+<details><summary>Q11. [Intermediate] Terraform cannot authenticate to the cloud. How do you debug it? <em>(scenario)</em></summary>
 
 #### Check in this order
 
@@ -353,7 +373,9 @@ AWS_ROLE_ARN   AWS_WEB_IDENTITY_TOKEN_FILE
 
 "I first confirm which identity Terraform is actually using with `sts get-caller-identity` or `az account show`, because the problem is usually a different identity than expected. Then I check whether the environment variables are set in the job, whether the secret expired, whether the right subscription is selected, and whether the role assignment exists. For OIDC I check that the trust condition matches the repository and branch."
 
-### 12. How do you fix a dependency cycle error? *(scenario)*
+</details>
+
+<details><summary>Q12. [Intermediate] How do you fix a dependency cycle error? <em>(scenario)</em></summary>
 
 #### The error
 
@@ -398,7 +420,9 @@ resource "aws_security_group_rule" "db_from_app" {
 
 "A cycle usually comes from two resources referencing each other, like two security groups with inline rules. I break it by moving the rules into separate `aws_security_group_rule` resources so the groups themselves no longer depend on each other. I also remove unnecessary `depends_on`, since manual dependencies often cause the cycle, and I use `terraform graph` to see the loop."
 
-### 13. Someone ran destroy in production. What now? *(scenario)*
+</details>
+
+<details><summary>Q13. [Advanced] Someone ran destroy in production. What now? <em>(scenario)</em></summary>
 
 #### Immediate steps
 
@@ -422,7 +446,9 @@ resource "aws_security_group_rule" "db_from_app" {
 
 "First I stop everything and work out from the audit log what was actually deleted. Data comes back first, from snapshots or replicas, then I re-apply the code for stateless resources and import anything that survived. Once the service is verified, I make it impossible to repeat: no destroy permission for the pipeline identity, `prevent_destroy` on critical resources, and mandatory approval."
 
-### 14. How do you monitor Terraform changes in production? *(scenario)*
+</details>
+
+<details><summary>Q14. [Intermediate] How do you monitor Terraform changes in production? <em>(scenario)</em></summary>
 
 #### What to capture
 
@@ -446,7 +472,9 @@ Run a smoke check, and watch dashboards and alarms for the next few minutes.
 
 "Every run stores its plan as an artifact, posts a summary to the team channel, and records who approved it. Apply output is kept in JSON for the audit trail, and I correlate it with cloud audit logs. After apply the pipeline runs a smoke check and I watch the service dashboards, because the value is in noticing a bad change quickly, not just in having the logs."
 
-### 15. How do you monitor and notify on Terraform deployments? *(scenario)*
+</details>
+
+<details><summary>Q15. [Intermediate] How do you monitor and notify on Terraform deployments? <em>(scenario)</em></summary>
 
 #### In the pipeline
 
@@ -471,3 +499,5 @@ curl -X POST -H 'Content-type: application/json' \
 #### Interview answer
 
 "The pipeline produces JSON output and posts a change summary to the team channel, so everyone can see what was applied and by whom. Terraform also creates the alarms and dashboards for the resources it builds, so the service is monitored from day one. On top of that, cloud audit logs and the nightly drift job catch changes that did not come from the pipeline."
+
+</details>

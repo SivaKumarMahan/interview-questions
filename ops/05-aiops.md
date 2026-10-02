@@ -53,7 +53,7 @@ Tools like PagerDuty, Datadog, Dynatrace, ManageEngine, Prometheus, Grafana, and
 
 ## Interview Questions
 
-### 1. What is AIOps, and how is it related to observability?
+<details><summary>Q1. [Basic] What is AIOps, and how is it related to observability?</summary>
 
 **Answer:**
 
@@ -63,7 +63,9 @@ For example, instead of paging separately for pod CPU throttling, API latency, a
 
 Without good monitoring data, clear ownership, and real runbooks, AIOps just ends up automating noisy guesses.
 
-### 2. Describe an end-to-end AIOps incident flow.
+</details>
+
+<details><summary>Q2. [Intermediate] Describe an end-to-end AIOps incident flow.</summary>
 
 **Answer:**
 
@@ -75,7 +77,9 @@ The platform then checks the real user transaction and SLO, rolls back if it nee
 
 When rolling this out, I start with one high-volume, well-understood type of incident and evaluate it against historical data, comparing it to existing rules and what a human would have decided, before I let it run automation on its own.
 
-### 3. How do you make an AIOps fix safe?
+</details>
+
+<details><summary>Q3. [Advanced] How do you make an AIOps fix safe?</summary>
 
 **Answer:**
 
@@ -87,7 +91,9 @@ After every action, I run the original synthetic or business transaction and che
 
 I track false correlations and any action that turned out unsafe or ineffective, and I expire old approvals whenever the architecture changes.
 
-### 4. An AIOps tool reports an anomaly but users see no problem. What do you do?
+</details>
+
+<details><summary>Q4. [Intermediate] An AIOps tool reports an anomaly but users see no problem. What do you do?</summary>
 
 **Answer:**
 
@@ -98,3 +104,5 @@ It might be an early capacity warning, a legitimate new pattern, or the model it
 I keep the event as non-paging evidence, only tune the segmentation or time window after actually analyzing it, and measure the impact of false positives. If it does point to a real future risk, I open a capacity ticket or a lower-severity forecast alert instead of paging anyone.
 
 I judge the model against confirmed incidents — not by how many anomalies it happens to flag.
+
+</details>

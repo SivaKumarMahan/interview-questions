@@ -4,13 +4,15 @@
 
 ## Interview Questions
 
-### 1. SRE principles and implementing error budgets *(asked in interview round)*
+<details><summary>Q1. [Intermediate] SRE principles and implementing error budgets <em>(asked in interview round)</em></summary>
 
 - **SRE** applies software-engineering thinking to operations. You measure reliability with **SLIs** (like latency or availability), set a target called an **SLO** (say, 99.9%), and the gap between that and 100% is your **error budget** — the amount of unreliability you're allowed to spend.
 - **Error budget policy:** if the budget is healthy, ship features fast. If it's used up, freeze risky releases and put the focus on reliability until it recovers. This ties feature velocity to reliability in an objective way, instead of an argument.
 - **Other principles:** remove repetitive manual work through automation, run blameless postmortems, keep that manual work under roughly half of everyone's time, and watch the **four golden signals** — latency, traffic, errors, and saturation (how close a resource is to running out of capacity).
 
-### 2. How do you implement SRE practices in DevOps pipelines? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you implement SRE practices in DevOps pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Define SLOs and error budgets, add monitoring checks into the pipeline, and block deployments if the error budget is exceeded.
 
@@ -21,7 +23,9 @@ Post-deploy gates check health, error rate, latency, saturation, and a real busi
 
 Alerts include the environment, commit, artifact, which stage failed, links to dashboards, and a runbook, then get routed by severity with deduplication so chat doesn't get noisy. I use trends to fix the slow or flaky stage, and make sure any automatic rollback or fix stays limited, logged, and doesn't just hide a recurring root cause.
 
-### 3. How do you implement SLO-driven deployments in CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q3. [Advanced] How do you implement SLO-driven deployments in CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Define SLOs and error budgets, add pipeline gates that check recent SLO metrics after a canary or blue-green rollout, block the full rollout or trigger a rollback if the error budget is blown, and notify the SRE team.
 
@@ -34,7 +38,9 @@ The pipeline runs prechecks, deploys to a small or zero-traffic target, runs rea
 
 If any threshold fails, it stops traffic and rolls back to the previous artifact or config. Database changes use an expand-and-contract approach, since an application rollback can't undo a destructive schema change. I verify recovery, record what happened, and improve whatever test or guard should have caught the problem earlier.
 
-### 4. How do you reduce toil in on-call DevOps support? *(scenario)*
+</details>
+
+<details><summary>Q4. [Intermediate] How do you reduce toil in on-call DevOps support? <em>(scenario)</em></summary>
 
 **Answer:** Automate the runbooks you use often, add self-healing for common incidents, rotate on-call fairly, and make alerts richer with logs and graphs. Mini-case: we automated disk cleanup for build agents. Instead of three night-time alerts a week, the script just fixed it on its own.
 
@@ -47,7 +53,9 @@ Anything dangerous or unclear still needs a human to approve it. Every self-heal
 
 I track pages, minutes of manual work, false-positive rate, and whether the issue keeps coming back. I prefer fixing the actual product or config over maintaining permanent cleanup scripts forever, and game days make sure responders can still handle the failures automation can't.
 
-### 5. How do you implement automatic fixes for common infra issues? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you implement automatic fixes for common infra issues? <em>(scenario)</em></summary>
 
 **Answer:** Hook alerts up to runbooks or automation (Cloud Functions, Lambdas, Runbooks) that perform a safe fix — restart a service, scale up — with manual approval as a fallback for anything risky. Log every automated step.
 
@@ -60,7 +68,9 @@ For example, it might recycle one unhealthy stateless instance after confirming 
 
 A kill switch, a dry-run mode, a timeout, safe-to-repeat behavior, and manual approval for anything stateful or destructive all keep the risk contained. Even a fix that runs automatically should still open a ticket so someone removes the root cause.
 
-### 6. How would you design a self-healing platform for critical production services?
+</details>
+
+<details><summary>Q6. [Advanced] How would you design a self-healing platform for critical production services?</summary>
 
 **Answer:**
 
@@ -78,7 +88,9 @@ I test this by injecting controlled failures, to confirm detection works, the fi
 
 Self-healing shortens recovery time. It doesn't replace root-cause analysis, capacity planning, or a tested disaster-recovery plan.
 
-### 7. How do you handle cascading failures across multiple microservices?
+</details>
+
+<details><summary>Q7. [Advanced] How do you handle cascading failures across multiple microservices?</summary>
 
 **Answer:**
 
@@ -92,7 +104,9 @@ Bulkheads, separate resource pools, per-tenant quotas, idempotency (so retries a
 
 Once things recover, I safely replay any buffered work, confirm data correctness and that SLOs have recovered, and load-test the new limits. The post-incident review updates dependency ownership, capacity assumptions, retry and timeout standards, alerts, and failure-mode exercises.
 
-### 8. Can strict use of the Single Responsibility Principle increase complexity in a distributed system? (True or False)
+</details>
+
+<details><summary>Q8. [Basic] Can strict use of the Single Responsibility Principle increase complexity in a distributed system? (True or False)</summary>
 
 **Answer:**
 
@@ -104,7 +118,9 @@ I look at coupling, how often each part changes independently, scaling needs, wh
 
 I only pull out a separate service when the boundary gives measurable independent value and the team can actually operate it — and I revisit that decision as usage changes.
 
-### 9. How do you apply chaos engineering safely in production? *(scenario)*
+</details>
+
+<details><summary>Q9. [Advanced] How do you apply chaos engineering safely in production? <em>(scenario)</em></summary>
 
 **Answer:** Start with small-impact experiments, run them in non-critical namespaces, use circuit breakers and feature flags, schedule experiments for low-traffic windows, and roll back automatically if metrics get worse.
 
@@ -119,19 +135,25 @@ Tools like Chaos Mesh can inject pod, network, or resource faults, but access to
 
 I compare what actually happened to the hypothesis, note any gaps, fix probes, capacity, retries, or runbooks as needed, and rerun it. Chaos engineering is never just letting failures happen at random.
 
-### 10. Handle complex/varying-traffic scaling scenarios for Kubernetes *(asked in interview round)*
+</details>
+
+<details><summary>Q10. [Advanced] Handle complex/varying-traffic scaling scenarios for Kubernetes <em>(asked in interview round)</em></summary>
 
 - Combine the **Horizontal Pod Autoscaler** (per service, on CPU, requests per second, or custom metrics through Prometheus Adapter, or **KEDA** for event/queue-driven scaling), the **Vertical Pod Autoscaler** for right-sizing, and the **Cluster Autoscaler** or **Karpenter** for adding nodes.
 - For **predictable peaks**, use scheduled scaling to pre-warm capacity. For **spiky traffic**, buffer it with queues (SQS/Kafka) plus KEDA. For **sudden node demand**, Karpenter provisions fast and cost-consciously, combined with spot instances.
 - Set real resource requests and limits, PodDisruptionBudgets, topology spread, and readiness probes, then load-test to confirm it all works, and keep an eye on cost. Different services need different scaling policies based on how their traffic actually behaves.
 
-### 11. Experience managing large-scale environments — challenges (behavioral) *(asked in interview round)*
+</details>
+
+<details><summary>Q11. [Intermediate] Experience managing large-scale environments — challenges (behavioral) <em>(asked in interview round)</em></summary>
 
 Talk about the actual scale you worked with (how many clusters, services, or regions) and the real challenges: config drift and standardizing things (solved with IaC and GitOps), observability at scale (too many unique label combinations, and the cost that comes with it — solved with tools like Thanos or sampling), coordinating across teams and rolling out changes safely (progressive delivery), cost optimization, reducing on-call load, and staying reliable through upgrades and migrations.
 
 For each challenge, be ready to say specifically what you did about it.
 
-### 12. Explain your production incident-management process.
+</details>
+
+<details><summary>Q12. [Intermediate] Explain your production incident-management process.</summary>
 
 **Answer:**
 
@@ -147,7 +169,9 @@ Recovery means confirming real customer and business transactions work, plus SLO
 
 The blameless review looks at both technical and organizational contributing factors, gaps in detection, what worked well, and concrete actions with an owner and a date. We update tests, architecture, runbooks, alerts, capacity plans, and game days, then check later that those fixes actually worked.
 
-### 13. How do you perform incident response in DevOps? *(scenario)*
+</details>
+
+<details><summary>Q13. [Intermediate] How do you perform incident response in DevOps? <em>(scenario)</em></summary>
 
 **Answer:**
 - Detect it through monitoring and alerts.
@@ -164,7 +188,9 @@ Stakeholders get factual updates on a schedule. Once things recover, I verify se
 
 Every action gets an owner and a date, and I prioritize systemic fixes — tests, guardrails, capacity, or design changes — over quick patches. Regular drills confirm the contacts, permissions, commands, and dependencies in the runbook still actually work.
 
-### 14. How do you implement cross-team incident playbooks and runbooks? *(scenario)*
+</details>
+
+<details><summary>Q14. [Advanced] How do you implement cross-team incident playbooks and runbooks? <em>(scenario)</em></summary>
 
 **Answer:** Keep versioned runbooks in a shared repo, automate the diagnostic steps as scripts triggered from alerts, assign clear roles during an incident, and run regular drills to make sure the playbooks still work. Wire the runbooks into PagerDuty or your alerting tool.
 
@@ -179,19 +205,25 @@ Stakeholders get factual updates on a schedule. Once things recover, I verify se
 
 Every action gets an owner and a date, and I prioritize systemic fixes — tests, guardrails, capacity, or design changes — over quick patches. Regular drills confirm the contacts, permissions, commands, and dependencies in the runbook still actually work.
 
-### 15. Lead a team through a critical production issue (behavioral — STAR) *(asked in interview round)*
+</details>
+
+<details><summary>Q15. [Advanced] Lead a team through a critical production issue (behavioral — STAR) <em>(asked in interview round)</em></summary>
 
 Use the **STAR** format: Situation (a severe outage), Task (your role, say incident commander), Action (declared the incident, opened a war room, assigned roles for communication/operations/scribe, mitigated first through rollback or failover, kept stakeholders updated regularly), Result (restored service, met the recovery target, ran a blameless postmortem, and drove the follow-up fixes).
 
 Emphasize staying calm, communicating clearly, fixing the immediate problem before digging into the cause, and following through afterward.
 
-### 16. Post-mortem / effective incident review process *(asked in interview round)*
+</details>
+
+<details><summary>Q16. [Intermediate] Post-mortem / effective incident review process <em>(asked in interview round)</em></summary>
 
 - **Blameless:** focus on the systems and contributing factors, not on blaming a person.
 - **Structure:** a timeline of events, the impact (users affected, duration, SLO impact), how it was detected, the root cause (found through something like the 5 Whys), what went well and what didn't, and concrete follow-ups with an owner and a due date.
 - **Process:** any significant incident triggers one, write it up promptly, review it with stakeholders, track the follow-ups to completion, and share it across the org so others learn from it. The goal is fixing the system, not just this one incident.
 
-### 17. A deployment succeeds, but latency rises from 80 ms to two seconds. How do you investigate it?
+</details>
+
+<details><summary>Q17. [Advanced] A deployment succeeds, but latency rises from 80 ms to two seconds. How do you investigate it?</summary>
 
 **Answer:**
 
@@ -205,7 +237,9 @@ I avoid the easy trap of just raising the timeout — that hides the latency pro
 
 Once I've made the targeted fix, I load-test the real path, confirm p50/p95/p99 latency and error rates, saturation, dependency health, and business metrics, and add a regression test or deployment guard based on what actually caused it.
 
-### 18. How do you design disaster recovery with an RTO under five minutes and a defined RPO?
+</details>
+
+<details><summary>Q18. [Advanced] How do you design disaster recovery with an RTO under five minutes and a defined RPO?</summary>
 
 **Answer:**
 
@@ -221,7 +255,9 @@ Game days simulate region and dependency failures, and measure detection, decisi
 
 If the tests can't hit five minutes, I report that gap honestly and either change the architecture or reset the expectation — I don't claim a target that hasn't been proven.
 
-### 19. How would you design and implement a disaster recovery strategy for a multi-region cloud infrastructure? *(scenario)*
+</details>
+
+<details><summary>Q19. [Advanced] How would you design and implement a disaster recovery strategy for a multi-region cloud infrastructure? <em>(scenario)</em></summary>
 
 **Answer:** Multi-region AWS setup with us-east-1 as primary and us-west-2 for DR, Terraform with per-region state but shared modules, S3 cross-region replication plus DynamoDB global tables plus cross-region RDS snapshots, Argo CD GitOps per region, Route53 failover, and quarterly FIS drills validating RTO/RPO.
 
@@ -234,7 +270,9 @@ EKS clusters use GitOps with Argo CD in each region, pulling from the same Git r
 
 Route53 health checks with failover routing automatically redirect traffic during a region failure. I run quarterly DR drills with AWS Fault Injection Simulator to confirm the actual recovery time (RTO) and recovery point (RPO) meet the targets.
 
-### 20. How do you ensure disaster recovery in the cloud (GCP/Azure)? *(scenario)*
+</details>
+
+<details><summary>Q20. [Intermediate] How do you ensure disaster recovery in the cloud (GCP/Azure)? <em>(scenario)</em></summary>
 
 **Answer:** Deploy across multiple zones, back up to remote regions, use Terraform to rebuild infrastructure quickly, and run DR drills regularly.
 
@@ -247,7 +285,9 @@ I automate restoring into a clean environment and check integrity, application t
 
 Regular exercises record the actual recovery time, any missing dependencies, and manual steps needed — and the runbook, capacity, DNS TTLs, contact paths, and retention policy get updated based on what they find.
 
-### 21. How do you automate backups in DevOps workflows? *(scenario)*
+</details>
+
+<details><summary>Q21. [Intermediate] How do you automate backups in DevOps workflows? <em>(scenario)</em></summary>
 
 **Answer:** Schedule backups with Velero for Kubernetes, automate database backups through scripts in the pipeline, and store backups in GCS or Azure Blob.
 
@@ -259,3 +299,5 @@ Manifests and infrastructure are versioned, but stateful data and secrets need e
 I automate restoring into a clean environment and check integrity, application transactions, monitoring, and access before switching traffic over. A backup isn't considered good until a restore drill has proven it.
 
 Regular exercises record the actual recovery time, any missing dependencies, and manual steps needed — and the runbook, capacity, DNS TTLs, contact paths, and retention policy get updated based on what they find.
+
+</details>

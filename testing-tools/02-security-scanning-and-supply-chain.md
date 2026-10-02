@@ -4,7 +4,7 @@
 
 ## Interview Questions
 
-### 1. Which security scanning tools do you run on container images at build time and registry time?
+<details><summary>Q1. [Basic] Which security scanning tools do you run on container images at build time and registry time?</summary>
 
 **Answer:**
 
@@ -20,7 +20,9 @@ I don't treat "zero CVEs" as the whole security program. Base images are pinned 
 
 Exceptions are time-bound. When a fix is needed, the patched image is rebuilt, retested, signed, promoted, and verified — I don't patch a running container in place.
 
-### 2. How do you integrate vulnerability scanning in CI/CD pipelines? *(scenario)*
+</details>
+
+<details><summary>Q2. [Intermediate] How do you integrate vulnerability scanning in CI/CD pipelines? <em>(scenario)</em></summary>
 
 **Answer:** Run static scans like Snyk or Trivy during the build. Fail the build if it finds critical CVEs, and automatically create a ticket to fix them.
 
@@ -39,7 +41,9 @@ If I suspect a compromise, I stop promotion right away. I revoke runner and sign
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
 
-### 3. How do you enforce security scans in CI/CD? *(scenario)*
+</details>
+
+<details><summary>Q3. [Intermediate] How do you enforce security scans in CI/CD? <em>(scenario)</em></summary>
 
 **Answer:** Add SAST (code scan with SonarQube) and DAST (OWASP ZAP) → Container image scans (Trivy/Anchore) → IaC scans (Checkov, tfsec).
 
@@ -56,7 +60,9 @@ If I suspect a compromise, I stop promotion right away. I revoke runner and sign
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
 
-### 4. CI/CD Pipeline Failing at the Trivy Security Scan
+</details>
+
+<details><summary>Q4. [Intermediate] CI/CD Pipeline Failing at the Trivy Security Scan</summary>
 
 #### The pipeline
 
@@ -93,7 +99,9 @@ CVE-2023-XXXXX  # accepted risk: unreachable code path, tracked in JIRA-1234, re
 
 "I would not bypass a CRITICAL finding just to keep the pipeline moving — that's exactly the scenario the scan exists to prevent. I'd look at the actual CVE details to see if a patched base image or dependency version is available, fix and rescan, and only if there's a genuine false positive or an accepted, time-boxed risk would I use a targeted `.trivyignore` entry with sign-off and a tracking ticket — never a blanket bypass of the whole Trivy stage."
 
-### 5. How do you manage secrets scanning and prevention of accidental commits? *(scenario)*
+</details>
+
+<details><summary>Q5. [Intermediate] How do you manage secrets scanning and prevention of accidental commits? <em>(scenario)</em></summary>
 
 **Answer:** Use pre-commit hooks like git-secrets, CI scanning for secrets, and push-blocking hooks in company repos. Rotate any secret that gets found, and train developers to avoid this.
 
@@ -110,7 +118,9 @@ If a scan finds a secret that was already committed, I revoke it immediately. I 
 
 Pre-commit and server-side scans, protected logs, least privilege, expiry, and rotation tests all help prevent it happening again.
 
-### 6. How do you monitor and enforce container image provenance across environments? *(scenario)*
+</details>
+
+<details><summary>Q6. [Advanced] How do you monitor and enforce container image provenance across environments? <em>(scenario)</em></summary>
 
 **Answer:** Require signed images and immutable tags — once a tag is created, it can't be changed. Every image needs an SBOM, and deployments are gated on the SBOM and on vulnerability thresholds.
 
@@ -129,7 +139,9 @@ If I suspect a compromise, I stop promotion right away. I revoke runner and sign
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
 
-### 7. How do you implement end-to-end supply-chain security for container images? *(scenario)*
+</details>
+
+<details><summary>Q7. [Advanced] How do you implement end-to-end supply-chain security for container images? <em>(scenario)</em></summary>
 
 **Answer:** Sign and verify images with Cosign. Scan images during the build with Trivy or Anchore. Use reproducible builds, enforce image provenance in registries, and block unsigned or vulnerable images in the pipeline.
 
@@ -150,7 +162,9 @@ If I suspect a compromise, I stop promotion right away. I revoke runner and sign
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
 
-### 8. How do you secure CI/CD pipelines from supply chain attacks? *(scenario)*
+</details>
+
+<details><summary>Q8. [Advanced] How do you secure CI/CD pipelines from supply chain attacks? <em>(scenario)</em></summary>
 
 **Answer:** Pin dependencies → Verify container/image signatures (Cosign) → Scan dependencies → Restrict external plugin usage.
 
@@ -166,3 +180,5 @@ Findings get an agreed severity and SLA. Exceptions are allowed, but only for a 
 If I suspect a compromise, I stop promotion right away. I revoke runner and signing credentials, isolate the affected artifacts, and preserve audit evidence. Then I rebuild from a trusted runner and source, and verify signatures before redeploying.
 
 Regular patching, egress restrictions, audit retention, and recovery drills cover what scanners alone can't catch.
+
+</details>
