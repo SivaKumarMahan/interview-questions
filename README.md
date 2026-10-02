@@ -1,5 +1,7 @@
 # DevOps Interview Questions
 
+**🌐 Website: [sivakumarmahan.github.io/interview-questions](https://sivakumarmahan.github.io/interview-questions/)**: the same content with search and dark mode.
+
 This repository contains interview questions, short notes, detailed answers, scenarios, commands, and examples for DevOps, cloud, Kubernetes, CI/CD, GitOps, security, networking, monitoring, and scripting.
 
 ## Table of contents
@@ -123,7 +125,7 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 
 To add a new topic file, copy the layout in [TEMPLATE.md](TEMPLATE.md).
 
-The same content is published as a searchable website at `https://sivakumarmahan.github.io/interview-questions/` once GitHub Pages is enabled (configured in `mkdocs.yml`). Every pull request runs Markdown lint, a link check, a spell check, and a site build (`.github/workflows/docs-quality.yml`).
+The same content is published as a searchable [website](https://sivakumarmahan.github.io/interview-questions/), built from `mkdocs.yml`. Every pull request runs Markdown lint, a link check, a spell check, and a site build (`.github/workflows/docs-quality.yml`).
 
 ## Topic index
 
