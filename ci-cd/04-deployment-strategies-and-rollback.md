@@ -2,6 +2,36 @@
 
 > Continuous delivery end to end, zero-downtime rolling, blue-green and canary releases, high-frequency deploys, and rollback design.
 
+## Key Concepts
+
+### Rolling vs. Blue/Green vs. Canary
+
+All three strategies replace version 1 with version 2 without downtime; they differ in how much traffic is at risk and how fast you can go back. Rolling is the cheapest, blue/green gives the fastest rollback, and canary limits the blast radius best.
+
+```mermaid
+flowchart TB
+    subgraph rolling["Rolling update"]
+        direction LR
+        R1["v1 v1 v1 v1"] --> R2["v2 v1 v1 v1"] --> R3["v2 v2 v1 v1"] --> R4["v2 v2 v2 v2"]
+    end
+    subgraph bluegreen["Blue/green"]
+        direction LR
+        BLB["Load balancer"] -->|"100% live"| BLUE["Blue: v1"]
+        BLB -.->|"switch after tests"| GREEN["Green: v2"]
+    end
+    subgraph canary["Canary"]
+        direction LR
+        CLB["Load balancer"] -->|"90%"| CV1["v1"]
+        CLB -->|"10%, watch metrics"| CV2["v2"]
+    end
+```
+
+| Strategy | Extra capacity | Rollback speed | Users exposed to a bad version |
+| --- | --- | --- | --- |
+| Rolling | Small (`maxSurge`) | Slow: roll back Pod by Pod | Grows as the rollout progresses |
+| Blue/green | Double, for a short time | Instant: switch traffic back | All users, after the switch |
+| Canary | Small | Fast: send the canary's traffic back to v1 | Only the canary share, for example 10% |
+
 ## Interview Questions
 
 ### 1. Explain a complete CD process.

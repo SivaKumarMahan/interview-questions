@@ -39,6 +39,24 @@ See `03-networking-and-traffic.md` for the investigation flow.
 
 Check kubelet and runtime health, certificates, disk/memory/PID pressure, CNI state, system logs, control-plane connectivity, and cloud instance health.
 
+### CrashLoopBackOff Decision Tree
+
+Start with `kubectl describe pod`. The last state and exit code of the container tell you which branch to follow. Then confirm the cause with `kubectl logs <pod> --previous`, which shows the output of the crashed container.
+
+```mermaid
+flowchart TD
+    A["Pod in CrashLoopBackOff"] --> B["kubectl describe pod<br/>read Last State, Reason, Exit Code, Events"]
+    B --> C{"Reason or exit code?"}
+    C -- "OOMKilled, exit 137" --> D["Memory limit too low or a leak:<br/>check usage, raise the limit, fix the leak"]
+    C -- "Error, exit 1 or other" --> E["kubectl logs --previous"]
+    C -- "Completed, exit 0" --> F["Main process finishes and exits:<br/>fix command, args, or entrypoint"]
+    C -- "Events show liveness probe failed" --> G["Probe kills a slow or busy app:<br/>fix the probe or add a startupProbe"]
+    E --> H{"What do the logs show?"}
+    H -- "Missing config, env var, or secret" --> I["Fix ConfigMap, Secret, or env"]
+    H -- "Cannot reach database or dependency" --> J["Check DNS, Service, NetworkPolicy,<br/>and credentials"]
+    H -- "Logs are empty" --> K["Check command and image,<br/>use kubectl debug to start a shell"]
+```
+
 ### Basic pod troubleshooting command order
 
 Run these commands in order:

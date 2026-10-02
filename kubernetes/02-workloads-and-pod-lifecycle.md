@@ -4,6 +4,28 @@
 
 ## Key Concepts
 
+### Pod Lifecycle
+
+A Pod moves through a small set of phases. `Pending` covers scheduling, image pulls, and init containers. `CrashLoopBackOff` is not a phase: it is a container state inside a `Running` or `Pending` Pod that keeps restarting.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: Pod created
+    Pending --> Running: scheduled, images pulled, init containers done
+    Running --> Succeeded: all containers exit 0, restartPolicy Never or OnFailure
+    Running --> Failed: a container exits non-zero and is not restarted
+    Running --> Running: container restarts, restartPolicy Always
+    Pending --> Failed: init container fails, restartPolicy Never
+    Running --> Unknown: node stops reporting
+    Unknown --> Running: node reports again
+    Succeeded --> [*]
+    Failed --> [*]
+    note right of Pending
+        Stuck here? Check scheduling events,
+        image pull errors, and unbound PVCs.
+    end note
+```
+
 ### Workload Controllers
 
 | Object | Purpose |

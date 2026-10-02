@@ -30,6 +30,33 @@ High availability comes down to a few things working together: compute and data 
 
 Cost optimization means right-sizing instances, autoscaling instead of over-provisioning, storage lifecycle rules, commitments (like Savings Plans) for steady demand, and tracking cost per transaction so you can see the impact of changes.
 
+### ECS Fargate Behind an ALB
+
+The ALB sits in public subnets in two Availability Zones and sends traffic to Fargate tasks in private subnets. Tasks pull images from ECR, read configuration and secrets from SSM Parameter Store, and send logs to CloudWatch, while CloudTrail records every API call made in the account.
+
+```mermaid
+flowchart LR
+    U["Users"] --> R53["Route 53"]
+    R53 --> ALB
+    subgraph vpc["VPC"]
+        subgraph pub["Public subnets, AZ a and AZ b"]
+            ALB["Application Load Balancer<br/>HTTPS listener, ACM certificate"]
+        end
+        subgraph priv["Private subnets, AZ a and AZ b"]
+            T1["Fargate task<br/>AZ a"]
+            T2["Fargate task<br/>AZ b"]
+        end
+        ALB -->|"target group, IP targets"| T1
+        ALB --> T2
+    end
+    T1 & T2 -->|"VPC endpoint or NAT"| ECR["ECR<br/>container images"]
+    T1 & T2 --> SSM["SSM Parameter Store<br/>config and secrets"]
+    T1 & T2 --> CW["CloudWatch Logs<br/>and metrics"]
+    CT["CloudTrail<br/>API audit log"]
+```
+
+TODO (Siva): replace this generic layout with your real service details, for example the number of services, how they scale, and where the database sits.
+
 ## Interview Questions
 
 ### 1. How do EC2, EKS, ECS, and databases fit together, and how do you interact with an ECS service?

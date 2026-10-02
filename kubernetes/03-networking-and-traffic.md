@@ -4,6 +4,27 @@
 
 ## Key Concepts
 
+### Request Path: DNS to Pod
+
+A user request passes through five hops before it reaches your code. When something breaks, walk the same path and check each hop in order, starting at DNS. With the AWS Load Balancer Controller in IP mode, the ALB sends traffic straight to Pod IPs, but the Service still decides which Pods are targets.
+
+```mermaid
+flowchart LR
+    U["User / client"] --> DNS["DNS<br/>app.example.com"]
+    DNS -->|"resolves to LB address"| LB["Cloud load balancer<br/>public IP or hostname"]
+    LB --> ING["Ingress controller<br/>host and path rules, TLS"]
+    ING --> SVC["Service<br/>stable ClusterIP"]
+    SVC -->|"ready endpoints only"| POD["Pod<br/>containerPort"]
+```
+
+| Hop | What to check |
+| --- | --- |
+| DNS | `dig app.example.com` returns the load balancer address |
+| Load balancer | Listener, certificate, health checks, and security groups |
+| Ingress | `kubectl describe ingress` shows the right host, path, and backend |
+| Service | `kubectl get endpointslices -l kubernetes.io/service-name=<svc>` is not empty |
+| Pod | The Pod is `Ready` and listens on `targetPort` |
+
 ### Service Types
 
 - **ClusterIP:** A stable internal IP. This is the default Service type.

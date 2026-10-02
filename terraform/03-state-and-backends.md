@@ -39,6 +39,37 @@ Someone edits an EC2 instance in the AWS console. Terraform does **not** update 
 
 Current Terraform versions can lock the S3 backend with `use_lockfile = true`. The older DynamoDB lock table still exists in many projects but is the legacy approach.
 
+### Plan and Apply with Remote State Locking
+
+Both `plan` and `apply` take the state lock, so two runs can never write the state at the same time. The lock lives in the backend: a DynamoDB table or an S3 lock file on AWS, or a blob lease on Azure Storage.
+
+```mermaid
+sequenceDiagram
+    actor Eng as Engineer or CI
+    participant TF as Terraform CLI
+    participant Lock as State lock
+    participant State as Remote state
+    participant Cloud as Cloud API
+
+    Eng->>TF: terraform plan -out=tfplan
+    TF->>Lock: acquire lock
+    alt lock already held
+        Lock-->>TF: Error acquiring the state lock
+        TF-->>Eng: wait, or stop the other run
+    else lock acquired
+        Lock-->>TF: OK
+        TF->>State: read current state
+        TF->>Cloud: refresh real resources
+        TF-->>Eng: show the planned changes
+        TF->>Lock: release lock
+    end
+    Eng->>TF: terraform apply tfplan
+    TF->>Lock: acquire lock
+    TF->>Cloud: create, update, delete resources
+    TF->>State: write new state
+    TF->>Lock: release lock
+```
+
 ### State file best practices
 
 1. Remote backend, never a local file for team work.

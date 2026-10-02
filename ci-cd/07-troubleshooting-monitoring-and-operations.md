@@ -2,6 +2,26 @@
 
 > Debugging failed and flaky pipelines, staging-vs-production differences, verifying deployments, notifications, and handling operational tickets.
 
+## Key Concepts
+
+### Failing Pipeline Decision Tree
+
+Read the log of the first failed step, not the last one: later failures are often side effects. Then decide whether the failure is in your code, in the pipeline setup, or in the environment it deploys to.
+
+```mermaid
+flowchart TD
+    A["Pipeline failed"] --> B{"Which stage failed?"}
+    B -- "Did not start" --> C["Check trigger, branch or path filters,<br/>and agent or runner availability"]
+    B -- "Checkout or build" --> D["Check credentials and service connections,<br/>dependency versions, cache, and agent disk space"]
+    B -- "Test" --> E{"Passes when re-run?"}
+    E -- "Yes" --> E1["Flaky test: quarantine it,<br/>fix timing or shared state"]
+    E -- "No" --> E2["Real failure: reproduce locally<br/>with the same versions, then fix"]
+    B -- "Scan" --> F["Finding above the threshold:<br/>upgrade the dependency or base image,<br/>or record an approved exception"]
+    B -- "Deploy" --> G["Check permissions, approvals, and environment,<br/>then kubectl rollout status and Pod events"]
+    G --> H{"New version unhealthy?"}
+    H -- "Yes" --> R["Roll back, then investigate"]
+```
+
 ## Interview Questions
 
 ### 1. What happens when a pipeline fails? Give a real example.

@@ -19,6 +19,23 @@ An end-to-end delivery pipeline turns a reviewed commit into a verified, running
 7. A Service, Ingress, or load balancer only routes users to workloads that are actually ready.
 8. **Prometheus**, **Grafana**, logs, traces, an APM tool like **Dynatrace**, **Alertmanager**, **Slack**, and **PagerDuty** support verification and day-to-day operations.
 
+### End-to-End CI/CD Flow Diagram
+
+The same flow as a picture. Every step must pass before the next one starts, and the artifact built once is the one that gets deployed everywhere. If verification fails after a deploy, the pipeline rolls back to the last good version.
+
+```mermaid
+flowchart LR
+    C["Commit / PR"] --> B["Build"]
+    B --> T["Test<br/>unit, integration"]
+    T --> S["Scan<br/>SAST, dependencies,<br/>image, IaC"]
+    S --> A["Artifact<br/>signed image in registry"]
+    A --> D["Deploy<br/>dev, then staging,<br/>then production"]
+    D --> V{"Verify<br/>health checks,<br/>metrics, smoke tests"}
+    V -- "Healthy" --> OK["Release done"]
+    V -- "Unhealthy" --> R["Rollback to<br/>last good version"]
+    R --> D
+```
+
 ### Key Principles
 
 - **Build once, promote everywhere.** The same digest moves through every environment — nothing gets rebuilt along the way.
