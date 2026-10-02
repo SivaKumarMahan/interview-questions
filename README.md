@@ -2,6 +2,92 @@
 
 This repository contains interview questions, short notes, detailed answers, scenarios, commands, and examples for DevOps, cloud, Kubernetes, CI/CD, GitOps, security, networking, monitoring, and scripting.
 
+## Table of contents
+
+- [Start here](#start-here)
+  - [Night before the interview: top 10 files](#night-before-the-interview-top-10-files)
+  - [1-day revision path](#1-day-revision-path)
+  - [1-week study plan](#1-week-study-plan)
+  - [Recommended study order](#recommended-study-order)
+- [How this repository is organized](#how-this-repository-is-organized)
+- [Topic index](#topic-index)
+  - [Containers, orchestration, and GitOps](#containers-orchestration-and-gitops)
+  - [CI/CD, source control, and artifacts](#cicd-source-control-and-artifacts)
+  - [Infrastructure as Code and configuration](#infrastructure-as-code-and-configuration)
+  - [Cloud](#cloud)
+  - [Operating systems and scripting](#operating-systems-and-scripting)
+  - [Observability, operations, and networking](#observability-operations-and-networking)
+- [Other folders](#other-folders)
+- [How to structure an answer](#how-to-structure-an-answer)
+- [Common technical terms in simple words](#common-technical-terms-in-simple-words)
+- [Common abbreviations](#common-abbreviations)
+- [Interview tip](#interview-tip)
+
+## Start here
+
+Pick the plan that matches the time you have. Each plan lists files in the order to read them. In every file, read **Key Concepts** first, then answer the **Interview Questions** out loud before you read the answers.
+
+### Night before the interview: top 10 files
+
+These files cover the questions that come up most in Senior and Lead DevOps rounds. Read the Key Concepts, then skim the question titles and make sure you can answer each one in a few sentences.
+
+| # | File | Why it matters |
+| --- | --- | --- |
+| 1 | [kubernetes/08-troubleshooting.md](kubernetes/08-troubleshooting.md) | CrashLoopBackOff, ImagePullBackOff, Pending Pods, and NotReady nodes come up in almost every round |
+| 2 | [kubernetes/03-networking-and-traffic.md](kubernetes/03-networking-and-traffic.md) | Services, Ingress, DNS, NetworkPolicies, and 502/503/504 errors |
+| 3 | [ci-cd/04-deployment-strategies-and-rollback.md](ci-cd/04-deployment-strategies-and-rollback.md) | Rolling, blue/green, and canary deployments, and how to roll back safely |
+| 4 | [azure-devops/03-pipeline-design-variables-and-templates.md](azure-devops/03-pipeline-design-variables-and-templates.md) | YAML pipelines, stages, templates, and variable groups |
+| 5 | [terraform/03-state-and-backends.md](terraform/03-state-and-backends.md) | Remote state, locking, and state problems |
+| 6 | [terraform/09-cicd-testing-and-security.md](terraform/09-cicd-testing-and-security.md) | Running Terraform in pipelines, testing, secrets, and policy as code |
+| 7 | [aws/03-networking-security-and-iam.md](aws/03-networking-security-and-iam.md) | VPC design, security groups vs. NACLs, NAT, and IAM |
+| 8 | [docker/06-troubleshooting-and-host-maintenance.md](docker/06-troubleshooting-and-host-maintenance.md) | Debugging containers that fail to start or run out of resources |
+| 9 | [ops/03-sre.md](ops/03-sre.md) | SLOs, incidents, and postmortems, which are central to lead roles |
+| 10 | [repetitive-questions/production-issues.md](repetitive-questions/production-issues.md) | Real production incidents, told as stories |
+
+### 1-day revision path
+
+About 8 hours. Take a short break after each block.
+
+| Block | Time | Files |
+| --- | --- | --- |
+| 1. Warm-up | 30 min | This README's [answer structures](#how-to-structure-an-answer), [kubernetes/01](kubernetes/01-architecture-and-fundamentals.md) |
+| 2. Kubernetes | 2 h | [kubernetes/02](kubernetes/02-workloads-and-pod-lifecycle.md), [03](kubernetes/03-networking-and-traffic.md), [05](kubernetes/05-scheduling-resources-autoscaling.md), [08](kubernetes/08-troubleshooting.md) |
+| 3. Docker | 45 min | [docker/02](docker/02-dockerfiles-and-building-images.md), [docker/06](docker/06-troubleshooting-and-host-maintenance.md) |
+| 4. Terraform | 1 h 30 min | [terraform/01](terraform/01-fundamentals-and-workflow.md), [03](terraform/03-state-and-backends.md), [07](terraform/07-lifecycle-and-safe-changes.md), [08](terraform/08-drift-import-and-refactoring.md) |
+| 5. CI/CD and GitOps | 1 h 30 min | [ci-cd/01](ci-cd/01-fundamentals-and-tooling.md), [ci-cd/04](ci-cd/04-deployment-strategies-and-rollback.md), [azure-devops/03](azure-devops/03-pipeline-design-variables-and-templates.md), [azure-devops/06](azure-devops/06-troubleshooting.md), [gitops/01](gitops/01-gitops-fundamentals.md) |
+| 6. Cloud and operations | 1 h 15 min | [aws/01](aws/01-architecture-and-high-availability.md), [aws/03](aws/03-networking-security-and-iam.md), [monitoring-tools/01](monitoring-tools/01-observability-and-apm.md), [ops/03](ops/03-sre.md) |
+| 7. Interview practice | 30 min | [repetitive-questions](repetitive-questions/), [real-interview-questions](real-interview-questions/), [managerial-round](managerial-round/) |
+
+### 1-week study plan
+
+About 3–4 hours a day. Each day ends with 20 minutes of answering that day's questions out loud.
+
+| Day | Focus | Files |
+| --- | --- | --- |
+| 1 | Foundations | [linux](linux/) 01, 03, 04, 06, 09 · [networking/fundamentals](networking/fundamentals/) · [git](git/) 01–04 · [shell-scripting](shell-scripting/) 01–02 |
+| 2 | Containers and Kubernetes basics | [docker](docker/) 01–06 · [kubernetes](kubernetes/) 01–04 |
+| 3 | Kubernetes in production | [kubernetes](kubernetes/) 05–09 · [helm](helm/) 01–04 · [gitops](gitops/) 01–02 |
+| 4 | Infrastructure as Code | [terraform](terraform/) 01–10 · skim [ansible](ansible/) 01 and 04 |
+| 5 | CI/CD | [ci-cd](ci-cd/) 01–07 · [azure-devops](azure-devops/) 01–06 · [artifact-repositories](artifact-repositories/) 05 · [testing-tools](testing-tools/) 01–02 |
+| 6 | Cloud and operations | [aws](aws/) 01–04 · [azure](azure/) 01, 04, 05 · [monitoring-tools](monitoring-tools/) 01, 04, 06 · [ops](ops/) 02–04 |
+| 7 | Mock interview day | [repetitive-questions](repetitive-questions/) · [real-interview-questions](real-interview-questions/) · [managerial-round](managerial-round/) · [others/behavioral](others/behavioral/) · [cheatcodes](cheatcodes/) |
+
+### Recommended study order
+
+Learn the groups from left to right. Each group builds on the one before it. The last step is practice, not new topics.
+
+```mermaid
+flowchart LR
+    A["Foundations<br/>Linux, networking,<br/>Git, shell, Python"] --> B["Containers<br/>Docker"]
+    B --> C["Orchestration<br/>Kubernetes, Helm"]
+    C --> D["Delivery<br/>CI/CD, Azure DevOps,<br/>Jenkins, GitHub Actions, GitOps"]
+    C --> E["Infrastructure as Code<br/>Terraform, Bicep, Ansible"]
+    D --> F["Cloud<br/>AWS, Azure"]
+    E --> F
+    F --> G["Operations<br/>Monitoring, SRE,<br/>DevSecOps, FinOps"]
+    G --> H["Interview practice<br/>Repetitive and real questions,<br/>managerial round"]
+```
+
 ## How this repository is organized
 
 Each tool or subject has its own folder, split **by topic** into 2–10 numbered files:
@@ -24,6 +110,8 @@ kubernetes/
   - *(scenario)*: a troubleshooting or design situation
 
 To revise one topic, open its file and read Key Concepts first, then practise the questions.
+
+To add a new topic file, copy the layout in [TEMPLATE.md](TEMPLATE.md).
 
 ## Topic index
 
@@ -97,6 +185,16 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 
 You do not need to memorize every sentence. For each answer, remember this simple structure:
 
+```mermaid
+flowchart LR
+    A["What it is"] --> B["Why it is used"]
+    B --> C["Small example"]
+    C --> D["How to verify it"]
+    D --> E["Common problem<br/>or limitation"]
+```
+
+The same structure as text:
+
 ```text
 What it is
 -> why it is used
@@ -106,6 +204,18 @@ What it is
 ```
 
 For a troubleshooting question, use:
+
+```mermaid
+flowchart TD
+    A["Understand the impact<br/>who is affected, since when"] --> B["Check Events, logs,<br/>and metrics"]
+    B --> C["Identify the cause"]
+    C --> D["Restore the service"]
+    D --> E{"Does the user<br/>request work?"}
+    E -- "No" --> B
+    E -- "Yes" --> F["Prevent the issue from<br/>happening again"]
+```
+
+The same steps as text:
 
 ```text
 understand the impact
