@@ -29,7 +29,7 @@ First find out who produced the error. `HTTPCode_ELB_5XX_Count` means the load b
 ```mermaid
 flowchart TD
     A["Users get 5xx from the ALB"] --> B{"Which status code?"}
-    B -- "503" --> C["No healthy targets:<br/>check target group health checks,<br/>path, port, and success codes"]
+    B -- "503" --> C["No registered targets in the target group:<br/>check registration, ECS service events,<br/>and the listener rule's target group.<br/>If all targets are unhealthy, the ALB<br/>fails open and still sends traffic"]
     B -- "502 Bad Gateway" --> D{"Target closed the connection<br/>or sent an invalid response"}
     D --> D1["App crashed or restarted:<br/>check app logs and ECS stopped reason"]
     D --> D2["App keep-alive timeout is shorter<br/>than the ALB idle timeout"]
