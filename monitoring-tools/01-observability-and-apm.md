@@ -82,7 +82,7 @@ Declare a single incident for a shared root cause and group the downstream sympt
 
 **AIOps** can group related symptoms, spot unusual behavior, rank likely causes, forecast risk, and suggest controlled runbooks. It supports good instrumentation, clear service targets, responder judgment and root-cause review — it doesn't replace any of them.
 
-Any automated action needs constrained authority, an audit trail, a rollback path and verification afterward. Detailed AIOps material is maintained in [`Ops/05-aiops.md`](../Ops/05-aiops.md).
+Any automated action needs constrained authority, an audit trail, a rollback path and verification afterward. Detailed AIOps material is maintained in [`ops/05-aiops.md`](../ops/05-aiops.md).
 
 ### What APM Does
 

@@ -40,11 +40,11 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 
 | Folder | Files | Topics |
 | --- | --- | --- |
-| [CI/CD](CI/CD/) | 7 | Fundamentals and tooling, pipeline design, environments and approvals, deployment strategies and rollback, security, runners and performance, troubleshooting |
+| [ci-cd](ci-cd/) | 7 | Fundamentals and tooling, pipeline design, environments and approvals, deployment strategies and rollback, security, runners and performance, troubleshooting |
 | [jenkins](jenkins/) | 9 | Architecture, pipeline as code and shared libraries, pipeline design, Kubernetes deployments, SCM triggers, credentials and security, agents and HA, performance, troubleshooting |
 | [github-actions](github-actions/) | 3 | Workflows, cross-repository triggers, end-to-end pipelines, security and troubleshooting |
 | [gitlab](gitlab/) | 3 | Repositories and collaboration, CI/CD pipelines, secrets/deployments/troubleshooting |
-| [azureDevops](azureDevops/) | 6 | Platform overview, Azure Repos and branching, pipeline design and templates, deployments and approvals, security and secrets, troubleshooting |
+| [azure-devops](azure-devops/) | 6 | Platform overview, Azure Repos and branching, pipeline design and templates, deployments and approvals, security and secrets, troubleshooting |
 | [git](git/) | 4 | Daily workflow, branching strategies and releases, pull requests and merge conflicts, recovery and troubleshooting |
 | [artifact-repositories](artifact-repositories/) | 8 | Repository selection, Azure Artifacts/Artifactory/GitHub Packages, Nexus, versioning and promotion, signing and access control, HA and backup, troubleshooting |
 | [testing-tools](testing-tools/) | 3 | Pipeline testing and quality gates, security scanning and supply chain, Checkov |
@@ -80,7 +80,7 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 | Folder | Files | Topics |
 | --- | --- | --- |
 | [monitoring-tools](monitoring-tools/) | 10 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, AWS and Azure, CI/CD and IaC, FinOps |
-| [Ops](Ops/) | 5 | Operations overview, DevSecOps, SRE, FinOps, AIOps |
+| [ops](ops/) | 5 | Operations overview, DevSecOps, SRE, FinOps, AIOps |
 | [networking](networking/) | 4 subfolders | Networking fundamentals (including a common ports reference), proxies and load balancing, network security, multi-cloud networking. Tool-specific networking lives in each tool's folder. |
 
 ## Other folders
@@ -90,9 +90,9 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 | [cheatcodes](cheatcodes/) | Quick command cheat-sheets per tool: kubectl, Docker, Git, Terraform, Ansible, Argo CD, Jenkins, GitHub Actions, AWS CLI, Linux, shell, TLS |
 | [repetitive-questions](repetitive-questions/) | Questions asked again and again across interviews: CI/CD flow, branching, rollback, zero-downtime deployment, secrets, sample pipelines and Dockerfiles, production issues |
 | [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies |
-| [managerial round questions](managerial%20round%20questions/) | Managerial-round questions and company background |
-| [AI](AI/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection |
-| [Others](Others/) | Behavioral, microservices, databases, cloud, coding challenges, general scenarios, and interview preparation notes |
+| [managerial-round](managerial-round/) | Managerial-round questions and company background |
+| [ai](ai/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection |
+| [others](others/) | Behavioral, microservices, databases, cloud, coding challenges, general scenarios, and interview preparation notes |
 
 ## How to structure an answer
 
