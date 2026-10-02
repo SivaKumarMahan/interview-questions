@@ -30,10 +30,10 @@ The source contained 256 numbered questions. Normalized exact-question compariso
 ## Supporting-File Distribution
 
 - `interview-round-notes-organized.md` → split by its 13 major sections into Linux, Docker, Kubernetes, CI/CD, Git, Terraform, AWS, monitoring, DevSecOps, SRE, coding challenges, behavioral, and process/tooling `interview-round-notes.md` files.
-- `notes.txt` → SonarQube/Trivy/Jenkins quality flow under `testing-tools`, Azure database connectivity under `azure-services`, and webhook behavior under `CI/CD`.
+- `notes.txt` → SonarQube/Trivy/Jenkins quality flow under `testing-tools`, Azure database connectivity under `azure` (now in `azure/04-storage-networking-and-reliability.md`), and webhook behavior under `CI/CD`.
 - `notes1.txt` → Docker installation under `ansible`, learning and collaboration under `others/behavioral`, Nginx/network troubleshooting under `networking/proxies-and-load-balancing`, dynamic typing under `python`, and Jenkins-to-Kubernetes deployment under `jenkins`. Kubernetes scaling content is represented in the detailed Kubernetes scenario answers.
 - `notes2.txt` → its Terraform secret/state, reusable pipeline, ALB/NLB, and IRSA material was matched to existing detailed Terraform, CI/CD, AWS, and Kubernetes coverage; the unique load-balancer comparison was retained in `networking/aws/load-balancer-notes.md`.
-- `summary.txt` → Key Vault rotation into AKS under `azure-services` and multi-environment Helm deployment under `helm`.
+- `summary.txt` → Key Vault rotation into AKS under `azure` (now in `azure/05-identity-security-and-governance.md`) and multi-environment Helm deployment under `helm`.
 - `terraform-kubernetes-linux-notes.txt` → matched against existing detailed Terraform Enterprise/state, Kubernetes operations, and Linux command answers; no shorter duplicate was added.
 - `secrets-team-collaboration-notes.txt` → secret, token, Terraform requirement, DNS, Pod-networking, and latency prompts were matched to existing detailed topic answers, including the new `networking` topic folders. Unique collaboration and SQL-performance prompts were answered under `others/behavioral` and `others/databases`.
 

@@ -59,7 +59,19 @@ I define what to watch based on what actually matters: availability, latency, er
 
 During an incident, I pin down the time and scope, compare recent deployments and Activity Log changes, trace the problem from the user's symptom down through the application to its dependencies to the infrastructure, and confirm the fix with the original query or transaction. I also tune out noisy alerts and actually test that notifications get routed correctly, rather than just assuming the configuration works.
 
-### 3. How do you control Azure costs?
+### 3. How do you monitor Azure services?
+
+**Answer:**
+
+I turn on platform metrics, diagnostic settings pointed at Log Analytics, Event Hub, or Storage as needed, Application Insights or OpenTelemetry for application traces, alerts with action groups, workbooks, and whatever health signals the service itself provides.
+
+Monitoring is driven by what actually matters to the business: availability, latency, errors, traffic, how close resources are to their limits, dependency failures, queue age, capacity, and security-relevant changes. Every alert has an owner, a runbook, and gets tested.
+
+When investigating an issue, I pin down the time window and scope, compare the Activity Log and recent deployments against the metrics, follow a request through its dependencies using a correlation or trace ID, fix the immediate problem, then confirm the original user-facing transaction actually works again.
+
+Retention, access control, sampling, how many unique label combinations get tracked, and ingestion cost all get designed deliberately — not left at whatever the defaults happen to be.
+
+### 4. How do you control Azure costs?
 
 **Answer:**
 

@@ -63,8 +63,7 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 | Folder | Files | Topics |
 | --- | --- | --- |
 | [aws](aws/) | 4 | Architecture and HA, compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting |
-| [azure](azure/) | 6 | Architecture, compute and app hosting, integration and messaging, storage/networking/reliability, identity and governance, automation/monitoring/cost |
-| [azure-services](azure-services/) | 3 | Compute and storage services, identity/secrets/governance, containers/messaging/monitoring |
+| [azure](azure/) | 6 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS), integration and messaging (Service Bus, Event Grid), storage/networking/reliability, identity/Key Vault/governance, automation/monitoring/cost |
 
 ### Operating systems and scripting
 
