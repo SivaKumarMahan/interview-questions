@@ -818,7 +818,7 @@ Talking points: `set -euo pipefail`, `trap ... ERR` for error handling, idempote
 
 ### Download the latest backup from a remote server over SSH
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/02-automation-scripts-in-practice.md](../shell-scripting/02-automation-scripts-in-practice.md)
 
 Finds the newest backup remotely, copies it to a temporary name, verifies the checksum, then atomically renames it. It does not assume the newest file is complete just because it exists.
 
@@ -846,7 +846,7 @@ echo "Downloaded and verified: $local_dir/$name"
 
 ### Start Nginx only if it is not already running
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/02-automation-scripts-in-practice.md](../shell-scripting/02-automation-scripts-in-practice.md)
 
 ```bash
 #!/usr/bin/env bash
@@ -872,7 +872,7 @@ fi
 
 ### Find the biggest file in a folder
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/02-automation-scripts-in-practice.md](../shell-scripting/02-automation-scripts-in-practice.md)
 
 ```bash
 #!/usr/bin/env bash
@@ -893,7 +893,7 @@ Do not delete the result automatically - first check whether it is an active log
 
 ### Capture an exit code correctly
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/01-bash-fundamentals-and-error-handling.md](../shell-scripting/01-bash-fundamentals-and-error-handling.md)
 
 `$?` must be captured immediately, because running `echo` or `cd` replaces it.
 
@@ -909,7 +909,7 @@ For pipelines, enable `set -o pipefail`; otherwise `$?` reflects only the final 
 
 ### A "complex automation script" answer
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/02-automation-scripts-in-practice.md](../shell-scripting/02-automation-scripts-in-practice.md)
 
 If asked for an example of a complex script you have written, describe a deployment script that:
 
@@ -927,7 +927,7 @@ Mention `set -Eeuo pipefail`, a cleanup trap, structured logs, quoted variables,
 
 ### Debugging automation scripts
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/01-bash-fundamentals-and-error-handling.md](../shell-scripting/01-bash-fundamentals-and-error-handling.md)
 
 ```bash
 bash -n deploy.sh             # syntax
@@ -941,7 +941,7 @@ Check the shebang, executable bit, PATH, working directory, user, environment va
 
 ### Azure cost optimization - find unattached managed disks
 
-Source: [shell-scripting/questions.md](../shell-scripting/questions.md)
+Source: [shell-scripting/02-automation-scripts-in-practice.md](../shell-scripting/02-automation-scripts-in-practice.md)
 
 Reports rather than deletes, so an owner can review first.
 
@@ -957,7 +957,7 @@ The process is report -> owner validation -> approval -> deletion after retentio
 
 ### Call a REST API safely
 
-Source: [python/questions.md](../python/questions.md)
+Source: [python/03-automation-apis-and-data.md](../python/03-automation-apis-and-data.md)
 
 Sets a timeout, checks the status code, and handles each failure type separately.
 
@@ -980,7 +980,7 @@ except (requests.ConnectionError, ValueError) as exc:
 
 ### Run shell commands from Python
 
-Source: [python/questions.md](../python/questions.md)
+Source: [python/03-automation-apis-and-data.md](../python/03-automation-apis-and-data.md)
 
 Use an argument list with `check=True` and a timeout. Avoid `shell=True` for user-controlled input because it allows command injection.
 
@@ -1000,7 +1000,7 @@ Handle `CalledProcessError` and `TimeoutExpired`, and redact sensitive arguments
 
 ### Process a large log file without loading it into memory
 
-Source: [python/questions.md](../python/questions.md)
+Source: [python/03-automation-apis-and-data.md](../python/03-automation-apis-and-data.md)
 
 Streams line by line and counts HTTP status codes.
 
@@ -1049,7 +1049,7 @@ Talking points: boto3 credentials via IAM role or OIDC, pagination for large ran
 
 ### Making a Python automation script production-ready
 
-Source: [python/questions.md](../python/questions.md)
+Source: [python/03-automation-apis-and-data.md](../python/03-automation-apis-and-data.md)
 
 - `argparse` or typed configuration with validation
 - Structured logs with correlation IDs and no secrets
@@ -1062,7 +1062,7 @@ Source: [python/questions.md](../python/questions.md)
 
 ### Scheduling Python automation
 
-Source: [python/questions.md](../python/questions.md)
+Source: [python/03-automation-apis-and-data.md](../python/03-automation-apis-and-data.md)
 
 Options: cron / systemd timers, GitHub Actions or Azure Pipelines schedules, Kubernetes CronJobs, Azure Functions timers, and workflow orchestrators.
 
