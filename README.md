@@ -15,8 +15,10 @@ This repository contains interview questions, short notes, detailed answers, sce
   - [CI/CD, source control, and artifacts](#cicd-source-control-and-artifacts)
   - [Infrastructure as Code and configuration](#infrastructure-as-code-and-configuration)
   - [Cloud](#cloud)
+  - [Data platform and logging](#data-platform-and-logging)
   - [Operating systems and scripting](#operating-systems-and-scripting)
   - [Observability, operations, and networking](#observability-operations-and-networking)
+  - [Lead-level preparation](#lead-level-preparation)
 - [Other folders](#other-folders)
 - [How to structure an answer](#how-to-structure-an-answer)
 - [Common technical terms in simple words](#common-technical-terms-in-simple-words)
@@ -43,6 +45,8 @@ These files cover the questions that come up most in Senior and Lead DevOps roun
 | 8 | [docker/06-troubleshooting-and-host-maintenance.md](docker/06-troubleshooting-and-host-maintenance.md) | Debugging containers that fail to start or run out of resources |
 | 9 | [ops/03-sre.md](ops/03-sre.md) | SLOs, incidents, and postmortems, which are central to lead roles |
 | 10 | [repetitive-questions/production-issues.md](repetitive-questions/production-issues.md) | Real production incidents, told as stories |
+
+For a **Lead** role, also read [system-design/01-approach-and-framework.md](system-design/01-approach-and-framework.md) and [leadership/04-leading-incidents.md](leadership/04-leading-incidents.md), and rehearse your own stories in [my-projects](my-projects/README.md).
 
 ### 1-day revision path
 
@@ -84,8 +88,9 @@ flowchart LR
     C --> E["Infrastructure as Code<br/>Terraform, Bicep, Ansible"]
     D --> F["Cloud<br/>AWS, Azure"]
     E --> F
-    F --> G["Operations<br/>Monitoring, SRE,<br/>DevSecOps, FinOps"]
-    G --> H["Interview practice<br/>Repetitive and real questions,<br/>managerial round"]
+    F --> G["Operations and data<br/>Monitoring, Splunk, Databricks,<br/>SRE, DevSecOps, FinOps"]
+    G --> L["Lead-level preparation<br/>System design, leadership,<br/>your own projects"]
+    L --> H["Interview practice<br/>Labs, repetitive and real questions,<br/>managerial round"]
 ```
 
 ## How this repository is organized
@@ -118,70 +123,90 @@ To revise one topic, open its file and read Key Concepts first, then practise th
 
 To add a new topic file, copy the layout in [TEMPLATE.md](TEMPLATE.md).
 
+The same content is published as a searchable website at `https://sivakumarmahan.github.io/interview-questions/` once GitHub Pages is enabled (configured in `mkdocs.yml`). Every pull request runs Markdown lint, a link check, a spell check, and a site build (`.github/workflows/docs-quality.yml`).
+
 ## Topic index
+
+29 topic folders, 164 topic files, and 1507 interview questions in total.
 
 ### Containers, orchestration, and GitOps
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [docker](docker/) | 6 | Fundamentals, Dockerfiles, image optimization and multi-stage builds, networking/volumes/Compose, security and CI/CD, troubleshooting |
-| [kubernetes](kubernetes/) | 9 | Architecture, workloads and Pod lifecycle, networking and traffic, storage and StatefulSets, scheduling/resources/autoscaling, security and RBAC, deployments and upgrades, troubleshooting, observability/backup/DR |
-| [helm](helm/) | 4 | Chart structure, releases/values/hooks, multi-environment and reusable charts, security/CI/CD/troubleshooting |
-| [gitops](gitops/) | 2 | GitOps fundamentals (push vs. pull, drift, rollback, GitOps at scale), Argo CD |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [docker](docker/) | 6 | 55 | Fundamentals, Dockerfiles, image optimization and multi-stage builds, networking/volumes/Compose, security and CI/CD, troubleshooting |
+| [kubernetes](kubernetes/) | 10 | 241 | Architecture, workloads and Pod lifecycle, networking and traffic, storage and StatefulSets, scheduling/resources/autoscaling, security and RBAC, deployments and upgrades, troubleshooting, observability/backup/DR, service mesh with Istio |
+| [helm](helm/) | 4 | 11 | Chart structure, releases/values/hooks, multi-environment and reusable charts, security/CI/CD/troubleshooting |
+| [gitops](gitops/) | 2 | 6 | GitOps fundamentals (push vs. pull, drift, rollback, GitOps at scale), Argo CD and its reconcile loop |
 
 ### CI/CD, source control, and artifacts
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [ci-cd](ci-cd/) | 7 | Fundamentals and tooling, pipeline design, environments and approvals, deployment strategies and rollback, security, runners and performance, troubleshooting |
-| [jenkins](jenkins/) | 9 | Architecture, pipeline as code and shared libraries, pipeline design, Kubernetes deployments, SCM triggers, credentials and security, agents and HA, performance, troubleshooting |
-| [github-actions](github-actions/) | 3 | Workflows, cross-repository triggers, end-to-end pipelines, security and troubleshooting |
-| [gitlab](gitlab/) | 3 | Repositories and collaboration, CI/CD pipelines, secrets/deployments/troubleshooting |
-| [azure-devops](azure-devops/) | 6 | Platform overview, Azure Repos and branching, pipeline design and templates, deployments and approvals, security and secrets, troubleshooting |
-| [git](git/) | 4 | Daily workflow, branching strategies and releases, pull requests and merge conflicts, recovery and troubleshooting |
-| [artifact-repositories](artifact-repositories/) | 8 | Repository selection, Azure Artifacts/Artifactory/GitHub Packages, Nexus, versioning and promotion, signing and access control, HA and backup, troubleshooting |
-| [testing-tools](testing-tools/) | 3 | Pipeline testing and quality gates, security scanning and supply chain, Checkov |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [ci-cd](ci-cd/) | 7 | 56 | Fundamentals and the end-to-end flow, pipeline design, environments and approvals, rolling/blue-green/canary and rollback, security, runners and performance, troubleshooting |
+| [jenkins](jenkins/) | 9 | 72 | Architecture, pipeline as code and shared libraries, pipeline design, Kubernetes deployments, SCM triggers, credentials and security, agents and HA, performance, troubleshooting |
+| [github-actions](github-actions/) | 3 | 8 | Workflows, cross-repository triggers, end-to-end pipelines, security and troubleshooting |
+| [gitlab](gitlab/) | 3 | 18 | Repositories and collaboration, CI/CD pipelines, secrets/deployments/troubleshooting |
+| [azure-devops](azure-devops/) | 6 | 28 | Platform overview, Azure Repos and branching, pipeline design and templates, deployments and approvals, security and secrets, troubleshooting |
+| [git](git/) | 4 | 20 | Daily workflow, branching strategies and releases, pull requests and merge conflicts, recovery and troubleshooting |
+| [artifact-repositories](artifact-repositories/) | 8 | 39 | Repository selection, Azure Artifacts/Artifactory/GitHub Packages, Nexus, versioning and promotion, signing and access control, HA and backup, troubleshooting |
+| [testing-tools](testing-tools/) | 3 | 17 | Pipeline testing and quality gates, security scanning and supply chain, Checkov |
 
 ### Infrastructure as Code and configuration
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [terraform](terraform/) | 10 | Workflow, variables/functions/meta-arguments, state and backends, modules, environments and workspaces, providers and multi-cloud, lifecycle, drift and import, CI/CD/testing/security, troubleshooting |
-| [bicep](bicep/) | 3 | Structure, deployment scopes/environments/secrets, validation and troubleshooting |
-| [ansible](ansible/) | 8 | Setup, inventory, ad hoc commands and modules, playbooks, variables/loops/conditions, roles and Galaxy, Vault and production practices, debugging |
-| [yaml](yaml/) | 4 | Syntax, worked examples, common mistakes and validation, YAML in DevOps tools |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [terraform](terraform/) | 11 | 167 | Workflow, variables/functions/meta-arguments, state and backends, modules, environments and workspaces, providers and multi-cloud, lifecycle, drift and import, CI/CD/testing/security, troubleshooting, OpenTofu vs. Terraform |
+| [bicep](bicep/) | 3 | 13 | Structure, deployment scopes/environments/secrets, validation and troubleshooting |
+| [ansible](ansible/) | 8 | 12 | Setup, inventory, ad hoc commands and modules, playbooks, variables/loops/conditions, roles and Galaxy, Vault and production practices, debugging |
+| [yaml](yaml/) | 4 | 11 | Syntax, worked examples, common mistakes and validation, YAML in DevOps tools |
 
 ### Cloud
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [aws](aws/) | 4 | Architecture and HA, compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting |
-| [azure](azure/) | 6 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS), integration and messaging (Service Bus, Event Grid), storage/networking/reliability, identity/Key Vault/governance, automation/monitoring/cost |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [aws](aws/) | 9 | 96 | Architecture and HA (with an ECS Fargate diagram), compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting, ECS and Fargate, Application Load Balancer, ECR, SSM Parameter Store, CloudTrail |
+| [azure](azure/) | 6 | 48 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS), integration and messaging (Service Bus, Event Grid), storage/networking/reliability, identity/Key Vault/governance, automation/monitoring/cost |
+
+### Data platform and logging
+
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [splunk](splunk/) | 4 | 56 | Architecture (forwarders, indexers, search heads), SPL queries, alerts and dashboards, troubleshooting |
+| [databricks](databricks/) | 3 | 43 | Unity Catalog and Hive metastore migration, workspace and cluster management, CI/CD with bundles and data platform DevOps |
 
 ### Operating systems and scripting
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [linux](linux/) | 9 | Fundamentals, files and text processing, users/permissions/SSH, processes and services, disks and filesystems, networking, packages, logs, performance troubleshooting |
-| [windows](windows/) | 3 | Administration and patching, logs and troubleshooting, networking and remote access |
-| [shell-scripting](shell-scripting/) | 2 | Bash fundamentals and error handling, automation scripts in practice |
-| [python](python/) | 5 | Fundamentals, functions and classes, automation/APIs/data, logging with Loguru, coding challenges |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [linux](linux/) | 9 | 99 | Fundamentals, files and text processing, users/permissions/SSH, processes and services, disks and filesystems, networking, packages, logs, performance troubleshooting |
+| [windows](windows/) | 3 | 12 | Administration and patching, logs and troubleshooting, networking and remote access |
+| [shell-scripting](shell-scripting/) | 2 | 17 | Bash fundamentals and error handling, automation scripts in practice |
+| [python](python/) | 5 | 53 | Fundamentals, functions and classes, automation/APIs/data, logging with Loguru, coding challenges |
 
 ### Observability, operations, and networking
 
-| Folder | Files | Topics |
-| --- | --- | --- |
-| [monitoring-tools](monitoring-tools/) | 10 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, AWS and Azure, CI/CD and IaC, FinOps |
-| [ops](ops/) | 5 | Operations overview, DevSecOps, SRE, FinOps, AIOps |
-| [networking](networking/) | 4 subfolders | Networking fundamentals (including a common ports reference), proxies and load balancing, network security, multi-cloud networking. Tool-specific networking lives in each tool's folder. |
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [monitoring-tools](monitoring-tools/) | 10 | 61 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, AWS and Azure, CI/CD and IaC, FinOps |
+| [ops](ops/) | 7 | 75 | Operations overview, DevSecOps, SRE, FinOps, AIOps, HashiCorp Vault, policy as code with OPA and Kyverno |
+| [networking](networking/) | 4 subfolders | – | Networking fundamentals (including a common ports reference), proxies and load balancing, network security, multi-cloud networking. Tool-specific networking lives in each tool's folder. |
+
+### Lead-level preparation
+
+| Folder | Files | Questions | Topics |
+| --- | --- | --- | --- |
+| [system-design](system-design/) | 5 | 67 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on AWS, centralized logging platform, secrets management at scale |
+| [leadership](leadership/) | 5 | 59 | Architecture decision records, writing postmortems, mentoring, leading incidents, stakeholder communication |
+| [my-projects](my-projects/) | 5 | 47 | STAR templates for your own projects, with architecture diagram skeletons and likely follow-up questions. See its [README](my-projects/README.md). |
 
 ## Other folders
 
 | Folder | What it contains |
 | --- | --- |
+| [labs](labs/) | Three hands-on labs with expected results: fix a broken Deployment on kind, OpenTofu with LocalStack and remote state, and a multi-stage Dockerfile exercise |
 | [cheatcodes](cheatcodes/) | Quick command cheat-sheets per tool: kubectl, Docker, Git, Terraform, Ansible, Argo CD, Jenkins, GitHub Actions, AWS CLI, Linux, shell, TLS |
 | [repetitive-questions](repetitive-questions/) | Questions asked again and again across interviews: CI/CD flow, branching, rollback, zero-downtime deployment, secrets, sample pipelines and Dockerfiles, production issues |
-| [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies |
+| [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies, and an [interview tracker](real-interview-questions/README.md) |
 | [managerial-round](managerial-round/) | Managerial-round questions and company background |
 | [ai](ai/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection |
 | [others](others/) | Behavioral, microservices, databases, cloud, coding challenges, general scenarios, and interview preparation notes |
@@ -254,6 +279,7 @@ understand the impact
 | Abbreviation | Meaning |
 | --- | --- |
 | ACR | Azure Container Registry |
+| ADR | Architecture Decision Record; a short document that records a technical decision and why it was made |
 | AKS | Azure Kubernetes Service |
 | APM | Application Performance Monitoring |
 | CI/CD | Continuous Integration and Continuous Delivery or Deployment |
@@ -270,6 +296,7 @@ understand the impact
 | SAST | Static Application Security Testing; scans source or compiled code |
 | SBOM | Software Bill of Materials; a list of components in an artifact |
 | SLO | Service Level Objective; the reliability target for a service |
+| SPL | Search Processing Language; the query language of Splunk |
 | SRE | Site Reliability Engineering |
 | VPA | Vertical Pod Autoscaler |
 
