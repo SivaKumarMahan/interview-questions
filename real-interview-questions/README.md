@@ -30,5 +30,6 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 | Deloitte LLP (part 2) | [DelloiteLLP2.md](DelloiteLLP2.md) |
 | Innovar Tech | [InnovarTech.md](InnovarTech.md) |
 | SimCorp | [Simcorp.md](Simcorp.md) |
+| Wipro | [Wipro.md](Wipro.md) |
 
 When you add a new company, create `CompanyName.md` in this folder and add it to the table above.
