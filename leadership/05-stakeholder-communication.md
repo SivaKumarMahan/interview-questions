@@ -10,9 +10,9 @@ Stakeholders care about **outcomes**: risk, cost, speed, and customer experience
 
 | Technical statement | Business translation |
 | --- | --- |
-| "We migrated state to S3 with locking." | "Two engineers can no longer accidentally overwrite each other's infrastructure changes, which caused an outage last quarter." |
-| "We added canary deploys to ECS." | "Bad releases now affect about 10% of users for a few minutes instead of everyone until someone notices." |
-| "We moved to Fargate Spot for batch jobs." | "Batch processing costs dropped by roughly X% with no change to delivery times." |
+| "We moved Terraform state to Azure Storage with blob lease locking." | "Two engineers can no longer accidentally overwrite each other's infrastructure changes, which caused an outage last quarter." |
+| "We added canary deploys on AKS." | "Bad releases now affect about 10% of users for a few minutes instead of everyone until someone notices." |
+| "We moved batch jobs to Spot node pools on AKS." | "Batch processing costs dropped by roughly X% with no change to delivery times." |
 | "We have 200 open CVEs in base images." | "We have known security gaps that an auditor would flag; fixing the top 20 removes most of the real risk." |
 
 A simple pattern: **what we did, why it matters, what it costs or saves, what we need from you.**
@@ -97,7 +97,7 @@ Tips:
 
 ### Working with Security, Finance, and Product
 
-- **Security:** involve them early, at design time, not at go-live. Bring a clear data flow, IAM model, and logging plan. Treat their requirements as constraints, not obstacles, and ask "what control would make you comfortable?".
+- **Security:** involve them early, at design time, not at go-live. Bring a clear data flow, an identity and access model (Entra ID, Azure RBAC, Managed Identity), and a logging plan. Treat their requirements as constraints, not obstacles, and ask "what control would make you comfortable?".
 - **Finance:** speak in monthly cost, forecast, and commitments. Tag resources so costs map to teams. Flag renewals and price changes early. Show savings with before and after numbers.
 - **Product:** share a reliability roadmap with them. Use SLOs and error budgets to agree when reliability work takes priority over features.
 
@@ -107,7 +107,7 @@ Tips:
 - **One page.** Details go in an appendix or link.
 - **Numbers over adjectives:** "4 hours of downtime, ~X orders affected" not "a significant outage".
 - **Options with a recommendation**, not an open question.
-- **No jargon:** say "cloud servers", not "EC2 instances in an ASG", unless they use those terms.
+- **No jargon:** say "cloud servers", not "VMs in a VM Scale Set", unless they use those terms.
 
 ```text
 Subject: Decision needed by Friday - logging platform renewal

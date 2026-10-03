@@ -1,6 +1,6 @@
 # Kubernetes: Service Mesh with Istio
 
-> Istio in depth: istiod and Envoy sidecars, ambient mode, mTLS, traffic management, AuthorizationPolicy, observability, sidecar cost, troubleshooting with istioctl and Envoy flags, and Istio vs Linkerd vs no mesh.
+> Istio in depth: istiod and Envoy sidecars, ambient mode, the AKS Istio-based service mesh add-on, mTLS, traffic management, AuthorizationPolicy, observability, sidecar cost, troubleshooting with istioctl and Envoy flags, revision-based upgrades, and Istio vs Linkerd vs no mesh.
 
 ## Key Concepts
 
@@ -15,6 +15,23 @@ A mesh moves four jobs out of application code and into the platform: **workload
 - **istiod** is the control plane. It watches Kubernetes and Istio resources, turns them into Envoy config, and pushes it over xDS. It is also the CA that signs short-lived workload certificates (SPIFFE IDs like `spiffe://cluster.local/ns/payments/sa/api`).
 - **Sidecar data plane:** an `istio-proxy` (Envoy) container is injected into each Pod. iptables rules (from an init container or the Istio CNI plugin) redirect all inbound and outbound traffic through it.
 - **Ambient data plane:** no sidecars. A per-node **ztunnel** DaemonSet handles L4 mTLS, identity, and L4 authorization. An optional **waypoint** Envoy proxy, deployed per namespace or per service, adds L7 features. Ambient mode reached GA (stable) in Istio 1.24 in November 2024. Ambient multi-network multicluster is Beta as of Istio 1.29, so check the feature status page for anything multicluster.
+
+### Istio on AKS: the Managed Add-on
+
+AKS offers an **Istio-based service mesh add-on**. Microsoft tests each Istio revision against AKS versions, runs and scales istiod for you, rolls out patches for istiod and the ingress gateways, and supports it through Azure support. You still restart your workloads to pick up new sidecar versions.
+
+```bash
+az aks mesh get-revisions --location westeurope -o table   # revisions such as asm-1-29, asm-1-30
+az aks mesh enable -g rg-aks-prod -n aks-prod                # or: az aks create ... --enable-asm
+az aks show -g rg-aks-prod -n aks-prod --query 'serviceMeshProfile.istio.revisions'
+kubectl get pods -n aks-istio-system                         # istiod-asm-1-xx
+kubectl label namespace payments istio.io/rev=asm-1-30       # the default istio-injection=enabled label does not work
+kubectl rollout restart deploy -n payments
+```
+
+- **Namespaces:** the control plane runs in `aks-istio-system`, and the ingress gateways run in `aks-istio-ingress`. Pass `--istioNamespace aks-istio-system` to `istioctl` commands.
+- **Ingress gateways:** `az aks mesh enable-ingress-gateway --ingress-gateway-type external` (or `internal`) creates a `LoadBalancer` Service on the Azure Load Balancer (public, or private inside the VNet). Gateway resources select it with `istio: aks-istio-ingressgateway-external` or `istio: aks-istio-ingressgateway-internal`. A common pattern is Application Gateway with WAF (or Front Door) in front of the internal gateway.
+- **Limits to know (as of 2026):** sidecar mode only (no ambient mode yet), no multicluster, no Gateway API for the add-on's ingress yet, no automatic minor upgrades, and some customizations (for example `WasmPlugin`, `ProxyConfig`, `IstioOperator`) are blocked. MeshConfig is set through a shared ConfigMap per revision in `aks-istio-system`. Check the AKS docs for the current list.
 
 ### Request Flow Through Sidecars
 
@@ -52,7 +69,7 @@ flowchart LR
 
 ### Observability
 
-Envoy emits standard metrics (`istio_requests_total`, `istio_request_duration_milliseconds`) for Prometheus. **Kiali** draws the service graph and validates config. Tracing needs apps to **forward trace headers** (W3C `traceparent` or B3); the mesh cannot join spans by itself.
+Envoy emits standard metrics (`istio_requests_total`, `istio_request_duration_milliseconds`) for Prometheus. **Kiali** draws the service graph and validates config. Tracing needs apps to **forward trace headers** (W3C `traceparent` or B3); the mesh cannot join spans by itself. On AKS, the Istio add-on is tested with Azure Monitor managed service for Prometheus and Azure Managed Grafana, so mesh metrics can sit next to your other AKS dashboards and alerts.
 
 ## Interview Questions
 
@@ -303,7 +320,9 @@ The general analysis is in [Networking and traffic](03-networking-and-traffic.md
 | L7 features | Everywhere by default | Only through a waypoint |
 | Blast radius | Proxy failure affects one Pod | ztunnel failure affects the whole node |
 
-I would pick **ambient** for a new single-cluster platform where most services need mTLS and L4 policy, and some need L7 routing. I would stay on **sidecar** if I need a feature or integration not yet supported in ambient, or a multicluster topology still marked alpha for ambient. Before deciding, I check the Istio feature status page for the exact version and run a proof of concept with our CNI (for example, AWS VPC CNI on EKS) and our NetworkPolicies.
+I would pick **ambient** for a new single-cluster platform where most services need mTLS and L4 policy, and some need L7 routing. I would stay on **sidecar** if I need a feature or integration not yet supported in ambient, or a multicluster topology still marked alpha for ambient. Before deciding, I check the Istio feature status page for the exact version and run a proof of concept with our CNI (for example, Azure CNI powered by Cilium on AKS) and our NetworkPolicies.
+
+On AKS there is one more input: the managed Istio add-on supports only sidecar mode today. Ambient on AKS means installing and operating open-source Istio yourself, which gives up the managed upgrades and Azure support. For most AKS teams that tips the choice to sidecar mode on the add-on for now.
 
 Mixed mode is possible: sidecar and ambient workloads can talk to each other in one mesh, so migration can be gradual.
 
@@ -327,6 +346,22 @@ Better still, use **revision tags** (`istioctl tag set prod --revision 1-30-0`) 
 
 Rules I follow: upgrade one minor version at a time, read the release notes for deprecated APIs and changed defaults, run `istioctl analyze` after, move a non-critical namespace first, and keep the old revision until every Pod has moved. Proxy and control plane can differ by a limited number of minor versions, so do not leave old Pods unrestarted for months.
 
+**On the AKS add-on**, the same canary idea is built in, and Azure runs the control plane steps:
+
+```bash
+az aks mesh get-upgrades -g rg-aks-prod -n aks-prod
+az aks mesh upgrade start -g rg-aks-prod -n aks-prod --revision asm-1-30   # asm-1-29 and asm-1-30 run side by side
+kubectl get pods -n aks-istio-system                                       # istiod for both revisions
+kubectl label namespace payments istio.io/rev=asm-1-30 --overwrite
+kubectl rollout restart deploy -n payments
+# healthy:
+az aks mesh upgrade complete -g rg-aks-prod -n aks-prod                    # removes the old control plane
+# not healthy: relabel to asm-1-29, restart workloads again, then
+az aks mesh upgrade rollback -g rg-aks-prod -n aks-prod
+```
+
+Notes for the add-on: if you customized MeshConfig, create the ConfigMap for the new revision before `upgrade start`. Revision tags also work (`istioctl tag set prod-stable --revision asm-1-30 --istioNamespace aks-istio-system --overwrite`). Ingress gateway Pods run per revision behind one shared `LoadBalancer` Service, so the gateway IP does not change. Patch versions of istiod and gateways roll out with AKS releases inside your planned maintenance window, but sidecars update only when you restart Pods. The add-on does not upgrade minor revisions on its own, and an unsupported revision can block AKS cluster upgrades, so keep it on the support calendar.
+
 TODO (Siva): add whether you have run Istio (or another mesh) in production, and which upgrade method you used.
 
 </details>
@@ -342,7 +377,9 @@ TODO (Siva): add whether you have run Istio (or another mesh) in production, and
 | Ops effort | Highest | Lower | Lowest |
 | Licensing | Open source, CNCF graduated | Code open source and CNCF graduated, but since Feb 2024 stable release builds come from vendors such as Buoyant Enterprise; the open-source project ships edge releases | n/a |
 
-**Choose no mesh** when you have a few services and NetworkPolicy plus cloud load balancers plus OpenTelemetry in the app cover your needs. Many ECS or small EKS setups are here. AWS App Mesh was discontinued on 30 September 2026. AWS points ECS users to ECS Service Connect and EKS users to VPC Lattice.
+**Choose no mesh** when you have a few services and NetworkPolicy plus Application Gateway or Azure Load Balancer plus OpenTelemetry in the app cover your needs. Many small AKS setups are here.
+
+On AKS, if you choose Istio, prefer the **Istio-based service mesh add-on** unless you need something it blocks (ambient mode, multicluster, certain extensions). The older Open Service Mesh (OSM) add-on is retired upstream, and AKS stops supporting it on 30 September 2027. It cannot run beside the Istio add-on, so OSM users must migrate.
 
 **Choose Linkerd** when you mainly want zero-config mTLS and golden metrics with low overhead, and you accept the release model.
 

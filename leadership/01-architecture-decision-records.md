@@ -1,6 +1,6 @@
 # Leadership: Architecture Decision Records
 
-> What an ADR is, when to write one, a reusable template, the ADR lifecycle, where to store ADRs, and worked DevOps examples such as OpenTofu vs Terraform and ECS vs EKS.
+> What an ADR is, when to write one, a reusable template, the ADR lifecycle, where to store ADRs, and worked DevOps examples such as OpenTofu vs Terraform and AKS vs Azure App Service.
 
 ## Key Concepts
 
@@ -20,9 +20,9 @@ Write an ADR when a decision is **hard to reverse**, **affects more than one tea
 | Write an ADR | Skip the ADR |
 | --- | --- |
 | IaC tool for the whole platform (OpenTofu vs Terraform) | Variable naming inside one module |
-| Container platform (ECS Fargate vs EKS) | Which linter rule to enable |
-| State backend and locking strategy | A one-off script |
-| Secrets store (SSM Parameter Store vs Secrets Manager vs Vault) | A library patch version bump |
+| Container platform (AKS vs Azure App Service) | Which linter rule to enable |
+| State backend and locking strategy (for example the `azurerm` backend in Azure Storage) | A one-off script |
+| Secrets store (Azure Key Vault vs HashiCorp Vault vs pipeline variable groups) | A library patch version bump |
 | Logging platform and retention policy | Ticket workflow tweaks |
 | Branching and release model | Personal editor settings |
 
@@ -92,8 +92,8 @@ platform-infra/
   docs/
     adr/
       0001-record-architecture-decisions.md
-      0002-use-remote-state-in-s3-with-locking.md
-      0003-use-ecs-fargate-for-stateless-services.md
+      0002-use-azurerm-backend-in-azure-storage-with-blob-lease-locking.md
+      0003-use-app-service-for-stateless-services.md
       0004-use-opentofu-instead-of-terraform.md
       README.md      # index table: number, title, status
 ```
@@ -120,16 +120,16 @@ In August 2023 HashiCorp moved Terraform from the open-source MPL 2.0 licence to
 
 TODO (Siva): if you made or supported this decision in real life, note the actual drivers and outcome here.
 
-### Example: ECS Fargate vs EKS
+### Example: AKS vs Azure App Service
 
-| Force | ECS Fargate | EKS |
+| Force | Azure App Service (containers) | AKS |
 | --- | --- | --- |
-| Operational load | Low: no nodes, no control plane upgrades | Higher: cluster upgrades, add-ons, node groups or Karpenter |
-| Portability | AWS-specific APIs | Kubernetes API, portable across clouds |
-| Ecosystem | AWS-native integrations | Helm, operators, service meshes, GitOps tools |
+| Operational load | Low: no nodes or cluster; Azure patches the platform | Higher: Kubernetes version upgrades, node pool upgrades, add-ons |
+| Portability | App Service-specific settings, slots, and plans | Kubernetes API, portable across clouds |
+| Ecosystem | Built-in deployment slots, autoscale, Key Vault references, App Insights | Helm, operators, service meshes, GitOps tools |
 | Team skills | Easy to learn | Needs Kubernetes expertise |
-| Cost model | Pay per task vCPU and memory | Per-cluster control plane fee plus compute |
-| Best fit | Stateless services, small platform team | Many teams, complex workloads, need for K8s tooling |
+| Cost model | Pay per App Service plan instance; many apps can share a plan | Node VMs, plus a cluster management fee on the Standard or Premium tier |
+| Best fit | Web apps and APIs, small platform team | Many services and teams, complex workloads, need for K8s tooling |
 
 The ADR records which forces mattered most for *your* team. The same options can lead to different decisions in different companies, and that is exactly why the context section matters.
 
@@ -210,7 +210,7 @@ I store them in Git, in the repo of the system they govern, under `docs/adr/`. C
 ```bash
 # Using adr-tools (optional)
 adr init docs/adr
-adr new "Use ECS Fargate for stateless services"
+adr new "Use App Service for stateless services"
 adr new -s 4 "Use OpenTofu instead of Terraform"   # -s marks ADR 4 as superseded
 ```
 
@@ -243,35 +243,38 @@ To stop stalling:
 
 </details>
 
-<details><summary>Q7. [Intermediate] Write the context and consequences for an ADR that chooses ECS Fargate over EKS. <em>(scenario)</em></summary>
+<details><summary>Q7. [Intermediate] Write the context and consequences for an ADR that chooses Azure App Service over AKS. <em>(scenario)</em></summary>
 
 **Answer:**
 
 ```markdown
-# ADR-0003: Use ECS Fargate for stateless services
+# ADR-0003: Use App Service for stateless services
 
 Status: Accepted
 
 ## Context
 - We run about N stateless HTTP services and a few background workers.
 - The platform team is small; nobody runs Kubernetes in production today.
-- Services already use ALB, ECR, SSM Parameter Store, and CloudWatch.
+- Services already use Application Gateway, ACR, Key Vault, and App Insights.
 - We have no need for Kubernetes-only tools such as operators or a service mesh.
 
 ## Options considered
-1. ECS on Fargate
-2. EKS with managed node groups
-3. Keep EC2 with Docker and Auto Scaling groups (do nothing)
+1. Azure App Service (Linux containers) on shared App Service plans
+2. AKS with a system node pool and user node pools
+3. Keep VMs in VM Scale Sets running Docker (do nothing)
 
 ## Decision
-We will run stateless services on ECS Fargate behind an ALB, defined in OpenTofu.
+We will run stateless services as containers on Azure App Service, behind
+Application Gateway with WAF, pulling images from ACR with a managed identity,
+defined in OpenTofu.
 
 ## Consequences
-+ No nodes or control plane to patch or upgrade.
-+ Native IAM task roles, ALB target groups, and CloudWatch integration.
-- Tied to AWS ECS APIs; moving to Kubernetes later means rewriting deployment config.
++ No nodes or cluster to patch or upgrade.
++ Deployment slots give simple blue-green releases with a swap.
++ Managed Identity for ACR pull and Key Vault references; built-in App Insights.
+- Tied to App Service settings; moving to Kubernetes later means writing Helm charts.
 - Less control over the host (no DaemonSets, limited privileged workloads).
-- Fargate per-task cost can be higher than well-packed EC2 nodes at large scale.
+- Plan instances can cost more than well-packed AKS nodes at large scale.
 Review when: we exceed X services, need K8s-native tooling, or need multi-cloud.
 ```
 
@@ -314,7 +317,7 @@ TODO (Siva): if you were part of this decision for real, add your role and the o
 
 I do not edit the old decision. I write a new ADR:
 
-1. New ADR, for example `ADR-0015: Move batch workloads from ECS to EKS`.
+1. New ADR, for example `ADR-0015: Move services from App Service to AKS`.
 2. Its context explains **what changed**: more teams, need for operators, cost at scale, a new compliance rule.
 3. It says "Supersedes ADR-0003" (or "Partially supersedes" if only part changes).
 4. I update only the **status line** of ADR-0003 to "Superseded by ADR-0015".

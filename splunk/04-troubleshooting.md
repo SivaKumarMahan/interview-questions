@@ -1,6 +1,6 @@
 # Splunk: Troubleshooting
 
-> How to troubleshoot forwarders that stop sending, data in the wrong index or sourcetype, timestamp and line-breaking problems, license violations, slow and skipped searches, blocked queues and full disks, using internal logs, metrics.log, and btool.
+> How to troubleshoot forwarders that stop sending, data in the wrong index or sourcetype, timestamp and line-breaking problems, license violations, slow and skipped searches, blocked queues and full disks, HEC errors, and Azure Event Hub inputs that stop collecting, using internal logs, metrics.log, and btool.
 
 ## Key Concepts
 
@@ -16,7 +16,7 @@ flowchart TD
     C -->|"no, wrong time"| C2["Timestamp problem:<br/>check TIME_FORMAT, TZ,<br/>search with latest=+1y"]
     B -->|"no events at all"| D{"Is forwarder connected?<br/>tcpin_connections in metrics.log"}
     D -->|"no"| D1{"Forwarder splunkd running<br/>and port 9997 reachable?"}
-    D1 -->|"no"| D2["Start service, fix outputs.conf,<br/>security group, firewall, TLS"]
+    D1 -->|"no"| D2["Start service, fix outputs.conf,<br/>NSG, firewall, TLS"]
     D1 -->|"yes"| D3["Check receiving enabled on indexer<br/>and TcpOutputProc errors"]
     D -->|"yes"| E{"Is the input reading the file?<br/>splunk list inputstatus"}
     E -->|"no"| E1["Check path, file permissions,<br/>ignoreOlderThan, crcSalt, blacklist"]
@@ -70,7 +70,7 @@ In the global context, precedence is `system/local`, then app `local`, then app 
 
 The Monitoring Console has ready-made views for indexing performance, queue fill, search activity, skipped searches, license usage, forwarder status, and cluster health. Set it up in distributed mode so it covers every instance. It is often faster than writing your own internal searches.
 
-See also: [Splunk: Architecture](01-architecture-forwarders-indexers-search-heads.md) and [AWS: Monitoring and Troubleshooting](../aws/04-monitoring-and-troubleshooting.md).
+See also: [Splunk: Architecture](01-architecture-forwarders-indexers-search-heads.md) and [Azure: Automation, Monitoring, and Cost](../azure/06-automation-monitoring-and-cost.md).
 
 ## Interview Questions
 
@@ -134,14 +134,14 @@ If its `_internal` logs still arrive but the app data does not, the connection w
 sudo systemctl status SplunkForwarder        # or: $SPLUNK_HOME/bin/splunk status
 $SPLUNK_HOME/bin/splunk list forward-server   # Active vs "configured but inactive"
 $SPLUNK_HOME/bin/splunk list inputstatus      # is the file being read, and how far
-nc -vz idx1.example.internal 9997             # network and security group
+nc -vz idx1.example.internal 9997             # network, NSG, and firewall
 grep -E "TcpOutputProc|ERROR" $SPLUNK_HOME/var/log/splunk/splunkd.log | tail -50
 ```
 
 **3. Common causes:**
 
 - Wrong `server` in `outputs.conf`, or the indexer is not listening on 9997.
-- Security group, NACL, or firewall change.
+- NSG, Azure Firewall, or route table change.
 - TLS certificate expired or mismatch.
 - File permissions: the `splunk` user cannot read the log file after rotation.
 - The file looks "already seen" because the first 256 bytes did not change (use `crcSalt = <SOURCE>` or `initCrcLength` carefully).
@@ -393,7 +393,7 @@ du -sh $SPLUNK_DB/* | sort -h | tail
 | 400 | Bad payload, for example JSON not wrapped in `{"event": ...}`, or an invalid index |
 | 401 / 403 | Missing, wrong, or disabled token, or the index is not allowed for this token |
 | 503 "Server is busy" | Indexer queues are full, so HEC rejects data |
-| Timeout | Load balancer, security group, or TLS problem |
+| Timeout | Load balancer, NSG, or TLS problem |
 
 **2. Check Splunk's side:**
 
@@ -407,15 +407,53 @@ index=_introspection sourcetype=http_event_collector_metrics data.token_name=* e
 | stats sum(data.num_of_events) as events sum(data.num_of_errors) as errors by data.token_name
 ```
 
-**3. Check the sender:** Firehose sends failed events to its S3 backup bucket; Fluent Bit logs retries and drops; apps using HEC acknowledgment should retry when an ack never arrives.
+**3. Check the sender:** the Splunk OpenTelemetry Collector on AKS logs export failures and retries in its own pod logs (`kubectl logs -n splunk <collector-pod>`); Fluent Bit logs retries and drops; apps using HEC acknowledgment should retry when an ack never arrives.
 
-**4. Check the load balancer:** health checks on `/services/collector/health`, and stickiness for acknowledgment channels.
+**4. Check the load balancer:** the health probe on `/services/collector/health` (Azure Load Balancer or Application Gateway), and stickiness for acknowledgment channels.
 
 **Fix:** clients must retry with backoff on 503, and the HEC tier must have enough capacity. Blocked indexer queues (Q10) are the most common root cause of 503.
 
 </details>
 
-<details><summary>Q13. [Intermediate] Tell me about a Splunk production problem you troubleshot.</summary>
+<details><summary>Q13. [Advanced] Azure Activity Log and Entra ID data from Event Hubs stopped arriving in Splunk. How do you troubleshoot it? <em>(scenario)</em></summary>
+
+**Answer:**
+
+The path is: diagnostic setting, Event Hub, the Splunk Add-on for Microsoft Cloud Services on a heavy forwarder, then the indexers. I check it in that order.
+
+**1. Confirm what stopped, and when:**
+
+```text
+| tstats latest(_time) as last_event count where index=azure_* earliest=-24h by index, sourcetype
+| eval minutes_ago=round((now()-last_event)/60)
+```
+
+**2. Read the add-on's own logs on the heavy forwarder:**
+
+```text
+index=_internal sourcetype=mscs:azure:eventhub:log (ERROR OR WARNING) earliest=-24h
+| stats count latest(_raw) as last_message by host
+```
+
+**3. Common causes:**
+
+| Symptom | Likely cause and fix |
+| --- | --- |
+| Authentication errors | The client secret of the Entra ID app registration expired. Create a new secret and update the add-on account. |
+| Authorization errors | The app lost the **Azure Event Hubs Data Receiver** role on the namespace or Event Hub. |
+| Connection timeouts | An NSG, firewall, or proxy blocks AMQP (port 5671) to `*.servicebus.windows.net`. Allow it, or set `use_amqp_over_websocket = 1` to use port 443. |
+| Data arrives only part of the time | Another reader uses the same consumer group and takes over partitions. Give Splunk its own consumer group. |
+| No new messages in the Event Hub | Someone deleted or changed the diagnostic setting. Check the Activity Log for `Microsoft.Insights/diagnosticSettings/delete`. |
+
+**4. Check the Event Hub side in Azure Monitor:** compare the **Incoming Messages** and **Outgoing Messages** metrics. Incoming but no outgoing means Splunk is not reading. No incoming means the diagnostic setting is the problem.
+
+**How to verify:** new events arrive, and the lag `_indextime - _time` goes back to a few minutes.
+
+**Pitfall:** if the outage lasts longer than the Event Hub retention period, the old events are gone. Re-send them from a storage account archive if one exists, and add an alert on "no Azure events for 30 minutes".
+
+</details>
+
+<details><summary>Q14. [Intermediate] Tell me about a Splunk production problem you troubleshot.</summary>
 
 **Answer:**
 

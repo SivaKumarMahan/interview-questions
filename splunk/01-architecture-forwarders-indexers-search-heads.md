@@ -11,7 +11,7 @@ A Splunk deployment splits work into three tiers: collect (forwarders), store an
 | Component | What it does |
 | --- | --- |
 | Universal forwarder (UF) | Small agent. Reads files, Windows event logs, scripts, and network inputs, and sends raw data to indexers. Does almost no parsing. |
-| Heavy forwarder (HF) | A full Splunk Enterprise instance that forwards. Parses, filters, masks, and routes data before it reaches the indexers. Also runs modular inputs (for example the Splunk Add-on for AWS). |
+| Heavy forwarder (HF) | A full Splunk Enterprise instance that forwards. Parses, filters, masks, and routes data before it reaches the indexers. Also runs modular inputs (for example the Splunk Add-on for Microsoft Cloud Services, which reads Azure Event Hubs). |
 | Indexer | Parses incoming data (if no HF did it), writes events into indexes as buckets, and answers the search part sent by search heads. |
 | Search head (SH) | Runs the UI and SPL. Sends search requests to indexers, merges the results, and holds knowledge objects (saved searches, field extractions, lookups, dashboards). |
 | Deployment server | Pushes apps and config to forwarders by server class. In Splunk Enterprise 10.0 the UI is called "Agent Management", but the `deploymentclient.conf` and `serverclass.conf` names stay. |
@@ -30,8 +30,8 @@ Forwarders and HEC clients send data to an indexer cluster. Search heads query a
 flowchart LR
     subgraph sources["Data sources"]
         UF["Universal forwarders<br/>Linux and Windows hosts"]
-        HF["Heavy forwarder<br/>AWS add-on, syslog, masking"]
-        HEC["HEC clients<br/>apps, Firehose, FireLens"]
+        HF["Heavy forwarder<br/>Event Hub add-on, syslog, masking"]
+        HEC["HEC clients<br/>apps, OTel Collector on AKS"]
     end
     subgraph idxc["Indexer cluster"]
         I1["Indexer peer 1"]
@@ -74,7 +74,7 @@ An index is a set of directories called buckets. Each bucket holds events for a 
 | Cold | Read-only, in `coldPath` (cheaper disk). | Age (`frozenTimePeriodInSecs`, default about 6 years) or total size (`maxTotalDataSizeMB`, default 500,000 MB). |
 | Frozen | Deleted by default, or archived with `coldToFrozenDir` / `coldToFrozenScript`. Not searchable. | You can copy archived buckets into `thawedPath` to search them again. |
 
-With **SmartStore**, warm buckets live in object storage such as S3, and indexers keep a local cache. This separates storage from compute.
+With **SmartStore**, warm buckets live in object storage (Azure Blob Storage is supported from Splunk Enterprise 9.0), and indexers keep a local cache. This separates storage from compute.
 
 ```ini
 # indexes.conf
@@ -91,7 +91,7 @@ repFactor = auto                       # required so the cluster replicates this
 
 Every event gets four default metadata fields at index time: `index`, `host`, `source`, and `sourcetype`, plus `_time`. The index decides where data is stored, who can see it (role access is per index), and how long it is kept. The sourcetype decides how data is parsed: line breaking, timestamp, and field extraction rules in `props.conf`.
 
-Good practice: separate indexes by retention and access needs (for example `app_prod`, `aws_cloudtrail`, `security`), not one index per host. Use the Splunk-supplied sourcetypes from add-ons (like `aws:cloudtrail`) so CIM data models and apps work.
+Good practice: separate indexes by retention and access needs (for example `app_prod`, `azure_activity`, `security`), not one index per host. Use the Splunk-supplied sourcetypes from add-ons (like `azure:monitor:activity` for the Azure Activity Log) so CIM data models and apps work.
 
 ### Data Onboarding: inputs, props, and transforms
 
@@ -137,7 +137,7 @@ curl -s https://hec.example.internal:8088/services/collector/event \
 # {"text":"Success","code":0}
 ```
 
-With indexer acknowledgment on, the client sends a channel header (`X-Splunk-Request-Channel`) and later checks `/services/collector/ack`. Amazon Data Firehose requires acknowledgment to be enabled on the HEC token.
+With indexer acknowledgment on, the client sends a channel header (`X-Splunk-Request-Channel`) and later checks `/services/collector/ack`. A request without a channel is rejected, so turn acknowledgment on only for clients that support it.
 
 ### Splunk Cloud Platform vs Splunk Enterprise
 
@@ -151,7 +151,7 @@ With indexer acknowledgment on, the client sends a channel header (`X-Splunk-Req
 
 You still own forwarders, heavy forwarders, and the deployment server in both models.
 
-See also: [Monitoring Tools: Logging](../monitoring-tools/04-logging.md) and [AWS: Monitoring and Troubleshooting](../aws/04-monitoring-and-troubleshooting.md).
+See also: [Monitoring Tools: Logging](../monitoring-tools/04-logging.md) and [Azure: Automation, Monitoring, and Cost](../azure/06-automation-monitoring-and-cost.md).
 
 ## Interview Questions
 
@@ -184,7 +184,7 @@ The key point is that search is distributed. The search head sends the search to
 | Modular inputs, add-ons with Python | Mostly no | Yes |
 | Resource use | Low | Higher |
 
-I use the UF by default on every host. I add a heavy forwarder only when I need it: a central place to run API-based inputs (AWS, Azure, SaaS), to mask or drop data before it costs license, or to route data to different destinations.
+I use the UF by default on every host. I add a heavy forwarder only when I need it: a central place to run API-based inputs (Azure Event Hubs, Azure Storage, Microsoft 365, other SaaS), to mask or drop data before it costs license, or to route data to different destinations.
 
 **Pitfall:** once a heavy forwarder parses data, the indexers do not parse it again. So index-time `props.conf` settings for that data must be on the HF, not on the indexers. Putting them in the wrong place is a very common cause of "my props are not working".
 
@@ -318,8 +318,8 @@ Check that the event count looks right, events are not merged or split, timestam
 
 1. Enable HEC globally and create a token with a default index and an allowed index list.
 2. Put the HEC endpoints on the indexers (or heavy forwarders) behind a load balancer with a valid TLS certificate.
-3. Store the token in a secret store (for example SSM Parameter Store as a SecureString), never in code.
-4. Turn on indexer acknowledgment when the sender must know the data is safe, for example Amazon Data Firehose.
+3. Store the token in a secret store (for example Azure Key Vault, read by the app with a managed identity), never in code.
+4. Turn on indexer acknowledgment when the sender must know the data is safe and the client supports it (it must send a channel and poll for acknowledgments).
 
 ```ini
 # inputs.conf on the HEC tier
@@ -384,22 +384,22 @@ Newer options are **Ingest Actions** (UI-based filter, mask, and route rules) an
 
 </details>
 
-<details><summary>Q11. [Advanced] Design a Splunk Enterprise deployment on AWS for about 1 TB/day with high availability across Availability Zones. <em>(scenario)</em></summary>
+<details><summary>Q11. [Advanced] Design a Splunk Enterprise deployment on Azure for about 1 TB/day with high availability across availability zones. <em>(scenario)</em></summary>
 
 **Answer:**
 
-I would say the numbers depend on search load, not only ingest, and I would size with the Splunk sizing guidance and test. A reasonable starting design:
+I would say the numbers depend on search load, not only ingest, and I would size with the Splunk sizing guidance and test. A reasonable starting design in one Azure region:
 
-- **Indexer cluster:** multisite, one site per AZ, three AZs. `site_replication_factor = origin:2,total:3` and `site_search_factor = origin:1,total:2`. Start with enough peers for roughly a few hundred GB/day each, depending on search load.
-- **Storage:** SmartStore on S3 for warm data, with local NVMe as cache. This keeps indexers smaller and makes replacing a node faster. Size the cache to hold the time range people search most.
-- **Search head cluster:** 3 members in different AZs behind an ALB with sticky sessions. Separate search head for premium apps like Enterprise Security if needed.
-- **Ingest:** UFs use **indexer discovery** through the cluster manager, so new peers are picked up automatically. HEC sits behind an NLB or ALB with TLS. Heavy forwarders in an Auto Scaling group run the AWS add-on.
-- **Management:** cluster manager, deployment server, license manager, and Monitoring Console on separate small instances. Back up the cluster manager config.
-- **Security:** private subnets only, security groups between tiers, TLS on 9997 and 8089, roles mapped to SAML groups, index-level access.
+- **Indexer cluster:** multisite, one site per availability zone, three zones. `site_replication_factor = origin:2,total:3` and `site_search_factor = origin:1,total:2`. Start with enough peers for roughly a few hundred GB/day each, depending on search load.
+- **Storage:** SmartStore on Azure Blob Storage for warm data, with local NVMe disks as cache. Use a zone-redundant (ZRS) storage account, reach it through a private endpoint, and let the indexers authenticate with a managed identity instead of storage keys. Size the cache to hold the time range people search most.
+- **Search head cluster:** 3 members in different zones behind Application Gateway with cookie-based affinity (sticky sessions). Separate search head for premium apps like Enterprise Security if needed.
+- **Ingest:** UFs use **indexer discovery** through the cluster manager, so new peers are picked up automatically. HEC sits behind an Azure Load Balancer or Application Gateway with TLS. Heavy forwarders run the Splunk Add-on for Microsoft Cloud Services to read Azure Event Hubs, with checkpoints kept in a blob container so a replaced VM continues where the old one stopped.
+- **Management:** cluster manager, deployment server, license manager, and Monitoring Console on separate small VMs. Back up the cluster manager config (for example with Azure Backup).
+- **Security:** private subnets only, no public IPs, NSGs between tiers, TLS on 9997 and 8089, roles mapped to Entra ID groups through SAML, index-level access.
 
-**How to verify:** load test with real data, watch indexing queues and search concurrency in the Monitoring Console, and test an AZ loss by stopping one site's peers.
+**How to verify:** load test with real data, watch indexing queues and search concurrency in the Monitoring Console, and test a zone loss by stopping one site's peers.
 
-**Trade-off to mention:** multisite costs more storage and cross-AZ traffic, but one AZ can fail without data loss or search outage.
+**Trade-off to mention:** multisite costs more storage and more traffic between zones, but one zone can fail without data loss or search outage.
 
 </details>
 
@@ -427,39 +427,47 @@ acs hec-token create --name payments_app --default-index app_prod
 
 </details>
 
-<details><summary>Q13. [Advanced] How do you get ECS Fargate application logs and AWS CloudTrail into Splunk? <em>(scenario)</em></summary>
+<details><summary>Q13. [Advanced] How do you get AKS application logs, the Azure Activity Log, and Entra ID logs into Splunk? <em>(scenario)</em></summary>
 
 **Answer:**
 
-There is no host to install a UF on with Fargate, so I use push-based options.
+There are two paths: push container logs from the cluster to HEC, and pull Azure platform logs from Event Hubs.
 
-**Application logs from ECS Fargate:**
+**Application logs from AKS:** I install the **Splunk OpenTelemetry Collector for Kubernetes** with Helm. It runs as a DaemonSet, reads container logs from each node, adds Kubernetes metadata (namespace, pod, container), and sends them to HEC. Container logs get `sourcetype=kube:container:<container_name>` by default. A `splunk.com/index` annotation on a namespace or pod sends its logs to another index.
 
-- **FireLens with Fluent Bit:** a sidecar container uses the Fluent Bit `splunk` output to send to HEC. The token comes from SSM Parameter Store through `secretOptions`.
-- **Or** send to CloudWatch Logs with `awslogs`, then stream to Splunk with Amazon Data Firehose (HEC with acknowledgment enabled).
-
-```json
-"logConfiguration": {
-  "logDriver": "awsfirelens",
-  "options": {
-    "Name": "splunk",
-    "Host": "hec.example.internal",
-    "Port": "8088",
-    "TLS": "On",
-    "event_index": "app_prod",
-    "event_sourcetype": "payments:json"
-  },
-  "secretOptions": [
-    { "name": "Splunk_Token", "valueFrom": "arn:aws:ssm:eu-west-1:111122223333:parameter/splunk/hec/payments" }
-  ]
-}
+```yaml
+# values.yaml for the splunk-otel-collector chart
+clusterName: aks-prod-weu
+cloudProvider: azure
+distribution: aks
+splunkPlatform:
+  endpoint: https://hec.example.internal:8088/services/collector
+  index: app_prod
+  logsEnabled: true
+secret:
+  create: false             # Secret synced from Key Vault, holds the key splunk_platform_hec_token
+  name: splunk-otel-collector
 ```
 
-**CloudTrail:** CloudTrail writes to S3, S3 sends notifications to SQS, and the **Splunk Add-on for AWS** on a heavy forwarder reads with an SQS-based S3 input. The data arrives as `sourcetype=aws:cloudtrail`, which maps to CIM. In Splunk Cloud, Data Manager can set this up.
+```bash
+helm repo add splunk-otel-collector-chart https://signalfx.github.io/splunk-otel-collector-chart
+helm upgrade --install splunk-otel splunk-otel-collector-chart/splunk-otel-collector \
+  -n splunk --create-namespace -f values.yaml
+```
 
-**How to verify:** `index=aws_cloudtrail sourcetype=aws:cloudtrail | stats count by awsRegion, eventSource` and check the dead-letter queue on SQS or Firehose for failures.
+**Azure platform logs:** a **diagnostic setting** streams the logs to an Event Hub, and the **Splunk Add-on for Microsoft Cloud Services** on a heavy forwarder reads it. Each input sets the sourcetype for its Event Hub:
 
-**Pitfall:** Firehose delivery failures go to an S3 backup bucket. If nobody watches it, logs go missing silently.
+| Data | Diagnostic setting on | Sourcetype |
+| --- | --- | --- |
+| Azure Activity Log | The subscription | `azure:monitor:activity` |
+| Entra ID sign-in and audit logs | The Entra ID tenant | `azure:monitor:aad` |
+| Resource logs (AKS `kube-audit-admin`, Application Gateway access and firewall logs) | Each resource | `azure:monitor:resource` |
+
+The add-on authenticates with an Entra ID app registration that has the **Azure Event Hubs Data Receiver** role. I give it its own consumer group, so no other reader steals its partitions. In Splunk Cloud, Data Manager can set up the Event Hub path too.
+
+**How to verify:** `index=azure_activity sourcetype=azure:monitor:activity | stats count by category` shows data, and `index=_internal sourcetype=mscs:azure:eventhub:log ERROR` shows no errors from the add-on.
+
+**Pitfall:** an Event Hub keeps events only for its retention period. If the heavy forwarder is down longer than that, the logs are lost. Alert when the Event Hub input stops sending data.
 
 </details>
 
@@ -488,6 +496,6 @@ index=_internal source=*license_usage.log type=Usage earliest=-30d@d
 
 **Answer:**
 
-TODO (Siva): describe your real setup: Splunk Cloud or Enterprise, how data gets in (UF, HEC, AWS add-on), roughly which indexes and sourcetypes you owned, and what you changed or fixed. Do not guess numbers; only use ones you can explain.
+TODO (Siva): describe your real setup: Splunk Cloud or Enterprise, how data gets in (UF, HEC, Event Hubs with the Microsoft Cloud Services add-on), roughly which indexes and sourcetypes you owned, and what you changed or fixed. Do not guess numbers; only use ones you can explain.
 
 </details>

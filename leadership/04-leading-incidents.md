@@ -79,22 +79,30 @@ In a small incident one person may hold several roles. As the incident grows, th
           mitigation: rollback, failover, scale out, feature flag off.
 ```
 
-Useful "what changed?" commands on AWS:
+Useful "what changed?" commands on Azure and AKS:
 
 ```bash
-# Recent ECS deployments for a service
-aws ecs describe-services --cluster prod --services orders \
-  --query 'services[0].deployments[].{status:status,taskDef:taskDefinition,created:createdAt,rollout:rolloutState}'
+# Recent rollouts and events for the service on AKS
+kubectl rollout history deployment/orders -n prod
+kubectl get events -n prod --sort-by=.lastTimestamp | tail -20
 
-# Recent API changes in the account (last hour)
-aws cloudtrail lookup-events --start-time "$(date -u -d '-1 hour' +%FT%TZ)" \
-  --query 'Events[].{time:EventTime,name:EventName,user:Username}' --max-results 50
+# Is the cluster itself changing? (for example an upgrade in progress)
+az aks show -g rg-prod -n aks-prod \
+  --query '{version:kubernetesVersion,state:provisioningState,power:powerState.code}' -o table
 
-# Is AWS itself having a problem?
-aws health describe-events --region us-east-1 --filter eventStatusCodes=open
+# Control-plane changes in the resource group in the last hour (Activity Log)
+az monitor activity-log list -g rg-prod --offset 1h \
+  --query '[].{time:eventTimestamp,op:operationName.localizedValue,caller:caller,status:status.value}' -o table
+
+# Is Azure itself having a problem? (needs: az extension add --name resource-graph)
+az graph query -q "ServiceHealthResources
+  | where type =~ 'Microsoft.ResourceHealth/events'
+  | extend eventType = tostring(properties.EventType), status = tostring(properties.Status), title = tostring(properties.Title)
+  | where eventType == 'ServiceIssue' and status == 'Active'
+  | project subscriptionId, title"
 ```
 
-Note: the AWS Health API needs a Business-level or higher AWS Support plan; otherwise check the AWS Health Dashboard in the console.
+Notes: the Activity Log shows Azure Resource Manager changes, not what a pipeline deployed inside the cluster, so also check the latest Azure DevOps pipeline runs. Service Health is free for every subscription. A Service Health alert that notifies an Action Group tells you about Azure issues without anyone having to look.
 
 ### Deciding Under Uncertainty
 
@@ -215,8 +223,12 @@ Separating them stops one person from being overloaded. The person debugging sho
 6. **Ask "what changed?":** recent deploys, config changes, infra changes, vendor status.
 
 ```bash
-aws ecs describe-services --cluster prod --services orders --query 'services[0].events[:10]'
-aws cloudtrail lookup-events --start-time "$(date -u -d '-1 hour' +%FT%TZ)" --max-results 50
+kubectl rollout history deployment/orders -n prod
+az monitor activity-log list -g rg-prod --offset 1h \
+  --query '[].{time:eventTimestamp,op:operationName.localizedValue,caller:caller}' -o table
+# Latest pipeline runs (azure-devops extension, org and project set as defaults)
+az pipelines runs list --pipeline-ids 42 --top 5 \
+  --query '[].{id:id,result:result,finished:finishTime}' -o table
 ```
 
 7. **Choose the safest mitigation:** usually roll back the latest change.
@@ -300,15 +312,37 @@ Running both paths in parallel, with one as backup, often removes the conflict. 
 
 - **Bring in the security team immediately** and agree who leads. Usually security leads, with ops supporting.
 - **Use a private channel** with need-to-know membership. Do not discuss details in public channels.
-- **Preserve evidence:** take snapshots and copy logs before changes; do not terminate instances or delete resources without agreement.
+- **Preserve evidence:** take disk snapshots and export logs before changes; do not delete VMs or other resources without agreement.
 
 ```bash
-# Example evidence capture before containment
-aws ec2 create-snapshot --volume-id vol-0abc... --description "INC-142 forensic copy"
-aws cloudtrail lookup-events --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=AKIA... --max-results 50
+# Example evidence capture before containment, for a leaked service principal secret
+# 1. Snapshot the affected VM's OS disk
+DISK_ID=$(az vm show -g rg-prod -n vm-app-01 --query storageProfile.osDisk.managedDisk.id -o tsv)
+az snapshot create -g rg-forensics -n inc142-vm-app-01-os --source "$DISK_ID" --tags incident=INC-142
+
+# 2. Where did the service principal sign in? (Entra ID sign-in logs sent to Log Analytics)
+az monitor log-analytics query -w <workspace-guid> -t P7D --analytics-query \
+  "AADServicePrincipalSignInLogs | where AppId == '<app-id>' | project TimeGenerated, IPAddress, ResourceDisplayName, ResultType"
+
+# 3. What did it change? (Activity Log filtered by caller)
+az monitor activity-log list --caller <service-principal-id> --offset 7d \
+  --query '[].{time:eventTimestamp,op:operationName.localizedValue,resource:resourceId}' -o table
 ```
 
-- **Contain carefully:** for example, deactivate a leaked access key or isolate a security group, in a way agreed with security.
+- **Contain carefully,** in a way agreed with security: remove the leaked secret, rotate any Key Vault secrets the identity could read, or isolate a VM with an NSG rule.
+
+```bash
+# Remove only the leaked secret (find its keyId first) ...
+az ad sp credential list --id <app-id>
+az ad sp credential delete --id <app-id> --key-id <key-id>
+# ... or replace ALL secrets at once (this breaks every other user of the old secret)
+az ad sp credential reset --id <app-id>
+
+# Rotate a Key Vault secret the identity could read
+az keyvault secret set --vault-name kv-prod --name orders-db-password --value "<new-value>"
+```
+
+- **Fix the cause later:** move the workload to a Managed Identity or workload identity federation, so there is no secret to leak.
 - **Legal and compliance:** may have notification deadlines, for example under GDPR. Comms must go through them.
 - **Status page wording** is reviewed by legal and security before publishing.
 
@@ -322,7 +356,7 @@ The usual "fix fast" instinct can destroy evidence, so the IC must slow down and
 
 1. **Write severity definitions** with product and support.
 2. **Define roles** and a short IC checklist.
-3. **Set up tooling:** paging (PagerDuty, Opsgenie, or similar), a channel naming convention, an incident record template, a status page.
+3. **Set up tooling:** Azure Monitor alerts routed through Action Groups to paging (PagerDuty, Opsgenie, or similar), a channel naming convention, an incident record template, a status page.
 4. **On-call rotation** with primary and secondary, and an escalation policy.
 5. **Runbooks** for top alerts, linked from the alert itself.
 6. **Train:** IC training and game days in non-production.

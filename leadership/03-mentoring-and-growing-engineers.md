@@ -10,7 +10,7 @@ Good onboarding gets a new engineer to a **first useful change in the first week
 
 | Time | Goal | Examples for a DevOps team |
 | --- | --- | --- |
-| Day 1 | Access and context | Laptop, SSO, AWS read-only role, Git, chat channels, team charter |
+| Day 1 | Access and context | Laptop, Entra ID account, Reader role on non-production subscriptions, Git, chat channels, team charter |
 | Week 1 | First small merged PR | Fix a README, add a tag to an OpenTofu module, tidy a pipeline step |
 | Weeks 2 to 4 | Learn the main systems | Shadow deploys, walk through the architecture diagram, read ADRs and recent postmortems |
 | Month 2 | Own a small piece | A small module or alert end to end, with review |
@@ -22,10 +22,10 @@ Good onboarding gets a new engineer to a **first useful change in the first week
 
 ### Pairing
 
-Pairing is the fastest way to transfer tacit knowledge, like how you read a Terraform plan or how you debug a failing ECS task.
+Pairing is the fastest way to transfer tacit knowledge, like how you read a Terraform plan or how you debug a failing pod on AKS.
 
 - **Driver and navigator:** the less experienced person usually drives, so they build muscle memory.
-- **Talk through your thinking:** "I check the target group health first because..." is the real lesson.
+- **Talk through your thinking:** "I check the Application Gateway backend health first because..." is the real lesson.
 - **Short sessions:** 60 to 90 minutes with breaks.
 - **Let them struggle a little:** ask a question before giving the answer.
 - **Remote:** share the terminal or IDE, keep cameras optional, and swap driver often.
@@ -36,7 +36,7 @@ Code review is the most frequent teaching moment a lead has.
 
 - **Explain the why**, not just the what: "Pin the provider version so a minor release does not change the plan unexpectedly."
 - **Label comment weight:** `nit:` (optional), `suggestion:`, `blocking:`. Juniors otherwise treat every comment as a must-fix.
-- **Ask questions:** "What happens if this ECS service scales to zero?" teaches more than "add a min capacity".
+- **Ask questions:** "What happens if this VM Scale Set scales in to zero instances?" teaches more than "set a minimum instance count".
 - **Praise good things** specifically.
 - **Big issues in person:** if the design is wrong, talk first, then comment.
 - **Rotate reviewers** so knowledge spreads and juniors also review seniors.
@@ -73,8 +73,8 @@ Then **ask** ("How did it feel from your side?") and agree a next step if needed
 Corrective example:
 S: In Tuesday's change review,
 B: the OpenTofu plan was shared without the destroy lines highlighted,
-I: so reviewers missed that the RDS parameter group would be replaced, and we nearly
-   caused a restart in prod.
+I: so reviewers missed that the PostgreSQL Flexible Server would be destroyed and
+   recreated, and we nearly caused a database outage in prod.
 Ask: What would help make destructive changes stand out next time?
 ```
 
@@ -116,7 +116,7 @@ On-call is where many engineers feel the most anxiety. Build confidence step by 
 - **Shadow:** join a full rotation as a second, watching how the primary works.
 - **Reverse shadow:** they are primary; an experienced engineer is backup.
 - **Runbooks:** every paging alert links to a runbook with checks, commands, and escalation.
-- **Game days:** practise realistic failures in non-production, for example kill an ECS task, expire a test certificate, or break a DNS record.
+- **Game days:** practise realistic failures in non-production, for example delete a pod on AKS (`kubectl delete pod`), cordon and drain a node (`kubectl cordon`, `kubectl drain`), expire a test certificate, or break a record in a Private DNS zone.
 - **Safe escalation:** say clearly, and often, that escalating early is good.
 - **Post-shift review:** a short chat after each rotation about what was hard.
 
@@ -145,7 +145,7 @@ I set clear 30, 60, and 90 day expectations and check in weekly. I ask them to f
 
 SBI stands for **Situation, Behaviour, Impact**. You describe when and where it happened, what the person did that you observed, and the effect it had. Then you ask for their view.
 
-Example: "In Monday's deploy (S), you ran the plan in the shared channel and asked for a second pair of eyes before applying (B). That caught the security group change before it hit prod (I). Thank you."
+Example: "In Monday's deploy (S), you ran the plan in the shared channel and asked for a second pair of eyes before applying (B). That caught the NSG rule change before it hit prod (I). Thank you."
 
 It works because it is specific and factual. It avoids judging the person's character, which makes them defensive.
 
@@ -206,7 +206,7 @@ What I keep: work only I can do in my role, like cross-team negotiation or final
 
 1. **Shadow rotation:** they get every page alongside the primary and watch how it is handled.
 2. **Runbook review together:** go through the top paging alerts and their runbooks, and fix gaps they spot.
-3. **Game day:** in a non-production account, break things on purpose: stop ECS tasks, fill a disk, break a DNS record. They practise with no pressure.
+3. **Game day:** in a non-production subscription, break things on purpose: delete pods, cordon and drain an AKS node, fill a disk, break a DNS record. They practise with no pressure.
 4. **Reverse shadow:** they are primary, I or another senior engineer am backup and reachable.
 5. **Clear escalation rule:** "If you are stuck for 15 minutes on a SEV2, escalate. That is expected, not a failure."
 6. **Debrief** after the first real shift.

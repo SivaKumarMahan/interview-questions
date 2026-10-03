@@ -1,6 +1,6 @@
 # Ops: HashiCorp Vault
 
-> Vault secrets engines, auth methods, policies, leases, seal/unseal, Raft HA, Kubernetes integrations, audit devices, cloud secret manager comparison, and the BSL license change and OpenBao fork.
+> Vault secrets engines (including Azure), auth methods (Azure managed identity, AKS, AppRole, OIDC), policies, leases, seal and auto-unseal with Azure Key Vault, Raft HA, Kubernetes integrations, audit devices, Vault vs Azure Key Vault, and the BSL license change and OpenBao fork.
 
 ## Key Concepts
 
@@ -14,9 +14,9 @@ The flow below is the same for every client: authenticate, get a token, use it, 
 
 ```mermaid
 flowchart LR
-    C["Client<br/>Pod, CI job, EC2"] -->|"1. login with identity<br/>JWT, IAM, AppRole"| A["Auth method"]
+    C["Client<br/>AKS Pod, CI job, Azure VM"] -->|"1. login with identity<br/>JWT, managed identity, AppRole"| A["Auth method"]
     A -->|"2. token + policies"| C
-    C -->|"3. read or generate"| S["Secrets engine<br/>KV, database, AWS, PKI"]
+    C -->|"3. read or generate"| S["Secrets engine<br/>KV, database, Azure, PKI"]
     S -->|"4. secret + lease"| C
     A & S --> AU["Audit device<br/>every request logged"]
 ```
@@ -26,8 +26,8 @@ flowchart LR
 | Engine | What it does | Typical use |
 | --- | --- | --- |
 | **KV v2** | Stores static key/value secrets with versions, soft delete, and check-and-set | Third-party API keys you cannot make dynamic |
-| **Database** | Creates a short-lived database user per request and drops it when the lease ends | App credentials for PostgreSQL, MySQL, and others |
-| **AWS** | Issues IAM user keys, assumed-role, or federation-token credentials on demand | Short-lived AWS access for tools that cannot use native roles |
+| **Database** | Creates a short-lived database user per request and drops it when the lease ends | App credentials for Azure Database for PostgreSQL Flexible Server, MySQL, and others |
+| **Azure** | Creates a dynamic Entra ID service principal with Azure role assignments, or adds a short-lived password to an existing one | Short-lived Azure access for tools that cannot use a managed identity |
 | **PKI** | Acts as a CA and issues short-lived X.509 certificates | Internal mTLS, often with cert-manager's Vault issuer |
 | **Transit** | Encrypts, decrypts, signs, and rotates keys; the key never leaves Vault | "Encryption as a service" for app data |
 
@@ -39,10 +39,27 @@ vault kv get -version=1 secret/payments/api
 
 ### Auth Methods
 
-- **Kubernetes:** a Pod sends its ServiceAccount JWT. Vault checks it with the Kubernetes `TokenReview` API and maps the ServiceAccount and namespace to a role.
-- **AWS IAM:** the client signs an `sts:GetCallerIdentity` request. Vault forwards it to AWS STS and maps the returned IAM role ARN to a Vault role. No secret is stored on the client.
+- **Azure:** an Azure VM, VM Scale Set, or other resource with a **managed identity** gets an Entra ID access token from the Instance Metadata Service (IMDS) and sends it to Vault. Vault checks the token signature, issuer, and audience, then checks the role bindings (service principal IDs, groups, subscription, resource group, scale set). No secret is stored on the client.
+- **Kubernetes (AKS):** a Pod sends its ServiceAccount JWT. Vault checks it with the Kubernetes `TokenReview` API and maps the ServiceAccount and namespace to a role.
 - **AppRole:** a RoleID plus a SecretID for machines with no platform identity. The SecretID must be delivered safely and should be short-lived or single-use.
-- **JWT/OIDC:** humans log in through an IdP (OIDC), and CI jobs log in with their OIDC token (JWT), bound to claims such as repository and branch.
+- **JWT/OIDC:** humans log in through Entra ID (OIDC), and CI jobs (GitHub Actions, GitLab CI, or Azure DevOps) log in with their OIDC token (JWT), bound to claims such as repository, branch, or service connection.
+
+```bash
+# On an Azure VM with a managed identity
+vault auth enable azure
+vault write auth/azure/config \
+  tenant_id="$TENANT_ID" resource="https://management.azure.com/"
+vault write auth/azure/role/reports-vm \
+  bound_service_principal_ids="$MI_PRINCIPAL_ID" \
+  bound_subscription_ids="$SUB_ID" bound_resource_groups="rg-reports-prod" \
+  token_policies=reports-read token_ttl=30m
+
+JWT=$(curl -s -H Metadata:true \
+  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F" \
+  | jq -r .access_token)
+vault write auth/azure/login role=reports-vm jwt="$JWT" \
+  subscription_id="$SUB_ID" resource_group_name="rg-reports-prod" vm_name="vm-reports-01"
+```
 
 ### Policies, Tokens, and Leases
 
@@ -59,9 +76,26 @@ path "database/creds/payments-ro" {
 
 ### Seal, Unseal, and HA
 
-Vault starts **sealed**: data is encrypted and the root key is not in memory. With **Shamir** unseal, operators enter a threshold of key shares (for example 3 of 5). With **auto-unseal**, Vault asks a KMS or HSM (AWS KMS, Azure Key Vault, GCP KMS) to decrypt the root key at startup. Auto-unseal gives you **recovery keys**, which cannot decrypt data on their own.
+Vault starts **sealed**: data is encrypted and the root key is not in memory. With **Shamir** unseal, operators enter a threshold of key shares (for example 3 of 5). With **auto-unseal**, Vault asks a cloud key service or HSM (for example an Azure Key Vault key, or an HSM through PKCS#11 in Vault Enterprise) to decrypt the root key at startup. Auto-unseal gives you **recovery keys**, which cannot decrypt data on their own.
 
-**Integrated storage (Raft)** keeps data on the Vault nodes themselves. One node is the active leader. Standbys forward requests to the leader (Enterprise performance standbys can serve some reads). Five nodes across three AZs tolerate two node failures.
+**Integrated storage (Raft)** keeps data on the Vault nodes themselves. One node is the active leader. Standbys forward requests to the leader (Enterprise performance standbys can serve some reads). Five nodes across three Azure availability zones tolerate two node failures.
+
+```hcl
+storage "raft" {
+  path    = "/opt/vault/data"
+  node_id = "vault-1"
+  retry_join {
+    leader_api_addr = "https://vault-2.vault.internal:8200"
+  }
+  retry_join {
+    leader_api_addr = "https://vault-3.vault.internal:8200"
+  }
+}
+api_addr     = "https://vault-1.vault.internal:8200"
+cluster_addr = "https://vault-1.vault.internal:8201"
+```
+
+Raft replaces an external storage backend such as Consul, so there is one less system to run. Older setups used the Azure Blob storage backend, but it has no HA support, so Raft is the normal choice today.
 
 ### Kubernetes Integrations
 
@@ -87,9 +121,9 @@ Vault removes static, long-lived secrets from code, config, and CI variables. In
 
 The building blocks are:
 
-- **Auth methods** turn an identity (Kubernetes ServiceAccount, AWS IAM role, OIDC token) into a Vault token.
+- **Auth methods** turn an identity (Kubernetes ServiceAccount, Azure managed identity, OIDC token) into a Vault token.
 - **Policies** say which paths that token can touch.
-- **Secrets engines** store or generate secrets (KV, database, AWS, PKI, transit).
+- **Secrets engines** store or generate secrets (KV, database, Azure, PKI, transit).
 - **Leases** give every dynamic secret an expiry and support renewal and revocation.
 - **Audit devices** log every request and response, with secret values HMAC-hashed.
 
@@ -121,10 +155,12 @@ A policy written as `path "secret/app/*"` silently matches nothing on KV v2. It 
 
 Vault holds one privileged connection to the database. When an app reads `database/creds/<role>`, Vault runs the role's creation SQL, returns a unique username and password, and attaches a lease. When the lease expires or is revoked, Vault runs the revocation SQL and drops the user.
 
+The example uses Azure Database for PostgreSQL Flexible Server. The server requires TLS by default, so the connection URL sets `sslmode=require`.
+
 ```bash
 vault write database/config/orders \
   plugin_name=postgresql-database-plugin \
-  connection_url="postgresql://{{username}}:{{password}}@orders-db:5432/orders" \
+  connection_url="postgresql://{{username}}:{{password}}@pg-orders-prod.postgres.database.azure.com:5432/orders?sslmode=require" \
   allowed_roles="orders-ro" username="vault_admin" password="..."
 vault write database/roles/orders-ro db_name=orders default_ttl=1h max_ttl=24h \
   creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"
@@ -138,18 +174,59 @@ vault write -f database/config/orders/rotate-root   # Vault now owns the admin p
 - Many Pods times short TTLs means many DB users and lease churn. Watch lease count.
 - Objects created by a dynamic user belong to that user. Grant through a group role so ownership survives.
 - Use **static roles** when an app or legacy system needs a fixed username with a rotated password.
+- **Flexible Server specifics:** there is no superuser. Create a dedicated `vault_admin` login with `CREATEROLE` from the server admin account, and do not give Vault the server admin itself. If the server uses private access (VNet integration or a Private Endpoint), Vault must run in a network that can reach it and resolve the private DNS zone.
+- **Alternative:** for apps that run on Azure, Microsoft Entra authentication on Flexible Server lets the app connect with its managed identity token and no password at all. Vault adds value when you also need the same pattern on-premises or in other databases.
 
-**How to verify:** `vault list sys/leases/lookup/database/creds/orders-ro/` and check the DB role list.
+**How to verify:** `vault list sys/leases/lookup/database/creds/orders-ro/` and check the DB role list (`\du` in `psql`).
 
 </details>
 
-<details><summary>Q4. [Intermediate] How does a Pod on Kubernetes authenticate to Vault without any stored secret?</summary>
+<details><summary>Q4. [Intermediate] How does the Vault Azure secrets engine issue short-lived Azure credentials?</summary>
+
+**Answer:**
+
+The Azure secrets engine creates Entra ID service principals on demand. Each read of `azure/creds/<role>` creates a new application and service principal (named with a `vault-` prefix), assigns the Azure roles listed in the Vault role, and returns a `client_id` and `client_secret` with a lease. When the lease ends, Vault deletes the service principal and its role assignments.
+
+```bash
+vault secrets enable azure
+vault write azure/config \
+  subscription_id="$SUB_ID" tenant_id="$TENANT_ID" \
+  client_id="$VAULT_SP_CLIENT_ID" client_secret="$VAULT_SP_SECRET"
+vault write azure/roles/rg-reader ttl=1h max_ttl=8h azure_roles=- <<EOF
+[
+  {
+    "role_name": "Reader",
+    "scope": "/subscriptions/$SUB_ID/resourceGroups/rg-reports-prod"
+  }
+]
+EOF
+vault read azure/creds/rg-reader
+```
+
+If Vault runs on an Azure VM with a managed identity, you can leave out `client_secret` in `azure/config`. For an existing service principal, set `application_object_id` on the role. Vault then adds and removes short-lived passwords on that app instead of creating new ones.
+
+**Permissions Vault itself needs:**
+
+- Microsoft Graph application permissions `Application.ReadWrite.OwnedBy` and `GroupMember.ReadWrite.All` for dynamic service principals.
+- An Azure role that can create role assignments (for example User Access Administrator) at the scopes you use. Keep that scope as small as possible, because Vault becomes a powerful identity.
+
+**Pitfalls:**
+
+- Entra ID and role assignments replicate with a delay. A brand-new credential can fail for a short time, so tools need a retry.
+- Azure roles are assigned once, when the service principal is created. Changing the Vault role does not update credentials that already exist.
+- Issue time grows with the number of role assignments.
+- Prefer a managed identity or workload identity federation for anything that runs on Azure or in a CI system that supports OIDC. Use this engine for tools that cannot use those options.
+
+</details>
+
+<details><summary>Q5. [Intermediate] How does a Pod on AKS authenticate to Vault without any stored secret?</summary>
 
 **Answer:**
 
 I use the Kubernetes auth method. The Pod already has a projected ServiceAccount token. Vault validates that token with the cluster's TokenReview API and maps the ServiceAccount name and namespace to a Vault role and policy.
 
 ```bash
+K8S_API=$(az aks show -g rg-aks-prod -n aks-prod --query fqdn -o tsv)
 vault auth enable kubernetes
 vault write auth/kubernetes/config kubernetes_host="https://$K8S_API:443"
 vault write auth/kubernetes/role/payments \
@@ -167,11 +244,13 @@ annotations:
   vault.hashicorp.com/agent-inject-secret-db: "database/creds/payments-ro"
 ```
 
-**Pitfalls:** binding to `*` namespaces, sharing the `default` ServiceAccount across apps, and a Vault outside the cluster that cannot reach the API server for TokenReview. For a remote cluster, Vault needs the cluster CA and a reviewer JWT, or it can use the client's own JWT as the reviewer token.
+**Pitfalls:** binding to `*` namespaces, sharing the `default` ServiceAccount across apps, and a Vault outside the cluster that cannot reach the API server for TokenReview. For a remote cluster, Vault needs the cluster CA and a reviewer JWT, or it can use the client's own JWT as the reviewer token. With a private AKS cluster, Vault must sit in a peered VNet that can resolve the API server's private DNS zone.
+
+If Vault cannot reach the API server at all, another option is the JWT auth method pointed at the AKS OIDC issuer (`az aks show --query oidcIssuerProfile.issuerUrl`). Vault then checks ServiceAccount tokens offline with the issuer's public keys. The trade-off is that a deleted ServiceAccount is not detected until its token expires.
 
 </details>
 
-<details><summary>Q5. [Intermediate] How do you let a GitHub Actions or GitLab CI job read secrets from Vault with no long-lived token?</summary>
+<details><summary>Q6. [Intermediate] How do you let a GitHub Actions, GitLab CI, or Azure DevOps job read secrets from Vault with no long-lived token?</summary>
 
 **Answer:**
 
@@ -190,13 +269,15 @@ vault write auth/jwt/role/deploy-prod role_type=jwt user_claim=repository \
 
 The job requests `id-token: write`, logs in, reads only what that stage needs, and the token dies in minutes. Pull-request jobs get a different role with no production access.
 
-**Pitfalls:** binding only on `repository` lets any branch or fork-triggered workflow deploy to prod. Bind `ref`, and environment where the platform provides it. Always set `bound_audiences`.
+**Azure DevOps:** a pipeline that uses a workload identity federation service connection signs in to Entra ID as that service principal with no stored secret. The job can then get an Entra access token (`az account get-access-token --resource <vault-auth-resource>`) and log in through Vault's Azure auth method, with the role bound to that service principal's object ID through `bound_service_principal_ids`. In many Azure-only setups the simpler choice is to skip Vault and link the pipeline to Azure Key Vault (the `AzureKeyVault@2` task or a variable group linked to Key Vault).
 
-TODO (Siva): add which CI system you actually used with Vault (or Azure DevOps with a cloud secret manager) and how jobs authenticated.
+**Pitfalls:** binding only on `repository` lets any branch or fork-triggered workflow deploy to prod. Bind `ref`, and environment where the platform provides it. Always set `bound_audiences`. In Azure DevOps, use one service connection per environment, and protect the production one with approvals and checks.
+
+TODO (Siva): add which CI system you actually used with Vault (or Azure DevOps with Key Vault) and how jobs authenticated.
 
 </details>
 
-<details><summary>Q6. [Intermediate] Explain leases, renewal, TTL, and max TTL. Why did my app lose access after a few days?</summary>
+<details><summary>Q7. [Intermediate] Explain leases, renewal, TTL, and max TTL. Why did my app lose access after a few days?</summary>
 
 **Answer:**
 
@@ -214,49 +295,63 @@ Revoking a parent token also revokes every child token and lease it created, whi
 
 </details>
 
-<details><summary>Q7. [Intermediate] What do seal and unseal mean, and why use auto-unseal with AWS KMS?</summary>
+<details><summary>Q8. [Intermediate] What do seal and unseal mean, and why use auto-unseal with Azure Key Vault?</summary>
 
 **Answer:**
 
 Vault's storage is encrypted with an encryption key, which is protected by a root key. While sealed, Vault cannot decrypt anything and refuses requests. Unsealing puts the root key back in memory.
 
-With Shamir, someone must enter key shares after every restart. That breaks autoscaling and slows incident recovery. With auto-unseal, Vault calls AWS KMS to decrypt the root key at boot:
+With Shamir, someone must enter key shares after every restart. That breaks autoscaling and slows incident recovery. With auto-unseal, Vault calls Azure Key Vault to unwrap the root key at boot. When Vault runs on Azure VMs or a VM Scale Set with a **managed identity**, you leave out `client_id` and `client_secret`, so no Azure credential is stored on disk:
 
 ```hcl
-seal "awskms" {
-  region     = "eu-west-1"
-  kms_key_id = "alias/vault-unseal"
+seal "azurekeyvault" {
+  tenant_id  = "00000000-0000-0000-0000-000000000000"
+  vault_name = "kv-vault-unseal-prod"
+  key_name   = "vault-unseal"
 }
 ```
 
-**Verify:** `vault status` shows `Sealed false` and `Recovery Seal true`.
+```bash
+# Give the Vault nodes' managed identity crypto rights on the key (get, wrap, unwrap)
+az role assignment create --assignee-object-id "$VAULT_MI_PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Key Vault Crypto User" \
+  --scope "$(az keyvault show -n kv-vault-unseal-prod --query id -o tsv)/keys/vault-unseal"
+```
 
-**Trade-offs:** the KMS key becomes critical. Deleting it, losing the IAM permission, or a region outage can stop Vault from starting. Protect it with a key policy, deletion protection, and CloudTrail alerts on `Decrypt` from unexpected principals. Recovery keys are still needed for operations like generating a root token, so store them split between people.
+The scope here is the single key. The Key Vault must use the Azure RBAC permission model; with legacy access policies, grant the `get`, `wrapKey`, and `unwrapKey` key permissions instead. The values can also come from environment variables such as `AZURE_TENANT_ID`, `VAULT_AZUREKEYVAULT_VAULT_NAME`, and `VAULT_AZUREKEYVAULT_KEY_NAME`.
+
+**Verify:** `vault status` shows `Sealed false`, `Recovery Seal true`, and `Seal Type azurekeyvault`.
+
+**Trade-offs:** the Key Vault key becomes critical. Deleting it, losing the role assignment, a Key Vault firewall rule that blocks the Vault subnet, or a regional outage can stop Vault from starting. Turn on soft delete and **purge protection**, put a delete lock on the resource group, use a Private Endpoint, and send Key Vault diagnostic logs to Log Analytics with a KQL alert on key operations from unexpected identities. Recovery keys are still needed for operations like generating a root token, so store them split between people.
 
 </details>
 
-<details><summary>Q8. [Advanced] Design a highly available Vault cluster on AWS with integrated Raft storage. <em>(scenario)</em></summary>
+<details><summary>Q9. [Advanced] Design a highly available Vault cluster on Azure with integrated Raft storage. <em>(scenario)</em></summary>
 
 **Answer:**
 
-- **Topology:** five Vault nodes across three AZs (2-2-1), integrated Raft storage on encrypted EBS, auto-unseal with KMS, and an internal NLB or ALB that health-checks `/v1/sys/health` so only the active node takes writes.
+- **Topology:** five Vault nodes across three Azure availability zones (2-2-1), as VMs or a VM Scale Set in a private subnet. Integrated Raft storage on Premium SSD managed disks (encrypted at rest by default). Auto-unseal with Azure Key Vault through the nodes' managed identity. An internal Standard Azure Load Balancer with an HTTPS health probe on `/v1/sys/health`. The active node returns 200 and standbys return 429, so only the active node gets traffic.
 - **Quorum:** Raft needs a majority. Five nodes tolerate two failures; three tolerate one. Even numbers add cost without extra tolerance.
 - **Autopilot:** enable dead-server cleanup and server stabilization so a replaced node joins cleanly.
 - **TLS everywhere:** client to Vault and node to node for Raft.
-- **Backups:** scheduled `vault operator raft snapshot save` to an S3 bucket with versioning and Object Lock. Test restore into an isolated cluster.
-- **DR beyond one region:** DR and performance replication are Enterprise features. On Community or OpenBao, plan snapshot-based restore in a second region and accept a higher RPO and RTO.
+- **Network:** NSGs allow only the app subnets and the AKS node subnet on port 8200, and node-to-node traffic on 8201. Use Private Endpoints for the Key Vault and the backup Storage account.
+- **Backups:** scheduled `vault operator raft snapshot save`, uploaded to a Blob Storage container with versioning, soft delete, and an immutability policy, using the node's managed identity (`az storage blob upload --auth-mode login`). Test restore into an isolated cluster.
+- **DR beyond one region:** DR and performance replication are Enterprise features. On Community or OpenBao, plan snapshot-based restore in a second region and accept a higher RPO and RTO. The DR cluster must be able to use the same unseal key, so plan how that Key Vault key is available in the second region (a Key Vault backup can only be restored in the same Azure geography).
 
 ```bash
 vault operator raft list-peers
 vault operator raft autopilot state
 vault operator raft snapshot save /tmp/vault-$(date +%F).snap
+az storage blob upload --auth-mode login --account-name stvaultbackupprod \
+  --container-name raft-snapshots --file /tmp/vault-$(date +%F).snap --name vault-$(date +%F).snap
 ```
 
-**Pitfalls:** putting Vault on the same Kubernetes cluster it protects (chicken and egg during a cluster outage), no tested restore, and losing quorum after replacing two nodes at once in a rolling AMI update.
+**Pitfalls:** putting Vault on the same Kubernetes cluster it protects (chicken and egg during a cluster outage), no tested restore, and losing quorum after replacing two nodes at once during a VM Scale Set image upgrade. Set the rolling upgrade policy to one instance per batch and wait for Autopilot to report the new node healthy.
 
 </details>
 
-<details><summary>Q9. [Intermediate] Vault Agent Injector vs Vault Secrets Operator vs CSI provider: which do you choose?</summary>
+<details><summary>Q10. [Intermediate] Vault Agent Injector vs Vault Secrets Operator vs CSI provider: which do you choose?</summary>
 
 **Answer:**
 
@@ -267,13 +362,13 @@ vault operator raft snapshot save /tmp/vault-$(date +%F).snap
 | Secret stored in etcd | No | Yes | Only if you enable sync |
 | Rotation | Agent renews and re-renders | Operator re-syncs, can roll Deployments | Optional rotation polling |
 
-My default is **VSO** when apps already read env vars or Kubernetes Secrets, because it is simple and has no sidecars. I make sure etcd encryption and RBAC on Secrets are tight. I use **Agent Injector** when the secret must never land in etcd, or I need templating and lease renewal of dynamic credentials inside the Pod. I use **CSI** when the cluster already uses the Secrets Store CSI driver for several providers.
+My default is **VSO** when apps already read env vars or Kubernetes Secrets, because it is simple and has no sidecars. I make sure etcd encryption and RBAC on Secrets are tight. I use **Agent Injector** when the secret must never land in etcd, or I need templating and lease renewal of dynamic credentials inside the Pod. I use **CSI** when the cluster already uses the Secrets Store CSI driver for several providers. On AKS that is common, because the `azure-keyvault-secrets-provider` add-on already runs the driver for Azure Key Vault.
 
 Whichever I choose, the app must handle a changed file or a restart. Otherwise rotation just causes outages.
 
 </details>
 
-<details><summary>Q10. [Advanced] How do you set up audit devices, and how do you use them in a suspected secret leak? <em>(scenario)</em></summary>
+<details><summary>Q11. [Advanced] How do you set up audit devices, and how do you use them in a suspected secret leak? <em>(scenario)</em></summary>
 
 **Answer:**
 
@@ -295,27 +390,28 @@ vault write sys/audit-hash/file input="the-leaked-value"
 
 </details>
 
-<details><summary>Q11. [Advanced] When do you choose Vault over AWS Secrets Manager or Azure Key Vault?</summary>
+<details><summary>Q12. [Advanced] When do you choose Vault over Azure Key Vault?</summary>
 
 **Answer:**
 
-| | Vault / OpenBao | AWS Secrets Manager | Azure Key Vault |
-| --- | --- | --- | --- |
-| Operations | You run it (or pay for HCP Vault) | Fully managed | Fully managed |
-| Identity | Many auth methods, any cloud or on-prem | IAM | Entra ID, managed identity |
-| Dynamic secrets | Many engines (DB, cloud, PKI, SSH) | Rotation through Lambda functions | Rotation through Event Grid or functions |
-| Encryption as a service | Transit engine | KMS (separate service) | Keys and HSM in the same vault |
-| Native integrations | Kubernetes, CI, Terraform | ECS, Lambda, RDS, EKS | AKS, App Service, Azure DevOps |
+| | Vault / OpenBao | Azure Key Vault |
+| --- | --- | --- |
+| Operations | You run it (or pay for HCP Vault) | Fully managed, SLA backed |
+| Identity | Many auth methods, any cloud or on-prem | Entra ID, managed identity, Azure RBAC |
+| Dynamic secrets | Many engines (database, Azure, PKI, SSH) | None; static secrets with expiry dates. Rotation through Event Grid events and an Azure Function |
+| Keys and certificates | Transit engine, PKI engine (internal CA) | Keys (HSM-backed in Premium or Managed HSM), certificates with auto-renewal from supported CAs |
+| Native integrations | Kubernetes, CI systems, Terraform | AKS Secrets Store CSI add-on, App Service and Functions Key Vault references, Azure DevOps variable groups, Bicep `getSecret()` |
+| Audit | Audit devices you ship to a SIEM | Diagnostic settings to Log Analytics, queried with KQL |
 
-On a mostly-AWS stack like ECS Fargate, I prefer **Secrets Manager or SSM Parameter Store**, because the task definition can inject them natively through the execution role and there is no cluster to patch. Vault earns its cost when I need multi-cloud or on-prem coverage, true dynamic credentials across many systems, an internal PKI, transit encryption, or one policy and audit model across clouds.
+On an Azure-only stack (AKS, App Service, Functions, Azure DevOps), I prefer **Azure Key Vault plus managed identities**. There is no cluster to run, apps read secrets with their own identity, and Microsoft Entra authentication on Azure SQL or PostgreSQL Flexible Server can remove many database passwords completely. Vault earns its cost when I need on-prem or multi-cloud coverage, true dynamic credentials across many systems, an internal PKI with short-lived certificates, transit encryption, or one policy and audit model across environments.
 
 The hidden cost of Vault is people: upgrades, unseal key custody, backups, HA, and on-call for a tier-zero system.
 
-TODO (Siva): add which secret store your team actually used (for example SSM Parameter Store for ECS) and why.
+TODO (Siva): add how your team used Azure Key Vault and managed identities (for example with AKS, App Service, or Azure DevOps) and whether Vault was ever considered.
 
 </details>
 
-<details><summary>Q12. [Advanced] Your company asks whether to stay on Vault after the BSL change or move to OpenBao. How do you answer? <em>(scenario)</em></summary>
+<details><summary>Q13. [Advanced] Your company asks whether to stay on Vault after the BSL change or move to OpenBao. How do you answer? <em>(scenario)</em></summary>
 
 **Answer:**
 
