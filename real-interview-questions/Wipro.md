@@ -1356,3 +1356,384 @@ kubectl get nodes
 ### Interview answer
 
 > "Kubelet is the agent responsible for managing Pods on a Kubernetes node and communicating node and Pod status to the API server. If kubelet stops, existing containers may continue running through the container runtime, but Kubernetes loses management and status reporting for that node. The node will eventually become NotReady, new workloads won't be scheduled there, and controllers may reschedule affected Pods to healthy nodes. I would troubleshoot using `systemctl status kubelet` and `journalctl -u kubelet`."
+
+---
+
+## Q13. Pods are in NotReady state and nodes are in NotReady state. What is the reason?
+
+There are two different problems here: **Pod NotReady** and **Node NotReady**. The troubleshooting approach is slightly different.
+
+### 1. Pod is NotReady
+
+First check:
+
+```bash
+kubectl get pods
+kubectl describe pod <pod-name>
+```
+
+Look at the **Conditions** and **Events**.
+
+Common reasons:
+
+#### Readiness probe failure
+
+```text
+Readiness probe failed: HTTP probe failed with statuscode: 503
+```
+
+The application may be running, but it isn't ready to receive traffic.
+
+Check:
+
+```bash
+kubectl logs <pod-name>
+kubectl describe pod <pod-name>
+```
+
+#### Application or container problem
+
+Examples:
+
+```text
+CrashLoopBackOff
+OOMKilled
+ImagePullBackOff
+```
+
+Check:
+
+```bash
+kubectl logs <pod-name>
+kubectl logs <pod-name> --previous
+```
+
+#### Dependency problem
+
+For example, the application is running but cannot connect to:
+
+- PostgreSQL
+- Redis
+- another microservice
+- an external API
+
+The readiness probe may therefore fail.
+
+#### Wrong port or probe configuration
+
+For example, the application listens on `8080` but the readiness probe checks `8081`. The Pod stays NotReady.
+
+### 2. Node is NotReady
+
+Check:
+
+```bash
+kubectl get nodes
+kubectl describe node <node-name>
+```
+
+Look at the **Conditions** section.
+
+Common reasons:
+
+#### Kubelet is down
+
+```bash
+systemctl status kubelet
+```
+
+Check the logs:
+
+```bash
+journalctl -u kubelet
+```
+
+#### Node has CPU, memory or disk pressure
+
+Check:
+
+```bash
+kubectl describe node <node-name>
+```
+
+You may see:
+
+```text
+MemoryPressure=True
+DiskPressure=True
+PIDPressure=True
+```
+
+For example, if the node's disk is full, kubelet may report `DiskPressure=True`.
+
+#### Container runtime problem
+
+For example, containerd is down:
+
+```bash
+systemctl status containerd
+```
+
+If the container runtime isn't working, kubelet cannot properly manage containers.
+
+#### Network problem
+
+The node may not be able to communicate with the Kubernetes API server. Check the kubelet logs and network connectivity.
+
+#### CNI / network plugin problem
+
+If Azure CNI or another Kubernetes networking component is broken, Pods may have networking problems, and the node can become unhealthy depending on the failure.
+
+#### Certificate or authentication issue
+
+Kubelet certificates or credentials can expire or become invalid, preventing proper communication with the API server.
+
+### Very important interview distinction
+
+Don't troubleshoot both in exactly the same way.
+
+| | Pod NotReady | Node NotReady |
+| --- | --- | --- |
+| Start with | `kubectl describe pod <pod>`, `kubectl logs <pod>` | `kubectl describe node <node>`, then on the node: `systemctl status kubelet`, `systemctl status containerd`, `journalctl -u kubelet` |
+| Focus on | Readiness probe, application, dependencies, container status, configuration | Kubelet, container runtime, CPU / memory / disk pressure, network, certificates, node health |
+
+### Interview answer
+
+> "If a Pod is NotReady, I first check `kubectl describe pod` and the Pod logs. I specifically look for readiness probe failures, application issues, dependency connectivity, incorrect ports, or resource problems. If a Node is NotReady, I check `kubectl describe node` and look at the node conditions. Then I verify kubelet and container runtime status, CPU, memory and disk pressure, network connectivity to the API server, and kubelet logs. I identify the exact condition or event first rather than restarting components blindly."
+
+---
+
+## Q14. If you restore a backup in Jenkins, will it work?
+
+**Yes**, a Jenkins backup can be restored and Jenkins can work, but it depends on **what was backed up** and whether the restore is **compatible** with the Jenkins environment.
+
+### What needs to be backed up?
+
+The most important Jenkins data is the `JENKINS_HOME` directory. It contains things like:
+
+```text
+JENKINS_HOME/
+├── jobs/
+├── credentials.xml
+├── config.xml
+├── users/
+├── nodes/
+├── plugins/
+├── secrets/
+├── fingerprints/
+└── pipelines / jobs configuration
+```
+
+A proper backup should protect the Jenkins configuration, jobs, credentials, secrets, and other required metadata.
+
+### Restore process
+
+Suppose the old Jenkins server failed:
+
+```text
+Old Jenkins
+     ↓
+Backup JENKINS_HOME
+     ↓
+New Jenkins server
+     ↓
+Install a compatible Jenkins version
+     ↓
+Restore JENKINS_HOME
+     ↓
+Start Jenkins
+```
+
+For example:
+
+```bash
+systemctl stop jenkins
+```
+
+Restore the backup into the correct Jenkins home:
+
+```bash
+cp -r /backup/jenkins_home/* /var/lib/jenkins/
+```
+
+Fix the ownership:
+
+```bash
+chown -R jenkins:jenkins /var/lib/jenkins
+```
+
+Then:
+
+```bash
+systemctl start jenkins
+```
+
+Verify:
+
+```bash
+systemctl status jenkins
+```
+
+### Important issue: plugins
+
+This is where restores can fail.
+
+Suppose the backup was created on Jenkins version A with plugin versions X, and you restore it onto a completely different Jenkins and plugin environment. You can run into:
+
+- Plugin incompatibility
+- Missing plugins
+- Failed jobs
+- Configuration errors
+
+So ideally, restore onto the **same or a compatible Jenkins version and plugin versions**, then upgrade in a controlled manner.
+
+### Credentials are especially important
+
+Jenkins credentials are **encrypted**. Restoring only `credentials.xml` is not enough if the matching Jenkins encryption keys are missing.
+
+That's why a proper Jenkins backup must include the relevant files under:
+
+```text
+JENKINS_HOME/secrets/
+```
+
+Without the required encryption keys, previously stored credentials may not be usable.
+
+### Interview answer
+
+> "Yes, Jenkins can be restored from backup, provided the backup is complete and the restored environment is compatible. I would normally back up the entire JENKINS_HOME, including job configurations, credentials, plugins, users, secrets, and system configuration. During DR, I install a compatible Jenkins version, restore JENKINS_HOME, maintain the correct ownership and permissions, verify plugins and credentials, and then start Jenkins. I would also test the restored pipelines before considering the recovery successful."
+
+### Production best practice
+
+Don't rely only on a Jenkins server snapshot. Keep regular, tested backups of `JENKINS_HOME` and periodically perform a restore test.
+
+**A backup that has never been restored is not a proven backup.**
+
+---
+
+## Q15. How do you store secrets in Jenkins?
+
+In Jenkins, I would **not** store secrets directly in the Jenkinsfile. I use **Jenkins Credentials** or an external secret manager such as **Azure Key Vault**.
+
+### 1. Jenkins Credentials Store
+
+Go to:
+
+```text
+Jenkins
+ → Manage Jenkins
+ → Credentials
+ → Global
+ → Add Credentials
+```
+
+You can store:
+
+- Username / password
+- Secret text
+- SSH private key
+- Certificate
+- Secret files
+- API tokens
+
+For example, create a credential with the ID:
+
+```text
+azure-sp-credentials
+```
+
+Then use it in the pipeline:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'azure-sp-credentials',
+                        usernameVariable: 'AZURE_CLIENT_ID',
+                        passwordVariable: 'AZURE_CLIENT_SECRET'
+                    )
+                ]) {
+                    sh '''
+                        az login \
+                          --service-principal \
+                          -u "$AZURE_CLIENT_ID" \
+                          -p "$AZURE_CLIENT_SECRET" \
+                          --tenant "$AZURE_TENANT_ID"
+                    '''
+                }
+            }
+        }
+    }
+}
+```
+
+The actual secret isn't written in the Jenkinsfile.
+
+### 2. Mask secrets in console output
+
+Jenkins credentials binding masks recognized secret values in build logs.
+
+But don't do this:
+
+```bash
+echo "$AZURE_CLIENT_SECRET"
+```
+
+Even though Jenkins may mask it, never intentionally print secrets.
+
+Also avoid:
+
+```bash
+set -x
+```
+
+when running commands that contain sensitive values.
+
+### 3. External secret manager
+
+In an Azure environment, I would prefer **Azure Key Vault** for important production secrets.
+
+Example architecture:
+
+```text
+Jenkins
+   |
+   | Managed Identity / Workload Identity
+   ↓
+Azure Key Vault
+   |
+   ↓
+Secrets
+   |
+   ↓
+Application / Deployment
+```
+
+This keeps sensitive values outside Jenkins and provides centralized secret management, access control, auditing and rotation.
+
+### 4. What I would avoid
+
+Don't store secrets like this:
+
+```groovy
+environment {
+    DB_PASSWORD = 'MyPassword123'
+}
+```
+
+Don't commit this to Git:
+
+```yaml
+password: MyPassword123
+```
+
+Don't put credentials in Dockerfiles or container images.
+
+### Interview answer
+
+> "I store secrets using Jenkins Credentials rather than hardcoding them in the Jenkinsfile or Git repository. I create the credential in the Jenkins Credentials Store and reference it by credentialsId using withCredentials or the credentials binding mechanism. Jenkins masks the values in console output, and I make sure not to print secrets. For production environments, especially in Azure, I prefer using Azure Key Vault as the centralized secret store and allow Jenkins to access it through an appropriate identity."
