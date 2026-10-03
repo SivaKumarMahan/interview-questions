@@ -17,7 +17,7 @@ This repository contains interview questions, short notes, detailed answers, sce
   - [CI/CD, source control, and artifacts](#cicd-source-control-and-artifacts)
   - [Infrastructure as Code and configuration](#infrastructure-as-code-and-configuration)
   - [Cloud](#cloud)
-  - [Data platform and logging](#data-platform-and-logging)
+  - [Logging platform](#logging-platform)
   - [Operating systems and scripting](#operating-systems-and-scripting)
   - [Observability, operations, and networking](#observability-operations-and-networking)
   - [Lead-level preparation](#lead-level-preparation)
@@ -43,7 +43,7 @@ These files cover the questions that come up most in Senior and Lead DevOps roun
 | 4 | [azure-devops/03-pipeline-design-variables-and-templates.md](azure-devops/03-pipeline-design-variables-and-templates.md) | YAML pipelines, stages, templates, and variable groups |
 | 5 | [terraform/03-state-and-backends.md](terraform/03-state-and-backends.md) | Remote state, locking, and state problems |
 | 6 | [terraform/09-cicd-testing-and-security.md](terraform/09-cicd-testing-and-security.md) | Running Terraform in pipelines, testing, secrets, and policy as code |
-| 7 | [aws/03-networking-security-and-iam.md](aws/03-networking-security-and-iam.md) | VPC design, security groups vs. NACLs, NAT, and IAM |
+| 7 | [azure/04-storage-networking-and-reliability.md](azure/04-storage-networking-and-reliability.md) | VNets, NSGs, private endpoints, Application Gateway, and the 502 decision tree |
 | 8 | [docker/06-troubleshooting-and-host-maintenance.md](docker/06-troubleshooting-and-host-maintenance.md) | Debugging containers that fail to start or run out of resources |
 | 9 | [ops/03-sre.md](ops/03-sre.md) | SLOs, incidents, and postmortems, which are central to lead roles |
 | 10 | [repetitive-questions/production-issues.md](repetitive-questions/production-issues.md) | Real production incidents, told as stories |
@@ -61,7 +61,7 @@ About 8 hours. Take a short break after each block.
 | 3. Docker | 45 min | [docker/02](docker/02-dockerfiles-and-building-images.md), [docker/06](docker/06-troubleshooting-and-host-maintenance.md) |
 | 4. Terraform | 1 h 30 min | [terraform/01](terraform/01-fundamentals-and-workflow.md), [03](terraform/03-state-and-backends.md), [07](terraform/07-lifecycle-and-safe-changes.md), [08](terraform/08-drift-import-and-refactoring.md) |
 | 5. CI/CD and GitOps | 1 h 30 min | [ci-cd/01](ci-cd/01-fundamentals-and-tooling.md), [ci-cd/04](ci-cd/04-deployment-strategies-and-rollback.md), [azure-devops/03](azure-devops/03-pipeline-design-variables-and-templates.md), [azure-devops/06](azure-devops/06-troubleshooting.md), [gitops/01](gitops/01-gitops-fundamentals.md) |
-| 6. Cloud and operations | 1 h 15 min | [aws/01](aws/01-architecture-and-high-availability.md), [aws/03](aws/03-networking-security-and-iam.md), [monitoring-tools/01](monitoring-tools/01-observability-and-apm.md), [ops/03](ops/03-sre.md) |
+| 6. Cloud and operations | 1 h 15 min | [azure/02](azure/02-compute-and-app-hosting.md), [azure/05](azure/05-identity-security-and-governance.md), [azure/09](azure/09-azure-monitor-kql-and-alerting.md), [monitoring-tools/01](monitoring-tools/01-observability-and-apm.md), [ops/03](ops/03-sre.md) |
 | 7. Interview practice | 30 min | [repetitive-questions](repetitive-questions/), [real-interview-questions](real-interview-questions/), [managerial-round](managerial-round/) |
 
 ### 1-week study plan
@@ -75,7 +75,7 @@ About 3–4 hours a day. Each day ends with 20 minutes of answering that day's q
 | 3 | Kubernetes in production | [kubernetes](kubernetes/) 05–09 · [helm](helm/) 01–04 · [gitops](gitops/) 01–02 |
 | 4 | Infrastructure as Code | [terraform](terraform/) 01–10 · skim [ansible](ansible/) 01 and 04 |
 | 5 | CI/CD | [ci-cd](ci-cd/) 01–07 · [azure-devops](azure-devops/) 01–06 · [artifact-repositories](artifact-repositories/) 05 · [testing-tools](testing-tools/) 01–02 |
-| 6 | Cloud and operations | [aws](aws/) 01–04 · [azure](azure/) 01, 04, 05 · [monitoring-tools](monitoring-tools/) 01, 04, 06 · [ops](ops/) 02–04 |
+| 6 | Azure and operations | [azure](azure/) 01–10 · [monitoring-tools](monitoring-tools/) 01, 04, 06 · [splunk](splunk/) 01, 03 · [ops](ops/) 02–04 |
 | 7 | Mock interview day | [repetitive-questions](repetitive-questions/) · [real-interview-questions](real-interview-questions/) · [managerial-round](managerial-round/) · [others/behavioral](others/behavioral/) · [cheatcodes](cheatcodes/) |
 
 ### Recommended study order
@@ -88,9 +88,9 @@ flowchart LR
     B --> C["Orchestration<br/>Kubernetes, Helm"]
     C --> D["Delivery<br/>CI/CD, Azure DevOps,<br/>Jenkins, GitHub Actions, GitOps"]
     C --> E["Infrastructure as Code<br/>Terraform, Bicep, Ansible"]
-    D --> F["Cloud<br/>AWS, Azure"]
+    D --> F["Cloud<br/>Azure"]
     E --> F
-    F --> G["Operations and data<br/>Monitoring, Splunk, Databricks,<br/>SRE, DevSecOps, FinOps"]
+    F --> G["Operations<br/>Azure Monitor, Prometheus, Splunk,<br/>SRE, DevSecOps, FinOps"]
     G --> L["Lead-level preparation<br/>System design, leadership,<br/>your own projects"]
     L --> H["Interview practice<br/>Labs, repetitive and real questions,<br/>managerial round"]
 ```
@@ -129,7 +129,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 ## Topic index
 
-29 topic folders, 164 topic files, and 1507 interview questions in total.
+28 topic folders, 162 topic files, and 1,470 interview questions in total.
 
 ### Containers, orchestration, and GitOps
 
@@ -166,15 +166,14 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [aws](aws/) | 9 | 96 | Architecture and HA (with an ECS Fargate diagram), compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting, ECS and Fargate, Application Load Balancer, ECR, SSM Parameter Store, CloudTrail |
-| [azure](azure/) | 6 | 48 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS), integration and messaging (Service Bus, Event Grid), storage/networking/reliability, identity/Key Vault/governance, automation/monitoring/cost |
+| [aws](aws/) | 4 | 29 | Architecture and HA, compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting |
+| [azure](azure/) | 10 | 99 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS behind Application Gateway), integration and messaging (Service Bus, Event Grid), storage/networking/reliability (502 decision tree), identity/Key Vault/governance, automation/monitoring/cost, Application Gateway and WAF, VM Scale Sets and autoscale, Azure Monitor/KQL/alerting, backup/recovery and PostgreSQL |
 
-### Data platform and logging
+### Logging platform
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [splunk](splunk/) | 4 | 56 | Architecture (forwarders, indexers, search heads), SPL queries, alerts and dashboards, troubleshooting |
-| [databricks](databricks/) | 3 | 43 | Unity Catalog and Hive metastore migration, workspace and cluster management, CI/CD with bundles and data platform DevOps |
+| [splunk](splunk/) | 4 | 57 | Architecture (forwarders, indexers, search heads), SPL queries, alerts and dashboards, troubleshooting |
 
 ### Operating systems and scripting
 
@@ -189,23 +188,23 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [monitoring-tools](monitoring-tools/) | 10 | 61 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, AWS and Azure, CI/CD and IaC, FinOps |
-| [ops](ops/) | 7 | 75 | Operations overview, DevSecOps, SRE, FinOps, AIOps, HashiCorp Vault, policy as code with OPA and Kyverno |
+| [monitoring-tools](monitoring-tools/) | 10 | 61 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, cloud monitoring, CI/CD and IaC, FinOps |
+| [ops](ops/) | 7 | 77 | Operations overview, DevSecOps, SRE, FinOps, AIOps, HashiCorp Vault, policy as code with OPA and Kyverno |
 | [networking](networking/) | 4 subfolders | – | Networking fundamentals (including a common ports reference), proxies and load balancing, network security, multi-cloud networking. Tool-specific networking lives in each tool's folder. |
 
 ### Lead-level preparation
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [system-design](system-design/) | 5 | 67 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on AWS, centralized logging platform, secrets management at scale |
+| [system-design](system-design/) | 5 | 67 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on Azure, centralized logging platform, secrets management at scale |
 | [leadership](leadership/) | 5 | 59 | Architecture decision records, writing postmortems, mentoring, leading incidents, stakeholder communication |
-| [my-projects](my-projects/) | 5 | 47 | STAR templates for your own projects, with architecture diagram skeletons and likely follow-up questions. See its [README](my-projects/README.md). |
+| [my-projects](my-projects/) | 7 | 66 | STAR templates for the projects on your resume (AKS upgrades, Helm RBAC in Go, Bicep RBAC, DevSecOps gates, VMSS and backup automation, monitoring and Splunk, Functions with Service Bus). See its [README](my-projects/README.md). |
 
 ## Other folders
 
 | Folder | What it contains |
 | --- | --- |
-| [labs](labs/) | Three hands-on labs with expected results: fix a broken Deployment on kind, OpenTofu with LocalStack and remote state, and a multi-stage Dockerfile exercise |
+| [labs](labs/) | Three hands-on labs with expected results: fix a broken Deployment on kind, OpenTofu remote state, workspaces, and locking with a local PostgreSQL (`pg` backend), and a multi-stage Dockerfile exercise |
 | [cheatcodes](cheatcodes/) | Quick command cheat-sheets per tool: kubectl, Docker, Git, Terraform, Ansible, Argo CD, Jenkins, GitHub Actions, AWS CLI, Linux, shell, TLS |
 | [repetitive-questions](repetitive-questions/) | Questions asked again and again across interviews: CI/CD flow, branching, rollback, zero-downtime deployment, secrets, sample pipelines and Dockerfiles, production issues |
 | [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies, and an [interview tracker](real-interview-questions/README.md) |
