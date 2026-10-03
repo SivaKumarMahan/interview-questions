@@ -795,3 +795,564 @@ But a stable identity does **not** necessarily mean the Pod IP stays fixed.
 ### Interview answer
 
 > "Pod IPs in Kubernetes are normally dynamic. When a Pod is recreated, it can receive a different IP. Therefore, we don't use Pod IPs directly for application communication. We use a Kubernetes Service, which provides a stable endpoint and routes traffic to the current Pod IPs. StatefulSets provide stable Pod names and DNS identities, but that doesn't mean the Pod IP itself is permanently static."
+
+---
+
+## Q8. How is your application accessed using a NodePort Service?
+
+With a **NodePort** Service, an application is accessed using the **Node IP + NodePort**.
+
+### Flow
+
+```text
+User / Client
+     |
+     | http://<Node-IP>:30080
+     ↓
+Kubernetes Node
+     |
+     | NodePort 30080
+     ↓
+NodePort Service
+     |
+     ↓
+Pod
+     |
+     ↓
+Application container :8080
+```
+
+### Example
+
+Suppose your application is listening on port 8080 inside the Pod.
+
+Service:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30080
+```
+
+Here:
+
+- `targetPort: 8080` → application port inside the Pod
+- `port: 80` → Service port
+- `nodePort: 30080` → port exposed on every eligible node
+
+You can access it using:
+
+```text
+http://<Node-IP>:30080
+```
+
+For example:
+
+```text
+http://10.10.1.20:30080
+```
+
+Kubernetes then forwards the request:
+
+```text
+10.10.1.20:30080
+        ↓
+NodePort Service :80
+        ↓
+Pod :8080
+```
+
+### How do you find the NodePort?
+
+```bash
+kubectl get svc my-app
+```
+
+Example:
+
+```text
+NAME     TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)
+my-app   NodePort   10.0.10.50    <none>        80:30080/TCP
+```
+
+Find the node IP:
+
+```bash
+kubectl get nodes -o wide
+```
+
+Then access:
+
+```text
+http://<NODE-IP>:30080
+```
+
+### Important point in AKS
+
+If the AKS nodes have private IPs, you cannot normally access the NodePort directly from the public internet using those private IPs.
+
+You would typically use:
+
+```text
+Internet
+   ↓
+Azure Load Balancer / Application Gateway
+   ↓
+AKS
+   ↓
+Service
+   ↓
+Pods
+```
+
+For production applications, NodePort is generally **not** the preferred external exposure mechanism. LoadBalancer or Ingress is more common.
+
+### Interview answer
+
+> "With a NodePort Service, Kubernetes exposes a port on the nodes, usually in the 30000-32767 range. The client accesses the application using the Node IP and NodePort, for example `http://10.10.1.20:30080`. Kubernetes forwards that request to the Service, and the Service routes it to one of the backend Pods. In AKS, for production external access, I would normally use a LoadBalancer or Ingress rather than exposing NodePort directly."
+
+---
+
+## Q9. What is the difference between CMD and ENTRYPOINT?
+
+In a Dockerfile, both `CMD` and `ENTRYPOINT` define what runs when a container starts, but they behave differently.
+
+### Simple difference
+
+- **CMD** → provides the default command or default arguments. It can easily be overridden.
+- **ENTRYPOINT** → defines the main executable. Arguments can be passed to it, but the executable normally remains fixed.
+
+### Example with CMD
+
+```dockerfile
+FROM ubuntu:22.04
+
+CMD ["echo", "Hello World"]
+```
+
+Run:
+
+```bash
+docker run myimage
+```
+
+Output:
+
+```text
+Hello World
+```
+
+But you can override it:
+
+```bash
+docker run myimage echo "Hi Siva"
+```
+
+Output:
+
+```text
+Hi Siva
+```
+
+The original `CMD` is completely replaced.
+
+### Example with ENTRYPOINT
+
+```dockerfile
+FROM ubuntu:22.04
+
+ENTRYPOINT ["echo"]
+```
+
+Run:
+
+```bash
+docker run myimage "Hello World"
+```
+
+Output:
+
+```text
+Hello World
+```
+
+Here:
+
+```text
+ENTRYPOINT = echo
+Argument   = Hello World
+```
+
+The argument is **appended** to the `ENTRYPOINT`.
+
+### Using both together
+
+This is a very common pattern:
+
+```dockerfile
+FROM ubuntu:22.04
+
+ENTRYPOINT ["echo"]
+CMD ["Hello World"]
+```
+
+Run:
+
+```bash
+docker run myimage
+```
+
+Result:
+
+```text
+Hello World
+```
+
+Effectively:
+
+```bash
+echo "Hello World"
+```
+
+If you run:
+
+```bash
+docker run myimage "Hi Siva"
+```
+
+Result:
+
+```text
+Hi Siva
+```
+
+So:
+
+```text
+ENTRYPOINT = fixed executable
+CMD        = default argument
+```
+
+### Comparison
+
+| | CMD | ENTRYPOINT |
+| --- | --- | --- |
+| Purpose | Default command / arguments | Main executable |
+| Easily overridden? | Yes | Not normally |
+| Arguments appended? | No, if CMD is overridden | Yes |
+| Common use | Default behavior | The container's main application |
+
+### Interview answer
+
+> "CMD and ENTRYPOINT both define the container startup behavior. CMD provides a default command or arguments and can be completely overridden when running the container. ENTRYPOINT defines the main executable, and runtime arguments are normally appended to it. We can also use them together, where ENTRYPOINT is the fixed executable and CMD provides its default arguments."
+
+**One important interview point:** prefer the JSON (exec) form:
+
+```dockerfile
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+rather than the shell form:
+
+```dockerfile
+ENTRYPOINT java -jar app.jar
+```
+
+The exec form handles signals and process management more cleanly, which matters for containers running in Kubernetes.
+
+---
+
+## Q10. If a Secret is changed while Pods are running, what is the effect?
+
+It depends on **how the Secret is consumed by the Pod**. This is an important Kubernetes interview question.
+
+### 1. Secret used as an environment variable
+
+Example:
+
+```yaml
+env:
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: db-secret
+      key: password
+```
+
+If you change the Secret:
+
+```bash
+kubectl edit secret db-secret
+```
+
+the environment variable inside an already-running container does **not** change.
+
+The Pod must be restarted or recreated to pick up the new value:
+
+```bash
+kubectl rollout restart deployment my-app
+```
+
+Flow:
+
+```text
+Secret changed
+     ↓
+Existing Pod
+     ↓
+Environment variable keeps the OLD value
+     ↓
+Pod restart
+     ↓
+NEW value loaded
+```
+
+### 2. Secret mounted as a volume
+
+Example:
+
+```yaml
+volumes:
+- name: secret-volume
+  secret:
+    secretName: db-secret
+```
+
+Here, Kubernetes **can update the mounted Secret files inside the running Pod** after the Secret changes. There can be a short propagation delay.
+
+```text
+Secret changed
+      ↓
+Kubernetes updates the mounted volume
+      ↓
+File inside the Pod gets the new value
+```
+
+However, there is an important catch: **your application must actually re-read the file.**
+
+If the application reads the secret only during startup and keeps it in memory, changing the mounted file won't change the application's behavior. You may still need to restart or reload the application.
+
+### 3. Secret baked into the Docker image
+
+If you put a secret directly into the image:
+
+```dockerfile
+ENV DB_PASSWORD=mysecret
+```
+
+changing a Kubernetes Secret has **no effect**. The secret is already part of the image and container configuration.
+
+This is also a bad security practice.
+
+### Interview answer
+
+> "The effect depends on how the Secret is consumed. If the Secret is injected as an environment variable, changing the Kubernetes Secret does not update the environment variable in an existing Pod, so we need to restart the Pod to pick up the new value. If the Secret is mounted as a volume, Kubernetes can update the mounted files automatically after a short propagation delay, but the application must re-read the file or reload the configuration. If the application only reads the secret during startup, we still need a restart or reload."
+
+### One more production point
+
+If you're using **Azure Key Vault with the Secrets Store CSI Driver**, the behavior is slightly different, because the secret can be synced from Key Vault and rotated depending on the rotation configuration. But again, whether the application sees the new value depends on whether it reads the mounted file dynamically or only at startup.
+
+---
+
+## Q11. In Helm, if you want to deploy one specific version out of three, how will you deploy it?
+
+If you have 3 versions of the same Helm chart or application and specifically want to deploy version 2, you need to distinguish between the **Helm chart version** and the **application (image) version**.
+
+### 1. If you mean the Helm chart version
+
+Suppose your Helm repository has:
+
+```text
+myapp
+├── 1.0.0
+├── 2.0.0
+└── 3.0.0
+```
+
+First check the available versions:
+
+```bash
+helm search repo myapp --versions
+```
+
+Then explicitly install version 2.0.0:
+
+```bash
+helm upgrade --install myapp myrepo/myapp \
+  --version 2.0.0
+```
+
+`--version` tells Helm which chart version to use.
+
+### 2. If you mean the application / image version
+
+Suppose the same chart can deploy:
+
+```text
+myapp:1.0
+myapp:2.0
+myapp:3.0
+```
+
+You can specify the image tag:
+
+```bash
+helm upgrade --install myapp ./mychart \
+  --set image.tag=2.0
+```
+
+Or, preferably, use a values file:
+
+```yaml
+image:
+  repository: myacr.azurecr.io/myapp
+  tag: "2.0"
+```
+
+Then:
+
+```bash
+helm upgrade --install myapp ./mychart \
+  -f values-prod.yaml
+```
+
+### 3. If the versions already exist as Helm releases
+
+If you mean deploying or rolling back to an earlier release revision, check:
+
+```bash
+helm history myapp
+```
+
+Example:
+
+```text
+REVISION   STATUS
+1          superseded
+2          superseded
+3          deployed
+```
+
+To go back to revision 1:
+
+```bash
+helm rollback myapp 1
+```
+
+Then verify:
+
+```bash
+helm status myapp
+```
+
+### Interview answer
+
+> "First I clarify whether the version refers to the Helm chart version or the application image version. If I need a specific Helm chart version, I use `helm upgrade --install` with `--version`, for example `--version 2.0.0`. If I need a specific application version, I pass the required image tag using `--set image.tag=2.0`. If the required version was already deployed previously and I need to revert to that release, I check `helm history` and use `helm rollback` with the required revision."
+
+---
+
+## Q12. What will happen if kubelet is not running?
+
+If kubelet is not running on a Kubernetes worker node, that node **cannot properly participate in Kubernetes workload management**.
+
+### What does kubelet do?
+
+kubelet is the agent running on every worker node. It:
+
+- Communicates with the Kubernetes API server.
+- Watches for Pods assigned to its node.
+- Creates and manages containers through the container runtime.
+- Handles liveness, readiness and startup probes.
+- Reports node and Pod status back to the API server.
+
+### If kubelet stops
+
+Suppose:
+
+```text
+              API Server
+                  |
+          ----------------
+          |              |
+       Node-1          Node-2
+     kubelet ✅      kubelet ❌
+```
+
+The API server will eventually detect that Node-2 is not responding.
+
+Check:
+
+```bash
+kubectl get nodes
+```
+
+You may see:
+
+```text
+NAME      STATUS
+node-1    Ready
+node-2    NotReady
+```
+
+### What happens to existing Pods?
+
+This is an important distinction.
+
+The container runtime **may continue running existing containers** even if kubelet stops. But kubelet is no longer managing them or reporting their state to the API server.
+
+So you can have:
+
+```text
+kubelet ❌
+    |
+    └── Existing containers may continue running
+```
+
+but Kubernetes loses reliable management and health reporting for that node.
+
+After the node is considered unavailable, Kubernetes may eventually evict and reschedule workloads, depending on the Pod and controller configuration.
+
+### What happens to new Pods?
+
+The scheduler may initially see the node as available, but once the node becomes `NotReady` and is no longer considered suitable, new Pods won't normally be scheduled there.
+
+Existing workloads managed by Deployments or ReplicaSets can be recreated on healthy nodes after eviction.
+
+### Troubleshooting
+
+On the affected node:
+
+```bash
+systemctl status kubelet
+```
+
+Check the logs:
+
+```bash
+journalctl -u kubelet -f
+```
+
+Restart it:
+
+```bash
+systemctl restart kubelet
+```
+
+Then:
+
+```bash
+kubectl get nodes
+```
+
+### Interview answer
+
+> "Kubelet is the agent responsible for managing Pods on a Kubernetes node and communicating node and Pod status to the API server. If kubelet stops, existing containers may continue running through the container runtime, but Kubernetes loses management and status reporting for that node. The node will eventually become NotReady, new workloads won't be scheduled there, and controllers may reschedule affected Pods to healthy nodes. I would troubleshoot using `systemctl status kubelet` and `journalctl -u kubelet`."
