@@ -5,7 +5,7 @@ Small labs you can run on a laptop to practise the troubleshooting and build ski
 | Lab | What you do | Tools | Time |
 | --- | --- | --- | --- |
 | [01-kind-broken-deployment](01-kind-broken-deployment/) | Fix a Deployment with a `CrashLoopBackOff` and a failing readiness probe | Docker, kind, kubectl | 30 min |
-| [02-opentofu-localstack](02-opentofu-localstack/) | Create an S3 state bucket, use the S3 backend, and watch state locking | Docker, OpenTofu (or Terraform) | 30 min |
+| [02-opentofu-remote-state-locking](02-opentofu-remote-state-locking/) | Keep state in PostgreSQL with the `pg` backend, use workspaces, and watch state locking block a second run. No cloud account needed. | Docker, OpenTofu (or Terraform) | 30 min |
 | [03-docker-multistage-optimization](03-docker-multistage-optimization/) | Shrink an image from about 900 MB to about 7 MB with a multi-stage build | Docker | 20 min |
 
 All three labs were run end to end before they were published, and the expected output in each README comes from those runs.
