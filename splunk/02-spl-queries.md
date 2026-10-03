@@ -1,6 +1,6 @@
 # Splunk: SPL Queries
 
-> SPL fundamentals and the commands interviewers ask about, search performance best practices, and practical DevOps queries for 5xx rates, latency, error spikes, failed logins, CI/CD failures, and AWS CloudTrail.
+> SPL fundamentals and the commands interviewers ask about, search performance best practices, and practical DevOps queries for 5xx rates, latency, error spikes, failed logins, CI/CD failures, and Azure Activity Log and Entra ID sign-in logs.
 
 ## Key Concepts
 
@@ -9,10 +9,12 @@
 An SPL search is a pipeline. The first part (before the first `|`) is the **base search**: it picks events from indexes using the time range, indexed fields, and keywords. Each command after a `|` works on the output of the one before it.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-60m@m latest=now elb_status_code>=500
-| stats count by target_group_arn
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-60m@m latest=now properties.httpStatus>=500
+| stats count by properties.originalHost
 | sort - count
 ```
+
+The Azure examples in this file use data from the Splunk Add-on for Microsoft Cloud Services (Azure diagnostic settings to Event Hubs). Each Azure log record is one JSON event with top-level fields such as `category` and `operationName`, and the details under `properties.*`. Field paths can differ by add-on version and input settings, so I check them first with `| fieldsummary`.
 
 - **Time range:** `earliest=-24h@h` means "24 hours ago, snapped to the start of the hour". Always set it. It is the cheapest filter.
 - **Distributed work:** streaming commands (`eval`, `where`, `rex`, `fields`) run on the indexers. The first transforming command (`stats`, `timechart`) runs partly on indexers and finishes on the search head. Commands after that run on the search head only.
@@ -122,12 +124,12 @@ index=app_prod sourcetype=myapp:log
 - **eval:** creates or changes a field. It does not filter.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs
-| eval is_error=if(elb_status_code>=500, 1, 0)
-| where request_processing_time > target_processing_time
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog
+| eval is_error=if('properties.httpStatus'>=500, 1, 0)
+| where 'properties.timeTaken' > 2 * 'properties.serverResponseLatency'
 ```
 
-In `where` and `eval`, a field name with special characters (like `userIdentity.arn` in JSON) must be in single quotes: `where 'userIdentity.type'="Root"`. Double quotes mean a string.
+In `where` and `eval`, a field name with special characters (like `properties.status.errorCode` in JSON) must be in single quotes: `where 'properties.status.errorCode'!=0`. Double quotes mean a string.
 
 **Pitfall:** in `where`, an unquoted word is read as a field name. `where host=web01` compares the `host` field with a field called `web01`, so it returns nothing. Write `where host="web01"`.
 
@@ -144,8 +146,8 @@ In `where` and `eval`, a field name with special characters (like `userIdentity.
 - **top / rare:** most or least common values, with `count` and `percent` columns. Default limit is 10.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs elb_status_code>=500
-| top limit=5 request_url
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog properties.httpStatus>=500
+| top limit=5 properties.requestUri
 ```
 
 **Pitfall:** `dedup` on a large data set is slow and keeps raw events. To get "latest value per host" at scale, `stats latest(status) as status by host` is better.
@@ -202,8 +204,9 @@ index=app_prod sourcetype=myapp:log request_id=*
 A lookup adds fields to events by matching a key.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs elb_status_code>=500
-| lookup service_owners.csv target_group OUTPUT service team oncall
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog properties.httpStatus>=500
+| rename properties.originalHost as originalHost
+| lookup service_owners.csv originalHost OUTPUT service team oncall
 | stats count by service team
 ```
 
@@ -227,11 +230,13 @@ Avoid it in this order:
 1. **stats over both data sets** with `OR` in the base search:
 
 ```text
-(index=app_prod sourcetype=myapp:log) OR (index=aws_cloudtrail sourcetype=aws:cloudtrail)
-| eval key=coalesce(request_id, requestID)
-| stats values(sourcetype) as sources values(eventName) as api values(level) as level by key
+(index=app_prod sourcetype=myapp:log level=ERROR) OR (index=cicd sourcetype=azure:devops:pipeline stage=deploy)
+| eval key=coalesce(service, pipeline)
+| stats values(sourcetype) as sources values(run_id) as deploy_runs count(eval(level="ERROR")) as errors by key
 | where mvcount(sources) > 1
 ```
+
+Here the pipeline name matches the service name, so one `stats` joins deploys and errors. The `azure:devops:pipeline` sourcetype is the example schema from Q14.
 
 2. **lookup** when one side is a small, slowly changing list.
 3. **join** only when the right side is small and I have checked the counts.
@@ -248,8 +253,8 @@ The subsearch in square brackets runs first. Its results are turned into a searc
 
 ```text
 index=app_prod sourcetype=myapp:log level=ERROR
-    [ search index=aws_cloudtrail sourcetype=aws:cloudtrail eventName=UpdateService earliest=-1h
-      | rename requestParameters.service as service
+    [ search index=cicd sourcetype=azure:devops:pipeline stage=deploy result=succeeded earliest=-1h
+      | rename pipeline as service
       | fields service ]
 | stats count by service
 ```
@@ -317,40 +322,49 @@ index=app_prod sourcetype=myapp:log service=payments level=ERROR earliest=-4h@m
 
 </details>
 
-<details><summary>Q12. [Intermediate] Write searches for the ALB 5xx error rate and latency percentiles per target group.</summary>
+<details><summary>Q12. [Intermediate] Write searches for the Application Gateway 5xx error rate and latency percentiles per site.</summary>
 
 **Answer:**
 
-Field names below follow the Splunk Add-on for AWS ALB access log sourcetype. I check mine first with `| fieldsummary`.
+The data is the `ApplicationGatewayAccessLog` category, streamed to an Event Hub and read with `sourcetype=azure:monitor:resource`. The useful fields are `httpStatus` (status sent to the client), `serverStatus` (status from the backend), `timeTaken`, `serverResponseLatency`, `originalHost`, `requestUri`, and `clientIP`, all under `properties`. I check mine first with `| fieldsummary`.
 
-**5xx rate per target group, every 5 minutes:**
+**5xx rate per site, every 5 minutes:**
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-60m@m
-| eval is_5xx=if(elb_status_code>=500, 1, 0)
-| timechart span=5m sum(is_5xx) as errors count as total by target_group_arn
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-60m@m
+| rename properties.* as *
+| eval is_5xx=if(httpStatus>=500, 1, 0)
+| timechart span=5m sum(is_5xx) as errors count as total by originalHost
 ```
 
 **Single error-rate table, easy to alert on:**
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-15m@m
-| stats count as total count(eval(elb_status_code>=500)) as errors by target_group_arn
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-15m@m
+| rename properties.* as *
+| stats count as total count(eval(httpStatus>=500)) as errors by originalHost
 | eval error_rate_pct=round(errors/total*100, 2)
 | where total > 100 AND error_rate_pct > 2
 ```
 
-**Latency percentiles (seconds):**
+**Latency percentiles (seconds on the v2 SKU):**
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-60m@m target_processing_time>=0
-| stats perc50(target_processing_time) as p50
-        perc95(target_processing_time) as p95
-        perc99(target_processing_time) as p99
-        count by target_group_arn
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-60m@m
+| rename properties.* as *
+| stats perc50(timeTaken) as p50
+        perc95(timeTaken) as p95
+        perc99(serverResponseLatency) as backend_p99
+        count by originalHost
 ```
 
-**Pitfalls:** ALB writes `-1` for processing time when the target did not respond, so filter it out. Always add a minimum request count, or one failed request out of two gives a "50% error rate". `perc95` is an approximation on large data; `exactperc95` is exact but costs more memory.
+**Pitfalls:**
+
+- `timeTaken` is in seconds on the v2 SKU, but in milliseconds on the old v1 SKU.
+- `timeTaken` includes network time to the client. `serverResponseLatency` is the backend only, so compare both before blaming the app.
+- A 502 in `httpStatus` with no real `serverStatus` usually means the gateway could not reach a healthy backend. Check backend health, not the app logs.
+- Requests from `clientIP=127.0.0.1` come from an internal gateway process. Filter them out.
+- Always add a minimum request count, or one failed request out of two gives a "50% error rate". `perc95` is an approximation on large data; `exactperc95` is exact but costs more memory.
 
 </details>
 
@@ -419,54 +433,63 @@ TODO (Siva): replace the example sourcetype and field names with the ones your p
 
 </details>
 
-<details><summary>Q15. [Advanced] You suspect AWS credentials were misused. Which searches do you run on CloudTrail and login data? <em>(scenario)</em></summary>
+<details><summary>Q15. [Advanced] You suspect an Azure account or service principal was misused. Which searches do you run on Entra ID and Activity Log data? <em>(scenario)</em></summary>
 
 **Answer:**
 
-I work from "who logged in" to "what did they change".
+I work from "who signed in" to "what did they change". Entra ID logs arrive as `sourcetype=azure:monitor:aad` and the Azure Activity Log as `sourcetype=azure:monitor:activity`, both through Event Hubs.
 
-**1. Failed console logins and logins without MFA:**
+**1. Failed sign-ins and sign-ins without MFA for a user:**
 
 ```text
-index=aws_cloudtrail sourcetype=aws:cloudtrail eventName=ConsoleLogin earliest=-24h
-| stats count(eval('responseElements.ConsoleLogin'="Failure")) as failures
-        count(eval('additionalEventData.MFAUsed'="No")) as no_mfa
-        values(sourceIPAddress) as src_ips by userIdentity.arn
+index=azure_aad sourcetype=azure:monitor:aad category=SignInLogs earliest=-24h
+| rename properties.* as *
+| stats count(eval('status.errorCode'!=0)) as failures
+        count(eval('status.errorCode'=0 AND authenticationRequirement="singleFactorAuthentication")) as no_mfa
+        values(ipAddress) as src_ips values(location.countryOrRegion) as countries by userPrincipalName
 | where failures > 5 OR no_mfa > 0
 ```
 
-**2. SSH brute force on Linux hosts:**
+Error code `0` means success. `50126` means a wrong user name or password. Inside `eval`, the field `status.errorCode` needs single quotes, because a dot is also the string join operator.
+
+**2. Password spray: one IP failing for many users:**
 
 ```text
-index=os sourcetype=linux_secure "Failed password" earliest=-1h
-| rex "Failed password for (invalid user )?(?<user>\S+) from (?<src_ip>\S+)"
-| stats count dc(user) as users by src_ip, host
-| where count > 20
+index=azure_aad sourcetype=azure:monitor:aad category=SignInLogs properties.status.errorCode=50126 earliest=-1h
+| rename properties.* as *
+| bin _time span=10m
+| stats dc(userPrincipalName) as users count by ipAddress, _time
+| where users > 20
 ```
 
-**3. Risky API calls by that identity:**
+**3. Risky control-plane changes in the Activity Log:**
 
 ```text
-index=aws_cloudtrail sourcetype=aws:cloudtrail earliest=-7d
-    eventName IN (StopLogging, DeleteTrail, CreateAccessKey, CreateUser, AttachUserPolicy,
-                  PutUserPolicy, PutBucketPolicy, AuthorizeSecurityGroupIngress, DeleteFlowLogs)
-| stats count values(eventName) as actions values(awsRegion) as regions
-        min(_time) as first max(_time) as last by userIdentity.arn, sourceIPAddress
+index=azure_activity sourcetype=azure:monitor:activity earliest=-7d
+    operationName IN ("Microsoft.Authorization/roleAssignments/write",
+                      "Microsoft.Authorization/roleDefinitions/write",
+                      "Microsoft.Insights/diagnosticSettings/delete",
+                      "Microsoft.Network/networkSecurityGroups/securityRules/write",
+                      "Microsoft.Storage/storageAccounts/listKeys/action",
+                      "Microsoft.ContainerService/managedClusters/listClusterAdminCredential/action")
+| eval caller=coalesce('identity.claims.http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn', 'identity.claims.appid')
+| stats count values(operationName) as actions values(resultType) as results
+        min(_time) as first max(_time) as last by caller, callerIpAddress
 | convert ctime(first) ctime(last)
 ```
 
-**4. Access denied bursts, which often mean someone is probing permissions:**
+The caller's user name sits in a long claims field. A service principal has no user name, so the search falls back to its app ID. Search terms are not case-sensitive, so this also matches upper-case operation names. A deleted diagnostic setting is the Azure version of "someone turned off the logs".
+
+**4. New credentials on apps and new role members in Entra ID:**
 
 ```text
-index=aws_cloudtrail sourcetype=aws:cloudtrail errorCode IN (AccessDenied, UnauthorizedOperation) earliest=-24h
-| stats count dc(eventName) as distinct_apis by userIdentity.arn, sourceIPAddress
-| where distinct_apis > 10
+index=azure_aad sourcetype=azure:monitor:aad category=AuditLogs earliest=-7d
+    operationName IN ("Add service principal credentials", "Add member to role")
+| table _time operationName properties.initiatedBy.user.userPrincipalName properties.targetResources{}.displayName
 ```
 
-Also check root usage: `'userIdentity.type'="Root"` should almost never appear.
+**Next steps:** disable the user or service principal, revoke its sessions, rotate its secrets (or move it to workload identity federation so there is no secret), and keep the Splunk results as evidence. Make these searches scheduled alerts afterwards.
 
-**Next steps:** disable the access key, revoke sessions, and keep the Splunk results as evidence. Make these searches scheduled alerts afterwards.
-
-**Pitfall:** CloudTrail events usually arrive several minutes after the API call, and S3/SQS polling adds more delay. Alert windows must allow for that delay, or events fall between two runs.
+**Pitfall:** Entra ID and Activity Log events reach the Event Hub minutes after the action, and the add-on adds some delay. Alert windows must allow for that delay, or events fall between two runs.
 
 </details>

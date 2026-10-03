@@ -11,12 +11,12 @@ A DevOps or platform design round is not about drawing the "right" picture. The 
 Typical prompts:
 
 - Design a CI/CD platform for 50 teams.
-- Design multi-region disaster recovery on AWS.
+- Design multi-region disaster recovery on Azure.
 - Design a centralized logging platform.
 - Design secrets management for the whole company.
 - Design a Kubernetes platform, an observability stack, or an internal developer platform.
 
-The same framework works for all of them. See the worked examples in this folder: [CI/CD platform](02-cicd-platform-for-50-teams.md), [multi-region DR](03-multi-region-dr-on-aws.md), [logging platform](04-centralized-logging-platform.md), and [secrets management](05-secrets-management-at-scale.md).
+The same framework works for all of them. See the worked examples in this folder: [CI/CD platform](02-cicd-platform-for-50-teams.md), [multi-region DR](03-multi-region-dr-on-azure.md), [logging platform](04-centralized-logging-platform.md), and [secrets management](05-secrets-management-at-scale.md).
 
 ### The Framework, Step by Step
 
@@ -53,7 +53,7 @@ Suggested time split for a 45 to 60 minute round:
 Never start drawing straight away. Ask questions, write the answers down, and state assumptions when the interviewer says "you decide".
 
 - **Users and scope:** Who uses it (developers, SREs, auditors, customers)? What is in scope and what is not?
-- **Functional requirements:** What must it do? For example, "build, test, scan, and deploy services to ECS and EKS".
+- **Functional requirements:** What must it do? For example, "build, test, scan, and deploy services to AKS and App Service".
 - **Non-functional requirements:** Availability target, latency, RTO and RPO, retention, throughput, consistency.
 - **Constraints:** Existing cloud and tools, budget, team size, compliance (SOC 2, PCI DSS, HIPAA, GDPR), data residency, deadlines.
 - **Brownfield or greenfield:** What exists today, and what must keep working during migration?
@@ -79,7 +79,7 @@ Useful numbers to remember: 1 day is about 86,400 seconds (round to 100,000), 1 
 
 ### High-Level Design and Deep Dive
 
-Draw the main boxes and the data or control flows between them. Name real services, but explain the role, not just the product: "a durable buffer (Kafka or Kinesis)" is better than just "Kafka". Show who owns each box, because ownership drives operations.
+Draw the main boxes and the data or control flows between them. Name real services, but explain the role, not just the product: "a durable buffer (Kafka or Azure Event Hubs)" is better than just "Kafka". Show who owns each box, because ownership drives operations.
 
 Then pick one or two hard parts and go deep. Good deep-dive topics are the ones with real trade-offs: data replication in DR, multi-tenancy in a CI platform, the buffer and back-pressure in a logging pipeline, or identity and rotation in secrets management. Ask the interviewer which part they want to explore; it saves time and shows you listen.
 
@@ -87,7 +87,7 @@ Then pick one or two hard parts and go deep. Good deep-dive topics are the ones 
 
 These four topics separate a senior answer from a junior one. Cover them for every design, even briefly.
 
-- **Failure modes:** For each component ask "what if it is slow, down, or wrong?" Name the blast radius and how you detect it. Remember dependencies people forget: DNS, IAM, KMS, certificates, the CI system itself, and the control plane of the cloud.
+- **Failure modes:** For each component ask "what if it is slow, down, or wrong?" Name the blast radius and how you detect it. Remember dependencies people forget: DNS, Entra ID, Key Vault, certificates, the CI system itself, and the control plane of the cloud.
 - **Security:** Identity for humans and workloads, least privilege, encryption in transit and at rest, secrets, network boundaries, audit logs, and supply chain (signed artifacts, SBOMs).
 - **Cost:** Name the top two or three cost drivers (compute, storage, data transfer, licences) and the levers (autoscaling, spot, tiering, retention, sampling).
 - **Operations:** How the platform itself is deployed (IaC, GitOps), monitored (SLOs and alerts), upgraded, and supported (on-call, runbooks). Add how teams adopt it and how you migrate from the old system.
@@ -165,7 +165,7 @@ Functional requirements say **what** the system does. Non-functional requirement
 | Functional | Non-functional |
 | --- | --- |
 | Build and deploy a service on every merge to main | 95% of pipelines finish in under 15 minutes |
-| Collect logs from all ECS tasks and EKS pods | Logs searchable within 60 seconds, kept 30 days hot |
+| Collect logs from all AKS pods and App Service apps | Logs searchable within 60 seconds, kept 30 days hot |
 | Fail the app over to a second region | RTO 15 minutes, RPO 1 minute |
 | Give apps database credentials | Credentials rotate every 24 hours, every read is audited |
 
@@ -186,7 +186,7 @@ I group them so I do not forget any:
 - **Compliance:** Regulated data (PCI, HIPAA, PII)? Data residency? Audit needs?
 - **Operations:** Who will run it and who is on call?
 
-If the interviewer says "you decide", I state an assumption and move on: "I will assume 50 teams, 300 services, AWS only, SOC 2 compliance, and a platform team of five."
+If the interviewer says "you decide", I state an assumption and move on: "I will assume 50 teams, 300 services, Azure only, SOC 2 compliance, and a platform team of five."
 
 **Pitfall:** asking 20 questions without writing the answers down, so the requirements never actually shape the design.
 
@@ -210,7 +210,7 @@ Artifacts: 1,000 runs x 500 MB images   = 500 GB/day before dedup and cleanup
 What these numbers decide:
 
 - Peak is far above the night baseline, so I need **autoscaling runners**, not a fixed fleet.
-- 760 vCPU at peak makes **spot capacity** worth it for stateless jobs.
+- 760 vCPU at peak makes **Spot VMs** worth it for stateless jobs.
 - 500 GB/day of images means I need **retention policies** on the registry from day one.
 
 **Pitfall:** being too precise. Round to the nearest power of ten when it does not change the decision.
@@ -227,7 +227,7 @@ They set how much redundancy and automation I need, and they set the cost.
 - **RTO** is how long recovery may take. Hours allow backup and restore. Minutes need warm standby with pre-provisioned capacity and automated failover.
 - **RPO** is how much data you may lose. 24 hours allows nightly backups. Seconds need continuous async replication. Zero needs synchronous replication, which adds write latency.
 
-I always ask whether the targets are per service. Usually only a few critical services need tight targets, and tiering them saves a lot of money. See [multi-region DR](03-multi-region-dr-on-aws.md) for a worked example.
+I always ask whether the targets are per service. Usually only a few critical services need tight targets, and tiering them saves a lot of money. See [multi-region DR](03-multi-region-dr-on-azure.md) for a worked example.
 
 </details>
 
@@ -254,11 +254,11 @@ I walk the main flow from left to right and, for each box, ask three questions: 
 | Component | Failure | Effect | Mitigation | Detection |
 | --- | --- | --- | --- | --- |
 | Log agent | Destination down | Logs lost | Disk buffer, retries | Agent buffer size metric |
-| Message buffer | Broker lost | Ingest stops | 3 brokers across AZs, replication factor 3 | Under-replicated partitions alert |
+| Message buffer | Broker lost | Ingest stops | Zone-redundant Event Hubs, or 3 Kafka brokers across zones | Consumer lag and throttling alerts |
 | Indexer | Slow queries | Search slow, ingest lags | Separate ingest and query capacity | Indexing lag SLO |
-| IAM / KMS | Permission change | Everything fails closed | Policy as code, review | CloudTrail alarms |
+| Entra ID / Key Vault | Role assignment or access policy change | Everything fails closed | RBAC as code, review | Activity Log alerts |
 
-Then I look at **shared dependencies** people forget: DNS, IAM, KMS, certificates, the CI/CD system, the container registry, and the cloud control plane. A good design keeps the data plane working when the control plane is impaired, for example DR failover that does not depend on the primary region's APIs.
+Then I look at **shared dependencies** people forget: DNS, Entra ID, Key Vault, certificates, the CI/CD system, the container registry, and the cloud control plane. A good design keeps the data plane working when the control plane is impaired, for example DR failover that does not depend on the primary region's APIs.
 
 Finally I state the **blast radius**: one team, one AZ, one region, or everyone. If a single failure hits everyone, I look for a way to split it into cells or tenants.
 
@@ -271,9 +271,9 @@ Finally I state the **blast radius**: one team, one AZ, one region, or everyone.
 This is usually on purpose. They want to see if I can adapt without panic.
 
 1. **Restate it:** "So we cannot lose any committed write, even in a full region failure."
-2. **Find what breaks:** My design used async replication (Aurora Global Database, lag usually around a second). Async cannot give zero RPO.
+2. **Find what breaks:** My design used async replication (a PostgreSQL Flexible Server read replica in the second region, lag usually seconds). Async cannot give zero RPO.
 3. **Offer options with costs:**
-   - Synchronous replication across regions, for example DynamoDB global tables with multi-Region strong consistency, which adds write latency and limits region choice.
+   - Synchronous replication across regions, for example Azure Cosmos DB with strong consistency and one write region, which adds write latency and limits how far apart the regions can be.
    - Write to a durable multi-region log or queue first and replay into the database after failover.
    - Push back: zero RPO for every service is very expensive. Can we limit it to payments data only?
 4. **Update the diagram** and say what else changes: latency, cost, and failover runbook.
@@ -302,13 +302,13 @@ TODO (Siva): add one real example of a tool you learned quickly on the job and h
 
 I use a short, fixed list and touch each point in one or two sentences:
 
-1. **Identity:** SSO for humans, short-lived workload identity for machines (IAM roles, OIDC, workload identity). No long-lived keys.
+1. **Identity:** SSO with Entra ID for humans, short-lived workload identity for machines (managed identities, OIDC federation, AKS workload identity). No long-lived keys.
 2. **Least privilege:** Per-team or per-service roles; separate production permissions.
-3. **Data:** Encryption at rest with KMS, TLS in transit, classification and PII handling.
+3. **Data:** Encryption at rest (customer-managed keys in Key Vault where needed), TLS in transit, classification and PII handling.
 4. **Secrets:** Central store, rotation, no secrets in repos or pipeline variables.
-5. **Network:** Private subnets, VPC endpoints, no public admin access.
+5. **Network:** Private VNets, NSGs, Private Endpoints, no public admin access (Azure Bastion or private agents).
 6. **Supply chain:** Signed artifacts, SBOMs, scanning, admission policies.
-7. **Audit:** CloudTrail or equivalent, tamper-resistant log storage, alerts on sensitive actions.
+7. **Audit:** Azure Activity Log and Entra ID audit logs in Log Analytics, immutable storage for long-term copies, alerts on sensitive actions.
 
 Then I go deeper only on the point that matters most for this design. For a CI platform it is pipeline identity and supply chain. For logging it is PII and access control. See [secrets management](05-secrets-management-at-scale.md).
 
@@ -320,9 +320,9 @@ Then I go deeper only on the point that matters most for this design. For a CI p
 
 I name the **top cost drivers**, give a rough number if I can, and list the **levers**.
 
-- **Compute:** autoscaling, right-sizing, spot for stateless work, Savings Plans for the steady base.
+- **Compute:** autoscaling, right-sizing, Spot VMs for stateless work, reservations or an Azure savings plan for the steady base.
 - **Storage:** tiers (hot, warm, cold), retention policies, compression, lifecycle rules.
-- **Data transfer:** cross-AZ and cross-region traffic, NAT gateway processing; VPC endpoints often help.
+- **Data transfer:** cross-region replication traffic, internet egress, and NAT Gateway data processing; keep chatty services in the same region.
 - **Licences:** per-GB pricing (for example Splunk ingest) can be the largest cost in logging.
 
 For a Lead role I also mention **showback**: tag resources by team, publish cost per team, and set budgets and alerts. Teams change behaviour when they see their own number. See [FinOps](../ops/04-finops.md).

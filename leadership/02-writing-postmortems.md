@@ -62,9 +62,9 @@ Each contributing factor should map to at least one action item, or an explicit 
 The 5 whys asks "why?" repeatedly to move from the symptom towards a systemic cause.
 
 ```text
-Why did the API return 5xx?        The new task definition had a wrong DB endpoint.
-Why was the endpoint wrong?        It was copied by hand from the staging parameter.
-Why was it copied by hand?         SSM parameter paths differ between environments.
+Why did the API return 5xx?        The new deployment had a wrong DB endpoint.
+Why was the endpoint wrong?        It was copied by hand from the staging Key Vault secret.
+Why was it copied by hand?         Key Vault secret names differ between environments.
 Why did tests not catch it?        There is no post-deploy smoke test against the DB.
 Why is there no smoke test?        The pipeline template predates our DB move; nobody owns it.
 ```
@@ -221,17 +221,24 @@ I treat it as a conversation tool, not a formal method. For complex incidents, a
 
 - **One time zone**, usually UTC, stated at the top.
 - **Facts, not opinions:** "10:06 alert fired", not "10:06 we finally noticed".
-- **Sources:** alert history, chat channel export, deploy logs, CloudTrail, ticket updates.
+- **Sources:** alert history, chat channel export, Azure DevOps pipeline runs, the Azure Activity Log, ticket updates.
 - **Key milestones:** start of impact, detection, acknowledgement, incident declared, mitigation started, impact ended, resolved.
 - **Decisions and why:** "10:15 chose rollback over hotfix because the change was isolated."
 
 These milestones let you calculate time to detect, time to acknowledge, and time to mitigate, which you can trend over many incidents.
 
 ```bash
-# Pull deploy events from CloudTrail for the timeline
-aws cloudtrail lookup-events \
-  --lookup-attributes AttributeKey=EventName,AttributeValue=UpdateService \
-  --start-time 2026-01-10T09:30:00Z --end-time 2026-01-10T11:00:00Z
+# Azure changes in the incident window, from the Activity Log
+az monitor activity-log list -g rg-prod \
+  --start-time 2026-01-10T09:30:00+00:00 --end-time 2026-01-10T11:00:00+00:00 \
+  --query '[].{time:eventTimestamp,op:operationName.localizedValue,caller:caller,status:status.value}' -o table
+
+# Recent deploy pipeline runs with start and finish times (azure-devops extension)
+az pipelines runs list --pipeline-ids 42 --top 20 \
+  --query '[].{id:id,result:result,start:startTime,finish:finishTime,commit:sourceVersion}' -o table
+
+# Rollout history of the AKS deployment
+kubectl rollout history deployment/orders -n prod
 ```
 
 </details>
@@ -245,7 +252,7 @@ A good action item is specific, testable, owned by one person, has a due date, a
 | Weak | Strong |
 | --- | --- |
 | Improve monitoring | Add burn-rate alert on payments 5xx SLO, owner A, due date, OPS-123 |
-| Be more careful with deploys | Add canary stage with automatic rollback to the ECS pipeline template |
+| Be more careful with deploys | Add canary stage with automatic rollback to the AKS pipeline template |
 | Update docs | Rewrite and test the DB failover runbook in a game day |
 
 To get them done:
@@ -273,16 +280,17 @@ I watch for blame language and redirect it: "Let's look at what made that step e
 
 </details>
 
-<details><summary>Q8. [Intermediate] Write a short postmortem summary and impact section for an incident where a bad ECS deploy caused 20 minutes of 5xx errors. <em>(scenario)</em></summary>
+<details><summary>Q8. [Intermediate] Write a short postmortem summary and impact section for an incident where a bad AKS deploy caused 20 minutes of 5xx errors. <em>(scenario)</em></summary>
 
 **Answer:**
 
 ```markdown
 ## Summary
 On <date> between 10:06 and 10:27 UTC, the orders API returned HTTP 5xx for
-about 35% of requests after a deploy pointed new ECS tasks at the wrong
-database endpoint. The ALB kept routing to the new tasks because the health
-check only tested /ping. We rolled back to the previous task definition.
+about 35% of requests after a deploy pointed the new pods at the wrong
+PostgreSQL Flexible Server endpoint. Application Gateway kept routing to the
+new pods because the readiness and health probes only tested /ping. We rolled
+back to the previous Helm release.
 
 ## Impact
 - Duration: 21 minutes of partial outage

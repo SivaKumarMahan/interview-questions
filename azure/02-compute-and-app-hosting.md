@@ -164,6 +164,37 @@ A production design also needs resource requests and limits, probes, autoscaling
 
 A production setup also needs zone distribution, autoscaling, PodDisruptionBudgets, NetworkPolicies, workload identity, secrets pulled from an external store, backup and restore, certificate rotation, cost controls, and a regional recovery plan that's actually been tested.
 
+### AKS Behind Application Gateway with WAF
+
+Application Gateway WAF v2 is the public HTTPS entry point. It ends TLS, checks every request against the WAF policy, and sends clean traffic straight to Pod IPs in AKS. The AGIC add-on (or the ALB Controller, if you use the newer Application Gateway for Containers resource) watches Ingress or Gateway API objects and keeps the gateway routing in sync with the cluster. Front Door is optional and adds a global entry point, CDN, and edge WAF in front of one or more regions.
+
+```mermaid
+flowchart LR
+    U["Users"] --> FD["Azure Front Door<br/>optional: global entry, edge WAF"]
+    FD --> AGW
+    U -. "no Front Door" .-> AGW
+    subgraph vnet["Spoke VNet"]
+        subgraph agsub["Dedicated gateway subnet"]
+            AGW["Application Gateway WAF v2<br/>with AGIC, or App Gateway for Containers<br/>TLS listener and WAF policy"]
+        end
+        subgraph aks["AKS cluster subnet, zones 1-3"]
+            CTRL["AGIC add-on or<br/>ALB Controller"]
+            SYS["System node pool<br/>CoreDNS, CSI driver, agents"]
+            USR["User node pool<br/>application Pods"]
+        end
+        PEA["Private endpoint<br/>for ACR"]
+        PEK["Private endpoint<br/>for Key Vault"]
+    end
+    AGW -->|"HTTPS to Pod IPs"| USR
+    CTRL -. "updates routing" .-> AGW
+    USR -->|"image pull, AcrPull role"| PEA --> ACR["Azure Container Registry"]
+    USR -->|"Secrets Store CSI driver,<br/>workload identity"| PEK --> KV["Azure Key Vault"]
+    USR -. "Container Insights,<br/>managed Prometheus" .-> MON["Azure Monitor<br/>Log Analytics"]
+    SYS -.-> MON
+```
+
+Keep the system node pool for cluster add-ons only (use the `CriticalAddonsOnly` taint) and run application Pods on user node pools, so a noisy app cannot starve CoreDNS or the CSI driver.
+
 ## Interview Questions
 
 <details><summary>Q1. [Intermediate] How do you deploy applications to Azure Kubernetes Service?</summary>

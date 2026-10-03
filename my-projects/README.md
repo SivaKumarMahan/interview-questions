@@ -1,12 +1,12 @@
 # My Projects
 
-> How to turn your own projects into strong STAR answers for Senior and Lead DevOps interviews, and a template file per project to fill in.
+> How to turn the projects on your resume into strong STAR answers for Senior and Lead DevOps interviews, with one template file per project to fill in.
 
 ## What These Files Are For
 
 Interviewers at senior and lead level almost always ask "Tell me about a project you led" and then go deep with follow-up questions. These files are **templates**. They hold the structure and the likely follow-up questions; the real facts must come from you.
 
-Every place that needs your real story is marked `TODO (Siva):`. Nothing in these files is an invented fact about your work. Replace every TODO before you rely on a file in an interview.
+Each file matches one project or bullet on your resume. Lines marked **From resume:** repeat a claim that is already on your resume, so the interviewer may ask you to prove it. Every other place that needs your real story is marked `TODO (Siva):`. Nothing in these files is an invented fact about your work. Replace every TODO before you rely on a file in an interview.
 
 ## The STAR Format
 
@@ -23,6 +23,7 @@ A two-minute answer is usually right for the first telling. Let the interviewer 
 
 ## Tips for Lead-Level Answers
 
+- **Only use a headline number you can explain.** Your resume claims about 50% faster release lead time, about 25% lower cloud cost, about 40% fewer failed deployments, 99.9% availability on AKS, and more than 70% faster environment provisioning with Bicep. Use each one only in the project where it really came from, and only if you can say how it was measured: the definition, the data source, and the before and after periods. TODO (Siva): confirm the source and method for each number, and which project (if any) the 25% cost reduction belongs to.
 - **Quantify results.** "Reduced alert noise by about 60%" beats "reduced alert noise". If you do not have an exact number, give an honest estimate and say it is an estimate. Good metrics: time saved per week, MTTD or MTTR change, cost per month, incidents per quarter, manual steps removed, adoption by number of teams.
 - **Show trade-offs.** Say which options you considered and why you rejected them. "We considered X, but it needed Y, so we chose Z." This is what separates a lead answer from a senior engineer answer.
 - **Be clear about your role vs the team.** Use "I" for what you did and "we" for what the team did. Interviewers listen for this. Do not take credit for others' work, and do not hide your own behind "we".
@@ -42,12 +43,16 @@ A two-minute answer is usually right for the first telling. Let the interviewer 
 
 ## Project Files
 
-| # | Project | File |
-| --- | --- | --- |
-| 1 | Statuspage.io monitoring improvements | [01-statuspage-monitoring-improvements.md](01-statuspage-monitoring-improvements.md) |
-| 2 | Vendor cost and renewal register feeding Splunk | [02-vendor-cost-and-renewal-register.md](02-vendor-cost-and-renewal-register.md) |
-| 3 | Clone Migration Manager (Databricks Unity Catalog migration) | [03-clone-migration-manager.md](03-clone-migration-manager.md) |
-| 4 | Data-factory ingest monitoring service | [04-data-factory-ingest-monitoring.md](04-data-factory-ingest-monitoring.md) |
-| 5 | Databricks/Splunk monitoring dashboards | [05-databricks-splunk-monitoring-dashboards.md](05-databricks-splunk-monitoring-dashboards.md) |
+| # | Project | Resume bullet it maps to | File |
+| --- | --- | --- | --- |
+| 1 | AKS node pools and zero-downtime upgrades | AKS node pools, cluster autoscaler, rolling updates, and zero-downtime version upgrades with Bicep and Shell/Python; 99.9% availability | [01-aks-zero-downtime-upgrades.md](01-aks-zero-downtime-upgrades.md) |
+| 2 | Docker, ACR, and Helm standards with Go-based RBAC automation | Standardised Docker, ACR, and Helm; Helm-based Kubernetes RBAC automation in Go across clusters | [02-helm-rbac-automation-go.md](02-helm-rbac-automation-go.md) |
+| 3 | Least-privilege Azure RBAC and provisioning with Bicep | Bicep modules for custom roles and RBAC assignments replacing Owner and Contributor; Bicep automation of service connections and VMs; more than 70% faster provisioning | [03-bicep-least-privilege-rbac.md](03-bicep-least-privilege-rbac.md) |
+| 4 | CI/CD pipelines with DevSecOps quality gates | CI/CD across Azure DevOps, GitHub Actions, GitLab CI, and Jenkins with SonarQube, Trivy, Checkov, secret scanning, Azure Policy, and branch policies; about 50% faster lead time and about 40% fewer failed deployments | [04-cicd-devsecops-quality-gates.md](04-cicd-devsecops-quality-gates.md) |
+| 5 | VM Scale Set autoscaling and backup automation | VMSS autoscale with rolling upgrades and zones; Shell/Python backups with Recovery Services Vault, PostgreSQL backups, restore drills, and failure alerts | [05-vmss-autoscale-backup-automation.md](05-vmss-autoscale-backup-automation.md) |
+| 6 | Azure monitoring, Prometheus and Grafana, and Splunk alerting | Azure Monitor metric and KQL log alerts, App Insights availability tests, Action Groups with severity routing; Prometheus and Grafana on AKS; Splunk integration | [06-azure-monitoring-and-splunk-alerting.md](06-azure-monitoring-and-splunk-alerting.md) |
+| 7 | Azure Functions with Service Bus for document generation | Service Bus-triggered Azure Functions that process requests asynchronously and write documents to Storage | [07-azure-functions-service-bus-documents.md](07-azure-functions-service-bus-documents.md) |
+
+TODO (Siva): for each project, note whether it was at Impressico (Jan 2025 to now) or Infosys (Mar 2021 to Dec 2024), so your timeline stays consistent when the interviewer asks.
 
 See also: [Leadership](../leadership/01-architecture-decision-records.md) for how to structure behavioural answers about decisions, incidents, mentoring, and stakeholders.

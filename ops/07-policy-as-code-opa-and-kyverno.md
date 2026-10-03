@@ -1,12 +1,12 @@
 # Ops: Policy as Code with OPA and Kyverno
 
-> Policy as code with OPA and Rego, Gatekeeper, Conftest for Terraform plans and YAML in CI, Kyverno, audit-to-enforce rollout, exceptions, policy testing, and how it relates to Checkov and Pod Security Admission.
+> Policy as code with OPA and Rego, Gatekeeper and Azure Policy for AKS, Conftest for azurerm Terraform plans and YAML in CI, Kyverno, audit-to-enforce rollout, exceptions, policy testing, and how it relates to Checkov and Pod Security Admission.
 
 ## Key Concepts
 
 ### What Policy as Code Is
 
-Policy as code means writing rules ("no public S3 buckets", "containers must not run as root", "images only from our ECR") as versioned, tested code. Then the same rules run in CI, at the Kubernetes API server, and in audits. Policies get pull requests, reviews, unit tests, and releases like any other code. See [DevSecOps](02-devsecops.md) for where policy fits in the full secure delivery flow.
+Policy as code means writing rules ("no Storage accounts with public network access", "containers must not run as root", "images only from our ACR") as versioned, tested code. Then the same rules run in CI, at the Kubernetes API server, and in audits. Policies get pull requests, reviews, unit tests, and releases like any other code. See [DevSecOps](02-devsecops.md) for where policy fits in the full secure delivery flow.
 
 ### Where Policies Run
 
@@ -45,6 +45,22 @@ Gatekeeper runs OPA as a Kubernetes validating admission webhook, and it can als
 - A **Constraint** is an instance of that kind: which resources to match, which parameters, and `enforcementAction` (`deny`, `warn`, or `dryrun`).
 - The **audit** controller scans existing resources and writes violations to the Constraint status.
 - Recent versions can also generate native ValidatingAdmissionPolicy resources from CEL-based templates, and Rego v1 syntax is opt-in from Gatekeeper 3.19.
+
+### Azure Policy for AKS
+
+On AKS, the **Azure Policy add-on** installs and manages Gatekeeper v3 for you. You assign policy definitions or initiatives in Azure (at a management group, subscription, or resource group), and the add-on turns them into ConstraintTemplates and Constraints in the cluster. Compliance shows up in Azure Policy next to your other Azure resources.
+
+- Built-in initiatives include "Kubernetes cluster pod security baseline standards for Linux-based workloads" and the matching **restricted** initiative, plus single policies such as allowed container registries, no privileged containers, and required resource limits.
+- Effects for Kubernetes policies are `audit`, `deny`, `disabled`, and `mutate`. Custom policies use the `Microsoft.Kubernetes.Data` mode and point at your own ConstraintTemplate.
+- The add-on checks for assignment changes and runs a full audit scan about every 15 minutes, so changes are not instant.
+- A separate Gatekeeper install beside the add-on is not supported. Pick one.
+
+```bash
+az aks enable-addons --addons azure-policy -g rg-aks-prod -n aks-prod
+kubectl get pods -n kube-system | grep azure-policy
+kubectl get pods -n gatekeeper-system
+kubectl get constrainttemplates
+```
 
 ### Conftest
 
@@ -129,7 +145,7 @@ The legacy `rego` field uses Rego v0 syntax. For v1 syntax, use the `code` field
 
 </details>
 
-<details><summary>Q3. [Intermediate] How do you use Conftest to block risky Terraform plans in CI?</summary>
+<details><summary>Q3. [Intermediate] How do you use Conftest to block risky azurerm Terraform plans in CI?</summary>
 
 **Answer:**
 
@@ -144,27 +160,60 @@ conftest test tfplan.json --policy policy/terraform --output github
 ```rego
 package main
 
-deny contains msg if {
+allowed_locations := {"westeurope", "northeurope"}
+
+required_tags := {"owner", "environment", "cost-center"}
+
+# Resources that are created or updated by this plan
+changed contains rc if {
     some rc in input.resource_changes
-    rc.type == "aws_security_group_rule"
-    rc.change.after.type == "ingress"
-    "0.0.0.0/0" in rc.change.after.cidr_blocks
-    rc.change.after.from_port <= 22
-    rc.change.after.to_port >= 22
-    msg := sprintf("%s opens SSH to the internet", [rc.address])
+    rc.mode == "managed"
+    some action in rc.change.actions
+    action in {"create", "update"}
+}
+
+deny contains msg if {
+    some rc in changed
+    rc.type == "azurerm_storage_account"
+    rc.change.after.public_network_access_enabled == true
+    msg := sprintf("%s must set public_network_access_enabled = false", [rc.address])
+}
+
+deny contains msg if {
+    some rc in changed
+    rc.type == "azurerm_storage_account"
+    rc.change.after.allow_nested_items_to_be_public == true
+    msg := sprintf("%s allows anonymous blob access", [rc.address])
+}
+
+deny contains msg if {
+    some rc in changed
+    "tags" in object.keys(rc.change.after)
+    some tag in required_tags
+    not rc.change.after.tags[tag]
+    msg := sprintf("%s is missing required tag %q", [rc.address, tag])
+}
+
+deny contains msg if {
+    some rc in changed
+    loc := lower(replace(rc.change.after.location, " ", ""))
+    not loc in allowed_locations
+    msg := sprintf("%s uses location %s, which is not allowed", [rc.address, loc])
 }
 
 deny contains msg if {
     some rc in input.resource_changes
     "delete" in rc.change.actions
-    rc.type == "aws_db_instance"
+    rc.type == "azurerm_postgresql_flexible_server"
     msg := sprintf("%s would be destroyed; needs manual approval", [rc.address])
 }
 ```
 
-The same tool checks Kubernetes YAML or rendered Helm output: `helm template ./chart | conftest test -`.
+The `tags` rule only checks resource types that have a `tags` argument. The location rule normalizes values such as `West Europe` to `westeurope`.
 
-**Pitfalls:** values marked `(known after apply)` are missing in `after`, so check `after_unknown` or write rules that do not depend on them. Pin the Conftest version and the policy repo version so results are reproducible. Run Checkov as well for the broad built-in rules.
+The same tool checks Kubernetes YAML or rendered Helm output: `helm template ./chart | conftest test -`. In Azure DevOps, run these steps in the plan stage and publish the output, so the pull request shows why it failed.
+
+**Pitfalls:** values marked `(known after apply)` are missing in `after`, so check `after_unknown` or write rules that do not depend on them. Pin the Conftest version and the policy repo version so results are reproducible. Run Checkov as well for the broad built-in rules. Keep the matching Azure Policy assignments ("Allowed locations", "Require a tag on resources", "Storage accounts should disable public network access") in place, because CI only sees changes that go through the pipeline.
 
 </details>
 
@@ -210,7 +259,7 @@ spec:
     - name: signed-images                        # verifyImages: check signatures
       match: { any: [ { resources: { kinds: [Pod] } } ] }
       verifyImages:
-        - imageReferences: ["123456789012.dkr.ecr.eu-west-1.amazonaws.com/*"]
+        - imageReferences: ["myregistry.azurecr.io/*"]
           attestors:
             - entries:
                 - keyless:
@@ -263,11 +312,47 @@ TODO (Siva): add which admission policy engine (if any) you have used and why it
 
 </details>
 
-<details><summary>Q6. [Advanced] How do you roll out a new blocking policy to 40 teams without breaking deployments? <em>(scenario)</em></summary>
+<details><summary>Q6. [Intermediate] How does Azure Policy for AKS relate to Gatekeeper, and when do you use it instead of your own policy engine?</summary>
 
 **Answer:**
 
-1. **Write and test** the policy with good and bad fixtures in CI (see Q8).
+The Azure Policy add-on runs Gatekeeper v3 inside the cluster, but you do not manage Gatekeeper directly. You assign a policy or initiative in Azure, and the add-on syncs it into the cluster as a ConstraintTemplate and Constraint. Gatekeeper enforces it at admission, and the audit results go back to Azure Policy compliance.
+
+```bash
+az aks enable-addons --addons azure-policy -g rg-aks-prod -n aks-prod
+
+# Assign the built-in pod security baseline initiative to the cluster's resource group
+INIT_ID=$(az policy set-definition list \
+  --query "[?displayName=='Kubernetes cluster pod security baseline standards for Linux-based workloads'].id" -o tsv)
+az policy assignment create --name aks-psb-baseline \
+  --policy-set-definition "$INIT_ID" \
+  --scope "$(az group show -n rg-aks-prod --query id -o tsv)" \
+  --params '{"effect": {"value": "audit"}}'
+
+kubectl get constrainttemplates     # synced by the add-on
+```
+
+Start with `audit`, check the compliance view, then change the effect to `deny`.
+
+**Use Azure Policy for AKS when:**
+
+- You want one compliance view for AKS and the rest of Azure, assigned once at a management group for every cluster.
+- The built-in initiatives and policies (pod security, allowed registries, resource limits) cover most of your rules.
+
+**Use your own Kyverno (or a self-managed engine) when:**
+
+- You need mutation and generation beyond what the add-on offers, image signature checks, or fast policy changes through GitOps.
+- You want policies to apply within seconds. The add-on syncs assignments and audits about every 15 minutes.
+
+**Pitfalls:** a separate Gatekeeper install beside the add-on is not supported. Manual edits to the constraints the add-on created are overwritten. Exclude `kube-system` and `gatekeeper-system` from assignments. Existing Pods that break a new `deny` policy keep running until they are rescheduled, and then they are blocked.
+
+</details>
+
+<details><summary>Q7. [Advanced] How do you roll out a new blocking policy to 40 teams without breaking deployments? <em>(scenario)</em></summary>
+
+**Answer:**
+
+1. **Write and test** the policy with good and bad fixtures in CI (see Q9).
 2. **Audit first.** Deploy with Kyverno `Audit`, or Gatekeeper `dryrun`. Nothing is blocked; violations show up in reports.
 3. **Measure.** Export PolicyReports or constraint status to dashboards. List violators per namespace and owner.
 4. **Warn.** Gatekeeper `warn` or VAP `Warn` shows a warning in `kubectl apply` and in CI output, so teams see it during their normal work.
@@ -283,7 +368,7 @@ TODO (Siva): add which admission policy engine (if any) you have used and why it
 
 </details>
 
-<details><summary>Q7. [Advanced] How do you handle exceptions without making the policy useless?</summary>
+<details><summary>Q8. [Advanced] How do you handle exceptions without making the policy useless?</summary>
 
 **Answer:**
 
@@ -320,7 +405,7 @@ Controls:
 
 </details>
 
-<details><summary>Q8. [Intermediate] How do you test policies before they reach a cluster?</summary>
+<details><summary>Q9. [Intermediate] How do you test policies before they reach a cluster?</summary>
 
 **Answer:**
 
@@ -343,7 +428,7 @@ Pipeline for the policy repo: lint (Regal for Rego), unit tests, run the policie
 
 </details>
 
-<details><summary>Q9. [Advanced] Pod Security Admission, Kyverno or Gatekeeper, and Checkov all check security settings. How do you split responsibilities?</summary>
+<details><summary>Q10. [Advanced] Pod Security Admission, Kyverno or Gatekeeper, and Checkov all check security settings. How do you split responsibilities?</summary>
 
 **Answer:**
 
@@ -356,14 +441,14 @@ Pipeline for the policy repo: lint (Regal for Rego), unit tests, run the policie
 
 - **Kyverno or Gatekeeper** add what PSA cannot: approved registries, signed images, required labels and limits, ingress host rules, per-workload exceptions, mutation, and generating default NetworkPolicies.
 - **VAP** handles simple CEL checks with no extra component.
-- **Checkov, Trivy, and Conftest in CI** catch the same issues in Terraform and manifests before merge, plus cloud resources that admission never sees (S3, IAM, security groups).
-- **Cloud guardrails** (AWS SCPs, AWS Config rules, Azure Policy) are the last line for changes made outside the pipeline.
+- **Checkov, Trivy, and Conftest in CI** catch the same issues in Terraform, Bicep, and manifests before merge, plus Azure resources that admission never sees (Storage accounts, NSGs, role assignments).
+- **Azure Policy** is the last line for changes made outside the pipeline. Assign deny and audit policies at the management group or subscription, and use the Azure Policy add-on to apply the pod security initiatives to every AKS cluster.
 
 The design rule: block in admission what must never run, catch the rest earlier in CI for fast feedback, and audit continuously for drift. See [Checkov](../testing-tools/03-checkov.md) and [Kubernetes security](../kubernetes/06-security-rbac-secrets.md).
 
 </details>
 
-<details><summary>Q10. [Advanced] The admission webhook is down and nobody can deploy. What happened and how do you design against it? <em>(scenario)</em></summary>
+<details><summary>Q11. [Advanced] The admission webhook is down and nobody can deploy. What happened and how do you design against it? <em>(scenario)</em></summary>
 
 **Answer:**
 

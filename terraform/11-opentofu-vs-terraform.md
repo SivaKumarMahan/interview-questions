@@ -39,9 +39,9 @@ OpenTofu was forked from the **last MPL-licensed Terraform code** (the 1.6 devel
 ### What stays compatible
 
 - **Language:** same HCL, same blocks, same `terraform {}` block name, same `.tf` files.
-- **Providers:** same provider plugin protocol, so the same provider binaries work. `hashicorp/aws` in OpenTofu resolves to `registry.opentofu.org/hashicorp/aws`.
+- **Providers:** same provider plugin protocol, so the same provider binaries work. `hashicorp/azurerm` in OpenTofu resolves to `registry.opentofu.org/hashicorp/azurerm`.
 - **Registry:** OpenTofu runs its own registry (`registry.opentofu.org`) because the Terraform Registry terms allow downloads only for use with Terraform.
-- **State:** same JSON state format (version 4), same backends (S3, azurerm, gcs, http, and more).
+- **State:** same JSON state format (version 4), same backends (azurerm, pg, http, consul, kubernetes, and more).
 - **Workflow:** `init`, `plan`, `apply`, `import`, `state`, `test` all exist with the same meaning.
 
 What does **not** move across: HCP Terraform / Terraform Enterprise features (Stacks, Sentinel, run tasks, the private registry) are HashiCorp products. OpenTofu users use other platforms (Spacelift, env0, Scalr, Harness, Atlantis, or plain CI).
@@ -54,18 +54,18 @@ Since 2024 the two tools have diverged. The table is as of OpenTofu 1.13 and Ter
 | --- | --- | --- |
 | Client-side **state and plan encryption** | 1.7 | Not in the CLI |
 | `removed` block, `for_each` in `import` blocks | 1.7 | 1.7 |
-| **Provider-defined functions** (`provider::aws::arn_parse(...)`) | 1.7 | 1.8 |
+| **Provider-defined functions** (`provider::azurerm::parse_resource_id(...)`) | 1.7 | 1.8 |
 | **Early variable and locals evaluation** (backend config, module `source`, encryption config) | 1.8 | 1.15 adds `const` variables for module `source` and `version` |
 | `.tofu` file extension (OpenTofu-only overrides) | 1.8 | Not applicable |
 | Mock providers and overrides in tests | 1.8 | 1.7 |
 | **`for_each` on provider blocks** | 1.9 | Not available |
 | **`-exclude` flag** on plan and apply | 1.9 | Not available; only `-target` |
 | OCI registries for providers and modules | 1.10 | Not available |
-| Native S3 locking (`use_lockfile`, no DynamoDB) | 1.10 | 1.10 |
 | `-target-file` / `-exclude-file` | 1.10 | Not available |
 | Deprecating variables and outputs | 1.10 (experimental) | 1.15 |
 | Ephemeral values and resources | 1.11 | 1.10 |
 | Write-only attributes | 1.11 | 1.11 |
+| `azure_vault` key provider (Azure Key Vault keys for state encryption) | 1.11 | Not applicable: no client-side state encryption |
 | `enabled` meta-argument (inside `lifecycle`) | 1.11 | Not available |
 | `lifecycle { destroy = false }` | 1.12 | 1.16 |
 | `convert` function, built-in linting (experimental) | 1.13 | `convert()` in 1.15 |
@@ -100,7 +100,7 @@ On 10 August 2023 HashiCorp moved Terraform from MPL 2.0 to the Business Source 
 
 BUSL is **source-available**, not open source. Terraform's BUSL has an "additional use grant": you may use it in production as long as you don't offer it to third parties as a hosted or embedded product that competes with the licensor's paid versions. Each version converts to MPL 2.0 four years after its release.
 
-For a company that uses Terraform to manage its own AWS accounts, nothing in day-to-day use is blocked. It matters when:
+For a company that uses Terraform to manage its own Azure subscriptions, nothing in day-to-day use is blocked. It matters when:
 
 - you sell a product or managed service that runs Terraform for customers,
 - your legal policy only approves OSI open-source licenses, or
@@ -132,10 +132,10 @@ Governance matters because a single-vendor tool can change its license, pricing,
 | --- | --- | --- |
 | HCL | Yes, for the common subset | Same syntax and block names, including `terraform {}`. Newer tool-specific features break compatibility |
 | Providers | Yes | Same plugin protocol. Same binaries, published from the providers' own releases |
-| Registry | Different hosts | `hashicorp/aws` means `registry.opentofu.org/hashicorp/aws` in `tofu` and `registry.terraform.io/hashicorp/aws` in `terraform` |
+| Registry | Different hosts | `hashicorp/azurerm` means `registry.opentofu.org/hashicorp/azurerm` in `tofu` and `registry.terraform.io/hashicorp/azurerm` in `terraform` |
 | Lock file | Different addresses | `.terraform.lock.hcl` entries are keyed by full provider address, so `tofu init` adds new entries |
 | State | Yes, same format | State version 4. OpenTofu reads Terraform state of compatible versions. Encrypted OpenTofu state can't be read by Terraform |
-| Backends | Mostly | S3, azurerm, gcs, http, pg work in both. The `cloud` block / HCP Terraform is a HashiCorp service |
+| Backends | Mostly | azurerm, pg, http, consul, kubernetes work in both. The `cloud` block / HCP Terraform is a HashiCorp service |
 | Modules | Yes | Modules from Git or registry work if they don't use tool-specific features |
 
 The fork baseline matters: OpenTofu 1.6 started from Terraform's last MPL code, so the safest migration is from Terraform 1.5.x or 1.6.x. From newer Terraform versions, check which features you use (for example `terraform query`, `action` blocks, `const` variables) because OpenTofu may not have them.
@@ -144,23 +144,25 @@ The fork baseline matters: OpenTofu 1.6 started from Terraform's last MPL code, 
 
 </details>
 
-<details><summary>Q4. [Intermediate] What is OpenTofu state and plan encryption, and how do you enable it with AWS KMS?</summary>
+<details><summary>Q4. [Intermediate] What is OpenTofu state and plan encryption, and how do you enable it with Azure Key Vault?</summary>
 
 **Answer:**
 
-Since OpenTofu 1.7, OpenTofu can encrypt state and plan files **on the client** before they reach the backend. Even someone with read access to the S3 bucket sees ciphertext, including secrets that providers store in state. Terraform's CLI has no equivalent; it relies on backend encryption (S3 SSE-KMS) and bucket access control.
+Since OpenTofu 1.7, OpenTofu can encrypt state and plan files **on the client** before they reach the backend. Even someone with read access to the state blob in Azure Storage sees ciphertext, including secrets that providers store in state. Terraform's CLI has no equivalent. It relies on backend encryption (Azure Storage service-side encryption, optionally with a customer-managed key) and on who can read the storage account.
+
+From **OpenTofu 1.11**, the `azure_vault` key provider uses a key in Azure Key Vault. OpenTofu makes a random data key, encrypts it with the Key Vault key, and stores the wrapped key with the state.
 
 ```hcl
 terraform {
   encryption {
-    key_provider "aws_kms" "state" {
-      kms_key_id = "alias/tofu-state-prod"
-      region     = "us-east-1"
-      key_spec   = "AES_256"
+    key_provider "azure_vault" "state" {
+      vault_uri      = "https://kv-tofu-state-prod.vault.azure.net"
+      vault_key_name = "tofu-state"   # an RSA key in the vault
+      key_length     = 32             # size of the data key, in bytes
     }
 
     method "aes_gcm" "state" {
-      keys = key_provider.aws_kms.state
+      keys = key_provider.azure_vault.state
     }
 
     state {
@@ -176,7 +178,36 @@ terraform {
 }
 ```
 
-Key providers include `pbkdf2` (passphrase), `aws_kms`, `gcp_kms`, `azure_vault`, `openbao`, and since 1.10 `external` (run your own command to fetch the key). The only real encryption method is `aes_gcm`. The same config can be passed in the `TF_ENCRYPTION` environment variable so it isn't in the code.
+The key provider always signs in with Entra ID, with the same options as the `azurerm` backend: Azure CLI, Managed Identity, or OIDC workload identity federation from Azure DevOps or GitHub Actions. Give the pipeline identity the **Key Vault Crypto User** role on the vault, because it needs encrypt and decrypt.
+
+```bash
+az keyvault key create --vault-name kv-tofu-state-prod --name tofu-state --kty RSA --size 3072
+```
+
+**Without the Azure key provider** (OpenTofu 1.7 to 1.10, or no Key Vault access), use `pbkdf2` with a long passphrase. Keep the passphrase in Key Vault and let the pipeline inject it, for example through an Azure DevOps variable group linked to Key Vault:
+
+```hcl
+variable "state_passphrase" {
+  type      = string
+  sensitive = true
+}
+
+terraform {
+  encryption {
+    key_provider "pbkdf2" "state" {
+      passphrase = var.state_passphrase   # at least 16 characters; early evaluation needs 1.8+
+    }
+    method "aes_gcm" "state" {
+      keys = key_provider.pbkdf2.state
+    }
+    state {
+      method = method.aes_gcm.state
+    }
+  }
+}
+```
+
+Key providers include `pbkdf2` (passphrase), `azure_vault`, `openbao`, other clouds' KMS services, and since 1.10 `external` (run your own command to fetch the key). The only real encryption method is `aes_gcm`. The same config can be passed in the `TF_ENCRYPTION` environment variable so it isn't in the code.
 
 **Migrating existing unencrypted state:** add an `unencrypted` method as a `fallback` for one apply, then remove the fallback:
 
@@ -191,9 +222,16 @@ state {
 }
 ```
 
-**Verify:** `aws s3 cp s3://bucket/key - | head -c 200` shows encrypted JSON (`"encrypted_data"`), not resources.
+**Verify:** download the state blob and look at the start of it. You should see `"encrypted_data"`, not resources.
 
-**Pitfalls:** losing the key means losing the state, so protect the KMS key with deletion protection and tight key policy. `terraform_remote_state` readers also need the key (`remote_state_data_sources` block). And Terraform can no longer read this state.
+```bash
+az storage blob download --auth-mode login \
+  --account-name sttfstateprod --container-name tfstate \
+  --name network.tfstate --file state-check.json
+head -c 200 state-check.json && rm state-check.json
+```
+
+**Pitfalls:** losing the key means losing the state. Turn on soft delete and **purge protection** on the vault, and allow few people to delete keys. `terraform_remote_state` readers also need the key (`remote_state_data_sources` block). And Terraform can no longer read this state.
 
 </details>
 
@@ -201,7 +239,7 @@ state {
 
 **Answer:**
 
-In classic Terraform, the `backend` block and module `source` must be literal strings. That is why teams use `-backend-config` files, wrapper scripts, or Terragrunt just to change the state bucket per environment.
+In classic Terraform, the `backend` block and module `source` must be literal strings. That is why teams use `-backend-config` files, wrapper scripts, or Terragrunt just to change the state storage account per environment.
 
 OpenTofu 1.8 added **early evaluation**: variables and locals that can be known before any resource is read can be used in backend config, module `source` and `version`, and encryption config.
 
@@ -211,16 +249,16 @@ variable "env" {
 }
 
 terraform {
-  backend "s3" {
-    bucket       = "acme-tfstate-${var.env}"
-    key          = "network/terraform.tfstate"
-    region       = "us-east-1"
-    use_lockfile = true
+  backend "azurerm" {
+    storage_account_name = "sttfstate${var.env}"
+    container_name       = "tfstate"
+    key                  = "network.tfstate"
+    use_azuread_auth     = true
   }
 }
 
-module "vpc" {
-  source = "git::https://github.com/acme/tf-modules.git//vpc?ref=${var.module_ref}"
+module "vnet" {
+  source = "git::https://github.com/acme/tf-modules.git//vnet?ref=${var.module_ref}"
 }
 ```
 
@@ -240,24 +278,29 @@ Terraform 1.15 (April 2026) added something similar for modules: variables marke
 
 Both arrived in **OpenTofu 1.9** (January 2025). Terraform has neither as of 1.16.
 
-**Provider `for_each`** removes copy-pasted provider blocks for multi-region or multi-account setups:
+**Provider `for_each`** removes copy-pasted provider blocks for multi-subscription setups:
 
 ```hcl
-variable "regions" {
-  type    = set(string)
-  default = ["us-east-1", "eu-west-1"]
+variable "subscriptions" {
+  type = map(string)
+  default = {
+    dev  = "00000000-0000-0000-0000-000000000001"
+    prod = "00000000-0000-0000-0000-000000000002"
+  }
 }
 
-provider "aws" {
-  alias    = "by_region"
-  for_each = var.regions
-  region   = each.key
+provider "azurerm" {
+  alias           = "by_sub"
+  for_each        = var.subscriptions
+  subscription_id = each.value
+  features {}
 }
 
-resource "aws_s3_bucket" "logs" {
-  for_each = var.regions
-  provider = aws.by_region[each.key]
-  bucket   = "acme-logs-${each.key}"
+resource "azurerm_resource_group" "logs" {
+  for_each = var.subscriptions
+  provider = azurerm.by_sub[each.key]
+  name     = "rg-logs-${each.key}"
+  location = "westeurope"
 }
 ```
 
@@ -267,7 +310,7 @@ The provider must have an alias, and the `for_each` value must be known early (v
 
 ```bash
 tofu plan -exclude=module.legacy_dns
-tofu apply -exclude=aws_db_instance.main
+tofu apply -exclude=azurerm_postgresql_flexible_server.main
 ```
 
 OpenTofu 1.10 added `-target-file` and `-exclude-file`, so the list can be reviewed in Git.
@@ -281,14 +324,14 @@ OpenTofu 1.10 added `-target-file` and `-exclude-file`, so the list can be revie
 **Answer:**
 
 1. **Check the starting point:** run `terraform plan` and make sure it shows **No changes**. Migrating with pending changes mixes two problems.
-2. **Check versions and features:** note the Terraform version and look for features OpenTofu doesn't have (for example `terraform query`, `action` blocks, `const` variables). If state lives in HCP Terraform, plan a move to a standard backend such as S3 first. Remove or replace these before switching.
+2. **Check versions and features:** note the Terraform version and look for features OpenTofu doesn't have (for example `terraform query`, `action` blocks, `const` variables). If state lives in HCP Terraform, plan a move to a standard backend such as `azurerm` first. Remove or replace these before switching.
 3. **Back up state:**
 
    ```bash
    terraform state pull > backup-$(date +%F).tfstate
    ```
 
-   Also confirm S3 versioning is on for the state bucket.
+   Also confirm blob versioning and soft delete are on for the state storage account.
 4. **Install OpenTofu** at a pinned version and update `required_version` if it is too narrow.
 5. **Initialize:**
 
@@ -334,8 +377,13 @@ What blocks it:
 # Decrypt-to-plaintext step before going back
 terraform {
   encryption {
+    key_provider "azure_vault" "state" {
+      vault_uri      = "https://kv-tofu-state-prod.vault.azure.net"
+      vault_key_name = "tofu-state"
+      key_length     = 32
+    }
     method "aes_gcm" "old" {
-      keys = key_provider.aws_kms.state
+      keys = key_provider.azure_vault.state
     }
     method "unencrypted" "plain" {}
     state {
@@ -362,7 +410,7 @@ terraform {
 3. For OpenTofu-only improvements, use **`.tofu` files** (OpenTofu 1.8+). If `main.tofu` and `main.tf` both exist, OpenTofu uses `main.tofu` and ignores `main.tf`. Terraform ignores `.tofu` files.
 
 ```text
-modules/s3-bucket/
+modules/storage-account/
   main.tf          # portable version, used by Terraform
   main.tofu        # same resources, plus OpenTofu-only features
   variables.tf
@@ -448,7 +496,7 @@ Likely causes:
 1. **Inventory:** list every root module, its Terraform version, backend, providers, and who reads its outputs (`terraform_remote_state`, data sources, pipelines).
 2. **Upgrade lagging stacks first** to one Terraform version near the fork baseline, so every stack starts from the same place.
 3. **Migrate without encryption first.** Plain OpenTofu state is still readable by Terraform, so consumers on Terraform keep working. This is the key to doing it in waves.
-4. **Order:** leaf stacks (nothing reads them) first, then shared foundations (network, IAM) last, or migrate producer and consumers together.
+4. **Order:** leaf stacks (nothing reads them) first, then shared foundations (network, identity and RBAC) last, or migrate producer and consumers together.
 5. **Per stack:** no-op plan, backup, `tofu init`, `tofu plan` with no changes, `tofu apply`, update pipeline.
 6. **Turn on encryption only after** every consumer of that state runs OpenTofu, and configure `remote_state_data_sources` with the same key in each consumer.
 7. **Track progress** in a simple table: stack, owner, status, date, rollback point.
@@ -482,25 +530,33 @@ TODO (Siva): add which tool your current team uses (OpenTofu or Terraform), why 
 
 </details>
 
-<details><summary>Q14. [Advanced] The KMS key used for OpenTofu state encryption must be rotated, or was scheduled for deletion by mistake. What do you do? <em>(scenario)</em></summary>
+<details><summary>Q14. [Advanced] The Azure Key Vault key used for OpenTofu state encryption must be rotated, or was deleted by mistake. What do you do? <em>(scenario)</em></summary>
 
 **Answer:**
 
-**Planned rotation:** OpenTofu supports a `fallback` method for this. Configure the new key as primary and the old one as fallback, run `tofu apply` (a no-op apply rewrites the state with the new key), confirm, then remove the fallback.
+**Planned rotation of the same key:** in Key Vault, rotating a key creates a new **version** with the same name. The `azure_vault` key provider always encrypts with the current version and saves the version it used next to the state. So:
+
+1. Rotate the key: `az keyvault key rotate --vault-name kv-tofu-state-prod --name tofu-state`.
+2. Run a no-op `tofu apply` in each stack that uses the key. It decrypts with the old version and writes the state again with the new one.
+3. Keep the old key versions **enabled** until every stack and every `remote_state_data_sources` consumer has been rewritten.
+
+Do not add a second `azure_vault` key provider with the same key name as a fallback. The OpenTofu docs warn that this fails after the key version changes.
+
+**Moving to a different key or vault:** use a `fallback` method. Configure the new key as primary and the old one as fallback, run `tofu apply`, confirm, then remove the fallback.
 
 ```hcl
-key_provider "aws_kms" "new" {
-  kms_key_id = "alias/tofu-state-prod-2026"
-  region     = "us-east-1"
-  key_spec   = "AES_256"
+key_provider "azure_vault" "new" {
+  vault_uri      = "https://kv-tofu-state-prod2.vault.azure.net"
+  vault_key_name = "tofu-state-2026"
+  key_length     = 32
 }
-key_provider "aws_kms" "old" {
-  kms_key_id = "alias/tofu-state-prod"
-  region     = "us-east-1"
-  key_spec   = "AES_256"
+key_provider "azure_vault" "old" {
+  vault_uri      = "https://kv-tofu-state-prod.vault.azure.net"
+  vault_key_name = "tofu-state"
+  key_length     = 32
 }
-method "aes_gcm" "new" { keys = key_provider.aws_kms.new }
-method "aes_gcm" "old" { keys = key_provider.aws_kms.old }
+method "aes_gcm" "new" { keys = key_provider.azure_vault.new }
+method "aes_gcm" "old" { keys = key_provider.azure_vault.old }
 
 state {
   method = method.aes_gcm.new
@@ -512,13 +568,20 @@ state {
 
 Do the same for every stack that uses the key, and for consumers in `remote_state_data_sources`.
 
-**Key scheduled for deletion by mistake:** AWS KMS keys have a 7 to 30 day waiting period.
+**Key deleted by mistake:** Key Vault soft delete keeps deleted keys for 7 to 90 days (90 by default).
 
-1. Cancel deletion immediately: `aws kms cancel-key-deletion --key-id <id>`, then re-enable the key.
-2. Check CloudTrail for who scheduled it.
+1. Recover it at once:
+
+   ```bash
+   az keyvault key list-deleted --vault-name kv-tofu-state-prod -o table
+   az keyvault key recover --vault-name kv-tofu-state-prod --name tofu-state
+   ```
+
+   If the whole vault was deleted, run `az keyvault recover --name kv-tofu-state-prod` first.
+2. Find out who did it. Key deletes are data-plane operations, so they are in the Key Vault diagnostic logs, not the Activity Log. In Log Analytics, query `AzureDiagnostics` (or `AZKVAuditLogs` with resource-specific tables) for `OperationName == "KeyDelete"`.
 3. Rotate to a new key as above, if trust in the old key is in doubt.
-4. Add guardrails: an SCP or key policy that denies `kms:ScheduleKeyDeletion` except for a break-glass role, and an alarm on that API call.
+4. Add guardrails: **purge protection** on the vault (it cannot be turned off later), Azure RBAC so only a break-glass group has Key Vault Crypto Officer, a `CanNotDelete` resource lock on the vault, and a log alert on `KeyDelete` to an Action Group.
 
-If the key is really gone, encrypted state can't be decrypted. Recovery means restoring an older unencrypted backup or re-importing every resource, which is why the key needs the same protection as the state itself.
+If the key is really gone (purged), encrypted state can't be decrypted. Recovery means restoring an older unencrypted backup or re-importing every resource. That is why the key needs the same protection as the state itself.
 
 </details>

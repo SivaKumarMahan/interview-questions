@@ -39,9 +39,10 @@ flowchart LR
 
 ```ini
 # savedsearches.conf
-[ALB 5xx rate high]
-search = index=web sourcetype=aws:elb:accesslogs \
-  | stats count as total count(eval(elb_status_code>=500)) as errors by target_group_arn \
+[AppGW 5xx rate high]
+search = index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog \
+  | rename properties.* as * \
+  | stats count as total count(eval(httpStatus>=500)) as errors by originalHost \
   | eval error_rate_pct=round(errors/total*100,2) \
   | where total>100 AND error_rate_pct>2
 enableSched = 1
@@ -54,7 +55,7 @@ quantity = 0
 alert.digest_mode = 0
 alert.suppress = 1
 alert.suppress.period = 30m
-alert.suppress.fields = target_group_arn
+alert.suppress.fields = originalHost
 alert.severity = 5
 alert.track = 1
 action.webhook = 1
@@ -65,7 +66,7 @@ action.webhook.param.url = https://alerts.example.internal/splunk
 
 | Action | Notes |
 | --- | --- |
-| Email | Built in. Supports tokens like `$name$` and `$result.target_group_arn$`. |
+| Email | Built in. Supports tokens like `$name$` and `$result.originalHost$`. |
 | Webhook | Built in. POSTs JSON with the search name, results link, and the first result row. |
 | Log event / add to triggered alerts | Built in. Useful for audit and for a "triggered alerts" view. |
 | Output results to lookup | Built in. Saves state for later searches. |
@@ -96,7 +97,7 @@ SLO-style alerts fire on **error budget burn rate** instead of raw counts. If th
 
 Splunk IT Service Intelligence (ITSI) is a premium app for service monitoring. You define **services** and their dependencies, and attach **KPIs** (searches such as error rate or latency) with static or **adaptive thresholds**. ITSI calculates a **service health score**, shows it on the Service Analyzer and **glass tables**, and groups related notable events into **episodes** with aggregation policies, so on-call engineers see one episode instead of fifty alerts.
 
-See also: [Splunk: SPL Queries](02-spl-queries.md), [Monitoring Tools: Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), and [Ops: SRE](../ops/03-sre.md).
+See also: [Splunk: SPL Queries](02-spl-queries.md), [Azure: Application Gateway and WAF](../azure/07-application-gateway-and-waf.md), [Monitoring Tools: Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), and [Ops: SRE](../ops/03-sre.md).
 
 ## Interview Questions
 
@@ -141,12 +142,12 @@ After an alert fires, throttling suppresses new triggers for a set period. Witho
 alert.digest_mode = 0                   # for each result
 alert.suppress = 1
 alert.suppress.period = 30m
-alert.suppress.fields = target_group_arn
+alert.suppress.fields = originalHost
 ```
 
-With this, if `payments` fires at 10:00, a new `payments` result at 10:05 is suppressed, but `orders` at 10:05 still fires.
+With this, if `payments.example.com` fires at 10:00, a new `payments` result at 10:05 is suppressed, but `orders.example.com` at 10:05 still fires.
 
-**How to verify:** suppressed runs show up in `index=_internal sourcetype=scheduler savedsearch_name="ALB 5xx rate high"` (look at the `suppressed` and `alert_actions` fields), and in the alert's triggered history.
+**How to verify:** suppressed runs show up in `index=_internal sourcetype=scheduler savedsearch_name="AppGW 5xx rate high"` (look at the `suppressed` and `alert_actions` fields), and in the alert's triggered history.
 
 **Pitfall:** a throttle period much longer than the outage hides a second, different incident on the same service. Keep it close to the time someone needs to respond.
 
@@ -164,9 +165,9 @@ Example webhook body from Splunk:
 
 ```json
 {
-  "search_name": "ALB 5xx rate high",
+  "search_name": "AppGW 5xx rate high",
   "results_link": "https://splunk.example.internal/app/search/@go?sid=...",
-  "result": { "target_group_arn": "arn:aws:...:targetgroup/payments/...", "error_rate_pct": "7.4" }
+  "result": { "originalHost": "payments.example.com", "error_rate_pct": "7.4" }
 }
 ```
 
@@ -176,27 +177,28 @@ Example webhook body from Splunk:
 
 </details>
 
-<details><summary>Q5. [Intermediate] Design an alert for "ALB 5xx error rate above 2% for 10 minutes" end to end. <em>(scenario)</em></summary>
+<details><summary>Q5. [Intermediate] Design an alert for "Application Gateway 5xx error rate above 2% for 10 minutes" end to end. <em>(scenario)</em></summary>
 
 **Answer:**
 
-1. **Search:** calculate the rate per target group, with a minimum traffic filter, over the last 10 minutes.
+1. **Search:** calculate the rate per site (`originalHost`), with a minimum traffic filter, over the last 10 minutes.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-10m@m latest=@m
-| stats count as total count(eval(elb_status_code>=500)) as errors by target_group_arn
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-10m@m latest=@m
+| rename properties.* as *
+| stats count as total count(eval(httpStatus>=500)) as errors by originalHost
 | eval error_rate_pct=round(errors/total*100, 2)
 | where total >= 200 AND error_rate_pct > 2
-| lookup service_owners.csv target_group_arn OUTPUT service team runbook
+| lookup service_owners.csv originalHost OUTPUT service team runbook
 ```
 
 2. **Schedule:** every 5 minutes. Keep `schedule_window = 0` (the default) so the scheduler does not delay a critical alert, and raise `schedule_priority`.
 3. **Trigger:** number of results > 0, for each result.
-4. **Throttle:** 30 minutes, by `target_group_arn`.
+4. **Throttle:** 30 minutes, by `originalHost`.
 5. **Action:** PagerDuty for the owning team, with the runbook link from the lookup in the message.
 6. **Test:** run the search over a past incident window, then trigger it in staging.
 
-**Pitfall:** ALB logs are delivered to S3 every 5 minutes and then pulled into Splunk, so data may be 5 to 10 minutes late. For faster alerting on ALB, a CloudWatch metric alarm on `HTTPCode_Target_5XX_Count` can be better, and Splunk is used for investigation.
+**Pitfall:** Application Gateway writes access logs about every 60 seconds, then they go through the Event Hub and the add-on, so data can be several minutes late. For faster alerting, an Azure Monitor metric alert on the gateway's `ResponseStatus` metric (split by `HttpStatusGroup`) can be better, and Splunk is used for investigation.
 
 </details>
 
@@ -233,10 +235,11 @@ TODO (Siva): add a real example of an alert you tuned or removed, and what chang
 Say the SLO is 99.9% of requests succeed over 30 days. The error budget is 0.1%. Burn rate = current error ratio divided by 0.001. A burn rate of 14.4 for 1 hour uses about 2% of a 30-day budget; that is a common fast-burn page threshold (from the Google SRE Workbook).
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-60m@m latest=@m
-| eval bad=if(elb_status_code>=500, 1, 0), recent=if(_time >= relative_time(now(), "-5m@m"), 1, 0)
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-60m@m latest=@m
+| rename properties.* as *
+| eval bad=if(httpStatus>=500, 1, 0), recent=if(_time >= relative_time(now(), "-5m@m"), 1, 0)
 | stats sum(bad) as bad_1h count as total_1h
-        sum(eval(bad*recent)) as bad_5m sum(recent) as total_5m by target_group_arn
+        sum(eval(bad*recent)) as bad_5m sum(recent) as total_5m by originalHost
 | eval burn_1h=(bad_1h/total_1h)/0.001, burn_5m=(bad_5m/total_5m)/0.001
 | where burn_1h > 14.4 AND burn_5m > 14.4 AND total_1h > 500
 ```
@@ -333,9 +336,10 @@ Common built-in tokens: `$click.value$`, `$row.<field>$`, and time picker tokens
 - **Data model acceleration:** builds `tsidx` summaries for a whole data model. Any `tstats` search on that model benefits. Best for shared, CIM-based data.
 
 ```text
-index=web sourcetype=aws:elb:accesslogs earliest=-5m@m latest=@m
-| stats count as total count(eval(elb_status_code>=500)) as errors by target_group_arn
-| collect index=summary_web source="alb_5m_rollup"
+index=web sourcetype=azure:monitor:resource category=ApplicationGatewayAccessLog earliest=-5m@m latest=@m
+| rename properties.* as *
+| stats count as total count(eval(httpStatus>=500)) as errors by originalHost
+| collect index=summary_web source="appgw_5m_rollup"
 ```
 
 **Pitfalls:** `collect` with a sourcetype other than the default `stash` counts against the license. Summary data does not backfill itself; use the `fill_summary_index.py` script or a manual backfill when runs are skipped.
