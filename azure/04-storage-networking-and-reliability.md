@@ -88,6 +88,43 @@ Send access, performance, firewall, and health data through diagnostic settings 
 
 To troubleshoot: check the resolved frontend address, listener/SNI and certificate, WAF logs, rule priority, any rewrite/redirect behavior, backend health, probe host/path/status, the NSG/UDR/firewall path, backend TLS trust, and application logs. A healthy gateway doesn't mean the backend is healthy too.
 
+### Application Gateway 502 Troubleshooting Decision Tree
+
+A 502 from Application Gateway means the gateway could not get a valid answer from any backend. A 403 is different: it usually means the WAF blocked the request in Prevention mode, so look in the WAF log, not at the backend. Application Gateway also returns 502 (not 504) when the backend does not answer within the request timeout in the backend settings (default 20 seconds). Start with backend health, then follow the probe error message.
+
+```mermaid
+flowchart TD
+    A["Users get an error page<br/>from Application Gateway"] --> B{"Which status code?"}
+    B -- "403" --> W["WAF blocked the request:<br/>find the ruleId in WAF logs,<br/>fix the app or add a scoped exclusion"]
+    B -- "502" --> C{"Backend health status?"}
+    C -- "Unknown" --> N["Gateway subnet is blocked:<br/>allow GatewayManager 65200-65535<br/>and AzureLoadBalancer in the NSG,<br/>no 0.0.0.0/0 to a firewall on v2,<br/>custom DNS must resolve names"]
+    C -- "Unhealthy" --> D{"Read the probe error message"}
+    D --> D1["Probe path or host mismatch:<br/>status not in 200-399,<br/>wrong Host header or path"]
+    D --> D2["Backend cert or SNI problem:<br/>root CA not trusted, CN or SAN<br/>does not match, cert expired"]
+    D --> D3["Port blocked or closed:<br/>NSG or UDR on backend subnet,<br/>app not listening"]
+    D --> D4["AKS Pods not ready:<br/>readiness probe failing,<br/>no endpoints, stale Pod IPs"]
+    C -- "Healthy" --> E{"502 only sometimes?"}
+    E --> E1["Slow backend: response takes longer<br/>than the request timeout"]
+    E --> E2["Backend crashes or resets<br/>connections under load"]
+    E --> E3["Pods removed during a rollout:<br/>add preStop delay and PDB"]
+```
+
+```bash
+# Backend health with the probe error message for each server
+az network application-gateway show-backend-health \
+  --resource-group rg-app --name agw-prod \
+  --query "backendAddressPools[].backendHttpSettingsCollection[].servers[].{ip:address,health:health,reason:healthProbeLog}" -o table
+```
+
+**Explanation of each branch:**
+
+- **Unknown health:** the gateway cannot even report health. This is almost always an NSG, UDR, or DNS problem on the gateway subnet, not an application problem.
+- **Probe path or host mismatch:** the probe hits `/` but the app only answers on `/healthz`, or the app needs a specific `Host` header. Use a custom probe, or turn on "pick host name from backend settings".
+- **Backend cert or SNI:** with end-to-end TLS, the gateway checks the backend certificate. The root CA must be trusted and the name must match the host name the gateway sends.
+- **Request timeout:** raise the timeout only for routes that really need it. Fix slow endpoints first.
+- **WAF blocks:** these show as 403, not 502. Check `ApplicationGatewayFirewallLog` before you touch the backend.
+- **AKS Pods not ready:** the controller only adds ready Pods. During rollouts, a `preStop` sleep and a PodDisruptionBudget give the gateway time to drain old Pod IPs.
+
 ### Load Balancer and secure administration
 
 Azure Load Balancer distributes Layer-4 TCP/UDP traffic using a frontend, a rule, a backend pool, and a health probe. A common path looks like: internet -> public frontend -> load-balancing rule -> healthy VM backend.
