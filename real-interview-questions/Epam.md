@@ -1034,3 +1034,481 @@ Private connection → PostgreSQL
 ```
 
 This is the clean answer the interviewer is looking for: **Key Vault stores the secret, Managed Identity authenticates the application, RBAC controls access, and the database stays private where possible.**
+
+---
+
+## Q14. How do you restrict a developer's access instead of giving the Contributor role in Azure?
+
+The right approach is **least-privilege RBAC**. Don't give developers the broad Contributor role unless they actually need it.
+
+### Interview-ready answer
+
+> "I would first understand what actions the developer needs to perform. Instead of assigning Contributor, I would create or use a more specific Azure RBAC role that provides only those required permissions. I would assign it at the lowest possible scope, such as a specific resource instead of the entire subscription. If no built-in role exactly matches the requirement, I would create a custom RBAC role with only the required actions."
+
+### Example
+
+Suppose a developer only needs to restart an Azure Web App and view its configuration.
+
+Instead of:
+
+```text
+Subscription
+    |
+    └── Contributor ❌
+```
+
+give access only to the required App Service resource:
+
+```text
+Developer
+   |
+   └── Custom RBAC role
+          |
+          ├── Read Web App
+          ├── Read configuration
+          └── Restart Web App
+```
+
+### Built-in roles
+
+Before creating a custom role, check whether an existing built-in role is enough:
+
+| Requirement | Possible built-in role |
+| --- | --- |
+| View resources only | Reader |
+| Manage VMs | Virtual Machine Contributor |
+| Manage AKS | Azure Kubernetes Service Contributor Role |
+| Read and write Storage blob data | Storage Blob Data Contributor |
+| Manage Web Apps | Website Contributor (and Web Plan Contributor for App Service plans) |
+| Read Key Vault secrets | Key Vault Secrets User |
+| Manage Key Vault secrets | Key Vault Secrets Officer |
+
+The exact role depends on what the developer actually needs.
+
+### Scope matters
+
+Don't assign the role at subscription level if it isn't necessary. Prefer:
+
+```text
+Subscription
+   └── Resource Group
+        └── Specific resource
+             └── Developer role
+```
+
+rather than:
+
+```text
+Subscription
+   └── Contributor ❌
+```
+
+### Custom role example
+
+If no built-in role is suitable:
+
+```json
+{
+  "Name": "Developer WebApp Operator",
+  "IsCustom": true,
+  "Description": "Read and restart web apps in one resource group",
+  "Actions": [
+    "Microsoft.Web/sites/read",
+    "Microsoft.Web/sites/config/read",
+    "Microsoft.Web/sites/restart/action"
+  ],
+  "NotActions": [],
+  "AssignableScopes": [
+    "/subscriptions/<subscription-id>/resourceGroups/<resource-group>"
+  ]
+}
+```
+
+Create it with `az role definition create --role-definition @role.json`, then assign it to the developer (or, better, to an Entra group) at the resource-group or resource scope.
+
+### Also use PIM
+
+For sensitive production access, use **Microsoft Entra Privileged Identity Management (PIM)**. Instead of permanent permissions:
+
+```text
+Developer
+   ↓
+Eligible for production access
+   ↓
+Request / approval
+   ↓
+Temporary role
+   ↓
+Access expires
+```
+
+### Strong final interview answer
+
+> "I follow the principle of least privilege. I first identify exactly what permissions the developer requires, then use the closest built-in Azure RBAC role instead of Contributor. I assign it at the lowest required scope, preferably a specific resource or resource group. If no built-in role meets the requirement, I create a custom role with only the necessary actions. For production access, I prefer PIM with just-in-time and time-bound access. This prevents developers from accidentally modifying or deleting unrelated Azure resources."
+
+---
+
+## Q15. What is Azure Policy?
+
+Azure Policy is an Azure **governance** service used to enforce organizational rules and compliance requirements on Azure resources.
+
+It can **audit, deny, modify or deploy** configurations based on defined rules.
+
+### Simple example
+
+Suppose your organization says: *"All Storage Accounts must have public network access disabled."* You can create an Azure Policy:
+
+```text
+       Storage Account
+             |
+             v
+   Public network access?
+             |
+       ┌─────┴─────┐
+       |           |
+   Disabled     Enabled
+       |           |
+    Allowed     Denied ❌
+```
+
+### Common use cases
+
+- Prevent public access to Storage Accounts
+- Require specific Azure regions
+- Require mandatory tags such as Environment and Owner
+- Prevent creation of expensive or unwanted resource SKUs
+- Require encryption
+- Enforce HTTPS
+- Audit resources that don't comply
+- Automatically add or modify certain configurations
+
+### Azure Policy effects
+
+Some common effects:
+
+| Effect | Meaning |
+| --- | --- |
+| Deny | Prevents creating or updating a non-compliant resource |
+| Audit | Allows the resource but reports it as non-compliant |
+| Modify | Changes or adds resource configuration (for example tags) |
+| DeployIfNotExists | Deploys a required configuration if it is missing |
+| Disabled | The policy is not evaluated |
+
+### Azure Policy vs. RBAC
+
+This is a common interview question.
+
+**RBAC answers: who can do what?**
+
+```text
+Developer → Contributor
+Developer → Reader
+```
+
+**Azure Policy answers: which configurations are allowed in Azure?**
+
+```text
+Developer has Contributor access
+          ↓
+Tries to create a public Storage Account
+          ↓
+Azure Policy → DENY
+```
+
+So even if a user has Contributor, an Azure Policy can prevent certain resource configurations.
+
+### Interview-ready answer
+
+> "Azure Policy is a governance service used to enforce organizational standards and compliance across Azure resources. For example, I can create a policy to deny Storage Accounts with public network access enabled, enforce mandatory tags, or restrict deployments to approved regions. RBAC controls who can perform actions, while Azure Policy controls which resource configurations are allowed."
+
+---
+
+## DevSecOps
+
+## Q16. Apart from pre-commit hooks, what other hooks and checks are there, inside and outside Git, and what is their purpose?
+
+Think of pre-commit hooks as **one layer in a larger validation chain**. In DevOps, you can have checks on the developer machine, in the Git repository, in the CI/CD pipeline, in Kubernetes, in Terraform, and at the Azure governance level.
+
+### 1. Git hooks
+
+Git has several hooks that can run automatically.
+
+| Hook | When it runs | Typical purpose |
+| --- | --- | --- |
+| `pre-commit` | Before the commit is created | Linting, formatting, secret scan |
+| `commit-msg` | After the commit message is entered | Validate the commit message format |
+| `pre-push` | Before `git push` | Run tests, security checks |
+| `post-commit` | After the commit | Notifications, local automation |
+| `pre-rebase` | Before a rebase | Prevent unsafe rebases |
+| `post-checkout` | After a checkout | Environment or setup tasks |
+| `post-merge` | After a merge | Dependency or setup tasks |
+| `pre-receive` | Server side, before accepting a push | Enforce repository rules |
+| `update` | Server side, per branch / ref | Control branch updates |
+| `post-receive` | Server side, after a push | Trigger deployment or notification |
+
+Most important for interviews:
+
+**pre-commit**
+
+```text
+Developer
+   ↓
+git commit
+   ↓
+pre-commit hooks
+   ↓
+lint / format / secret scan
+   ↓
+Commit
+```
+
+**pre-push**
+
+```text
+git push
+   ↓
+pre-push hook
+   ↓
+tests / validation
+   ↓
+Remote repository
+```
+
+### 2. The pre-commit framework
+
+The **pre-commit** framework is commonly used to manage Git hooks consistently across a team.
+
+Example `.pre-commit-config.yaml` (pin each `rev` to the latest release):
+
+```yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+```
+
+Purpose:
+
+- YAML validation
+- JSON validation
+- Remove trailing whitespace
+- Detect merge conflicts
+- Detect secrets
+- Run formatters and linters
+
+### 3. Terraform checks
+
+For Terraform projects, these are very common.
+
+- **`terraform fmt`** formats Terraform code: `terraform fmt -check`
+- **`terraform validate`** checks that the configuration is syntactically and structurally valid.
+- **TFLint** (`tflint`) catches potential errors and best-practice issues, such as a wrong Azure resource configuration, an invalid argument or deprecated configuration.
+- **Checkov** (`checkov -d .`) scans IaC for security and compliance issues, such as a storage account that allows public access, an NSG that allows unrestricted inbound traffic, or missing encryption.
+- **tfsec** (`tfsec .`) is a Terraform-focused security scanner. In modern setups, many teams use **Trivy** instead, because tfsec has been merged into it.
+- **Trivy** (`trivy config .`) scans Terraform/IaC, containers, filesystems and more.
+
+### 4. Secret scanning
+
+These are extremely important. They stop credentials and sensitive information from entering the repository.
+
+- **Gitleaks** (`gitleaks detect`) detects secrets accidentally committed to Git: cloud keys, Azure credentials, API tokens, passwords and private keys.
+- **TruffleHog** is another secret-detection tool:
+
+```bash
+trufflehog git file://. --since-commit HEAD~10
+```
+
+### 5. Code quality and linting
+
+- **ShellCheck** (`shellcheck script.sh`) detects common shell scripting problems. For example, in `if [ $x = "test" ]` it flags the unquoted `$x`.
+- **Pylint** (`pylint script.py`) checks Python code quality, errors, naming and bad practices.
+- **Black** (`black .`) formats Python code.
+- **Flake8** (`flake8 .`) lints Python code.
+
+### 6. YAML and Kubernetes validation
+
+- **kubeconform** (`kubeconform deployment.yaml`) validates Kubernetes manifests against the Kubernetes schemas.
+- **kube-linter** (`kube-linter lint deployment.yaml`) checks manifests for common configuration and security problems.
+- **`kubectl apply --dry-run`** validates without creating resources:
+
+```bash
+kubectl apply --dry-run=client -f deployment.yaml
+kubectl apply --dry-run=server -f deployment.yaml   # server-side validation
+```
+
+### 7. Docker checks
+
+- **Hadolint** (`hadolint Dockerfile`) lints Dockerfiles: bad practices, unnecessary packages, poor layer usage, missing version pinning.
+- **Trivy** (`trivy image myapp:1.0`) scans container images for OS vulnerabilities, application dependency vulnerabilities, secrets and misconfigurations.
+
+### 8. CI/CD pipeline checks
+
+These don't run as Git hooks. They run after the code reaches the CI system.
+
+```text
+Developer
+   ↓
+Git pre-commit
+   ↓
+Git push
+   ↓
+CI pipeline
+   ↓
+Build
+   ↓
+Unit tests
+   ↓
+SonarQube
+   ↓
+Security scan
+   ↓
+Docker build
+   ↓
+Trivy
+   ↓
+Deploy
+```
+
+Common tools:
+
+| Tool | Purpose |
+| --- | --- |
+| SonarQube | Code quality and security |
+| Trivy | Container and IaC scanning |
+| Snyk | Dependency and security scanning |
+| OWASP Dependency-Check | Dependency vulnerabilities |
+| Checkov | IaC security |
+| TFLint | Terraform linting |
+| ShellCheck | Shell linting |
+| Hadolint | Dockerfile linting |
+
+### 9. SonarQube
+
+SonarQube is a **CI/CD quality gate**, not a Git hook. It checks bugs, vulnerabilities, code smells, duplications and test coverage.
+
+```text
+Build
+  ↓
+Unit tests
+  ↓
+SonarQube scan
+  ↓
+Quality gate
+  ↓
+PASS → continue
+FAIL → stop the pipeline
+```
+
+### 10. Azure Policy
+
+This is **not** a Git hook. It works at the Azure resource / governance level.
+
+```text
+Terraform
+   ↓
+Azure
+   ↓
+Azure Policy
+   ↓
+Storage Account has public access
+   ↓
+DENY
+```
+
+Common policies: require tags, restrict Azure regions, deny public Storage Accounts, require HTTPS, require encryption, restrict resource SKUs.
+
+### 11. Kubernetes admission control
+
+These run when Kubernetes resources are submitted to the API server.
+
+- **OPA Gatekeeper** enforces organizational policies, for example "every container must have resource limits".
+
+```text
+Deployment
+    ↓
+Gatekeeper
+    ↓
+Container must have resource limits
+    ↓
+PASS / DENY
+```
+
+- **Kyverno** is a Kubernetes-native policy engine. Example policies: require resource limits, require labels, disallow privileged containers, allow only approved container registries.
+- **Pod Security Admission** is built into Kubernetes and enforces the Pod Security Standards: Privileged, Baseline and Restricted.
+
+### 12. Dependency scanning
+
+For application dependencies:
+
+- **npm:** `npm audit`
+- **Maven:** `mvn dependency-check:check` (OWASP Dependency-Check plugin)
+- **OWASP Dependency-Check** scans application dependencies for known vulnerabilities.
+- **Snyk** can scan source code, dependencies, containers and IaC.
+
+### 13. A good DevOps validation architecture
+
+For an Azure DevOps / Kubernetes / Terraform profile, remember this:
+
+```text
+                Developer
+                    |
+                    v
+             Git pre-commit
+                    |
+       +------------+------------+
+       |            |            |
+   Formatting    Linting    Secret scan
+       |            |            |
+       +------------+------------+
+                    |
+                  Push
+                    |
+                    v
+              CI pipeline
+                    |
+       +------------+-------------+
+       |            |             |
+   Terraform    SonarQube       Tests
+   validate
+       |
+ TFLint / Checkov
+       |
+     Trivy
+       |
+  Docker build
+       |
+ Trivy image scan
+       |
+ Kubernetes validation
+       |
+       v
+     Deploy
+       |
+       v
+Kubernetes admission
+Gatekeeper / Kyverno
+       |
+       v
+     Azure
+       |
+       v
+  Azure Policy
+```
+
+### The key distinction for interviews
+
+Don't say all of these are pre-commit hooks. That's incorrect. Say:
+
+> "Git hooks run locally or server-side around Git operations. Tools like pre-commit, ShellCheck and Gitleaks can be integrated as Git hooks. Terraform validate, TFLint, Checkov, Trivy and SonarQube are usually also run in CI because local hooks alone can be bypassed. Kubernetes admission controllers such as Kyverno or Gatekeeper enforce policies at cluster admission time, while Azure Policy governs Azure resources."
+
+That distinction shows you understand **where each control belongs**, not just the tool names.
