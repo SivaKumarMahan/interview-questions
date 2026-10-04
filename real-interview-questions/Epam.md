@@ -1512,3 +1512,582 @@ Don't say all of these are pre-commit hooks. That's incorrect. Say:
 > "Git hooks run locally or server-side around Git operations. Tools like pre-commit, ShellCheck and Gitleaks can be integrated as Git hooks. Terraform validate, TFLint, Checkov, Trivy and SonarQube are usually also run in CI because local hooks alone can be bypassed. Kubernetes admission controllers such as Kyverno or Gatekeeper enforce policies at cluster admission time, while Azure Policy governs Azure resources."
 
 That distinction shows you understand **where each control belongs**, not just the tool names.
+
+---
+
+## CI/CD and monitoring
+
+## Q17. If there is an issue with unit testing, how will you assist the developer?
+
+### Interview-ready answer
+
+> "If a unit test is failing, I first check the CI/CD pipeline logs to identify whether the failure is due to the application code, test code, environment, dependency, or pipeline configuration.
+>
+> I share the exact error and failing test case with the developer and help reproduce the issue locally. If it's a code or test logic issue, the developer fixes it. If it's an environment or pipeline issue, such as a missing dependency, incorrect environment variable, wrong configuration, or test database connectivity, I troubleshoot and fix that part.
+>
+> After the fix, I rerun the unit tests and verify that the complete test suite passes before allowing the pipeline to continue."
+
+### Practical flow
+
+```text
+            Unit test failure
+                    |
+                    v
+             Check CI/CD logs
+                    |
+                    v
+           Identify root cause
+                    |
+       +------------+-------------+
+       |            |             |
+   Code issue   Test issue   Environment /
+       |            |         pipeline issue
+       |            |             |
+   Developer    Developer       DevOps
+     fixes        fixes          fixes
+       |            |             |
+       +------------+-------------+
+                    |
+                    v
+             Run tests again
+                    |
+                    v
+                  PASS
+                    |
+                    v
+            Continue pipeline
+```
+
+### Example
+
+Suppose the pipeline shows:
+
+```text
+Tests run: 25
+Failures: 1
+
+PaymentServiceTest
+Expected: 200
+Actual: 500
+```
+
+I would:
+
+1. Check the complete stack trace.
+2. Identify the failing test and recent code changes.
+3. Try to reproduce it locally.
+4. Check whether the failure is application logic, test data, dependency, or environment related.
+5. Share the evidence with the developer.
+6. If the issue is environmental, fix the pipeline or configuration.
+7. Re-run the tests.
+8. Verify the full suite passes.
+
+In Azure DevOps, publishing results with the `PublishTestResults@2` task makes the failing test, its error message and its history visible in the pipeline's **Tests** tab, which makes it much easier to share with the developer.
+
+### Strong DevOps interview point
+
+Don't say *"I ask the developer to fix it."* Say:
+
+> "I don't necessarily fix application logic myself, but I help the developer isolate the problem. I provide the logs, error details, reproduction steps, and environment information. If the problem is infrastructure or CI/CD related, I take ownership of that part and fix it."
+
+That shows proper collaboration between Developer and DevOps, instead of treating every test failure as a developer problem.
+
+---
+
+## Q18. You have Splunk, Grafana and Prometheus. How do you use these tools effectively for multitasking?
+
+The key is not to use all three tools for the same purpose. Give each tool a clear responsibility and use them together for incident investigation.
+
+### Interview-ready answer
+
+> "I use Prometheus and Grafana mainly for real-time infrastructure and application metrics, and Splunk for centralized log analysis. I don't continuously monitor all three independently. I use dashboards and alerts to identify an issue, then correlate metrics with logs to find the root cause."
+
+### How I use them
+
+| Tool | Primary purpose | Example |
+| --- | --- | --- |
+| Prometheus | Collect metrics and alerting | CPU, memory, pod restarts, request rate |
+| Grafana | Visualize metrics and dashboards | AKS health, application latency |
+| Splunk | Centralized log analysis | Application errors, exceptions, HTTP 500/503 |
+
+### Example: production issue
+
+Suppose users report that the application is slow.
+
+```text
+User reports high latency
+        ↓
+Grafana dashboard
+        ↓
+API latency increased
+        ↓
+Prometheus metrics
+        ↓
+Pod CPU / memory / restart count
+        ↓
+Identify affected service
+        ↓
+Splunk
+        ↓
+Search application logs
+        ↓
+Find errors / exceptions
+        ↓
+Root cause
+        ↓
+Fix + verify in Grafana
+```
+
+For example, Grafana shows:
+
+```text
+API latency: 200ms → 5 seconds
+Pod restarts: increasing
+Memory: 90%+
+```
+
+Prometheus confirms the memory increase. Then I search Splunk:
+
+```text
+index=production service=payment "OutOfMemory"
+```
+
+If Splunk shows repeated `OutOfMemoryError`, I know the issue is likely related to memory consumption rather than network latency.
+
+### How I multitask
+
+If I'm handling multiple applications:
+
+**1. Use centralized dashboards.** Create Grafana dashboards for:
+
+```text
+Production
+ ├── AKS
+ ├── Application
+ ├── Database
+ └── Infrastructure
+```
+
+**2. Configure alerts.** Prometheus can alert on conditions such as:
+
+- CPU > 80%
+- Memory > 85%
+- Pod restart count increasing
+- HTTP 5xx above a threshold
+- High API latency
+
+Example PromQL expressions behind such alerts:
+
+```text
+# Pod restarts in the last 15 minutes
+increase(kube_pod_container_status_restarts_total[15m]) > 3
+
+# More than 5% of requests returning 5xx
+sum(rate(http_requests_total{status=~"5.."}[5m]))
+  / sum(rate(http_requests_total[5m])) > 0.05
+```
+
+This means I don't have to manually watch dashboards all day.
+
+**3. Use Splunk saved searches.** Maintain saved searches for common problems:
+
+- HTTP 500
+- HTTP 503
+- OutOfMemory
+- Connection refused
+- Timeout
+- Authentication failure
+
+**4. Prioritize incidents.**
+
+```text
+P1 / Production outage
+        ↓
+P2 / Major degradation
+        ↓
+P3 / Individual service issue
+        ↓
+P4 / Non-production issue
+```
+
+### Strong interview answer
+
+> "For multitasking, I rely heavily on alerts and dashboards rather than manually monitoring every system. Prometheus collects metrics and triggers alerts, Grafana gives me a centralized view of infrastructure and application health, and Splunk helps me drill into logs when an alert fires. For example, if Grafana shows high latency, I use Prometheus to determine whether CPU, memory, pods or request rates are responsible, then use Splunk to correlate that with application errors. I prioritize production incidents first and use predefined dashboards and saved Splunk queries to investigate multiple applications efficiently."
+
+Simple rule to remember:
+
+```text
+Prometheus = metrics and alerting
+Grafana    = visualization
+Splunk     = logs and investigation
+```
+
+---
+
+## Azure networking
+
+## Q19. How do you set up health probes in a load balancer?
+
+An Azure Load Balancer **health probe** checks whether a backend VM or instance is healthy before sending traffic to it.
+
+### Interview-ready answer
+
+> "I configure a health probe on the Azure Load Balancer and associate it with the backend pool through a load-balancing rule. The probe periodically checks a specific port and protocol on the backend instances. Only healthy instances receive traffic."
+
+### Example
+
+```text
+Azure Load Balancer
+        |
+        | Health probe
+        | TCP : 8080
+        v
+Backend pool
+   ├── VM1 : 8080  → Healthy
+   ├── VM2 : 8080  → Healthy
+   └── VM3 : 8080  → Unhealthy
+```
+
+Traffic is sent only to VM1 and VM2.
+
+### Types of Azure Load Balancer probes
+
+| Type | Checks | Example | Use when |
+| --- | --- | --- | --- |
+| TCP | The port accepts a TCP connection | Port 8080 | You only need to know the service is listening |
+| HTTP | An HTTP endpoint returns **200 OK** | Port 8080, path `/health` | You want an application-level health check |
+| HTTPS | Same as HTTP, over TLS (Standard SKU only) | Port 443, path `/health` | The endpoint only serves HTTPS |
+
+Any HTTP status other than 200, or a timeout, counts as a failed probe.
+
+### Important settings
+
+| Setting | Example |
+| --- | --- |
+| Protocol | HTTP |
+| Port | 8080 |
+| Path (HTTP/HTTPS only) | `/health` |
+| Interval | 5 seconds |
+| Unhealthy threshold | 2 consecutive failures |
+
+If the backend fails the required number of consecutive probes, Azure Load Balancer marks it unhealthy and stops sending **new** connections to it. Existing connections are not cut immediately.
+
+### Azure CLI example
+
+```bash
+# 1. Create the probe
+az network lb probe create \
+  --resource-group my-rg \
+  --lb-name my-lb \
+  --name app-health-probe \
+  --protocol Http \
+  --port 8080 \
+  --path /health \
+  --interval 5 \
+  --probe-threshold 2
+
+# 2. Associate it with a load-balancing rule
+az network lb rule create \
+  --resource-group my-rg \
+  --lb-name my-lb \
+  --name app-rule \
+  --protocol Tcp \
+  --frontend-port 80 \
+  --backend-port 8080 \
+  --frontend-ip-name my-frontend \
+  --backend-pool-name my-backend-pool \
+  --probe-name app-health-probe
+```
+
+### Common interview follow-up
+
+> *"The VM is running, but the Load Balancer shows it as unhealthy. What will you check?"*
+
+- Is the application actually listening on the probe port?
+- Is the probe path correct?
+- Does `/health` return HTTP 200?
+- Does the NSG allow probe traffic? Probes come from **168.63.129.16**, so the NSG must allow the `AzureLoadBalancer` service tag. A custom "deny all inbound" rule placed above the default rules blocks the probes.
+- Is the load-balancing rule configured correctly?
+- Is the backend pool associated with the correct NIC or IP?
+- Is the application binding to the correct interface and port? An app bound only to `127.0.0.1` passes a local test but fails the probe.
+
+On the VM:
+
+```bash
+ss -lntp                               # is anything listening on 8080, and on which address?
+curl -i http://localhost:8080/health   # does it return 200?
+```
+
+If `curl` works locally but the probe still fails, I'd investigate NSG rules, the guest OS firewall, routing, application binding and the probe configuration.
+
+---
+
+## Kubernetes
+
+## Q20. What is the CrashLoopBackOff error, and how will you troubleshoot it?
+
+### What is CrashLoopBackOff?
+
+CrashLoopBackOff means a Kubernetes container starts, crashes or exits, Kubernetes restarts it, and the container keeps crashing repeatedly. Kubernetes gradually increases the delay between restarts (10s, 20s, 40s … up to 5 minutes), hence **BackOff**.
+
+It is usually an application or container startup issue, not necessarily a node issue.
+
+### Common reasons
+
+- Application configuration error
+- Missing or incorrect environment variables
+- Secret or ConfigMap missing
+- Wrong database or API connection
+- Application listening on the wrong port
+- Incorrect command or entrypoint
+- Missing dependency
+- OOMKilled due to insufficient memory
+- Liveness probe failure
+- Permission issues
+
+### How will you troubleshoot?
+
+I would follow this order.
+
+**1. Check pod status**
+
+```bash
+kubectl get pods -n <namespace>
+```
+
+```text
+payment-api-7d8f9c6b7f-x2abc   0/1   CrashLoopBackOff   5   10m
+```
+
+**2. Describe the pod**
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Check:
+
+- Events
+- Last State
+- Exit code
+- Reason
+- Probe failures
+- Mount, Secret or ConfigMap errors
+
+**3. Check current logs**
+
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
+
+**4. Check logs from the previous crashed container.** This is very important for CrashLoopBackOff:
+
+```bash
+kubectl logs <pod-name> -n <namespace> --previous
+```
+
+For example:
+
+```text
+Error connecting to PostgreSQL
+Connection refused
+Application startup failed
+```
+
+Now I know the container is crashing because of a database connection problem.
+
+**5. Check the container's last state**
+
+```bash
+kubectl get pod <pod-name> -n <namespace> \
+  -o jsonpath='{.status.containerStatuses[*].lastState}'
+```
+
+If you see `reason: OOMKilled` (exit code **137**), investigate memory requests and limits. Other common exit codes:
+
+| Exit code | Usual meaning |
+| --- | --- |
+| 0 | The process finished, but a Deployment expects it to keep running (wrong command) |
+| 1 | Application error at startup |
+| 126 / 127 | Command not executable / not found (wrong entrypoint) |
+| 137 | Killed by SIGKILL, usually OOMKilled |
+| 143 | Terminated by SIGTERM |
+
+**6. Check configuration**
+
+```bash
+kubectl get configmap -n <namespace>
+kubectl get secrets -n <namespace>
+```
+
+Verify that the required environment variables, ConfigMaps and Secrets exist and are correctly mounted or referenced.
+
+**7. Check probes.** If logs look normal but the container keeps restarting:
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Look for `Liveness probe failed`, then verify the application's health endpoint, port and `initialDelaySeconds` (a slow-starting app needs a longer delay or a startup probe).
+
+Note: only a failing **liveness** probe restarts the container. A failing **readiness** probe just removes the pod from Service endpoints, so it doesn't cause CrashLoopBackOff.
+
+### Interview-ready answer
+
+> "CrashLoopBackOff means the container is repeatedly starting and crashing, so Kubernetes keeps restarting it and applies an increasing backoff delay.
+>
+> First, I check `kubectl get pods` and `kubectl describe pod` to understand the restart reason and events. Then I check `kubectl logs` and especially `kubectl logs --previous`, because the current container may have only just restarted and the useful error is in the previous one.
+>
+> I then verify the exit code, OOMKilled status, ConfigMaps, Secrets, environment variables, application configuration, database connectivity, container command or entrypoint, and the liveness probe.
+>
+> Once I identify the root cause, I fix the application, configuration, resource or probe issue and monitor the pod using `kubectl get pods` and `kubectl rollout status`."
+
+### Simple troubleshooting flow
+
+```text
+CrashLoopBackOff
+       ↓
+kubectl describe pod
+       ↓
+kubectl logs --previous
+       ↓
+Check exit code / reason
+       ↓
+ ┌───────────────┬────────────────┬─────────────────┐
+ │ OOMKilled     │ App error      │ Probe failure   │
+ │               │                │                 │
+ │ Check limits  │ Check config,  │ Check endpoint  │
+ │ & memory      │ DB, secrets    │ & port          │
+ └───────────────┴────────────────┴─────────────────┘
+       ↓
+Fix root cause
+       ↓
+Verify pod becomes Ready
+```
+
+---
+
+## Azure migration
+
+## Q21. How do you migrate servers from on-premises to Azure?
+
+I would follow a **plan → assess → replicate → test → migrate → validate → decommission** approach.
+
+### 1. Assess the existing servers
+
+First, I collect:
+
+- Number of servers
+- OS version
+- CPU, memory and disk requirements
+- Applications and services running
+- Database dependencies
+- Network dependencies
+- Ports and firewall rules
+- DNS requirements
+- Application dependencies
+
+I use **Azure Migrate** to discover and assess the on-premises servers and get sizing and cost recommendations. Its dependency analysis shows which servers talk to each other, so they can be migrated together in the same wave.
+
+### 2. Prepare Azure
+
+```text
+Azure subscription
+      ↓
+Resource groups
+      ↓
+     VNet
+ ┌────┴─────┐
+Subnet    Subnet
+ App        DB
+      ↓
+NSG / Firewall
+      ↓
+VPN / ExpressRoute
+```
+
+I also configure:
+
+- VNet and subnets
+- NSGs
+- VPN or ExpressRoute connectivity
+- DNS
+- Azure RBAC
+- Monitoring
+- Backup
+- Key Vault if required
+
+### 3. Replicate the servers
+
+I use the **Migration and modernization** tool in Azure Migrate (previously called Server Migration). VMware VMs can be replicated agentless or agent-based, Hyper-V VMs replicate through the Hyper-V host, and physical servers need the replication agent (Mobility service).
+
+```text
+On-prem server
+      ↓
+Azure Migrate
+      ↓
+Continuous replication
+      ↓
+Azure managed disk
+```
+
+The server keeps running on-premises while its data is replicated to Azure.
+
+### 4. Test migration
+
+Before the production cutover, I perform a **test migration** into an isolated, non-production VNet. I verify:
+
+- The application starts correctly
+- Network connectivity
+- Database connectivity
+- DNS
+- Firewall and NSG rules
+- Application functionality
+- Performance
+- Monitoring and backup
+
+Test migration doesn't impact the production server.
+
+### 5. Production cutover
+
+During the migration window:
+
+```text
+Stop / quiesce application
+        ↓
+Final data sync
+        ↓
+Stop on-prem server
+        ↓
+Complete migration
+        ↓
+Start Azure VM
+        ↓
+Update DNS / traffic
+        ↓
+Validate application
+```
+
+Then I monitor the application closely. The on-premises server stays switched off but intact, so the rollback plan is to switch DNS back to it.
+
+### 6. Decommission on-premises
+
+After business validation and a defined rollback period, I decommission the old server according to the organization's change-management and retention process.
+
+### Interview-ready answer
+
+> "For on-prem to Azure migration, I normally use Azure Migrate. First, I assess the existing servers, their sizing, applications, dependencies, network and database requirements. Then I prepare the Azure environment with VNet, subnets, NSGs, connectivity through VPN or ExpressRoute, RBAC, monitoring and backup.
+>
+> Next, I install the required Azure Migrate replication components and continuously replicate the on-prem servers to Azure. I perform a test migration to validate the application, networking and dependencies. During the production cutover, I stop or quiesce the application, perform the final synchronization, migrate the server, start it in Azure, update DNS or traffic routing, and validate the application. After a successful stabilization period, I decommission the on-prem server.
+>
+> The key goal is to minimize downtime and have a tested rollback plan before production cutover."
+
+### Important interview point
+
+Don't say *"I just copy the VM to Azure."* Say:
+
+```text
+Assess → Dependency mapping → Azure preparation → Replication → Test migration → Cutover → Validation → Decommission
+```
+
+Also mention **Azure Migrate** as the primary tool for a typical server migration scenario.
