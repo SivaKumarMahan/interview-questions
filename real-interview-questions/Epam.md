@@ -338,3 +338,173 @@ fi
 ### Interview answer
 
 > "I use the -f test operator to check whether /etc/config.js is a regular file. If the condition is true, I print that the file exists; otherwise, I handle the missing-file case."
+
+---
+
+## Q5. Write a shell script to delete logs older than N days
+
+Use `find` for this. It is the standard approach in Linux.
+
+### Delete logs older than 7 days
+
+```bash
+find /var/log -type f -name "*.log" -mtime +7 -delete
+```
+
+### Safer version: check before deleting
+
+First, list the files:
+
+```bash
+find /var/log -type f -name "*.log" -mtime +7
+```
+
+If the output is correct, run:
+
+```bash
+find /var/log -type f -name "*.log" -mtime +7 -delete
+```
+
+### Shell script
+
+```bash
+#!/bin/bash
+
+LOG_DIR="/var/log"
+DAYS=7
+
+find "$LOG_DIR" -type f -name "*.log" -mtime +"$DAYS" -delete
+
+echo "Deleted logs older than $DAYS days"
+```
+
+### Interview answer
+
+> "I use the find command with -mtime to identify log files older than the required number of days. I first verify the files using find without -delete, and once confirmed, I use -delete to remove them."
+
+### Important
+
+- `-mtime +7` matches files last modified **more than 7 full days ago**. `find` counts age in whole days and drops the fraction, so a file that is 7 days and 1 hour old is **not** matched; it must be at least 8 days old.
+- For production cleanup, verify the target directory carefully before using `-delete`. For logs that a running service is still writing to, prefer `logrotate`.
+
+---
+
+## Q6. Write a shell script to check disk usage
+
+To check disk usage in shell scripting, the basic command is `df`.
+
+### Check disk usage
+
+```bash
+df -h
+```
+
+Example:
+
+```text
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        50G   42G  8.0G  84% /
+/dev/sdb1       100G   60G   40G  60% /data
+```
+
+### Check if disk usage is above 80%
+
+```bash
+df -h | awk 'NR>1 && $5+0 > 80 {print $0}'
+```
+
+This prints the filesystems where usage is greater than 80%.
+
+### Shell script with alert
+
+```bash
+#!/bin/bash
+
+THRESHOLD=80
+
+df -P | awk 'NR>1 {print $5, $6}' | while read -r usage mount
+do
+    usage=${usage%\%}
+
+    if [ "$usage" -gt "$THRESHOLD" ]; then
+        echo "WARNING: $mount is ${usage}% full"
+    fi
+done
+```
+
+`df -P` (POSIX format) keeps each filesystem on one line, so the columns stay in the same place even for long device names.
+
+### Check which directories are consuming space
+
+```bash
+du -sh /var/* 2>/dev/null | sort -h
+```
+
+For the largest directories:
+
+```bash
+du -sh /var/* 2>/dev/null | sort -hr | head -10
+```
+
+### Interview answer
+
+> "I use df -h to check filesystem-level disk utilization. If usage crosses a threshold such as 80%, I generate an alert. Then I use du -sh to identify which directories are consuming the most space and investigate large logs, temporary files, or application data."
+
+---
+
+## Terraform
+
+## Q7. Write a Terraform file to create a Resource Group
+
+For Azure, you can create a Resource Group with a simple Terraform configuration.
+
+`main.tf`:
+
+```hcl
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-devops-demo"
+  location = "East US"
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "DevOps"
+  }
+}
+```
+
+### Commands
+
+```bash
+terraform init
+terraform validate
+terraform plan
+terraform apply
+```
+
+To delete it:
+
+```bash
+terraform destroy
+```
+
+### Interview explanation
+
+> "I use the azurerm provider to interact with Azure. The azurerm_resource_group resource creates the Resource Group with a name and Azure region. I can also add tags for environment and ownership. I run terraform init, validate the configuration, review the plan, and then run terraform apply."
+
+### Important points
+
+- Terraform tracks the Resource Group in the **state file**. If you delete the Resource Group manually from Azure, Terraform detects the drift during the next `plan`.
+- With **azurerm 4.x**, the provider needs a subscription ID. Set it in the provider block (`subscription_id = "<id>"`) or with the `ARM_SUBSCRIPTION_ID` environment variable, otherwise `terraform plan` fails.
