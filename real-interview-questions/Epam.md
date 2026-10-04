@@ -508,3 +508,113 @@ terraform destroy
 
 - Terraform tracks the Resource Group in the **state file**. If you delete the Resource Group manually from Azure, Terraform detects the drift during the next `plan`.
 - With **azurerm 4.x**, the provider needs a subscription ID. Set it in the provider block (`subscription_id = "<id>"`) or with the `ARM_SUBSCRIPTION_ID` environment variable, otherwise `terraform plan` fails.
+
+---
+
+## Azure
+
+## Q8. Give a brief on Azure Batch, Microsoft Entra ID and Azure Monitor
+
+### 1. Azure Batch
+
+Azure Batch is a service used to run **large-scale parallel and high-performance computing (HPC)** workloads.
+
+- Creates and manages a pool of VMs.
+- Runs jobs across multiple VMs in parallel.
+- Automatically scales compute resources based on the workload.
+- Useful for batch processing, simulations, rendering, data processing and similar jobs.
+
+**Interview answer:**
+
+> "Azure Batch is a managed service for running large-scale parallel workloads. It automatically manages a pool of VMs and distributes jobs across them, which is useful when we need high compute capacity without manually managing individual VMs."
+
+### 2. Microsoft Entra ID
+
+Microsoft Entra ID, formerly **Azure Active Directory (Azure AD)**, is Microsoft's cloud-based **identity and access management** service.
+
+- User and group management.
+- Authentication and authorization.
+- Single sign-on (SSO) for applications.
+- Multi-factor authentication (MFA) and Conditional Access.
+- Managed identities for Azure resources.
+- Application and service authentication.
+
+**Interview answer:**
+
+> "Microsoft Entra ID is Microsoft's cloud identity and access management service. We use it for user authentication, authorization, SSO, MFA, and managing identities for applications and Azure resources."
+
+**DevOps example:** an Azure DevOps pipeline can use a managed identity or service principal to securely access Azure resources without storing passwords in the pipeline.
+
+### 3. Azure Monitor
+
+Azure Monitor is Microsoft's **monitoring and observability** service for Azure resources and applications.
+
+It collects and uses:
+
+- **Metrics** → CPU, memory, requests, latency and so on.
+- **Logs** → application and infrastructure logs (Log Analytics).
+- **Alerts** → notify when a condition is triggered.
+- **Application Insights** → application performance monitoring.
+
+**Interview answer:**
+
+> "Azure Monitor is used to monitor the health and performance of Azure resources and applications. We collect metrics and logs, create alerts based on thresholds, and use Application Insights and Log Analytics to troubleshoot application and infrastructure issues."
+
+### Easy way to remember
+
+| Service | Main purpose |
+| --- | --- |
+| Azure Batch | Run large-scale jobs |
+| Microsoft Entra ID | Identity and access |
+| Azure Monitor | Monitoring and alerts |
+
+---
+
+## Q9. Give a brief on Azure Container Apps and Azure Container Instances
+
+### 1. Azure Container Apps
+
+Azure Container Apps (ACA) is a **fully managed, serverless container platform** for running containerized applications without managing Kubernetes infrastructure.
+
+- Supports containers, microservices, APIs and background jobs.
+- Built-in autoscaling using KEDA.
+- Supports revisions and traffic splitting.
+- Supports internal and external ingress.
+- Integrates with Azure services such as Container Registry, Managed Identity and Log Analytics.
+- A good choice when you need container orchestration features but don't want to manage AKS.
+
+**Interview answer:**
+
+> "Azure Container Apps is a serverless container platform used to run microservices and APIs without managing the underlying Kubernetes infrastructure. It provides autoscaling, ingress, revisions and traffic management. I would choose Container Apps when I need containerized applications with less operational overhead than AKS."
+
+### 2. Azure Container Instances (ACI)
+
+Azure Container Instances is a service for **running individual containers directly in Azure** without managing VMs or Kubernetes.
+
+- Very quick container startup.
+- No VM management.
+- Suitable for short-lived or simple workloads.
+- Useful for development, testing, batch jobs and CI/CD tasks.
+- Supports Linux and Windows containers.
+- Does not provide the full orchestration capabilities of Kubernetes.
+
+**Interview answer:**
+
+> "Azure Container Instances allows us to run containers directly in Azure without managing virtual machines or a Kubernetes cluster. It is useful for simple, short-lived workloads, testing and batch jobs where we don't need Kubernetes orchestration."
+
+### Container Apps vs. Container Instances
+
+| Feature | Container Apps | Container Instances |
+| --- | --- | --- |
+| Main use | Microservices / APIs | Simple containers |
+| Scaling | Built-in autoscaling | Basic / manual scaling |
+| Kubernetes | Managed abstraction | No Kubernetes orchestration |
+| Revisions | Yes | No |
+| Traffic splitting | Yes | No |
+| Best for | Production microservices | Simple / short-lived workloads |
+| Operational effort | Low | Very low |
+
+### Easy way to remember
+
+- **ACI** = run a container.
+- **Container Apps** = run and scale an application made of containers.
