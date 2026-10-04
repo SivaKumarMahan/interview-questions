@@ -618,3 +618,419 @@ Azure Container Instances is a service for **running individual containers direc
 
 - **ACI** = run a container.
 - **Container Apps** = run and scale an application made of containers.
+
+---
+
+## Q10. Azure Functions: generate a PDF and store it in a Storage Account <em>(scenario)</em>
+
+The question in the interview was short ("Azure Functions, create a PDF in a storage account"). A common full version of this scenario is:
+
+> "A user uploads a document to Azure Storage. You need to generate a PDF from that document using Azure Functions and store the generated PDF back in the Storage Account. How would you design and implement this solution?"
+
+### Architecture
+
+```text
+User
+  |
+  | Upload document
+  v
+Azure Blob Storage
+  |
+  | Blob Created event
+  v
+Event Grid
+  |
+  v
+Azure Function
+  |
+  | Generate PDF
+  v
+Azure Blob Storage
+  |
+  v
+Generated PDF
+```
+
+### How it works
+
+1. The user uploads a file, such as `.docx` or `.html`, to a Blob Storage container.
+2. Blob Storage raises a **Blob Created** event.
+3. Event Grid triggers the Azure Function.
+4. The Function reads the uploaded file from Blob Storage.
+5. The Function uses a suitable PDF-generation library to convert the content into a PDF.
+6. The generated PDF is uploaded to another container, for example:
+
+```text
+input/
+    invoice123.docx
+
+output/
+    invoice123.pdf
+```
+
+7. The Function logs success or failure to Application Insights / Azure Monitor.
+
+### How would you secure it?
+
+I would **not** store the Storage Account key in the Function configuration. Instead:
+
+```text
+Azure Function
+      |
+      | Managed Identity
+      v
+Azure Storage Account
+```
+
+Assign the Function's managed identity the right RBAC role:
+
+- **Storage Blob Data Reader** → read input files
+- **Storage Blob Data Contributor** → read and write blobs
+
+Store any other application secrets in Azure Key Vault.
+
+### What if PDF generation fails?
+
+I would implement:
+
+- Exception handling in the Function.
+- Application Insights logging.
+- A retry mechanism.
+- Dead-letter / error handling for events that keep failing.
+- A separate `failed/` (or `error/`) container if the business needs failed files to be kept.
+
+```text
+input/
+output/
+failed/
+```
+
+### What if 10,000 files are uploaded at once?
+
+This is an important follow-up.
+
+> "I would avoid processing everything synchronously. Event Grid can trigger the Function for each blob event, and Azure Functions can scale out based on the workload. I would also make the function idempotent so that if the same event is delivered more than once, we don't generate duplicate PDFs."
+
+For heavier or long-running PDF generation, I would put **Service Bus or a Storage Queue** in between:
+
+```text
+Blob Storage
+     |
+ Event Grid
+     |
+Service Bus / Queue
+     |
+Azure Function
+     |
+ Generate PDF
+     |
+Blob Storage
+```
+
+This gives better control over retries, throttling and workload spikes.
+
+### Interview-ready answer
+
+> "I would use Azure Blob Storage as the input and output storage. When a document is uploaded, a Blob Created event can be published through Event Grid and trigger an Azure Function. The Function reads the document, generates the PDF using a suitable library, and writes the PDF to an output container. I would use Managed Identity with Azure RBAC instead of storage account keys. For monitoring, I would use Application Insights and Azure Monitor. I would also implement retry and error handling. If the workload is high, I would put Service Bus or a Storage Queue between the event and the Function so that processing can be controlled and scaled safely."
+
+### Likely follow-up questions
+
+1. **Why an Azure Function instead of a VM?**
+   "The workload is event-driven and may be intermittent, so Functions removes server management and scales automatically."
+2. **Why Event Grid?**
+   "Because the processing starts when a blob is created. Event Grid is designed for event-driven scenarios."
+3. **How do you prevent duplicate PDF generation?**
+   "I make the function idempotent. Before generating the PDF, I check whether the output blob already exists, or keep a processing record."
+4. **How do you authenticate to Storage?**
+   "Using the Function's Managed Identity with the right Storage Blob Data RBAC roles."
+5. **How do you monitor failures?**
+   "Application Insights and Azure Monitor alerts. I monitor function failures, execution duration, exceptions, and retry and dead-letter counts."
+6. **What if PDF generation takes several minutes?**
+   "I would use an asynchronous design with a queue, and pick a Functions hosting plan whose execution time limit fits. For very heavy processing, I would evaluate Container Apps Jobs or Azure Batch instead of forcing everything into a single Function execution."
+
+---
+
+## Q11. How do you reduce costs in Azure?
+
+For a DevOps interview, answer this as a **practical process**, not just a list of Azure services.
+
+### Interview-ready answer
+
+> "I optimize Azure costs by first analyzing the current spending using Azure Cost Management and Advisor. I identify the resources with high utilization or unnecessary spending. Then I right-size VMs and AKS node pools, shut down non-production resources outside working hours, remove unused disks and public IPs, and use autoscaling where appropriate.
+>
+> For predictable workloads, I evaluate Azure Reservations or Savings Plans. For suitable workloads, I use Spot VMs. I also optimize storage by selecting the appropriate storage tier and lifecycle policies.
+>
+> At the governance level, I use resource tagging such as Environment, Application, Owner and CostCenter, and configure budgets and cost alerts. I regularly review the cost trends and remove orphaned or unused resources."
+
+### Areas I would check
+
+| Area | Cost optimization |
+| --- | --- |
+| VMs | Right-size, auto-shutdown Dev/QA, Reserved Instances / Savings Plans |
+| AKS | Right-size node pools, autoscaling, Spot nodes for suitable workloads |
+| Storage | Lifecycle policies, Hot/Cool/Archive tiers, remove unused disks and snapshots |
+| Networking | Review unneeded NAT Gateways, public IPs, data transfer and load balancers |
+| Database | Right-size the SKU, scale down non-prod, use the right service tier |
+| Monitoring | Control excessive Log Analytics ingestion and retention |
+| Unused resources | Remove unattached disks, IPs, NICs, old snapshots and test resources |
+| Governance | Tags, budgets, alerts and Azure Policy |
+
+### Real-time example
+
+If the interviewer asks: *"You suddenly notice the Azure cost has increased significantly. What will you do?"*
+
+> "First, I would check Cost Management to identify which subscription, resource group and resource caused the increase. Then I would compare the current cost with previous days or months. I would check for newly created resources, increased VM sizes, unexpected scaling, storage growth, data transfer and services that were accidentally left running. Once I identify the cause, I would take corrective action and configure budgets, alerts, tagging and policies to prevent the same issue from happening again."
+
+### Important incident example
+
+If an expensive Azure service was accidentally left running and generated a large bill, don't just say you deleted it. Say:
+
+> "I would first identify the resource and confirm why it was created. I would stop or remove it if it is unnecessary, then review the activity logs to understand how it happened. After that, I would introduce Azure Policy, budgets, cost alerts and appropriate RBAC controls. For non-production environments, I would also implement scheduled shutdowns. The goal is to prevent the same cost issue from recurring."
+
+That is a much stronger answer, because it covers **detection → correction → root cause → prevention**.
+
+---
+
+## Q12. A Storage Account has become public in Azure. How do you remediate it? <em>(scenario)</em>
+
+Answer in this order.
+
+### Interview-ready answer
+
+> "First, I would identify exactly what has become public. I would check the Storage Account networking configuration, public network access, firewall rules, private endpoints, and container-level public access.
+>
+> If public access is not required, I would disable public network access and allow access only through the required VNet or Private Endpoint. I would also disable anonymous blob access at the storage-account level and verify that containers are not configured for public access.
+>
+> Then I would check IAM and RBAC permissions to make sure no users or applications have excessive access. I would review Activity Logs to determine how the configuration became public.
+>
+> Finally, I would enforce the configuration using Azure Policy and Terraform so that the setting cannot accidentally be changed again."
+
+### Key settings to check
+
+#### 1. Storage account public network access
+
+Set **Public network access = Disabled**, then use:
+
+```text
+Private Endpoint
+       |
+       v
+     VNet
+       |
+       v
+Storage Account
+```
+
+If public access is genuinely required, restrict it to **selected networks / IPs** rather than allowing all networks.
+
+#### 2. Anonymous blob access
+
+Check that **Allow Blob anonymous access = Disabled**.
+
+Also verify that each container's **Public access level** is not `Blob` or `Container`. It should normally be `Private`.
+
+#### 3. RBAC / IAM
+
+Review:
+
+- Storage Blob Data Reader
+- Storage Blob Data Contributor
+- Storage Blob Data Owner
+- Subscription and resource-group permissions
+
+Remove unnecessary permissions and follow least privilege.
+
+#### 4. Private Endpoint
+
+For applications running inside Azure, use:
+
+```text
+AKS / VM / App Service
+        |
+       VNet
+        |
+Private Endpoint
+        |
+Storage Account
+```
+
+Also verify that Private DNS resolution is working.
+
+### Prevention
+
+Use **Azure Policy** to audit or deny insecure configurations, for example:
+
+```text
+Deny: storage accounts with public network access enabled
+```
+
+You can also enforce it through Terraform:
+
+```hcl
+resource "azurerm_storage_account" "example" {
+  name                = "stexample123"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  public_network_access_enabled   = false
+  allow_nested_items_to_be_public = false
+}
+```
+
+### Strong troubleshooting flow
+
+```text
+Identify exposure
+       ↓
+Check public network access
+       ↓
+Check container anonymous access
+       ↓
+Check firewall / IP rules
+       ↓
+Check Private Endpoint / DNS
+       ↓
+Review RBAC
+       ↓
+Check Activity Logs
+       ↓
+Remediate
+       ↓
+Azure Policy + Terraform
+       ↓
+Monitor continuously
+```
+
+**One important distinction:** "the storage account is public" can mean different things. **Public network access** and **anonymous blob/container access** are separate controls, so check both.
+
+---
+
+## Q13. Store a database connection string securely with Key Vault and Managed Identity <em>(scenario)</em>
+
+A good version of this scenario is:
+
+> "Your application is running on Azure App Service / AKS and needs to connect to an Azure PostgreSQL database. The database connection string contains sensitive information. How would you securely manage the connection string using Azure Key Vault and Managed Identity?"
+
+### Architecture
+
+```text
+Application
+   |
+   | Managed Identity
+   v
+Azure Key Vault
+   |
+   | Connection string
+   v
+PostgreSQL
+```
+
+### Implementation
+
+#### 1. Enable Managed Identity
+
+Enable a **system-assigned managed identity** on the App Service or AKS workload.
+
+```text
+Application
+    |
+    | Identity
+    v
+Microsoft Entra ID
+```
+
+The application doesn't need a username or password to authenticate to Key Vault.
+
+#### 2. Store the connection string in Key Vault
+
+For example:
+
+```text
+Secret name:
+postgres-connection-string
+
+Secret value:
+Host=postgres.example.com;
+Database=appdb;
+Username=appuser;
+Password=********;
+```
+
+The password is never stored in the application code or the Git repository.
+
+#### 3. Give the identity access to Key Vault
+
+Assign the application's managed identity the minimum required permission, for example **Key Vault Secrets User**. This follows the principle of least privilege.
+
+#### 4. The application retrieves the secret
+
+```text
+Application
+     |
+     | Managed Identity token
+     v
+Microsoft Entra ID
+     |
+     v
+Key Vault
+     |
+     | Secret
+     v
+Application
+     |
+     v
+PostgreSQL
+```
+
+The application uses the Azure SDK or a Key Vault integration to retrieve the secret at runtime. On App Service, a **Key Vault reference** in the app settings (`@Microsoft.KeyVault(SecretUri=...)`) does this without code changes.
+
+### If the application runs in AKS
+
+Use **Microsoft Entra Workload ID** rather than putting a service principal secret inside a Kubernetes Secret.
+
+```text
+AKS Pod
+   |
+   | Workload Identity
+   v
+Microsoft Entra ID
+   |
+   v
+Key Vault
+   |
+   v
+PostgreSQL connection string
+```
+
+Another Kubernetes option is the **Secrets Store CSI Driver** with the Azure Key Vault provider, which mounts Key Vault secrets into the Pod.
+
+### Interview-ready answer
+
+> "I would never hardcode the database connection string or password in the application or Git repository. I would store the connection string as a secret in Azure Key Vault. I would enable Managed Identity on the application, or Workload Identity if the application is running on AKS. I would grant that identity only the required Key Vault secret access, such as Key Vault Secrets User. At runtime, the application authenticates to Key Vault using its identity and retrieves the connection string. The application then uses that connection string to connect to PostgreSQL. I would also use Private Endpoint and private DNS for Key Vault and PostgreSQL where required, and monitor Key Vault access through Azure Monitor."
+
+### Follow-up: "What happens when the database password changes?"
+
+> "I don't update the password in the application code. I update the secret in Key Vault. The application retrieves the current secret based on the application's secret-refresh mechanism. If the application caches the secret, I would configure an appropriate refresh interval or restart/reload mechanism."
+
+**Even better, if the interviewer asks how to remove the password completely:** Azure Database for PostgreSQL Flexible Server supports **Microsoft Entra authentication**. The application's managed identity can then log in to the database with a token, so there is no database password to store or rotate at all.
+
+### Security flow to remember
+
+```text
+No password in code
+        ↓
+Secret → Key Vault
+        ↓
+Managed Identity / Workload Identity
+        ↓
+RBAC → Key Vault
+        ↓
+Application gets the secret
+        ↓
+Private connection → PostgreSQL
+```
+
+This is the clean answer the interviewer is looking for: **Key Vault stores the secret, Managed Identity authenticates the application, RBAC controls access, and the database stays private where possible.**
