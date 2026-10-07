@@ -2091,3 +2091,1133 @@ Assess → Dependency mapping → Azure preparation → Replication → Test mig
 ```
 
 Also mention **Azure Migrate** as the primary tool for a typical server migration scenario.
+
+---
+
+## Azure VM operations
+
+## Q22. An application is down on an Azure Windows Server VM. How do you troubleshoot it? <em>(scenario)</em>
+
+I troubleshoot from the outside in: **Azure infrastructure → VM → network → Windows → application → dependencies**.
+
+### 1. Check the Azure VM health
+
+```bash
+az vm get-instance-view \
+  --resource-group <rg> \
+  --name <vm-name> \
+  --query "instanceView.statuses"
+```
+
+I check:
+
+- Is the VM **running**?
+- Resource Health and any recent Azure platform issues
+- The Activity Log for recent changes (resize, restart, NSG or extension changes)
+- Boot diagnostics (screenshot) to see whether Windows booted at all
+- CPU, memory, disk and network metrics in Azure Monitor
+
+If the VM itself is unavailable, I fix the VM before looking at the application. If RDP doesn't work, I can still use **Run Command** or the **Serial Console** from the portal.
+
+### 2. Check network connectivity
+
+I verify:
+
+- NSG rules on the NIC and the subnet
+- Load Balancer or Application Gateway health probe status
+- Public/private IP
+- The required application port is open, including the **Windows Firewall** inside the VM
+
+For example, if the application uses port 8080:
+
+```powershell
+# On the VM itself
+Test-NetConnection localhost -Port 8080
+
+# From another server in the VNet
+Test-NetConnection <private-ip> -Port 8080
+```
+
+If it works locally but not from another server, the problem is the NSG, Windows Firewall, routing or the application binding only to `127.0.0.1`.
+
+### 3. Check the Windows service
+
+```powershell
+Get-Service <service-name>
+```
+
+If it is stopped:
+
+```powershell
+Start-Service <service-name>
+```
+
+I also check whether the service keeps stopping or fails to start, because restarting it only hides the real problem.
+
+### 4. Check whether the application is listening
+
+```powershell
+netstat -ano | findstr :8080
+```
+
+or:
+
+```powershell
+Get-NetTCPConnection -LocalPort 8080 -State Listen
+```
+
+If nothing is listening on the expected port, I investigate the application or service itself.
+
+### 5. Check Windows Event Viewer
+
+```text
+Event Viewer
+ ├── Windows Logs
+ │    ├── Application
+ │    └── System
+ └── Applications and Services Logs (application-specific)
+```
+
+Or from PowerShell:
+
+```powershell
+Get-WinEvent -LogName Application -MaxEvents 50 |
+  Where-Object LevelDisplayName -eq 'Error'
+```
+
+I look for:
+
+- Application crashes
+- Service failures (Service Control Manager events in the System log)
+- .NET errors
+- Permission issues
+- Disk or resource problems
+
+### 6. Check the application logs
+
+For example, `C:\Program Files\<Application>\logs\`, or `C:\inetpub\logs\LogFiles\` for IIS.
+
+I search for:
+
+- `ERROR` / `Exception`
+- `Connection refused`
+- `Timeout`
+- `OutOfMemory`
+- `Access denied`
+
+### 7. Check the dependencies
+
+If the application is running but still unavailable, I check what it depends on:
+
+- SQL Server / PostgreSQL
+- Downstream APIs
+- Storage
+- DNS
+- Key Vault
+- Active Directory / Entra ID
+- Other application servers
+
+```powershell
+Test-NetConnection <database-server> -Port 1433
+Resolve-DnsName <database-server>
+```
+
+### 8. Check resource utilization
+
+```powershell
+# Top CPU consumers
+Get-Process | Sort-Object CPU -Descending | Select-Object -First 10
+
+# Top memory consumers
+Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10
+
+# Free disk space
+Get-PSDrive -PSProvider FileSystem
+```
+
+I also check Azure Monitor for CPU, memory, disk space, disk IOPS, network and VM availability. A full disk is a very common reason for a service failing to start or write logs.
+
+### Interview-ready answer
+
+> "If an application is down on an Azure Windows Server, I first determine whether the issue is with Azure infrastructure, the VM, the network, the Windows service, the application or its dependencies.
+>
+> First, I check the VM status, Resource Health, Azure Monitor metrics, the Activity Log and boot diagnostics. Then I verify the NSG rules and the Load Balancer or Application Gateway health probes, and test the application port with `Test-NetConnection`.
+>
+> If network connectivity is fine, I connect to the VM and check whether the application service is running and listening on the expected port. Then I check Event Viewer and the application logs for errors or crashes, and check CPU, memory and disk.
+>
+> Finally, I verify dependencies such as the database, APIs, DNS and authentication. Once I identify the root cause, I fix it, restart the service only if required, validate the application end to end, and monitor it to make sure the issue doesn't recur."
+
+### Simple troubleshooting flow
+
+```text
+Application down
+       ↓
+Azure VM healthy?
+       ↓
+Network / NSG / LB / App Gateway?
+       ↓
+Port reachable? (incl. Windows Firewall)
+       ↓
+Windows service running?
+       ↓
+Application listening?
+       ↓
+Event Viewer + application logs
+       ↓
+CPU / memory / disk?
+       ↓
+Database / API / DNS dependencies?
+       ↓
+Fix → Validate → Monitor
+```
+
+### Strong interview point
+
+Don't immediately restart the server. First **collect evidence** and identify whether the problem is infrastructure, network, Windows service, application or dependency. A restart can clear the symptom and destroy the evidence you need for the root cause.
+
+---
+
+## Q23. If an application on a VM has dependencies, how do you make sure you update them?
+
+I don't update dependencies directly in production without checking the impact. I follow a controlled update and change-management process.
+
+### Example
+
+Suppose the application depends on:
+
+- .NET runtime
+- Java
+- IIS
+- Windows libraries
+- Database drivers
+- Third-party agents
+
+### How I handle it
+
+#### 1. Identify the dependencies
+
+- Check the application documentation and configuration
+- Check the installed software and versions
+- Review vulnerability and scanning reports
+
+```powershell
+Get-Package | Sort-Object Name | Select-Object Name, Version
+```
+
+#### 2. Check the required version
+
+- Confirm which version the application supports
+- Check compatibility and release notes for breaking changes before upgrading
+
+#### 3. Test in a lower environment
+
+```text
+Dev → QA → UAT → Production
+```
+
+I update the dependency in Dev first and run the application's unit and integration tests, then promote it through QA and UAT.
+
+#### 4. Take a backup and prepare a rollback plan
+
+- VM backup or disk snapshot, where appropriate
+- Backup of the application configuration
+- Keep the previous dependency version/installer available
+
+#### 5. Raise a change request
+
+Document the dependency, current version, target version, impact, expected downtime and rollback plan, and get the required approval for production.
+
+#### 6. Update during the maintenance window
+
+Install the approved version using the organization's standard package or software-management tool, not an ad-hoc download.
+
+#### 7. Validate after the update
+
+```powershell
+Get-Service <service-name>
+Test-NetConnection <dependency> -Port <port>
+```
+
+Then check the logs and test the application end to end.
+
+#### 8. Monitor, and roll back if required
+
+If the application starts failing after the update, I follow the rollback plan and restore the previous version or configuration.
+
+### Interview-ready answer
+
+> "If a VM has application dependencies that need updating, I first identify the dependency and check its compatibility with the application. I don't upgrade it directly in production. I test the new version in Dev, QA and UAT with application and integration testing, prepare a backup and rollback plan, and raise a change request.
+>
+> After approval, I update the dependency during the maintenance window and validate the service, ports, logs and application functionality. Finally, I monitor the application and roll back if the update causes issues."
+
+### Key point
+
+In enterprise environments, updates should be **automated and standardized** rather than done manually on every VM:
+
+| What | Tool |
+| --- | --- |
+| Windows OS patches | Azure Update Manager |
+| Application dependencies and configuration | Ansible, PowerShell DSC, SCCM / Intune |
+| Application packaging and rollout | CI/CD pipelines |
+| New VMs | A golden image (Azure Compute Gallery) that already has the approved versions |
+
+---
+
+## Load balancing
+
+## Q24. How does a Layer 4 load balancer distribute traffic?
+
+Layer 4 (L4) load balancing works at the **TCP/UDP** level. It makes routing decisions using the connection's flow information:
+
+- Source IP
+- Destination IP
+- Source port
+- Destination port
+- Protocol (TCP/UDP)
+
+It does **not** inspect the HTTP URL, headers, cookies or application content like a Layer 7 load balancer does.
+
+### Example in Azure
+
+```text
+Client
+   |
+   | TCP :443
+   ↓
+Azure Load Balancer
+   |
+   ├── VM1 :443
+   ├── VM2 :443
+   └── VM3 :443
+```
+
+Azure Load Balancer has:
+
+| Component | Purpose |
+| --- | --- |
+| Frontend IP | The public or private IP clients connect to |
+| Backend pool | VM1, VM2, VM3 |
+| Load-balancing rule | Maps frontend port 443 → backend port 443 |
+| Health probe | Decides which backend instances are healthy (see Q19) |
+
+When a new connection arrives, the load balancer picks a healthy backend and forwards the flow. All packets of the same connection go to the same backend.
+
+```text
+Client A ──→ Load Balancer ──→ VM1
+Client B ──→ Load Balancer ──→ VM2
+Client C ──→ Load Balancer ──→ VM3
+```
+
+### It is hash-based, not strict round-robin
+
+Azure Load Balancer uses a **5-tuple hash** (source IP, source port, destination IP, destination port, protocol) by default. So distribution is not a strict VM1 → VM2 → VM3 round-robin sequence.
+
+If the application needs a client to keep hitting the same VM, I change the **session persistence** on the rule:
+
+| Mode | Hash | Effect |
+| --- | --- | --- |
+| None (default) | 5-tuple | Each new connection can land on any VM |
+| Client IP | 2-tuple (source IP, destination IP) | Same client IP → same VM |
+| Client IP and protocol | 3-tuple (+ protocol) | Same client IP and protocol → same VM |
+
+Azure Load Balancer is also **pass-through**: it doesn't terminate the TCP or TLS connection, so the backend sees the original client IP and handles TLS itself.
+
+### Health probe
+
+```text
+VM1 → Healthy
+VM2 → Unhealthy ❌
+VM3 → Healthy
+```
+
+The load balancer stops sending **new** connections to VM2 and sends them to the healthy instances.
+
+### Interview-ready answer
+
+> "At Layer 4, the load balancer distributes traffic based on TCP/UDP connection information such as source IP, destination IP, source port, destination port and protocol. It doesn't inspect application-level information like HTTP URLs or headers.
+>
+> In Azure Load Balancer, I configure a frontend IP, a backend pool, a load-balancing rule and a health probe. When a client connects to the frontend IP, the load balancer uses a hash of the flow to pick a healthy backend and forwards the connection to it. If a backend fails the health probe, new connections are not sent to it. If the application needs stickiness, I set session persistence to client IP."
+
+### L4 vs. L7
+
+| Layer 4 | Layer 7 |
+| --- | --- |
+| TCP/UDP | HTTP/HTTPS |
+| IP + port based | URL, header, host and cookie based |
+| Doesn't understand application content | Understands application content |
+| Pass-through, no TLS termination | Can terminate TLS, do path-based routing and WAF |
+| Azure Load Balancer | Azure Application Gateway / Front Door |
+| Very fast and simple | More application-aware |
+
+### One-line answer
+
+> "L4 load balancing distributes TCP/UDP connections across healthy backend servers based on network flow information, not HTTP application content."
+
+---
+
+## VNet connectivity
+
+## Q25. How do you establish a connection between two VNets (VNet-to-VNet)?
+
+The most common approach is **VNet Peering**.
+
+### Example
+
+```text
+VNet-A                         VNet-B
+10.0.0.0/16                    10.1.0.0/16
+    |                              |
+    |------- VNet Peering ---------|
+```
+
+### Steps
+
+#### 1. Make sure the address spaces don't overlap
+
+```text
+VNet-A → 10.0.0.0/16
+VNet-B → 10.1.0.0/16
+```
+
+Peering can't be created between VNets with overlapping address spaces.
+
+#### 2. Create the peering in both directions
+
+```text
+VNet-A → VNet-B
+VNet-B → VNet-A
+```
+
+```bash
+az network vnet peering create \
+  --resource-group rg-a \
+  --vnet-name vnet-a \
+  --name vnet-a-to-vnet-b \
+  --remote-vnet <vnet-b-resource-id> \
+  --allow-vnet-access
+
+az network vnet peering create \
+  --resource-group rg-b \
+  --vnet-name vnet-b \
+  --name vnet-b-to-vnet-a \
+  --remote-vnet <vnet-a-resource-id> \
+  --allow-vnet-access
+```
+
+Both sides must show the peering status as **Connected**.
+
+#### 3. Configure NSG / firewall rules
+
+For example, if an application in VNet-A needs to access PostgreSQL in VNet-B:
+
+```text
+VNet-A VM
+   |
+   | TCP 5432
+   ↓
+VNet-B PostgreSQL
+```
+
+Allow TCP 5432 only from the required source subnet or IP. The default NSG rule `AllowVnetInBound` already includes peered VNets, so in practice I add a tighter rule rather than relying on the default.
+
+#### 4. Verify connectivity
+
+```powershell
+Test-NetConnection 10.1.2.10 -Port 5432
+```
+
+or from Linux:
+
+```bash
+nc -zv 10.1.2.10 5432
+```
+
+### If the VNets are in different regions
+
+Use **Global VNet Peering**.
+
+```text
+VNet-A (East US)
+       |
+Global VNet Peering
+       |
+VNet-B (West Europe)
+```
+
+### If the VNets are in different subscriptions
+
+That's also supported (even across Entra ID tenants), as long as I have the required permissions, such as **Network Contributor**, on both VNets.
+
+### Important: peering is not transitive
+
+```text
+VNet-A ↔ VNet-B ↔ VNet-C
+```
+
+VNet-A **cannot** reach VNet-C through VNet-B automatically. For that I either peer A and C directly, or use a **hub-and-spoke** design where traffic is routed through Azure Firewall or an NVA in the hub, or use **Azure Virtual WAN**.
+
+### Interview-ready answer
+
+> "To connect two Azure VNets, I normally use VNet Peering. First, I make sure the address spaces don't overlap. Then I create the peering in both directions, configure the required NSG and firewall rules, and verify connectivity between the required subnets or resources.
+>
+> If the VNets are in different regions, I use Global VNet Peering. Peering isn't transitive, so if I need transitive connectivity across many VNets or hybrid connectivity with on-premises, I'd use a hub-and-spoke architecture with Azure Firewall or an NVA, or Azure Virtual WAN."
+
+### Follow-up: "Why not VPN?"
+
+| Option | When to use |
+| --- | --- |
+| VNet Peering | Preferred for direct VNet-to-VNet connectivity. Traffic stays on the Microsoft backbone with low latency and high bandwidth, and no gateway is needed |
+| VNet-to-VNet VPN | Uses VPN gateways and IPsec tunnels. Useful when encrypted tunnels are specifically required or peering isn't suitable, but it's limited by gateway bandwidth and adds cost |
+| Virtual WAN | Large-scale hub-and-spoke connectivity across many VNets, branches and on-premises sites |
+
+### One-line answer
+
+> "For normal VNet-to-VNet connectivity, I use VNet Peering; for cross-region connectivity, Global VNet Peering."
+
+---
+
+## TLS and certificates
+
+## Q26. Your team uses HTTP for the frontend and backend. How do you change it to HTTPS? <em>(scenario)</em>
+
+I treat this as a **TLS termination and end-to-end encryption** change. It's not just changing `http` to `https`: I need to configure certificates, listeners, backend communication and application settings.
+
+### Typical Azure architecture
+
+```text
+User
+  |
+  | HTTPS :443
+  ↓
+Application Gateway
+  |
+  | HTTPS :443
+  ↓
+Frontend
+  |
+  | HTTPS :443
+  ↓
+Backend API
+  |
+  | TLS
+  ↓
+Database / external services
+```
+
+Note: Azure Load Balancer works at Layer 4 and is pass-through, so it can't terminate TLS. For TLS termination I use **Application Gateway** (or Front Door), or terminate on the application itself.
+
+### Steps I would follow
+
+#### 1. Get a TLS certificate
+
+Use a certificate from a trusted CA, preferably stored and managed in **Azure Key Vault** or the organization's certificate-management solution. For example:
+
+```text
+app.company.com
+api.company.com
+```
+
+The certificate's CN/SAN must match the hostname.
+
+#### 2. Configure HTTPS on the frontend
+
+On Application Gateway:
+
+```text
+HTTPS listener
+Port: 443
+Certificate: app.company.com (referenced from Key Vault)
+```
+
+Then add a redirect:
+
+```text
+HTTP :80  →  HTTPS :443
+```
+
+So users going to `http://app.company.com` are redirected to `https://app.company.com`.
+
+I also set an SSL policy that enforces **TLS 1.2 or higher**.
+
+#### 3. Enable HTTPS on the backend
+
+The backend application must listen on HTTPS, for example `https://api.company.com:443`, with its own certificate and TLS settings on the application server.
+
+#### 4. Change the frontend API configuration
+
+If the frontend currently calls:
+
+```text
+http://api.company.com/api/payment
+```
+
+change it to:
+
+```text
+https://api.company.com/api/payment
+```
+
+This matters because a page loaded over HTTPS calling an HTTP API causes **mixed-content** errors in browsers. I also make sure cookies are marked `Secure`.
+
+#### 5. Configure backend certificate validation
+
+For Application Gateway to talk to the backend over HTTPS, I update the **backend settings** to use HTTPS on port 443 and make sure the hostname matches the backend certificate. If the backend certificate isn't from a well-known CA, I upload its trusted root certificate to Application Gateway.
+
+#### 6. Update NSG / firewall rules
+
+```text
+TCP 443 → allowed
+TCP 80  → only for the redirect, if required
+```
+
+Don't expose unnecessary ports.
+
+#### 7. Test before production
+
+- Certificate validity and chain
+- TLS handshake and version/cipher requirements
+- HTTP → HTTPS redirect
+- Frontend → backend API calls
+- Authentication and callbacks (redirect URIs often need updating to `https://`)
+- WebSockets, if used
+- No mixed-content errors
+- Application logs
+
+Then deploy through the normal **Dev → QA → UAT → Production** process.
+
+### Interview-ready answer
+
+> "If the frontend and backend are using HTTP, I'd migrate them to HTTPS by first getting trusted TLS certificates, stored in Key Vault, and configuring HTTPS listeners. In Azure, I can use Application Gateway for TLS termination and redirect HTTP port 80 to HTTPS 443.
+>
+> For end-to-end encryption, I'd also configure HTTPS between Application Gateway and the backend. I'd update the frontend API URLs from HTTP to HTTPS, configure backend certificate validation, update NSG and firewall rules, and test the complete flow in lower environments before production.
+>
+> I'd make sure HTTP is either disabled or only used to redirect to HTTPS, and enforce TLS 1.2 or higher according to the organization's security standards."
+
+### Strong point to mention
+
+> *"Is SSL termination at Application Gateway enough?"*
+
+> "It's enough if encryption is only required from the client to Application Gateway. If the security requirement is end-to-end encryption, I'll configure HTTPS from Application Gateway to the backend as well."
+
+---
+
+## Q27. If a certificate expires, how do you make sure it won't impact the application? <em>(scenario)</em>
+
+The goal is that a certificate **never** reaches its expiry date in production: renew and deploy it before it expires, and automate monitoring so it doesn't become an incident.
+
+### How I would handle it
+
+#### 1. Monitor certificate expiry
+
+I keep an inventory and monitor certificates in:
+
+- Azure Key Vault
+- Application Gateway
+- App Service
+- Reverse proxies (NGINX, ingress controllers)
+- Windows / IIS servers
+
+I set alerts at, for example, **30, 15 and 7 days** before expiry. Key Vault publishes `CertificateNearExpiry` and `CertificateExpired` events to **Event Grid**, which I can route to email, Teams or a ticketing system.
+
+#### 2. Automate renewal
+
+For Key Vault certificates, I configure the **lifetime action** to auto-renew, for example 30 days before expiry. This works for self-signed certificates and CAs integrated with Key Vault (such as DigiCert and GlobalSign). For other CAs, renewal still needs the CSR to be signed and merged manually, so the alert is essential there.
+
+#### 3. Deploy the renewed certificate
+
+After renewal, I make sure the new certificate is actually being used by the component terminating TLS:
+
+```text
+New certificate
+      ↓
+Azure Key Vault
+      ↓
+Application Gateway
+      ↓
+HTTPS :443
+      ↓
+Application
+```
+
+If Application Gateway references the Key Vault secret **without a version**, it picks up the renewed certificate automatically (it polls Key Vault every 4 hours). If it references a specific version, or the certificate was uploaded manually, I have to update it myself.
+
+#### 4. Validate before expiry
+
+```bash
+curl -Iv https://app.company.com
+
+# Check the expiry dates directly
+openssl s_client -connect app.company.com:443 -servername app.company.com </dev/null \
+  | openssl x509 -noout -dates -subject
+```
+
+I check:
+
+- Certificate expiry date
+- Certificate chain
+- Hostname / SAN
+- TLS handshake
+- Application availability
+
+#### 5. Have a rollback plan
+
+If the new certificate causes an issue (for example, a missing intermediate certificate), I can revert to the previous, still-valid certificate version.
+
+### If it has already expired
+
+1. Renew or reissue the certificate immediately
+2. Import it into Key Vault (or the TLS endpoint) and update the listener or binding
+3. Validate with `curl` / `openssl` and confirm the application is working
+4. Do an RCA on why the alert didn't fire or wasn't acted on, and add the certificate to monitoring and auto-renewal
+
+### Interview-ready answer
+
+> "To make sure an expiring certificate doesn't impact the application, I don't wait for the expiry date. I monitor certificate expiry and configure alerts well in advance, typically at 30, 15 and 7 days. Where supported, I enable automatic renewal in Azure Key Vault.
+>
+> Once the certificate is renewed, I make sure it's deployed to the TLS termination point, such as Application Gateway, App Service or IIS. I validate the certificate chain, hostname, expiry date and HTTPS connectivity using tools like `curl` or `openssl`. I monitor the application after the change and keep a rollback plan.
+>
+> The key is: monitor → renew → deploy → validate → alert."
+
+### Follow-up: "How will you automate this?"
+
+> "I use Key Vault certificate auto-renewal where supported, with Event Grid and Azure Monitor alerts for near-expiry notifications. Services like Application Gateway reference the versionless Key Vault secret, so they pick up the renewed certificate automatically. For anything else, the pipeline deploys the renewed certificate to the TLS endpoint."
+
+### Important
+
+Renewing a certificate in Key Vault doesn't mean every consuming service is immediately using it. I always verify each service's certificate binding/reference and how it picks up renewals.
+
+---
+
+## Azure VM automation
+
+## Q28. How do you implement auto-shutdown for a VM?
+
+The simplest approach is the built-in **Auto-shutdown** feature, or an automation-based schedule for many VMs.
+
+### Option 1: Azure VM Auto-shutdown
+
+For an individual non-production VM, configure it in the Azure Portal:
+
+```text
+VM
+ ↓
+Operations
+ ↓
+Auto-shutdown
+ ↓
+Enable
+ ↓
+Set shutdown time and timezone
+ ↓
+(Optional) Notification before shutdown
+```
+
+Or with the CLI (the time is in UTC, `HHMM`):
+
+```bash
+az vm auto-shutdown \
+  --resource-group my-rg \
+  --name dev-vm \
+  --time 2000 \
+  --email "team@company.com"
+```
+
+For example:
+
+```text
+Dev VM
+  ↓
+Auto-shutdown
+  ↓
+Every day at 8:00 PM
+```
+
+Auto-shutdown **deallocates** the VM, so compute charges stop. It only shuts down; it doesn't start the VM again.
+
+### Option 2: Azure Automation / Logic Apps
+
+For multiple VMs, I prefer centralized automation:
+
+```text
+Azure Automation / Logic App
+          ↓
+Scheduled trigger
+          ↓
+Find tagged VMs
+          ↓
+Stop (deallocate) VMs
+```
+
+For example, using tags:
+
+```text
+Environment  = Dev
+AutoShutdown = Yes
+```
+
+An Azure Automation runbook using a managed identity:
+
+```powershell
+Connect-AzAccount -Identity
+
+Get-AzVM -Status |
+  Where-Object { $_.Tags['AutoShutdown'] -eq 'Yes' -and $_.PowerState -eq 'VM running' } |
+  ForEach-Object {
+      Stop-AzVM -ResourceGroupName $_.ResourceGroupName -Name $_.Name -Force -NoWait
+  }
+```
+
+A matching runbook can start the VMs in the morning. Microsoft also provides the **Start/Stop VMs v2** solution, which does this with schedules and tags out of the box.
+
+### Stop vs. deallocate
+
+| Command | Result | Compute billing |
+| --- | --- | --- |
+| `az vm stop` / shutdown from inside the OS | Stopped | **Still billed** |
+| `az vm deallocate` / `Stop-AzVM` / portal Stop | Stopped (deallocated) | Not billed |
+
+Disks are still billed in both cases.
+
+### Important point
+
+I would not automatically shut down **production** VMs unless there is an explicit business requirement.
+
+For Dev/QA:
+
+```text
+Start → 8:00 AM
+        ↓
+Run during working hours
+        ↓
+Shutdown → 8:00 PM
+```
+
+This can significantly reduce compute costs (see Q11).
+
+### Interview-ready answer
+
+> "For Azure VMs, I can configure the built-in Auto-shutdown feature for individual development or test VMs. If there are many VMs, I prefer centralized automation using Azure Automation runbooks, Logic Apps or the Start/Stop VMs solution. I use tags such as `Environment=Dev` and `AutoShutdown=Yes` to identify which VMs to stop, and make sure they're deallocated so compute billing stops. I configure the correct timezone and schedule, and exclude production VMs unless there's a specific requirement."
+
+---
+
+## Q29. Can we do cron scheduling in a VM?
+
+Yes. Inside a **Linux** Azure VM, cron works exactly as it does on an on-prem Linux server.
+
+### Example
+
+Edit the crontab:
+
+```bash
+crontab -e
+```
+
+Run a script every day at 8 PM:
+
+```text
+0 20 * * * /path/to/script.sh
+```
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| Minute | `0` | At minute 0 |
+| Hour | `20` | At 8 PM |
+| Day of month | `*` | Every day |
+| Month | `*` | Every month |
+| Day of week | `*` | Every day of the week |
+
+### Shutting down the VM from cron
+
+```text
+0 20 * * * /sbin/shutdown -h now
+```
+
+This shuts down the **operating system**, but Azure still shows the VM as *Stopped*, not *Stopped (deallocated)*, so compute is **still billed** (see Q28).
+
+### Better approach for an Azure VM
+
+If the goal is to deallocate the VM to save cost, I prefer Azure-native scheduling (Auto-shutdown, Azure Automation or Logic Apps) rather than an OS-level cron job.
+
+If cron must be used, it can call the Azure CLI with the VM's **managed identity**:
+
+```text
+0 20 * * * /usr/bin/az login --identity && /usr/bin/az vm deallocate --resource-group my-rg --name my-vm >> /var/log/vm-deallocate.log 2>&1
+```
+
+This requires:
+
+- A system-assigned managed identity on the VM
+- A role such as **Virtual Machine Contributor**, scoped only to that VM
+- Full paths in the crontab, because cron runs with a minimal `PATH`
+
+### Interview-ready answer
+
+> "Yes, we can use cron inside a Linux Azure VM for OS-level tasks such as scripts, log cleanup, backups or scheduled jobs. For Azure resource operations like starting or deallocating the VM, I'd prefer Azure-native scheduling such as Auto-shutdown, Azure Automation or Logic Apps, because shutting down the OS from cron doesn't deallocate the VM. If I do use cron with the Azure CLI, I authenticate with a managed identity instead of storing credentials on the VM."
+
+### Important
+
+For a **Windows** Azure VM, the equivalent of cron is **Task Scheduler**:
+
+```powershell
+$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File C:\scripts\cleanup.ps1"
+$trigger = New-ScheduledTaskTrigger -Daily -At 8pm
+Register-ScheduledTask -TaskName "DailyCleanup" -Action $action -Trigger $trigger -User "SYSTEM"
+```
+
+---
+
+## Azure VM security
+
+## Q30. How do you remediate access to a Windows Azure server? <em>(scenario)</em>
+
+If there is unauthorized or excessive access to a Windows Azure VM, I remediate it using **identity, network and least-privilege** controls.
+
+### 1. Identify who currently has access
+
+I check every path into the VM:
+
+- Azure RBAC assignments on the VM, resource group and subscription
+- Microsoft Entra ID users and groups
+- Local Windows users and groups
+- NSG rules allowing RDP
+- Just-in-time (JIT) access, if enabled
+
+```bash
+az role assignment list \
+  --scope <vm-resource-id> \
+  --include-inherited \
+  -o table
+```
+
+`--include-inherited` matters, because most access usually comes from the resource group or subscription, not the VM itself.
+
+### 2. Remove unnecessary Azure permissions
+
+If someone has excessive permissions such as Contributor, I replace them with the minimum required role (see Q14):
+
+```text
+Developer → Reader
+Support   → Virtual Machine Contributor
+Admin     → Appropriate privileged role, through PIM
+```
+
+Note that **Virtual Machine Contributor** can run Run Command and VM extensions, which means it can effectively get admin rights inside the OS, so I treat it as a privileged role.
+
+For production, I use **Microsoft Entra ID + PIM** for time-bound, approved access instead of permanent admin assignments.
+
+If the VM uses Entra ID login, OS access is controlled by the **Virtual Machine Administrator Login** and **Virtual Machine User Login** roles, so I review those too.
+
+### 3. Secure RDP
+
+Don't expose RDP (3389) to the internet.
+
+Bad:
+
+```text
+Internet → TCP 3389 → VM
+Source: *
+```
+
+Better:
+
+```text
+Admin network / VPN / Bastion
+        ↓
+     TCP 3389
+        ↓
+       VM
+```
+
+I use:
+
+- NSG rules restricted to specific source IPs
+- **Azure Bastion**, so the VM doesn't need a public IP at all
+- VPN or ExpressRoute
+- **Just-in-time VM access** (Defender for Cloud), which opens 3389 only for a requested time window and source IP
+
+### 4. Remove unnecessary local accounts
+
+On the Windows VM:
+
+```powershell
+Get-LocalUser
+
+# Who is in the local Administrators group?
+Get-LocalGroupMember Administrators
+
+# Remove unauthorized admins
+Remove-LocalGroupMember -Group "Administrators" -Member "<user>"
+
+# Disable an account that shouldn't be used
+Disable-LocalUser -Name "<user>"
+```
+
+### 5. Check and rotate credentials
+
+If credentials may have been compromised:
+
+- Disable or reset the affected account
+- Rotate passwords, including the local admin password (`az vm user update` or Windows LAPS)
+- Rotate service account credentials
+- Review stored credentials and scripts on the server
+- Prefer managed identities over passwords where possible
+
+### 6. Review the logs
+
+- Azure Activity Log (who changed RBAC, NSGs, ran Run Command or reset passwords)
+- Microsoft Entra sign-in logs
+- Windows Security event log
+
+| Event ID | Meaning |
+| --- | --- |
+| 4624 | Successful logon (logon type 10 = RDP) |
+| 4625 | Failed logon |
+| 4672 | Logon with admin privileges |
+| 4720 / 4732 | User account created / added to a local group |
+
+I look for suspicious successful or failed logins, logins at unusual times or from unexpected IPs, and newly created accounts.
+
+### Interview-ready answer
+
+> "If I find excessive or unauthorized access to a Windows Azure VM, I first identify how users are getting access: Azure RBAC, Entra ID, local Windows accounts or RDP. I remove unnecessary RBAC permissions and follow least privilege, and for production I use PIM and JIT access instead of permanent admin access.
+>
+> I restrict RDP using NSGs, VPN or Azure Bastion instead of exposing port 3389 to the internet. On the VM, I review local users and the Administrators group and remove unauthorized accounts. If credentials are compromised, I disable the account and rotate the credentials. Finally, I review the Azure Activity Log, Entra sign-in logs and Windows Security logs to find out whether the access was actually misused."
+
+### Strong one-line answer
+
+> "I remediate access using least privilege with Entra ID and RBAC, PIM/JIT, restricted RDP through Bastion or VPN, removal of unnecessary local admins, credential rotation, and log auditing."
+
+---
+
+## Containers
+
+## Q31. A Docker image deployment takes 10 minutes. How do you reduce it to 5 minutes using ACI? <em>(scenario)</em>
+
+First I identify **where** the 10 minutes is spent: image build, image push, image pull or container startup.
+
+### First, find the bottleneck
+
+```text
+Build → Push to ACR → ACI pulls image → Container starts
+  ?          ?               ?                 ?
+```
+
+- Build and push times are in the CI/CD pipeline logs.
+- Pull and start times are in the ACI container events:
+
+```bash
+az container show \
+  --resource-group my-rg \
+  --name my-app \
+  --query "containers[0].instanceView.events" \
+  -o table
+```
+
+The `Pulling` → `Pulled` → `Started` timestamps show how long the pull and startup took.
+
+```bash
+# How big is the image, and which layers are the largest?
+docker image ls myapp
+docker history myapp:v1.2.3
+```
+
+ACI doesn't keep your image cached between deployments, so **every new container group pulls the full image**. That's why image size has a big impact on ACI deployment time.
+
+### 1. Reduce the image size with a multi-stage build
+
+Keep the build environment out of the runtime image:
+
+```dockerfile
+FROM node:22 AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+```
+
+The final image contains only NGINX and the built files, not Node.js, the source code or `node_modules`.
+
+### 2. Use a smaller base image
+
+Where compatible, prefer:
+
+```text
+node:22-alpine
+nginx:alpine
+python:3.12-slim
+```
+
+instead of full OS images. If the app can run on **Linux containers instead of Windows containers**, that alone can save several minutes, because Windows images are many GB.
+
+### 3. Optimize the Docker layers
+
+Put the files that change most often at the end:
+
+```dockerfile
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+```
+
+Dependencies are then reinstalled only when `package*.json` changes, not on every code change. In the pipeline, I also enable layer caching (for example, BuildKit `--cache-from` the previous image in ACR) so the build doesn't start from scratch each time.
+
+### 4. Keep ACR close to ACI
+
+```text
+ACR (East US)
+      ↓
+ACI (East US)
+```
+
+Same region means a faster pull. If ACI runs in several regions, ACR Premium **geo-replication** keeps a copy of the image in each region.
+
+### 5. Don't ship what isn't needed at runtime
+
+Remove:
+
+- Build tools
+- Source code not needed at runtime
+- Package manager caches
+- Debug tools
+- Test files
+
+Use a `.dockerignore`:
+
+```text
+.git
+node_modules
+*.log
+.env
+tests
+```
+
+### 6. Use proper image tags
+
+For deployments, use immutable version tags:
+
+```text
+myapp:v1.2.3
+```
+
+rather than relying only on `myapp:latest`. This makes deployments predictable and rollbacks easy.
+
+### 7. Check application startup
+
+If the container is pulled quickly but takes a long time to become ready, the problem is the application: slow initialization, warm-up tasks, migrations at startup, or waiting on a slow dependency.
+
+### Interview-ready answer
+
+> "If an ACI deployment takes 10 minutes and the target is 5, I'd first measure where the time goes: Docker build, ACR push, ACI image pull or application startup. ACI pulls the full image for every new container group, so if the pull is the bottleneck, I reduce the image size using multi-stage builds, lightweight base images and `.dockerignore`, and keep ACR in the same region as ACI.
+>
+> I'd also optimize the Docker layers and use pipeline layer caching to speed up the build, and use versioned image tags. If the application startup is slow, I'd investigate initialization and dependency calls. I wouldn't blindly add more CPU or memory, because the real bottleneck needs to be identified first."
+
+### Very important interview point
+
+If they specifically say *"using ACI"*, don't claim ACI itself magically makes the deployment twice as fast. Say:
+
+> "ACI is the runtime. To reduce deployment time, I optimize the image pull and startup path: mainly image size, ACR locality and application initialization."
