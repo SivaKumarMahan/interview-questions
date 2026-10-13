@@ -209,7 +209,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 | [cheatcodes](cheatcodes/) | Quick command cheat-sheets per tool: kubectl, Docker, Git, Terraform, Ansible, Argo CD, Jenkins, GitHub Actions, AWS CLI, Linux, shell, TLS |
 | [repetitive-questions](repetitive-questions/) | Questions asked again and again across interviews: CI/CD flow, branching, rollback, zero-downtime deployment, secrets, sample pipelines and Dockerfiles, production issues |
 | [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies, and an [interview tracker](real-interview-questions/README.md) |
-| [managerial-round](managerial-round/) | Managerial-round questions and company background |
+| [managerial-round](managerial-round/) | Managerial-round questions and company background, a Lead / Senior DevOps leadership round (54 questions), and a final-round playbook with answer scripts (32 questions) |
 | [ai](ai/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection, and using AI assistants safely for Terraform and AKS work |
 | [others](others/) | Behavioral, microservices, databases, cloud, coding challenges, general scenarios, and interview preparation notes |
 

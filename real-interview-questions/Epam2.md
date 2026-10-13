@@ -2127,6 +2127,99 @@ If the interviewer asks for just two names, Checkmarx One and Prisma Cloud are g
 
 ---
 
+<details><summary>Q24. If you have a private network (VNet), subnet, and private endpoint, how does the request flow?</summary>
+
+A **VNet** is the private network, a **subnet** divides it into smaller ranges, and a **private endpoint** is a network interface with a private IP from a subnet that connects to one specific Azure service (for example Azure SQL Database) through **Azure Private Link**.
+
+Example: an application in an AKS pod connects to Azure SQL Database through a private endpoint. (Q6 covers how to set this up step by step.)
+
+### Request flow
+
+```text
+AKS Pod (snet-aks, 10.0.1.0/24)
+     |
+     | 1. Connects to myserver.database.windows.net:1433
+     v
+DNS resolution (Azure DNS 168.63.129.16 or custom DNS forwarding to it)
+     |   myserver.database.windows.net
+     |     -> CNAME myserver.privatelink.database.windows.net
+     |     -> A record 10.0.2.5   (Private DNS zone privatelink.database.windows.net,
+     |                             linked to the VNet)
+     v
+VNet routing (same VNet, or peered hub-spoke VNet)
+     |   Route tables / NSGs / firewall checked on the way
+     | 2. TCP 1433 to 10.0.2.5
+     v
+Private endpoint NIC (snet-private-endpoints, 10.0.2.5)
+     |
+     | 3. Azure Private Link (Microsoft backbone, never the internet)
+     v
+Azure SQL Database (public network access disabled)
+     |
+     | 4. Authentication (Entra ID / managed identity or SQL login) and database permissions
+     v
+Response returns the same private path to the pod
+```
+
+The application keeps using the normal hostname. Only DNS changes, which is why DNS is the most important part.
+
+### Step-by-step explanation
+
+**Step 1: The application sends a request**
+
+The pod connects to `myserver.database.windows.net` on port 1433. It does not use the IP address directly, because TLS certificates and connection strings expect the hostname.
+
+**Step 2: DNS returns the private IP**
+
+The public name has a CNAME to `myserver.privatelink.database.windows.net`. Because the private DNS zone `privatelink.database.windows.net` is linked to the VNet, that name resolves to the private endpoint IP `10.0.2.5` instead of a public IP. With custom DNS servers (common in hub-spoke), they must forward to Azure DNS (168.63.129.16) or an Azure DNS Private Resolver.
+
+**Step 3: Traffic is routed inside the private network**
+
+The packet goes to `10.0.2.5` through the VNet, or through VNet peering if the private endpoint is in a hub VNet. User-defined routes, NSGs, and Azure Firewall may inspect it on the way. NSG rules on the private endpoint subnet only apply if network policies are enabled on that subnet.
+
+**Step 4: The private endpoint forwards to the service**
+
+The private endpoint passes the traffic over Private Link to that one SQL server. The traffic never leaves the Microsoft network, and public network access on the server can be disabled.
+
+**Step 5: The service authenticates the request**
+
+The connection succeeds only if authentication (preferably Entra ID with a managed identity) and database permissions are correct. Network access alone does not grant data access.
+
+### What to configure
+
+| Component | What to configure |
+| --- | --- |
+| VNet and subnets | Separate subnets for the application and for private endpoints, with no overlapping ranges across peered networks |
+| Private endpoint | Created for the target resource and sub-resource (for example `sqlServer`) in the private endpoint subnet |
+| Private DNS zone | `privatelink.database.windows.net` linked to every VNet that needs to resolve it, with a DNS zone group on the endpoint so the A record is managed automatically |
+| Routing and security | Route tables, NSGs (with network policies enabled), and firewall rules allow the port, for example TCP 1433 |
+| Service settings | Public network access disabled after private connectivity is tested |
+| Authentication | Managed identity or credentials from Key Vault, and database permissions |
+
+### How to verify
+
+```bash
+# From inside the pod or a VM in the VNet
+nslookup myserver.database.windows.net     # must return 10.0.2.5, not a public IP
+nc -zv myserver.database.windows.net 1433   # port reachable
+```
+
+If `nslookup` returns a public IP, the private DNS zone is not linked to the VNet, or the custom DNS server is not forwarding to Azure DNS.
+
+### Important points
+
+- A private endpoint does not guarantee connectivity on its own. DNS, routing, NSGs, firewall rules, service settings, and authentication must all be correct.
+- The most common failure is DNS: the hostname still resolves to the public IP, so the connection fails once public access is disabled.
+- A private endpoint is for **inbound** access to a specific service instance. It is different from a **service endpoint**, which keeps the service's public IP but allows traffic only from selected subnets.
+
+### Interview answer
+
+> "When an application in the VNet calls a private Azure service, it uses the normal hostname. DNS resolves that hostname through the CNAME to the privatelink name, and the private DNS zone linked to the VNet returns the private endpoint's private IP. The traffic then goes through the VNet, or a peered VNet, using the configured routes, NSGs, and firewall rules, and reaches the private endpoint NIC in its subnet. Azure Private Link carries it to the service over the Microsoft backbone, so the service's public endpoint can be disabled. Finally, the service checks authentication and permissions. When I troubleshoot, I first check that `nslookup` returns the private IP, then the port with `nc`, then NSGs and routes, and then authentication."
+
+</details>
+
+---
+
 ## Important interview tip
 
 Describe only the work you actually performed. If you supported an existing private AKS cluster or App Service pipeline rather than creating it end to end, say so clearly and explain the parts you configured, operated, or troubleshot.
