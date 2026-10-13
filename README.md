@@ -188,7 +188,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [monitoring-tools](monitoring-tools/) | 10 | 61 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, cloud monitoring, CI/CD and IaC, FinOps |
+| [monitoring-tools](monitoring-tools/) | 11 | 72 | Observability and APM, Prometheus, Grafana and Alertmanager, logging, host monitoring, Kubernetes, databases, cloud monitoring, CI/CD and IaC, FinOps, hands-on Prometheus and Grafana setup |
 | [ops](ops/) | 7 | 77 | Operations overview, DevSecOps, SRE, FinOps, AIOps, HashiCorp Vault, policy as code with OPA and Kyverno |
 | [networking](networking/) | 4 subfolders | – | Networking fundamentals (including a common ports reference), proxies and load balancing, network security, multi-cloud networking. Tool-specific networking lives in each tool's folder. |
 

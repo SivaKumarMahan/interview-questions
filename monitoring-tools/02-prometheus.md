@@ -223,3 +223,38 @@ For long retention or queries across clusters, I use remote write into Thanos, M
 I inject test alerts and simulate a lost target to confirm the whole pipeline works. Stable cluster and service labels support multi-cluster queries, but unlimited request or user labels are not allowed — they blow up cardinality.
 
 </details>
+
+<details><summary>Q4. [Basic] What is Prometheus and how does it collect data?</summary>
+
+**Answer:**
+
+Prometheus is an open-source monitoring system and time-series database. It uses a **pull model**: every scrape interval (for example 15 seconds) it sends an HTTP request to each target's `/metrics` endpoint, stores the samples with labels, and lets you query them with PromQL.
+
+```text
+Node Exporter :9100/metrics ─┐
+cAdvisor :8080/metrics ──────┼──► Prometheus :9090 ──► PromQL, rules ──► Grafana / Alertmanager
+App /metrics ────────────────┘    (scrapes every 15s)
+```
+
+Targets come from `static_configs` or from service discovery (Kubernetes, EC2, Azure, Consul). Short-lived batch jobs that end before a scrape can push to the Pushgateway, but that is the exception.
+
+The pull model makes it easy to see whether a target is down (`up == 0`) and keeps the targets simple.
+
+</details>
+
+<details><summary>Q5. [Basic] What is Node Exporter, and how do you check that Prometheus is scraping it?</summary>
+
+**Answer:**
+
+Node Exporter is the Prometheus exporter for Linux hosts. It exposes CPU, memory, disk, filesystem and network metrics on port 9100 at `/metrics`. I run it as a systemd service, or as a DaemonSet in Kubernetes.
+
+To verify:
+
+1. On the host: `curl -s localhost:9100/metrics | grep node_cpu_seconds_total`.
+2. In `prometheus.yml`, the host is listed under a job, for example `targets: ["10.0.1.10:9100"]`.
+3. In the Prometheus UI, **Status → Target health** shows the target as `UP`.
+4. A query such as `up{job="node_exporter"}` returns `1`.
+
+If the target is `DOWN`, I check the service status, the port, and the firewall or security group between Prometheus and the host. Port 9100 should be open only to the Prometheus server.
+
+</details>

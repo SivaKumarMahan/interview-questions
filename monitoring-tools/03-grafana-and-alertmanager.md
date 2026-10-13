@@ -307,3 +307,53 @@ To test it, I fire a non-production test alert and check that it reaches the rig
 Credentials get rotated on a regular schedule, and any change to the routing configuration goes through review.
 
 </details>
+
+<details><summary>Q7. [Basic] How do you add Prometheus as a data source in Grafana, and why might the test fail?</summary>
+
+**Answer:**
+
+1. **Connections → Data sources → Add data source → Prometheus.**
+2. Set the URL: `http://localhost:9090` if both run directly on the same VM, `http://prometheus:9090` in Docker Compose, or the in-cluster service name in Kubernetes, for example `http://prometheus-server.monitoring.svc:9090`.
+3. Click **Save & test**.
+
+Common failures:
+
+- `localhost` used inside a container: it points to the Grafana container itself, not Prometheus.
+- Wrong port, such as using 9090 for Loki (Loki listens on 3100).
+- Firewall or network policy blocking Grafana from reaching Prometheus.
+- Prometheus behind a proxy that requires authentication not set in the data source.
+
+In production, I provision data sources as code (YAML provisioning or Terraform) instead of clicking in the UI.
+
+</details>
+
+<details><summary>Q8. [Basic] How do you import a community dashboard, and what do you check afterwards?</summary>
+
+**Answer:**
+
+**Dashboards → New → Import**, enter the grafana.com ID (for example `1860` Node Exporter Full, or `19908` for cAdvisor), click **Load**, select the Prometheus data source and **Import**.
+
+Afterwards I check:
+
+- Panels show data: if not, the dashboard's variables or `job` labels do not match my scrape config.
+- Queries use `rate()` correctly and units are right.
+- The dashboard is not too heavy (dozens of panels over long time ranges slow down Prometheus).
+- I save a cleaned-up copy in Git so it is versioned, instead of relying on the imported original.
+
+</details>
+
+<details><summary>Q9. [Intermediate] In Grafana alerting, what are alert rules, contact points and notification policies?</summary>
+
+**Answer:**
+
+| Part | What it does | Example |
+| --- | --- | --- |
+| Alert rule | Query plus condition, evaluation interval and pending period; adds labels and annotations | CPU above 90% for 5 minutes, `severity=critical` |
+| Contact point | Where a notification is sent | Slack channel, Teams, email, PagerDuty, webhook |
+| Notification policy | A routing tree that matches alert labels to contact points, with grouping, timing and muting | `severity=critical` → on-call PagerDuty; everything else → Slack |
+
+Flow: the rule fires → labels are matched by the notification policy → the alert is grouped and sent to the contact point. Silences and mute timings suppress notifications during maintenance.
+
+Grafana can also use an external **Alertmanager** as a data source, so alerts from Prometheus and Grafana can be viewed and silenced in one place.
+
+</details>
