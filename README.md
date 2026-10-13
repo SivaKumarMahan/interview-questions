@@ -167,7 +167,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
 | [aws](aws/) | 4 | 29 | Architecture and HA, compute/storage/serverless, networking/security/IAM, monitoring and troubleshooting |
-| [azure](azure/) | 10 | 99 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS behind Application Gateway), integration and messaging (Service Bus, Event Grid), storage/networking/reliability (502 decision tree), identity/Key Vault/governance, automation/monitoring/cost, Application Gateway and WAF, VM Scale Sets and autoscale, Azure Monitor/KQL/alerting, backup/recovery and PostgreSQL |
+| [azure](azure/) | 10 | 100 | Architecture, compute and app hosting (VMs, App Service, Functions, ACR, AKS behind Application Gateway), integration and messaging (Service Bus, Event Grid), storage/networking/reliability (502 decision tree), identity/Key Vault/governance, automation/monitoring/cost, Application Gateway and WAF, VM Scale Sets and autoscale, Azure Monitor/KQL/alerting, backup/recovery and PostgreSQL |
 
 ### Logging platform
 
@@ -196,7 +196,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
-| [system-design](system-design/) | 5 | 67 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on Azure, centralized logging platform, secrets management at scale |
+| [system-design](system-design/) | 6 | 73 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on Azure, centralized logging platform, secrets management at scale, secure monolithic application on Azure |
 | [leadership](leadership/) | 5 | 59 | Architecture decision records, writing postmortems, mentoring, leading incidents, stakeholder communication |
 | [my-projects](my-projects/) | 7 | 66 | STAR templates for the projects on your resume (AKS upgrades, Helm RBAC in Go, Bicep RBAC, DevSecOps gates, VMSS and backup automation, monitoring and Splunk, Functions with Service Bus). See its [README](my-projects/README.md). |
 
@@ -205,11 +205,12 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 | Folder | What it contains |
 | --- | --- |
 | [labs](labs/) | Three hands-on labs with expected results: fix a broken Deployment on kind, OpenTofu remote state, workspaces, and locking with a local PostgreSQL (`pg` backend), and a multi-stage Dockerfile exercise |
+| [handson](handson/) | Thirteen step-by-step guides: Helm, Argo CD, and microservices on AKS; Terraform pipelines in Azure DevOps and GitHub Actions (Infracost, SonarQube, nested maps, import); React and Java builds; VM deployments; branch governance; and lint gates |
 | [cheatcodes](cheatcodes/) | Quick command cheat-sheets per tool: kubectl, Docker, Git, Terraform, Ansible, Argo CD, Jenkins, GitHub Actions, AWS CLI, Linux, shell, TLS |
 | [repetitive-questions](repetitive-questions/) | Questions asked again and again across interviews: CI/CD flow, branching, rollback, zero-downtime deployment, secrets, sample pipelines and Dockerfiles, production issues |
 | [real-interview-questions](real-interview-questions/) | Question sets from real interviews at specific companies, and an [interview tracker](real-interview-questions/README.md) |
 | [managerial-round](managerial-round/) | Managerial-round questions and company background |
-| [ai](ai/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection |
+| [ai](ai/) | AI-assisted DevOps project ideas: code review, cloud cost, Kubernetes agent and upgrades, Terraform drift detection, and using AI assistants safely for Terraform and AKS work |
 | [others](others/) | Behavioral, microservices, databases, cloud, coding challenges, general scenarios, and interview preparation notes |
 
 ## How to structure an answer

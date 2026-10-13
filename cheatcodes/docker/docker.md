@@ -1,5 +1,15 @@
 # Docker Cheatcode
 
+## Version and system info
+
+```bash
+docker --version                  # Show the Docker client version
+docker version                    # Show client and server (engine) versions
+docker info                       # Show engine details: containers, images, storage driver, cgroup driver
+```
+
+If `docker version` shows the client but errors on the server part, the Docker daemon is not running or your user cannot reach the Docker socket.
+
 ## Images
 
 ```bash
@@ -71,7 +81,10 @@ docker volume create <name>    # Create a volume
 docker volume rm <name>        # Remove a volume
 docker volume inspect <name>   # Display detailed information about a volume
 docker volume prune            # Remove all unused volumes
+docker run -d -v <name>:/data <image>   # Mount a named volume at /data in the container
 ```
+
+`-v myvolume:/data` mounts a **named volume** managed by Docker (kept under `/var/lib/docker/volumes`); `-v /host/path:/data` is a **bind mount** of a host directory. Data in a volume survives `docker rm` of the container.
 
 ## Compose
 
@@ -85,3 +98,52 @@ docker-compose build       # Build or rebuild services
 ```
 
 Do not place database passwords directly in Compose YAML; use an approved secret mechanism and protect `.env` files from Git. (Docker Compose v2 uses `docker compose` with a space; v1 uses `docker-compose`.)
+
+## Practice run: nginx end to end
+
+Run these in order to practise the everyday commands on one container.
+
+```bash
+docker --version && docker info                    # 1. Check Docker is installed and the engine is running
+
+docker pull nginx                                  # 2. Pull the image
+docker images                                      #    Confirm it is listed
+
+docker network create app-network                  # 3. Create a user-defined network
+docker volume create myvolume                      #    and a named volume
+
+docker run -d --name web -p 8080:80 \
+  --network app-network -v myvolume:/data nginx    # 4. Run detached, host port 8080 -> container port 80
+docker ps                                          #    Running containers
+curl http://localhost:8080                         #    Should return the nginx welcome page
+
+docker logs web                                    # 5. Logs and monitoring
+docker stats --no-stream web                       #    One snapshot of CPU and memory
+docker top web                                     #    Processes inside the container
+
+docker exec -it web bash                           # 6. Shell inside the container (type exit to leave)
+
+docker network inspect app-network                 # 7. Container is attached to the network
+docker volume inspect myvolume                     #    Where the volume lives on the host
+
+docker stop web && docker ps -a                    # 8. Stopped containers appear only with -a
+docker start web && docker restart web             #    Start again, then restart
+
+docker rm -f web                                   # 9. Clean up: container,
+docker volume rm myvolume                          #    volume,
+docker network rm app-network                      #    network,
+docker rmi nginx                                   #    and image
+```
+
+To practise `docker build -t myapp .`, create a folder with this `Dockerfile` and an `index.html`, then build and run it:
+
+```dockerfile
+FROM nginx:1.27-alpine
+COPY index.html /usr/share/nginx/html/index.html
+```
+
+```bash
+docker build -t myapp .
+docker run -d --name myapp -p 8081:80 myapp
+curl http://localhost:8081
+```

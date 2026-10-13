@@ -274,3 +274,30 @@ TODO (Siva): add your real scale set numbers (min/max instances, metrics you sca
 The trade-off is control vs work. VMSS gives the most control and needs the most patching, image building, and monitoring work.
 
 </details>
+
+<details><summary>Q13. [Intermediate] Linux VMSS instances were created with SSH keys only, but Azure Bastion in the portal only offers username and password. How do you troubleshoot it? <em>(scenario)</em></summary>
+
+**Answer:**
+
+Setup: a Linux scale set with SSH key authentication (password login disabled), **no public IPs** on the instances, and Azure Bastion in the same VNet. Connecting from the portal (**Instances → instance → Connect → Bastion**) kept asking for a username and password.
+
+Check, in this order:
+
+1. **Bastion SKU and features.** Bastion has Developer, Basic, Standard, and Premium SKUs, and the connection options differ per SKU. In this case the Bastion host was on **Basic**, and moving it to **Standard** made the SSH private key option available. Standard also adds native client support (`az network bastion ssh --auth-type ssh-key`), IP-based connection, shareable links, and file upload. An upgrade is done in place under **Bastion → Configuration → Tier**; you do not need to recreate it, but you cannot downgrade later. Always confirm against the current SKU comparison table in the Bastion documentation, because features move between SKUs.
+2. **Authentication type in the connect page.** Select **SSH Private Key from Local File** (or **from Azure Key Vault**) instead of the default password option.
+3. **Username.** Use the admin username set in the scale set OS profile, not your Entra ID name.
+4. **Key format.** Use the OpenSSH private key that matches the public key on the instances. A PuTTY `.ppk` file does not work.
+5. **Key Vault option.** The signed-in user needs read access to the secret (for example *Key Vault Secrets User*).
+6. **Network.** The NSG on the VMSS subnet must allow TCP 22 from `AzureBastionSubnet`, and the instance must be running and healthy.
+
+```bash
+# Native client connection to a VMSS instance (Standard or Premium SKU)
+az network bastion ssh \
+  --name bas-hub --resource-group rg-hub \
+  --target-resource-id <vmss-instance-resource-id> \
+  --auth-type ssh-key --username azureuser --ssh-key ~/.ssh/id_rsa
+```
+
+**Lesson:** keep instances private and use SSH keys, but choose the Bastion SKU based on the access features the team needs (key-based login, native client, IP connect), and check the SKU before troubleshooting the VMs themselves.
+
+</details>
