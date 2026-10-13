@@ -1,6 +1,6 @@
 # Deloitte LLP - Interview Questions
 
-## Q1. What do you do if a Terraform deployment fails in the middle of `terraform apply`?
+<details><summary>Q1. What do you do if a Terraform deployment fails in the middle of <code>terraform apply</code>?</summary>
 
 If a Terraform deployment fails midway through `terraform apply`, I don't immediately rerun apply. First I find out what failed, what was already created, and what Terraform recorded in state.
 
@@ -262,9 +262,11 @@ No changes. Your infrastructure matches the configuration.
 
 > "If Terraform fails midway, I first check the exact error in the Terraform or Azure DevOps logs. Then I check `terraform state list` and `terraform state show` to understand which resources were successfully recorded. I also verify the actual Azure resources because I need to know whether the resource was created even if the Terraform operation failed. After fixing the root cause, I run `terraform plan` to see the remaining changes and then run `terraform apply` again. If a resource exists in Azure but isn't in state, I import it rather than recreating it. If there is a stale state lock, I verify no Terraform process is running and then use `terraform force-unlock` carefully. I avoid manually deleting infrastructure unless there is a specific reason."
 
+</details>
+
 ---
 
-## Q2. Have you done any automation using scripting? What have you done?
+<details><summary>Q2. Have you done any automation using scripting? What have you done?</summary>
 
 Yes. For an Azure DevOps interview, give a specific practical example, not just "I have written shell scripts."
 
@@ -363,9 +365,11 @@ Answer:
 
 > "I don't use scripting to replace Terraform or Ansible. I use the right tool for the task. Terraform is for infrastructure provisioning, Ansible is useful for configuration management, and Bash or Python is useful for glue automation, validation, health checks, log collection, API calls, and tasks that don't justify a full IaC solution."
 
+</details>
+
 ---
 
-## Q3. Give 5 automation examples each in Shell script and Python
+<details><summary>Q3. Give 5 automation examples each in Shell script and Python</summary>
 
 For an Azure DevOps / DevOps interview, use examples that sound like real day-to-day work, not generic programming exercises.
 
@@ -670,11 +674,13 @@ Give this answer:
 | Simple health checks | Complex health checks |
 | CI/CD helper scripts | Larger automation tools |
 
+</details>
+
 ---
 
 # Multiple Choice Questions (Deloitte - Saturday 2:31 PM)
 
-## Q4. When using DevOps methodology for product development, what is the correct sequence to be followed?
+<details><summary>Q4. When using DevOps methodology for product development, what is the correct sequence to be followed?</summary>
 
 Given steps:
 
@@ -703,9 +709,11 @@ Options:
 5. Deploy the build to the production server
 6. Bring the product into operation
 
+</details>
+
 ---
 
-## Q5. What is the purpose of GitLab Environments in CI/CD?
+<details><summary>Q5. What is the purpose of GitLab Environments in CI/CD?</summary>
 
 Options:
 
@@ -727,9 +735,11 @@ GitLab Environments represent the different places where your application is dep
 
 They help to track deployments, deployment history, and environment status.
 
+</details>
+
 ---
 
-## Q6. Which of the options given below is the correct AWS DevOps tools workflow?
+<details><summary>Q6. Which of the options given below is the correct AWS DevOps tools workflow?</summary>
 
 Options:
 
@@ -749,9 +759,11 @@ Options:
 
 CloudWatch and X-Ray are monitoring tools, not part of the build and deploy chain.
 
+</details>
+
 ---
 
-## Q7. What should you do when your branch has merge conflicts with the main branch?
+<details><summary>Q7. What should you do when your branch has merge conflicts with the main branch?</summary>
 
 **Correct answer:** Pull the latest main branch, manually resolve conflicts, commit, and push the changes
 
@@ -763,9 +775,11 @@ CloudWatch and X-Ray are monitoring tools, not part of the build and deploy chai
 4. Push the updated branch
 5. Re-run the merge / PR validation
 
+</details>
+
 ---
 
-## Q8. What is an Azure DevOps Service Connection used for?
+<details><summary>Q8. What is an Azure DevOps Service Connection used for?</summary>
 
 Options:
 
@@ -785,9 +799,11 @@ An Azure DevOps Service Connection stores the authentication and configuration d
 - GitHub
 - Kubernetes clusters
 
+</details>
+
 ---
 
-## Q9. Which Azure Monitor component collects telemetry from applications automatically?
+<details><summary>Q9. Which Azure Monitor component collects telemetry from applications automatically?</summary>
 
 Options:
 
@@ -808,9 +824,11 @@ Application Insights collects application telemetry such as:
 - Dependencies
 - Performance metrics
 
+</details>
+
 ---
 
-## Q10. How do you resolve merge conflicts?
+<details><summary>Q10. How do you resolve merge conflicts?</summary>
 
 I resolve Git merge conflicts by finding the conflicting files, understanding both changes, resolving them manually, testing, and then completing the merge.
 
@@ -988,9 +1006,11 @@ git push
 
 **Key point:** A merge conflict is not just a Git problem. The correct resolution depends on the intended behaviour of the code or configuration. Always test after resolving it.
 
+</details>
+
 ---
 
-## Q11. Give 5 more automation examples — restarting services, checking error logs, taking backups, sending alert emails
+<details><summary>Q11. Give 5 more automation examples — restarting services, checking error logs, taking backups, sending alert emails</summary>
 
 Yes. Those are better real-world DevOps automation examples for an interview. Use examples where you can clearly explain the manual work that was eliminated.
 
@@ -1379,9 +1399,11 @@ I'd use these 10 examples because they sound realistic for a DevOps role:
 
 > "Yes, I have automated several repetitive operational tasks using Shell and Python. In Shell, I automated service restart, application log error checking with email alerts, server backups, disk-space monitoring and log cleanup using cron. In Python, I used scripts for more complex automation such as service monitoring with email notifications, parsing application logs and generating reports, backup and retention management, checking multiple servers, and API health monitoring. These scripts reduced manual intervention and could be integrated with our Azure DevOps pipelines or scheduled through cron."
 
+</details>
+
 ---
 
-## Q12. How have you reduced cloud cost in Azure? Give a few examples.
+<details><summary>Q12. How have you reduced cloud cost in Azure? Give a few examples.</summary>
 
 For an Azure DevOps interview, give practical cost-saving examples and explain what you changed, why, and how you measured it.
 
@@ -1676,9 +1698,11 @@ Say:
 
 That's a much stronger DevOps interview answer.
 
+</details>
+
 ---
 
-## Q13. What are the key Helm commands to remember for deployment and rollback?
+<details><summary>Q13. What are the key Helm commands to remember for deployment and rollback?</summary>
 
 ### Helm deployment
 
@@ -1799,9 +1823,11 @@ FAIL -> helm rollback
 
 > "For deployment, I normally use `helm upgrade --install`, which installs the release if it doesn't exist and upgrades it if it already exists. I pass the environment-specific values file and the Docker image tag generated by the CI pipeline. After deployment, I verify the Helm release and Kubernetes rollout. If the new version causes an issue, I check `helm history` and execute `helm rollback <release> <revision> -n <namespace>` to restore the previous Helm release."
 
+</details>
+
 ---
 
-## Q14. You have one Terraform state file for the entire company's infrastructure — how can multiple people use it at the same time?
+<details><summary>Q14. You have one Terraform state file for the entire company's infrastructure — how can multiple people use it at the same time?</summary>
 
 If you have one Terraform state file for the entire company infrastructure, you should not store it locally or let everyone directly edit it. You put it in a remote backend with state locking.
 
@@ -1927,9 +1953,11 @@ This gives you:
 
 > "I would store the Terraform state remotely in an Azure Storage Account using the `azurerm` backend. Azure Blob Storage provides centralized state storage, and Terraform uses state locking to prevent concurrent state modifications. If one engineer is running `terraform apply`, Terraform acquires the lock and another engineer cannot modify that same state until the lock is released. However, I wouldn't recommend having one state file for the entire company. I would split the infrastructure into multiple state files based on environment and logical components, such as networking, AKS and databases, to reduce contention and blast radius."
 
+</details>
+
 ---
 
-## Q15. How do you avoid duplicating YAML across Azure DevOps pipelines?
+<details><summary>Q15. How do you avoid duplicating YAML across Azure DevOps pipelines?</summary>
 
 In Azure DevOps, I avoid duplicating YAML by using templates, parameters, variables, and stages/jobs templates.
 
@@ -2087,9 +2115,11 @@ For multiple repositories, I would take this one step further and use an Azure D
 
 > "I avoid duplicating YAML by creating reusable templates. Depending on the requirement, I use step templates for common steps, job templates for reusable jobs, and stage templates for complete environment deployments. I pass environment-specific values such as environment name, namespace, replica count, and image tag through parameters. For organization-wide reuse, I keep these templates in a centralized Azure Repos repository and reference them from different application pipelines. This gives us one place to maintain common CI/CD logic instead of modifying every pipeline individually."
 
+</details>
+
 ---
 
-## Q16. How do you integrate Azure DevOps with Kubernetes/AKS?
+<details><summary>Q16. How do you integrate Azure DevOps with Kubernetes/AKS?</summary>
 
 You integrate Azure DevOps with Kubernetes/AKS mainly to automate application deployment through a CI/CD pipeline.
 
@@ -2335,9 +2365,11 @@ This is important. Azure DevOps being able to push to ACR does not automatically
 
 > "I integrate Azure DevOps with AKS using CI/CD. In the CI stage, the pipeline checks out the code, runs unit tests and SonarQube analysis, builds the Docker image and pushes it to Azure Container Registry. For deployment, I configure an Azure Resource Manager service connection and use Helm or KubernetesManifest tasks to authenticate with AKS and deploy the application. We normally use Helm charts with environment-specific values and pass the Docker image tag generated by the CI pipeline. AKS is given AcrPull permission so that its kubelet identity can pull the image from ACR. After deployment, I verify the rollout using kubectl and monitor the application through Azure Monitor or Prometheus and Grafana."
 
+</details>
+
 ---
 
-## Q17. How do you integrate SonarQube in an Azure DevOps pipeline?
+<details><summary>Q17. How do you integrate SonarQube in an Azure DevOps pipeline?</summary>
 
 In an Azure DevOps CI pipeline, SonarQube is normally integrated as a sequence of tasks:
 
@@ -2479,9 +2511,11 @@ If the interviewer asks "How have you integrated SonarQube with Azure DevOps?", 
 
 **Important:** The exact task versions and scanner configuration depend on whether you're analyzing Maven, Gradle, .NET, Node.js, or another language.
 
+</details>
+
 ---
 
-## Q18. How would you improve/optimize Kubernetes deployments, with and without Helm?
+<details><summary>Q18. How would you improve/optimize Kubernetes deployments, with and without Helm?</summary>
 
 ### 1. Deployment without Helm
 
@@ -2697,9 +2731,11 @@ kubectl get pods -n production
 
 > "I have used both approaches. Without Helm, I maintain Kubernetes manifests and deploy them through kubectl or the KubernetesManifest task in Azure DevOps. I use immutable image tags, rolling updates, readiness and liveness probes, and verify the rollout after deployment. For larger applications, I prefer Helm because it provides reusable templates and environment-specific values. The pipeline builds the Docker image, pushes it to ACR, and passes the generated image tag to Helm. We use `helm upgrade --install` for deployment, `helm history` for release tracking, and `helm rollback` when we need to revert. Before deployment, I validate the chart using `helm lint` and `helm template`, and after deployment I verify the Kubernetes rollout."
 
+</details>
+
 ---
 
-## Q19. How do you reduce Docker build time?
+<details><summary>Q19. How do you reduce Docker build time?</summary>
 
 To reduce Docker build time, I focus mainly on Docker layer caching, build context, dependency installation, and BuildKit.
 
@@ -2846,9 +2882,11 @@ Then build the Docker image after the required validations complete.
 
 > "To reduce Docker build time, I first optimize Docker layer caching. I copy dependency files such as package.json or pom.xml before copying the application source, so dependency installation can be reused when only source code changes. I use a proper .dockerignore to reduce the build context, multi-stage builds to separate build and runtime dependencies, and BuildKit or buildx with registry-based caching for CI pipelines. I also avoid unnecessary packages and layers and choose appropriate base images. In Azure DevOps, I combine this with pipeline caching and parallel execution of independent tests and scans. The main goal is to make sure that unchanged layers are reused instead of rebuilding everything on every commit."
 
+</details>
+
 ---
 
-## Q20. How do you use multiple agents in an Azure DevOps YAML pipeline?
+<details><summary>Q20. How do you use multiple agents in an Azure DevOps YAML pipeline?</summary>
 
 In Azure DevOps YAML, you use multiple agents by defining multiple jobs. Each job can run on a different agent or agent pool.
 
@@ -3015,3 +3053,5 @@ Don't say "I specify three agents in one job." That's not how Azure DevOps works
 The correct explanation is:
 
 > "Azure DevOps assigns one agent to each job. If I need multiple agents, I split the work into multiple jobs. Independent jobs can run in parallel on different agents, and I can specify different agent pools for different jobs. If there is a dependency, I use `dependsOn` to execute the jobs sequentially."
+
+</details>

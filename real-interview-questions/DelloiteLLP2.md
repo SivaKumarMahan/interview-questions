@@ -1,6 +1,6 @@
 # Deloitte LLP - Interview Questions (Part 2)
 
-## Q1. Users suddenly get 502/504 errors even though all Pods show `1/1 Running`. How do you troubleshoot?
+<details><summary>Q1. Users suddenly get 502/504 errors even though all Pods show <code>1/1 Running</code>. How do you troubleshoot?</summary>
 
 This is a classic Kubernetes troubleshooting scenario. The important point is:
 
@@ -244,9 +244,11 @@ kubectl logs -n ingress-nginx <ingress-controller-pod>
 
 The key troubleshooting command here is `kubectl get endpoints payment-api`. A Pod can be Running while the Service has no usable endpoints.
 
+</details>
+
 ---
 
-## Q2. Write an Azure DevOps YAML pipeline for this application stack
+<details><summary>Q2. Write an Azure DevOps YAML pipeline for this application stack</summary>
 
 **Application stack:**
 
@@ -591,9 +593,11 @@ payment-api:125
 
 That gives you confidence that the exact artifact tested in Dev is the artifact deployed to Production.
 
+</details>
+
 ---
 
-## Q3. Identify every security problem in this pipeline snippet
+<details><summary>Q3. Identify every security problem in this pipeline snippet</summary>
 
 **Given:**
 
@@ -669,9 +673,11 @@ The real concern is what service connection it refers to and what permissions th
 
 > "The primary security issue is the hardcoded production database password. It can be exposed through source control and Git history. I would move it to Azure Key Vault and access it using a secured Azure DevOps service connection or managed identity. I would also ensure the service connection follows least-privilege RBAC. I would avoid passing production credentials as normal environment variables and implement secret rotation. The subscription name itself isn't a secret, but the identity behind the service connection must be properly secured."
 
+</details>
+
 ---
 
-## Q4. A Pod is stuck in `CrashLoopBackOff` after a new deployment — how do you troubleshoot and fix it?
+<details><summary>Q4. A Pod is stuck in <code>CrashLoopBackOff</code> after a new deployment — how do you troubleshoot and fix it?</summary>
 
 **Scenario:** A web application named `employee-portal` is deployed in the Kubernetes namespace `test`. It runs as a single Pod (`Deployment` name `employee-portal`, container port `8080`, expected replicas `1`).
 
@@ -813,9 +819,11 @@ kubectl get ingress -n test
 
 > "I would first run `kubectl describe pod` and `kubectl logs --previous` because the Pod is in CrashLoopBackOff. I would check the container exit reason, application errors, configuration, secrets, probes, resource limits, and Pod events. Once I identify the root cause, I would fix the Deployment, ConfigMap, Secret, image, probe, or application as appropriate. Then I would monitor `kubectl rollout status`, confirm the Pod is 1/1 Running, check the logs, and finally verify the Service/Ingress and application connectivity."
 
+</details>
+
 ---
 
-## Q5. Write a prompt to ask an AI assistant to analyze a failing Jenkins Maven build
+<details><summary>Q5. Write a prompt to ask an AI assistant to analyze a failing Jenkins Maven build</summary>
 
 **Scenario (Prompt Writing exercise):** A Jenkins pipeline that builds a Java application is failing during the Maven build stage. The source code has been downloaded successfully, but the build stops because of compilation errors.
 
@@ -844,9 +852,11 @@ Error logs: [Paste the complete Maven compilation error logs here]
 - **Asks for actionable output** — not just an explanation, but a specific fix plus Maven commands to verify it (e.g. `mvn -v`, `mvn dependency:tree`, `mvn clean compile`).
 - **Leaves a placeholder for the actual logs** — the real error text is what the AI needs most; the prompt is built to be pasted along with it.
 
+</details>
+
 ---
 
-## Q6. What is NGINX?
+<details><summary>Q6. What is NGINX?</summary>
 
 Nginx is a high-performance web server and reverse proxy. In DevOps, it is commonly used to receive client requests and forward them to backend applications.
 
@@ -969,9 +979,11 @@ The Ingress Controller reads Kubernetes Ingress rules and routes traffic to the 
 
 > "Nginx is a lightweight, high-performance web server and reverse proxy. In DevOps, I mainly use it for serving static content, reverse proxying requests to backend applications, load balancing, SSL termination, and HTTP routing. In Kubernetes, Nginx can also be used as an Ingress Controller to route external traffic to different Kubernetes Services."
 
+</details>
+
 ---
 
-## Q7. How do you secure secrets in container images?
+<details><summary>Q7. How do you secure secrets in container images?</summary>
 
 The key rule is: never put secrets inside the Docker image.
 
@@ -1061,9 +1073,11 @@ If a password is accidentally committed or baked into an image, don't just delet
 
 > "I never store secrets inside a container image. I keep the Docker image immutable and free of credentials, and inject secrets at runtime. In Azure and AKS, I prefer Azure Key Vault with Workload Identity and the Secrets Store CSI Driver. I also avoid Docker build arguments for sensitive values, scan the repository and images for leaked secrets, apply least-privilege RBAC, and rotate any credential that gets exposed."
 
+</details>
+
 ---
 
-## Q8. How do you manage credentials in Azure DevOps?
+<details><summary>Q8. How do you manage credentials in Azure DevOps?</summary>
 
 I keep credentials out of YAML entirely and rely on Azure DevOps's built-in secret handling.
 
@@ -1133,9 +1147,11 @@ For things like a `kubeconfig` or a certificate, I use the **Secure Files** libr
 
 > "I avoid putting credentials directly in YAML. For simple cases, I use secret pipeline variables, which Azure DevOps masks in logs. For shared or production secrets, I use variable groups linked to Azure Key Vault, so the actual value is fetched at runtime rather than stored in Azure DevOps. For connecting to Azure resources, I use service connections backed by managed identity or workload identity instead of stored credentials, and I make sure those connections follow least-privilege RBAC. Certificates or config files are handled through the Secure Files library rather than being committed to the repository."
 
+</details>
+
 ---
 
-## Q9. Explain in detail how Trivy is used to scan container images
+<details><summary>Q9. Explain in detail how Trivy is used to scan container images</summary>
 
 For a DevOps interview, you should understand what Trivy scans, where it runs in the pipeline, what the output means, and what happens when vulnerabilities are found.
 
@@ -1586,9 +1602,11 @@ trivy image \
 
 The key interview flow is: Build → Scan → Fail/Pass → Push → Deploy.
 
+</details>
+
 ---
 
-## Q10. How do you manage secrets in Kubernetes?
+<details><summary>Q10. How do you manage secrets in Kubernetes?</summary>
 
 Kubernetes has a built-in `Secret` object, but by default it only base64-encodes the value — it is **not encrypted** unless you explicitly configure encryption at rest. So I treat native Secrets as a starting point, not the full solution.
 
@@ -1659,9 +1677,11 @@ Since credentials can be compromised, I use Key Vault's rotation capability comb
 
 > "Kubernetes Secrets are only base64-encoded by default, not encrypted, so I don't treat them as sufficient on their own. I enable encryption at rest for etcd, and I never commit raw Secret manifests to Git — I either use Sealed Secrets or, more commonly on AKS, the Azure Key Vault Secrets Store CSI Driver with Workload Identity, so the Pod retrieves secrets directly from Key Vault and they're never stored as plain Kubernetes Secret objects. I mount secrets as volumes rather than environment variables where possible, restrict access with RBAC scoped to specific secret names, and rely on Key Vault rotation instead of manually rotating and redeploying secrets."
 
+</details>
+
 ---
 
-## Q11. What `kubectl` commands do you use to check Ingress?
+<details><summary>Q11. What <code>kubectl</code> commands do you use to check Ingress?</summary>
 
 ```bash
 # List all Ingress resources across all namespaces
@@ -1699,9 +1719,11 @@ kubectl get endpoints payment-api -n production
 
 > "To check Ingress, I start with `kubectl get ingress -A` to see what's configured, then `kubectl describe ingress <name> -n <namespace>` to check the backend service, path rules, TLS configuration, and any events. I confirm the Ingress class is correctly picked up with `kubectl get ingressclass`, and if traffic still isn't routing, I check the Ingress controller Pods and logs directly with `kubectl get pods -n ingress-nginx` and `kubectl logs`. I also verify the backend Service has actual endpoints with `kubectl get endpoints`, since an Ingress pointing at a Service with zero endpoints will fail even if the Ingress config itself is correct."
 
+</details>
+
 ---
 
-## Q12. You manage 500 Linux VMs. Write a Bash script that checks disk, memory, and Nginx status, generates a CSV report, handles unreachable servers, and reports only unhealthy ones.
+<details><summary>Q12. You manage 500 Linux VMs. Write a Bash script that checks disk, memory, and Nginx status, generates a CSV report, handles unreachable servers, and reports only unhealthy ones.</summary>
 
 **Task:**
 
@@ -2037,9 +2059,11 @@ If SSH fails specifically, the shorter version of the answer is:
 
 > "First, I perform an SSH connectivity check with a 5-second timeout. I use BatchMode so the script doesn't wait for interactive input. If SSH fails, I mark the server as UNREACHABLE in the CSV, add it to the unhealthy report, and use `continue` to skip the remaining health checks and move to the next server."
 
+</details>
+
 ---
 
-## Q13. Kubernetes YAML Challenge — find and fix what's broken
+<details><summary>Q13. Kubernetes YAML Challenge — find and fix what's broken</summary>
 
 **Given (broken YAML):**
 
@@ -2197,3 +2221,5 @@ Deployment
 ### Interview answer
 
 > "For an interview, the three things I'd immediately look for are: YAML indentation, the Deployment selector matching the Pod labels, and the container name and image being present."
+
+</details>

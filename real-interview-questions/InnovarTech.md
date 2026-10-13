@@ -1,6 +1,6 @@
 # Innovar Tech - Interview Questions
 
-## Q1. Which application have you used in frontend and backend? How is frontend connected to backend? Write the Dockerfile you used in the project.
+<details><summary>Q1. Which application have you used in frontend and backend? How is frontend connected to backend? Write the Dockerfile you used in the project.</summary>
 
 For an Azure DevOps Engineer interview, explain it as a real 3-tier application: React.js frontend + Java Spring Boot backend + database, then explain how you containerized it and deployed it to AKS.
 
@@ -272,3 +272,5 @@ AKS
 > We containerized both applications separately. For React, I used a multi-stage Dockerfile where Node.js was used to build the application and Nginx was used as the lightweight runtime server. For the Spring Boot backend, I used Maven to build the JAR in the first stage and a lightweight JRE image in the second stage.
 >
 > In Kubernetes, we deployed frontend and backend as separate deployments and services. Ingress routed normal application traffic to the frontend and `/api` requests to the backend. In Azure DevOps, the pipeline built and tested the applications, ran SonarQube analysis, built Docker images, pushed them to ACR, and deployed them to AKS using Helm."
+
+</details>

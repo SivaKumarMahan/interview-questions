@@ -4,7 +4,7 @@ Real interview questions with simple, easy-to-read answers.
 
 ---
 
-## 1. How did you upgrade the Kubernetes version?
+<details><summary>Q1. How did you upgrade the Kubernetes version?</summary>
 
 For an interview, answer this as an **AKS Kubernetes upgrade**. Keep it practical and structured.
 
@@ -65,9 +65,11 @@ kubectl get events -A
 
 > "The main things I checked were deprecated Kubernetes APIs, incompatible Helm charts or ingress controllers, insufficient node capacity, PDBs preventing node draining, and workloads without proper readiness probes. We identified these in the lower environment before performing the production upgrade."
 
+</details>
+
 ---
 
-## 2. What challenges did you face while upgrading the Kubernetes version?
+<details><summary>Q2. What challenges did you face while upgrading the Kubernetes version?</summary>
 
 For an interview, give a realistic AKS example rather than listing ten generic problems.
 
@@ -104,9 +106,11 @@ For an interview, give a realistic AKS example rather than listing ten generic p
 
 > **Tip:** Don't say you faced all eight. Pick **one concrete problem**, explain how you detected it, fixed it, and validated the upgrade. That sounds much more credible.
 
+</details>
+
 ---
 
-## 3. What code tests/checks have you performed in CI/CD? (e.g., SonarQube, Trivy)
+<details><summary>Q3. What code tests/checks have you performed in CI/CD? (e.g., SonarQube, Trivy)</summary>
 
 In an interview, explain it as **multiple quality and security checks** in the CI pipeline, not just SonarQube and Trivy.
 
@@ -179,9 +183,11 @@ A strong interview sentence:
 
 > "Our CI pipeline had quality gates at multiple levels: **unit tests** for functionality, **SonarQube** for code quality, **Trivy** for dependency and container vulnerabilities, and **post-deployment smoke tests** for application validation."
 
+</details>
+
 ---
 
-## 4. How many YAML pipelines do you have for each environment in Azure DevOps?
+<details><summary>Q4. How many YAML pipelines do you have for each environment in Azure DevOps?</summary>
 
 For an interview, don't give an unnecessarily large number. Explain the pipeline design and environment separation clearly.
 
@@ -229,9 +235,11 @@ Prod   → prod variable group + prod AKS
 
 > "For some applications or organizational requirements, we did have separate pipelines, but wherever possible we preferred a **single reusable multi-stage YAML pipeline**. We also used **YAML templates** for common build, security-scan, and deployment logic so that we didn't duplicate code across pipelines."
 
+</details>
+
 ---
 
-## 5. Where do you store your secrets?
+<details><summary>Q5. Where do you store your secrets?</summary>
 
 For an Azure DevOps + AKS project, the answer is **Azure Key Vault**.
 
@@ -283,9 +291,11 @@ CONNECTION_STRING
 
 > **Remember:** Kubernetes Secrets are not automatically secure just because they are called Secrets. They are only **base64-encoded** by default, so for sensitive production credentials, integrating AKS with Key Vault is a better approach.
 
+</details>
+
 ---
 
-## 6. Will there be downtime when you rotate secrets in Key Vault?
+<details><summary>Q6. Will there be downtime when you rotate secrets in Key Vault?</summary>
 
 Not necessarily. Secret rotation in Azure Key Vault itself does not cause application downtime. The impact depends on **how the application consumes the secret**.
 
@@ -344,9 +354,11 @@ kubectl rollout status deployment <deployment-name>
 
 > "Key Vault secret rotation itself doesn't cause downtime. If the application needs a restart to consume the new secret, we use multiple replicas and a rolling restart so traffic continues to be served by healthy pods."
 
+</details>
+
 ---
 
-## 7. Dev, QA, UAT are in one RG & subscription; Pre-Prod and Prod are in another RG & subscription, but both subscriptions are in the same region. How will you achieve disaster recovery?
+<details><summary>Q7. Dev, QA, UAT are in one RG & subscription; Pre-Prod and Prod are in another RG & subscription, but both subscriptions are in the same region. How will you achieve disaster recovery?</summary>
 
 The key issue: **separate subscriptions and resource groups in the same region are not, by themselves, disaster recovery.** If the entire Azure region goes down, both environments can be affected.
 
@@ -418,9 +430,11 @@ Protects against regional disaster
 
 > **Note:** You don't necessarily need Dev/QA/UAT duplicated in the DR region. DR requirements are normally focused on **Production and its critical dependencies**. The exact DR design should be based on the application's **RTO and RPO**.
 
+</details>
+
 ---
 
-## 8. What production issue did you resolve recently? How? (Memory leak in pods)
+<details><summary>Q8. What production issue did you resolve recently? How? (Memory leak in pods)</summary>
 
 For an interview, present this as a real incident flow: **detection → investigation → root cause → immediate fix → permanent fix → prevention**.
 
@@ -487,9 +501,11 @@ kubectl get deployment <deployment-name> -n <namespace>
 
 > **Important:** Don't say "I fixed the memory leak by increasing the memory limit." That's not a real fix. Increasing the limit is only a **temporary mitigation**. The permanent solution is identifying and **fixing the application memory leak**.
 
+</details>
+
 ---
 
-## 9. How do you secure your Terraform state file?
+<details><summary>Q9. How do you secure your Terraform state file?</summary>
 
 ### Sample answer
 
@@ -534,9 +550,11 @@ Azure Storage Account
 
 > "Yes. Terraform state can contain sensitive values depending on the resources being managed. Marking a variable as `sensitive = true` mainly prevents it from being displayed in CLI output; it **does not remove the value from the state file**. Therefore, protecting the backend itself is critical."
 
+</details>
+
 ---
 
-## 10. Basic database (SQL) queries
+<details><summary>Q10. Basic database (SQL) queries</summary>
 
 For a DevOps interview, these are the basic SQL queries you should be comfortable with.
 
@@ -792,9 +810,11 @@ Be ready to write queries or explain:
 - UNION vs UNION ALL
 - Basic SELECT, INSERT, UPDATE, DELETE
 
+</details>
+
 ---
 
-## 11. Details about PostgreSQL database
+<details><summary>Q11. Details about PostgreSQL database</summary>
 
 For a DevOps interview, you don't need to go deep into PostgreSQL internals unless the role specifically asks for DBA skills. Focus on **architecture, connectivity, backup/restore, HA, monitoring, and troubleshooting**.
 
@@ -1139,9 +1159,11 @@ ON employees(department);
 - Azure PostgreSQL monitoring
 - RPO/RTO and DR
 
+</details>
+
 ---
 
-## 12. Application is running in AKS, but it cannot connect to PostgreSQL. How will you troubleshoot it?
+<details><summary>Q12. Application is running in AKS, but it cannot connect to PostgreSQL. How will you troubleshoot it?</summary>
 
 For an interview, answer this in a **layer-by-layer troubleshooting sequence**. Don't immediately assume PostgreSQL itself is down.
 
@@ -1326,9 +1348,11 @@ Verify that the PostgreSQL hostname resolves to the **private IP**, not an unexp
 
 > "I don't start by restarting the pods. First I identify whether the problem is **application configuration, DNS, network connectivity, authentication, or PostgreSQL health**. Once I isolate the layer causing the failure, I fix that specific issue and then validate end-to-end connectivity."
 
+</details>
+
 ---
 
-## 13. What types of applications are used in the frontend and backend? (Frontend: React.js, Backend: Java Spring Boot)
+<details><summary>Q13. What types of applications are used in the frontend and backend? (Frontend: React.js, Backend: Java Spring Boot)</summary>
 
 ### Sample answer
 
@@ -1404,9 +1428,11 @@ User
 
 > This answer works well for a DevOps Engineer interview because it connects the application stack directly to the Kubernetes and Azure infrastructure you're expected to manage.
 
+</details>
+
 ---
 
-## 14. Did you provide RCA to clients?
+<details><summary>Q14. Did you provide RCA to clients?</summary>
 
 For an interview, answer with a **specific incident** and a clear **RCA structure**.
 
@@ -1450,3 +1476,5 @@ For an interview, answer with a **specific incident** and a clear **RCA structur
 ### If they ask: "How did you communicate the RCA to the client?"
 
 > "We first validated the technical root cause internally. Then we prepared a clear RCA **without unnecessary technical jargon**, explained the business impact, what caused the issue, what we did to resolve it, and what actions we were taking to prevent recurrence. We reviewed it with the client in a meeting or shared the documented RCA through the agreed communication channel."
+
+</details>

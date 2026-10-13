@@ -1,6 +1,6 @@
 # Wipro - Interview Questions
 
-## Q1. What is umask?
+<details><summary>Q1. What is umask?</summary>
 
 `umask` in Linux defines the default permission restrictions applied when a new file or directory is created.
 
@@ -119,9 +119,11 @@ For a persistent user setting, it is commonly configured in shell startup files 
 
 > "umask is used in Linux to control the default permissions of newly created files and directories. It acts as a permission mask by removing permissions from the default 666 for files and 777 for directories. For example, with umask 022, new files get 644 and directories get 755."
 
+</details>
+
 ---
 
-## Q2. How do you authenticate to an AKS cluster?
+<details><summary>Q2. How do you authenticate to an AKS cluster?</summary>
 
 To authenticate to an AKS cluster, the standard approach is to use **Azure AD / Microsoft Entra ID** with `kubectl`.
 
@@ -219,9 +221,11 @@ because your identity doesn't have the required Kubernetes RBAC or Azure RBAC pe
 
 > "I authenticate to AKS using Microsoft Entra ID. First I log in using `az login`, select the required subscription, and run `az aks get-credentials` to configure the kubeconfig. Then I use `kubectl` to interact with the cluster. In CI/CD, I use an Azure service connection or workload identity rather than personal credentials. Authentication verifies the identity, while Kubernetes RBAC or Azure RBAC controls what that identity can access."
 
+</details>
+
 ---
 
-## Q3. What is a headless Service?
+<details><summary>Q3. What is a headless Service?</summary>
 
 A **headless Service** in Kubernetes is a Service that does **not** get a ClusterIP. It is mainly used when you want to communicate directly with individual Pods rather than through a single virtual IP.
 
@@ -310,9 +314,11 @@ pod-2.my-service
 
 > "A headless Service is a Kubernetes Service with `clusterIP: None`. It doesn't provide a virtual ClusterIP. Instead, Kubernetes DNS returns the IP addresses of the Pods selected by the Service. It's commonly used with StatefulSets and databases where applications need direct Pod discovery and stable network identities."
 
+</details>
+
 ---
 
-## Q4. How do you integrate Jenkins with Kubernetes?
+<details><summary>Q4. How do you integrate Jenkins with Kubernetes?</summary>
 
 There are two common ways to integrate Jenkins with Kubernetes. For a DevOps interview, explain the **Kubernetes plugin with dynamic agents**, because that's the common production pattern.
 
@@ -454,9 +460,11 @@ There are actually two separate integrations you should understand:
 
 > "I have integrated Jenkins with Kubernetes using the Kubernetes plugin. Jenkins acts as the controller and Kubernetes provides dynamic agent Pods. When a pipeline starts, Jenkins requests Kubernetes to create an agent Pod with the required tools such as Maven, Docker or kubectl. The pipeline executes on that temporary Pod and the Pod is removed after the job completes. For application deployment, Jenkins authenticates to AKS and uses Helm or kubectl to deploy the application. In our Azure setup, the container images are pushed to ACR and then deployed to AKS."
 
+</details>
+
 ---
 
-## Q5. If etcd is not available, can you access the Kubernetes cluster?
+<details><summary>Q5. If etcd is not available, can you access the Kubernetes cluster?</summary>
 
 **No, not normally.** If etcd is completely unavailable in a Kubernetes control plane, the cluster will not function correctly.
 
@@ -562,9 +570,11 @@ etcd-3 ✅
 
 **AKS note:** in Azure Kubernetes Service, Microsoft manages the control-plane components, including the etcd layer. You generally don't administer the managed control-plane etcd members directly, as you would in a self-managed Kubernetes cluster.
 
+</details>
+
 ---
 
-## Q6. A Pod is not getting scheduled on a node. Why?
+<details><summary>Q6. A Pod is not getting scheduled on a node. Why?</summary>
 
 If a Pod is not getting scheduled to a Kubernetes node, the first thing I check is:
 
@@ -709,9 +719,11 @@ kubectl describe pod <pod-name>
 
 The **Events** section is usually the starting point for a Pod scheduling issue.
 
+</details>
+
 ---
 
-## Q7. What are static and dynamic IPs for Pods?
+<details><summary>Q7. What are static and dynamic IPs for Pods?</summary>
 
 In Kubernetes, the important point is that **Pod IPs are normally dynamic**. A Pod's IP can change when the Pod is recreated.
 
@@ -796,9 +808,11 @@ But a stable identity does **not** necessarily mean the Pod IP stays fixed.
 
 > "Pod IPs in Kubernetes are normally dynamic. When a Pod is recreated, it can receive a different IP. Therefore, we don't use Pod IPs directly for application communication. We use a Kubernetes Service, which provides a stable endpoint and routes traffic to the current Pod IPs. StatefulSets provide stable Pod names and DNS identities, but that doesn't mean the Pod IP itself is permanently static."
 
+</details>
+
 ---
 
-## Q8. How is your application accessed using a NodePort Service?
+<details><summary>Q8. How is your application accessed using a NodePort Service?</summary>
 
 With a **NodePort** Service, an application is accessed using the **Node IP + NodePort**.
 
@@ -920,9 +934,11 @@ For production applications, NodePort is generally **not** the preferred externa
 
 > "With a NodePort Service, Kubernetes exposes a port on the nodes, usually in the 30000-32767 range. The client accesses the application using the Node IP and NodePort, for example `http://10.10.1.20:30080`. Kubernetes forwards that request to the Service, and the Service routes it to one of the backend Pods. In AKS, for production external access, I would normally use a LoadBalancer or Ingress rather than exposing NodePort directly."
 
+</details>
+
 ---
 
-## Q9. What is the difference between CMD and ENTRYPOINT?
+<details><summary>Q9. What is the difference between CMD and ENTRYPOINT?</summary>
 
 In a Dockerfile, both `CMD` and `ENTRYPOINT` define what runs when a container starts, but they behave differently.
 
@@ -1069,9 +1085,11 @@ ENTRYPOINT java -jar app.jar
 
 The exec form handles signals and process management more cleanly, which matters for containers running in Kubernetes.
 
+</details>
+
 ---
 
-## Q10. If a Secret is changed while Pods are running, what is the effect?
+<details><summary>Q10. If a Secret is changed while Pods are running, what is the effect?</summary>
 
 It depends on **how the Secret is consumed by the Pod**. This is an important Kubernetes interview question.
 
@@ -1161,9 +1179,11 @@ This is also a bad security practice.
 
 If you're using **Azure Key Vault with the Secrets Store CSI Driver**, the behavior is slightly different, because the secret can be synced from Key Vault and rotated depending on the rotation configuration. But again, whether the application sees the new value depends on whether it reads the mounted file dynamically or only at startup.
 
+</details>
+
 ---
 
-## Q11. In Helm, if you want to deploy one specific version out of three, how will you deploy it?
+<details><summary>Q11. In Helm, if you want to deploy one specific version out of three, how will you deploy it?</summary>
 
 If you have 3 versions of the same Helm chart or application and specifically want to deploy version 2, you need to distinguish between the **Helm chart version** and the **application (image) version**.
 
@@ -1258,9 +1278,11 @@ helm status myapp
 
 > "First I clarify whether the version refers to the Helm chart version or the application image version. If I need a specific Helm chart version, I use `helm upgrade --install` with `--version`, for example `--version 2.0.0`. If I need a specific application version, I pass the required image tag using `--set image.tag=2.0`. If the required version was already deployed previously and I need to revert to that release, I check `helm history` and use `helm rollback` with the required revision."
 
+</details>
+
 ---
 
-## Q12. What will happen if kubelet is not running?
+<details><summary>Q12. What will happen if kubelet is not running?</summary>
 
 If kubelet is not running on a Kubernetes worker node, that node **cannot properly participate in Kubernetes workload management**.
 
@@ -1357,9 +1379,11 @@ kubectl get nodes
 
 > "Kubelet is the agent responsible for managing Pods on a Kubernetes node and communicating node and Pod status to the API server. If kubelet stops, existing containers may continue running through the container runtime, but Kubernetes loses management and status reporting for that node. The node will eventually become NotReady, new workloads won't be scheduled there, and controllers may reschedule affected Pods to healthy nodes. I would troubleshoot using `systemctl status kubelet` and `journalctl -u kubelet`."
 
+</details>
+
 ---
 
-## Q13. Pods are in NotReady state and nodes are in NotReady state. What is the reason?
+<details><summary>Q13. Pods are in NotReady state and nodes are in NotReady state. What is the reason?</summary>
 
 There are two different problems here: **Pod NotReady** and **Node NotReady**. The troubleshooting approach is slightly different.
 
@@ -1501,9 +1525,11 @@ Don't troubleshoot both in exactly the same way.
 
 > "If a Pod is NotReady, I first check `kubectl describe pod` and the Pod logs. I specifically look for readiness probe failures, application issues, dependency connectivity, incorrect ports, or resource problems. If a Node is NotReady, I check `kubectl describe node` and look at the node conditions. Then I verify kubelet and container runtime status, CPU, memory and disk pressure, network connectivity to the API server, and kubelet logs. I identify the exact condition or event first rather than restarting components blindly."
 
+</details>
+
 ---
 
-## Q14. If you restore a backup in Jenkins, will it work?
+<details><summary>Q14. If you restore a backup in Jenkins, will it work?</summary>
 
 **Yes**, a Jenkins backup can be restored and Jenkins can work, but it depends on **what was backed up** and whether the restore is **compatible** with the Jenkins environment.
 
@@ -1609,9 +1635,11 @@ Don't rely only on a Jenkins server snapshot. Keep regular, tested backups of `J
 
 **A backup that has never been restored is not a proven backup.**
 
+</details>
+
 ---
 
-## Q15. How do you store secrets in Jenkins?
+<details><summary>Q15. How do you store secrets in Jenkins?</summary>
 
 In Jenkins, I would **not** store secrets directly in the Jenkinsfile. I use **Jenkins Credentials** or an external secret manager such as **Azure Key Vault**.
 
@@ -1737,3 +1765,5 @@ Don't put credentials in Dockerfiles or container images.
 ### Interview answer
 
 > "I store secrets using Jenkins Credentials rather than hardcoding them in the Jenkinsfile or Git repository. I create the credential in the Jenkins Credentials Store and reference it by credentialsId using withCredentials or the credentials binding mechanism. Jenkins masks the values in console output, and I make sure not to print secrets. For production environments, especially in Azure, I prefer using Azure Key Vault as the centralized secret store and allow Jenkins to access it through an appropriate identity."
+
+</details>

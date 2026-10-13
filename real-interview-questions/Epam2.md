@@ -1,6 +1,6 @@
 # EPAM - Interview Questions (Part 2)
 
-## Q1. How have you used Azure Functions, Web Apps, and App Service in your CI/CD pipeline?
+<details><summary>Q1. How have you used Azure Functions, Web Apps, and App Service in your CI/CD pipeline?</summary>
 
 Azure App Service is the managed hosting platform. Azure Web Apps is an App Service workload used to host web applications and APIs. Azure Functions is a serverless service used to run event-driven or scheduled code.
 
@@ -110,9 +110,11 @@ Each stage is a deployment job targeting an Azure DevOps environment (`dev`, `qa
 
 > "I use Azure DevOps pipelines to automate the build, testing, and deployment of applications hosted on Azure. For App Service, I build the application, run unit tests and code-quality checks, publish a versioned artifact, and deploy it to the Web App through an Azure service connection. I promote the same artifact through Dev, QA, UAT, and Production, with approval before Production. For Azure Functions, I build, test, package, and deploy the function code to a Function App; the function then executes through its configured HTTP, timer, Blob, or other trigger. I keep environment configuration outside the artifact, store secrets in Key Vault, and validate releases using health checks, Application Insights, and Azure Monitor."
 
+</details>
+
 ---
 
-## Q2. Have you created a private Kubernetes cluster? How?
+<details><summary>Q2. Have you created a private Kubernetes cluster? How?</summary>
 
 In a private AKS cluster, the Kubernetes API server is reachable only through a private IP address inside the virtual network instead of a public endpoint.
 
@@ -199,9 +201,11 @@ The API server hostname will not resolve to the private IP, so `kubectl` command
 
 The Kubernetes control plane is not exposed to the public internet. Only authorized clients with private network connectivity and the required permissions can reach it.
 
+</details>
+
 ---
 
-## Q3. Do we have autoscaling in Azure App Service? How do you use it?
+<details><summary>Q3. Do we have autoscaling in Azure App Service? How do you use it?</summary>
 
 Yes. Azure App Service can scale out by adding instances and scale in by removing them. The exact scaling features available depend on the App Service Plan tier.
 
@@ -230,9 +234,11 @@ Autoscaling changes the **number of instances** (horizontal scaling). Scaling up
 
 > "Yes, Azure App Service supports horizontal scaling. I configure autoscale on the App Service Plan with minimum, default, and maximum instance counts. For example, I can add an instance when average CPU remains above 70% for 10 minutes and remove one when CPU stays below 35% for 15 minutes. I configure cooldown periods, monitor autoscale history, and load-test the thresholds before Production. Scaling out adds instances, while scaling up changes the App Service Plan size or pricing tier."
 
+</details>
+
 ---
 
-## Q4. What is the difference between Microsoft Entra ID and an app registration?
+<details><summary>Q4. What is the difference between Microsoft Entra ID and an app registration?</summary>
 
 **Microsoft Entra ID** is Microsoft's identity and access management service. It manages users, groups, and application identities, and controls access to organizational resources.
 
@@ -260,9 +266,11 @@ For better security, the Azure DevOps service connection can use **workload iden
 
 > "Microsoft Entra ID is Microsoft's identity management service. It manages users, groups, and application identities. An app registration registers an application in Entra ID and configures how it authenticates. The service principal is that application's identity in the tenant, and that is what I grant Azure RBAC roles to. For example, when connecting Azure DevOps to Azure, I use a service principal with only the required permissions, and I prefer workload identity federation over storing a client secret."
 
+</details>
+
 ---
 
-## Q5. How can you restrict users before their requests reach the application?
+<details><summary>Q5. How can you restrict users before their requests reach the application?</summary>
 
 There are two kinds of restriction, and they are usually combined:
 
@@ -336,9 +344,11 @@ WAF does **not** know who the user is. It cannot allow "only employees" or check
 
 > "I restrict users at two levels. For identity, I enable App Service Authentication with Microsoft Entra ID, so unauthenticated users are redirected to sign in before the request reaches the code. In the enterprise application, I turn on 'Assignment required' and assign only the allowed group, so other users are denied at sign-in, and the application checks app roles for protected operations. For the network, I put Application Gateway or Front Door with WAF in front to block malicious traffic and apply IP or geo rules, and I use access restrictions or a private endpoint so the App Service accepts traffic only from the gateway. WAF protects against attacks, but it doesn't know user identity, so it works together with Entra ID rather than replacing it."
 
+</details>
+
 ---
 
-## Q6. How do you configure a private endpoint between an AKS backend application and a database?
+<details><summary>Q6. How do you configure a private endpoint between an AKS backend application and a database?</summary>
 
 If the backend runs in AKS and the database is an Azure PaaS database, I use a **Private Endpoint** so the application reaches the database over a private IP inside the VNet, without exposing the database to the internet. The same pattern applies to any backend (VM, App Service with VNet integration, Function App) and any supported PaaS service (Azure SQL, PostgreSQL, Cosmos DB, Storage, Key Vault, ACR).
 
@@ -451,9 +461,11 @@ After private connectivity is validated, disable public network access on the da
 
 > "If my backend runs in AKS and the database is in Azure, I connect them through a private endpoint. I create the private endpoint for the database in a dedicated subnet in the AKS VNet or a peered hub VNet. I create the matching private DNS zone, such as `privatelink.postgres.database.azure.com`, link it to the AKS VNet, and attach it to the endpoint so the database hostname resolves to the private IP. I make sure NSGs, routing, and network policies allow the database port, and I keep the password in Key Vault. I test DNS and connectivity from a pod with `nslookup` and `nc`, then disable public access on the database. The application keeps using the normal hostname, but the traffic now stays on the private network."
 
+</details>
+
 ---
 
-## Q7. How do you promote the same ACR image from Stage to Production?
+<details><summary>Q7. How do you promote the same ACR image from Stage to Production?</summary>
 
 Scenario: Stage and Production are in different resource groups, and there is only one Azure Container Registry. I build the image once and deploy the **same image** to both environments without rebuilding it.
 
@@ -544,9 +556,11 @@ az aks update --resource-group rg-prod  --name aks-prod  --attach-acr myacr
 
 > "If Stage and Production are in different resource groups but share one ACR, I build the Docker image once in CI and push it with a unique tag such as the build number. I deploy that image to Stage and run testing. After validation and approval, the Production stage deploys the same image, preferably by digest, so Production runs exactly what was tested. I grant AcrPull to both clusters' kubelet identities, usually with `az aks update --attach-acr`, and if ACR is private I make sure both VNets can reach its private endpoint. This promotes the tested artifact without rebuilding it and avoids differences between Stage and Production."
 
+</details>
+
 ---
 
-## Q8. How does AKS connect to Azure Key Vault?
+<details><summary>Q8. How does AKS connect to Azure Key Vault?</summary>
 
 AKS connects to Key Vault using **Microsoft Entra Workload ID** for authentication and the **Azure Key Vault provider for the Secrets Store CSI Driver** to retrieve secrets. No client secret is stored in the cluster.
 
@@ -640,9 +654,11 @@ The service account is annotated with the identity's client ID, and the SecretPr
 
 > "I connect AKS to Azure Key Vault using Microsoft Entra Workload ID and the Key Vault Secrets Store CSI Driver. I enable the OIDC issuer, Workload Identity, and the Key Vault secrets provider add-on on AKS. I create a user-assigned managed identity and a federated credential that trusts the application's Kubernetes service account. Then I give that identity only the Key Vault Secrets User role on the vault. A SecretProviderClass defines which secrets to retrieve, and when the pod starts, the CSI driver uses that identity to fetch the secrets and mount them as files. This way, no passwords or client secrets are stored in Kubernetes manifests."
 
+</details>
+
 ---
 
-## Q9. You have secrets in Key Vault. How do they reach the Pods?
+<details><summary>Q9. You have secrets in Key Vault. How do they reach the Pods?</summary>
 
 The **Secrets Store CSI Driver** fetches the secrets from Key Vault when the pod starts and mounts them as files inside the container. Optionally, they can also be synced into a Kubernetes Secret for use as environment variables.
 
@@ -756,9 +772,11 @@ The synced Kubernetes Secret (`myapp-db`) exists only while at least one pod mou
 
 > "I use the Azure Key Vault Secrets Store CSI Driver. I configure Workload Identity and grant the identity read access to the secrets. I create a SecretProviderClass with the Key Vault name, tenant, identity client ID, and the list of secrets, and I reference it as a CSI volume in the pod spec with the annotated service account. When the pod starts, the CSI driver authenticates with Azure, fetches the secrets, and mounts them as files, for example `/mnt/secrets-store/db-password`, and the application reads that file. If the application needs environment variables, I also sync them into a Kubernetes Secret. This way, no credentials are hardcoded in Kubernetes YAML."
 
+</details>
+
 ---
 
-## Q10. How do you organize Terraform modules so you can plan and apply multiple environments?
+<details><summary>Q10. How do you organize Terraform modules so you can plan and apply multiple environments?</summary>
 
 I separate **reusable modules** from **environment-specific configuration**. Each environment calls the same modules with its own values and has its own remote state, so a Dev change can never touch Prod state.
 
@@ -906,9 +924,11 @@ In CI/CD, the same commands run in separate pipeline stages (Dev → QA → Prod
 
 > "I organize Terraform with a `modules` folder and separate environment folders for Dev, QA, and Prod. The modules folder contains reusable components like VNet, AKS, and Key Vault. Each environment folder calls those modules and passes its own values through `terraform.tfvars`. Each environment also has its own remote state file in Azure Storage, configured through the azurerm backend with a different key such as `dev.tfstate` or `prod.tfstate`. To deploy, I go to the environment folder, run `terraform init` with that environment's backend config, run `terraform plan -out=tfplan`, review it, and apply the saved plan. In the pipeline, each environment is a separate stage, and Production needs manual approval. This lets me reuse code while keeping each environment's configuration and state isolated."
 
+</details>
+
 ---
 
-## Q11. Have you used AI services in Azure? What are they?
+<details><summary>Q11. Have you used AI services in Azure? What are they?</summary>
 
 Azure offers several AI services. The main ones are Azure OpenAI, Azure AI Foundry, Azure AI Search, Document Intelligence, Vision, Speech, and Language.
 
@@ -965,9 +985,11 @@ How I would deploy it securely:
 
 Describe only what you have actually used. If you know these services but haven't implemented them in production, say that you understand them and how you would apply them.
 
+</details>
+
 ---
 
-## Q12. How do you create an Azure DevOps pipeline using Terraform?
+<details><summary>Q12. How do you create an Azure DevOps pipeline using Terraform?</summary>
 
 I use an Azure DevOps YAML pipeline that validates the Terraform code, creates a plan, and applies that exact plan only after review and approval. State is stored remotely in Azure Storage, and authentication uses a service connection with workload identity federation.
 
@@ -1148,9 +1170,11 @@ Each environment uses its own working directory or `.tfvars`, its own state key,
 
 > "I integrate Terraform with Azure DevOps using a multi-stage YAML pipeline. The Terraform code is in Azure Repos, and the pipeline authenticates through an Azure Resource Manager service connection using workload identity federation, so no secrets are stored. State is kept in Azure Storage with a separate key per environment. The first stage runs `terraform init`, `fmt -check`, `validate`, and `plan -out=tfplan`, and publishes the plan as an artifact. The apply stage is a deployment job targeting an Azure DevOps environment with an approval check, so a reviewer checks the plan before it continues, and then the pipeline applies exactly that saved plan. Dev, QA, and Prod each have their own state file, variables, and service connection, and Production always requires approval."
 
+</details>
+
 ---
 
-## Q13. How does a pipeline run automatically in Azure DevOps?
+<details><summary>Q13. How does a pipeline run automatically in Azure DevOps?</summary>
 
 A pipeline runs automatically through **triggers**. Azure DevOps supports four main types: CI triggers, pull request triggers, scheduled triggers, and pipeline completion (resource) triggers.
 
@@ -1258,9 +1282,11 @@ If a pipeline does not run automatically, I check that:
 
 > "In Azure DevOps, pipelines run automatically through triggers defined in the YAML. A CI trigger with `main` under `trigger` runs the pipeline on every push to main, and I use path filters to avoid unnecessary runs. For pull requests, I use the `pr` section with GitHub, and with Azure Repos I configure build validation in the branch policy so a PR can't be merged until the build passes. Scheduled triggers use cron in UTC for nightly builds or scans, and pipeline completion triggers start the CD pipeline automatically after the CI pipeline publishes its artifact. I choose the trigger based on the requirement."
 
+</details>
+
 ---
 
-## Q14. Have you added manual validation to an Azure DevOps pipeline?
+<details><summary>Q14. Have you added manual validation to an Azure DevOps pipeline?</summary>
 
 Yes. I add manual validation so the pipeline pauses and waits for a person to approve before a risky step, most commonly before Terraform apply or a Production deployment. There are two ways to do it.
 
@@ -1357,9 +1383,11 @@ These checks are configured outside the YAML, so a developer cannot remove the a
 
 > "Yes. After Terraform generates a plan, I pause the pipeline with the ManualValidation task in an agentless job. The approvers get a notification, review the plan, and approve or reject it, and if it times out it is rejected. Only after approval does the apply job run. For Production deployments, I prefer approvals and checks on the Azure DevOps environment, because they're configured outside the YAML and can't be bypassed by changing the pipeline file. I can also add branch control so only the main branch can deploy to Production."
 
+</details>
+
 ---
 
-## Q15. Can you build Splunk from scratch?
+<details><summary>Q15. Can you build Splunk from scratch?</summary>
 
 Splunk is not built like an application; it is **deployed and configured**. Building it from scratch means installing the Splunk components, onboarding logs, setting up indexes and retention, and creating dashboards, alerts, and access control.
 
@@ -1456,9 +1484,11 @@ Schedule it every 5 minutes; when it returns results, trigger an email, Teams we
 
 > "Splunk isn't built like an application; it's deployed and configured. I would set up the components based on the size: Universal Forwarders on servers, indexers to store and index the data, and a search head for searches and dashboards, or use Splunk Cloud. I configure inputs to collect OS and application logs, and for AKS I deploy the Splunk OpenTelemetry Collector as a DaemonSet that sends container logs through the HTTP Event Collector. I create indexes per environment with retention policies, build dashboards for errors, latency, and pod restarts, and create alerts, for example when HTTP 500 errors exceed a threshold in five minutes, that notify Teams or email. Finally, I secure it with role-based access per index, TLS between components, and SSO."
 
+</details>
+
 ---
 
-## Q16. How have you integrated AKS and application logs with Splunk?
+<details><summary>Q16. How have you integrated AKS and application logs with Splunk?</summary>
 
 In AKS, I run a log collector as a **DaemonSet** (one pod per node). It reads every container's stdout/stderr log files on that node, adds Kubernetes metadata, and sends the logs to Splunk over HTTPS through the **HTTP Event Collector (HEC)**. I use the **Splunk OpenTelemetry Collector for Kubernetes** or **Fluent Bit**.
 
@@ -1568,9 +1598,11 @@ index=aks_prod k8s.namespace.name="production" k8s.pod.name="myapp-*"
 
 > "I integrate AKS with Splunk using the Splunk OpenTelemetry Collector, or Fluent Bit, deployed as a DaemonSet. The Spring Boot application writes JSON logs to stdout, the container runtime writes them to the node, and the collector on each node reads them, adds metadata like namespace, pod, and cluster name, and sends them to Splunk's HTTP Event Collector over HTTPS. On the Splunk side, I create a HEC token restricted to the right indexes, and the token is stored in Key Vault and delivered to the cluster as a Kubernetes Secret, never in Git. I deploy the collector with Helm through the pipeline, allow outbound traffic to the HEC endpoint, and enable buffering and retries. Finally, I verify the logs in Splunk by index and namespace and build dashboards and alerts on them."
 
+</details>
+
 ---
 
-## Q17. How do application logs from AKS go to Azure Monitor?
+<details><summary>Q17. How do application logs from AKS go to Azure Monitor?</summary>
 
 There are two paths, and they are usually used together:
 
@@ -1663,9 +1695,11 @@ Create a **log search alert rule** on a query (for example, more than 50 ERROR l
 
 > "For AKS, I enable Container Insights and connect the cluster to a Log Analytics workspace. This deploys the Azure Monitor Agent as a DaemonSet, and a data collection rule defines what it collects. I configure ContainerLogV2 and exclude noisy namespaces like kube-system. The application writes logs to stdout and stderr, and the agent collects them into the ContainerLogV2 table, where I query them with KQL. For request duration, exceptions, and dependency failures, I attach the Application Insights Java agent with the connection string from a secret, and that telemetry goes to the same workspace. Then I create log search alert rules with action groups to notify the team about errors or pod failures."
 
+</details>
+
 ---
 
-## Q18. How do Azure Monitor, Application Insights, and Log Analytics work together?
+<details><summary>Q18. How do Azure Monitor, Application Insights, and Log Analytics work together?</summary>
 
 **Azure Monitor** is the overall monitoring platform. **Application Insights** is the part of Azure Monitor that collects application-level telemetry. The **Log Analytics workspace** is where the log data is stored and queried with KQL. Alerts, workbooks, and dashboards in Azure Monitor work on top of that data.
 
@@ -1770,9 +1804,11 @@ Connecting Application Insights to a workspace does not automatically instrument
 
 > "Azure Monitor is the overall observability platform. Application Insights provides application performance monitoring, and a workspace-based Application Insights resource stores its telemetry in a linked Log Analytics workspace. I instrument the application to collect requests, exceptions, dependencies, latency, and traces. Separately, I enable Container Insights on AKS so the Azure Monitor Agent sends configured container logs and Kubernetes data to the workspace. I use Application Insights for application troubleshooting, KQL and workbooks to correlate data across tables, and Azure Monitor alert rules with action groups for notification. Simply linking Application Insights to a workspace is not enough—the application instrumentation and AKS data collection must both be configured."
 
+</details>
+
 ---
 
-## Q19. Which plan is used for Azure App Service?
+<details><summary>Q19. Which plan is used for Azure App Service?</summary>
 
 An **App Service Plan** defines the compute resources that a Web App runs on: region, operating system, CPU, memory, pricing tier, instance count, and scaling capability. The App Service is where the application runs; the App Service Plan provides the underlying compute.
 
@@ -1801,9 +1837,11 @@ For Dev and QA, a lower-cost Basic or Standard plan is usually enough. Multiple 
 
 > "I use an Azure App Service Plan to define the CPU, memory, pricing tier, and scaling capacity for my web application. For development, we use a lower-cost plan. For production, we generally choose Standard or Premium v3 based on traffic, performance, and availability requirements, and Isolated when network isolation is required. On Standard and above, I configure autoscaling to add or remove instances based on CPU or request load. The App Service is where the application runs; the plan provides the compute underneath it."
 
+</details>
+
 ---
 
-## Q20. What are Web App deployment slots?
+<details><summary>Q20. What are Web App deployment slots?</summary>
 
 Deployment slots are separate live environments within the same Azure App Service, each with its own host name. They let us deploy and test a new version before making it live.
 
@@ -1860,9 +1898,11 @@ Deployment slots are available in Standard, Premium, and Isolated tiers. Setting
 
 > "I use deployment slots in Azure App Service to deploy a new version without immediately affecting live users. The Azure DevOps pipeline deploys the application to the Staging slot, and I run smoke tests against it. Once it is validated and approved, I swap Staging with Production. The previous version moves to Staging, so rollback is just another swap. I mark environment-specific values as slot settings so they don't move during the swap."
 
+</details>
+
 ---
 
-## Q21. Why use Blue-Green deployment instead of Canary deployment?
+<details><summary>Q21. Why use Blue-Green deployment instead of Canary deployment?</summary>
 
 Both strategies release a new version safely. The main difference is **how traffic reaches the new version**.
 
@@ -1899,9 +1939,11 @@ Blue-Green does not automatically guarantee zero downtime. The result depends on
 
 > "I choose Blue-Green deployment when I need a simple, fast release with an easy rollback. In Azure App Service, I deploy the new version to the Staging slot, run smoke tests, and swap it with Production after approval. If any issue occurs, I swap back. Canary is more suitable when I want to expose the new version gradually to a small percentage of users and monitor real production traffic before increasing the rollout. Blue-Green switches traffic between environments; Canary gradually increases traffic to the new version. Neither is always better—it depends on the application's risk, traffic, and release requirements."
 
+</details>
+
 ---
 
-## Q22. A new AzureRM provider version was just released. How do you use it for deployment without breaking existing infrastructure?
+<details><summary>Q22. A new AzureRM provider version was just released. How do you use it for deployment without breaking existing infrastructure?</summary>
 
 The goal is to test the new provider version safely, review the Terraform plan, and avoid unexpected changes to existing resources.
 
@@ -1967,9 +2009,11 @@ Downgrading the provider does not automatically reverse infrastructure changes, 
 
 > "If a new AzureRM provider version is released, I don't upgrade it directly in Production. First, I check the changelog and breaking changes, pin the version in Terraform, and test it on a separate branch in Dev or QA. I run `terraform init -upgrade`, commit the updated lock file, validate the configuration, and generate a plan. I carefully review any replacements or deletions, and I apply only the reviewed plan after testing and approval. I also back up the Terraform state and keep the previous version available for recovery. This lets me adopt the new provider while minimizing the risk of breaking existing infrastructure."
 
+</details>
+
 ---
 
-## Q23. Instead of SonarQube and Trivy, what commercial (non-open-source) tools can you use as CI/CD checks?
+<details><summary>Q23. Instead of SonarQube and Trivy, what commercial (non-open-source) tools can you use as CI/CD checks?</summary>
 
 Yes, there are several commercial tools. They usually add enterprise support, a central dashboard across all projects, policy management, and better reporting. I explain them by the type of check they replace:
 
@@ -2078,6 +2122,8 @@ Example with GitHub Advanced Security for Azure DevOps:
 > "Yes. Apart from SonarQube and Trivy, I can use commercial tools depending on the organization's requirements. For code security, I can use Checkmarx One, Veracode, or GitHub Advanced Security for Azure DevOps with CodeQL. For dependencies, Snyk or Mend.io. For container images and Terraform, Prisma Cloud, JFrog Xray, or Snyk Container and IaC. Microsoft Defender for Cloud can also keep scanning images in ACR. In Azure DevOps, I add these scans as pipeline stages: code and dependency scanning after the build, and image scanning after the Docker build and before pushing to ACR. I define severity thresholds, so if a scan finds a critical vulnerability that violates the policy, the pipeline fails and the build doesn't reach Production."
 
 If the interviewer asks for just two names, Checkmarx One and Prisma Cloud are good examples. Mention them as tools you know how to integrate, and claim hands-on experience only for the ones you have actually used.
+
+</details>
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Shell scripting
 
-## Q1. Write a shell script to ping a list of IPs
+<details><summary>Q1. Write a shell script to ping a list of IPs</summary>
 
 If you want to ping a list of IP addresses using shell scripting, a simple DevOps-friendly script is:
 
@@ -126,9 +126,11 @@ IP,Status,Response_Time_ms
 
 **Be careful:** a ping failure does not always mean the server is down. ICMP may be blocked by a firewall. In a real production check, I would also validate the required service port, such as 443 or 22.
 
+</details>
+
 ---
 
-## Q2. Write a shell script to check SSH login on all servers
+<details><summary>Q2. Write a shell script to check SSH login on all servers</summary>
 
 Check SSH connectivity and login for a list of servers, and generate a CSV report.
 
@@ -204,9 +206,11 @@ Also use a variable such as `SSH_USER` rather than `USER`, so you don't overwrit
 - `StrictHostKeyChecking=no` is convenient for a lab, but in production prefer a managed `known_hosts` file, so you don't accept unknown host keys silently.
 - To check 500+ servers, add **parallel execution** (for example `xargs -P` or GNU `parallel`) so you don't wait for each server one after another.
 
+</details>
+
 ---
 
-## Q3. Find missing tags in a JSON file with jq
+<details><summary>Q3. Find missing tags in a JSON file with jq</summary>
 
 If the requirement is to find JSON objects where a required tag or key is missing, `jq` is a good fit.
 
@@ -304,9 +308,11 @@ That's why the working version saves the object first with `. as $obj` and then 
 
 For Azure-style resource JSON (for example from `az resource list`), the same technique can be adapted to check required tags such as `Environment`, `Owner`, `CostCenter` and `Application` across hundreds of resources.
 
+</details>
+
 ---
 
-## Q4. Write a shell script to check if a file exists (`/etc/config.js`)
+<details><summary>Q4. Write a shell script to check if a file exists (<code>/etc/config.js</code>)</summary>
 
 ```bash
 #!/bin/bash
@@ -339,9 +345,11 @@ fi
 
 > "I use the -f test operator to check whether /etc/config.js is a regular file. If the condition is true, I print that the file exists; otherwise, I handle the missing-file case."
 
+</details>
+
 ---
 
-## Q5. Write a shell script to delete logs older than N days
+<details><summary>Q5. Write a shell script to delete logs older than N days</summary>
 
 Use `find` for this. It is the standard approach in Linux.
 
@@ -387,9 +395,11 @@ echo "Deleted logs older than $DAYS days"
 - `-mtime +7` matches files last modified **more than 7 full days ago**. `find` counts age in whole days and drops the fraction, so a file that is 7 days and 1 hour old is **not** matched; it must be at least 8 days old.
 - For production cleanup, verify the target directory carefully before using `-delete`. For logs that a running service is still writing to, prefer `logrotate`.
 
+</details>
+
 ---
 
-## Q6. Write a shell script to check disk usage
+<details><summary>Q6. Write a shell script to check disk usage</summary>
 
 To check disk usage in shell scripting, the basic command is `df`.
 
@@ -450,11 +460,13 @@ du -sh /var/* 2>/dev/null | sort -hr | head -10
 
 > "I use df -h to check filesystem-level disk utilization. If usage crosses a threshold such as 80%, I generate an alert. Then I use du -sh to identify which directories are consuming the most space and investigate large logs, temporary files, or application data."
 
+</details>
+
 ---
 
 ## Terraform
 
-## Q7. Write a Terraform file to create a Resource Group
+<details><summary>Q7. Write a Terraform file to create a Resource Group</summary>
 
 For Azure, you can create a Resource Group with a simple Terraform configuration.
 
@@ -509,11 +521,13 @@ terraform destroy
 - Terraform tracks the Resource Group in the **state file**. If you delete the Resource Group manually from Azure, Terraform detects the drift during the next `plan`.
 - With **azurerm 4.x**, the provider needs a subscription ID. Set it in the provider block (`subscription_id = "<id>"`) or with the `ARM_SUBSCRIPTION_ID` environment variable, otherwise `terraform plan` fails.
 
+</details>
+
 ---
 
 ## Azure
 
-## Q8. Give a brief on Azure Batch, Microsoft Entra ID and Azure Monitor
+<details><summary>Q8. Give a brief on Azure Batch, Microsoft Entra ID and Azure Monitor</summary>
 
 ### 1. Azure Batch
 
@@ -568,9 +582,11 @@ It collects and uses:
 | Microsoft Entra ID | Identity and access |
 | Azure Monitor | Monitoring and alerts |
 
+</details>
+
 ---
 
-## Q9. Give a brief on Azure Container Apps and Azure Container Instances
+<details><summary>Q9. Give a brief on Azure Container Apps and Azure Container Instances</summary>
 
 ### 1. Azure Container Apps
 
@@ -619,9 +635,11 @@ Azure Container Instances is a service for **running individual containers direc
 - **ACI** = run a container.
 - **Container Apps** = run and scale an application made of containers.
 
+</details>
+
 ---
 
-## Q10. Azure Functions: generate a PDF and store it in a Storage Account <em>(scenario)</em>
+<details><summary>Q10. Azure Functions: generate a PDF and store it in a Storage Account <em>(scenario)</em></summary>
 
 The question in the interview was short ("Azure Functions, create a PDF in a storage account"). A common full version of this scenario is:
 
@@ -748,9 +766,11 @@ This gives better control over retries, throttling and workload spikes.
 6. **What if PDF generation takes several minutes?**
    "I would use an asynchronous design with a queue, and pick a Functions hosting plan whose execution time limit fits. For very heavy processing, I would evaluate Container Apps Jobs or Azure Batch instead of forcing everything into a single Function execution."
 
+</details>
+
 ---
 
-## Q11. How do you reduce costs in Azure?
+<details><summary>Q11. How do you reduce costs in Azure?</summary>
 
 For a DevOps interview, answer this as a **practical process**, not just a list of Azure services.
 
@@ -789,9 +809,11 @@ If an expensive Azure service was accidentally left running and generated a larg
 
 That is a much stronger answer, because it covers **detection → correction → root cause → prevention**.
 
+</details>
+
 ---
 
-## Q12. A Storage Account has become public in Azure. How do you remediate it? <em>(scenario)</em>
+<details><summary>Q12. A Storage Account has become public in Azure. How do you remediate it? <em>(scenario)</em></summary>
 
 Answer in this order.
 
@@ -906,9 +928,11 @@ Monitor continuously
 
 **One important distinction:** "the storage account is public" can mean different things. **Public network access** and **anonymous blob/container access** are separate controls, so check both.
 
+</details>
+
 ---
 
-## Q13. Store a database connection string securely with Key Vault and Managed Identity <em>(scenario)</em>
+<details><summary>Q13. Store a database connection string securely with Key Vault and Managed Identity <em>(scenario)</em></summary>
 
 A good version of this scenario is:
 
@@ -1035,9 +1059,11 @@ Private connection → PostgreSQL
 
 This is the clean answer the interviewer is looking for: **Key Vault stores the secret, Managed Identity authenticates the application, RBAC controls access, and the database stays private where possible.**
 
+</details>
+
 ---
 
-## Q14. How do you restrict a developer's access instead of giving the Contributor role in Azure?
+<details><summary>Q14. How do you restrict a developer's access instead of giving the Contributor role in Azure?</summary>
 
 The right approach is **least-privilege RBAC**. Don't give developers the broad Contributor role unless they actually need it.
 
@@ -1146,9 +1172,11 @@ Access expires
 
 > "I follow the principle of least privilege. I first identify exactly what permissions the developer requires, then use the closest built-in Azure RBAC role instead of Contributor. I assign it at the lowest required scope, preferably a specific resource or resource group. If no built-in role meets the requirement, I create a custom role with only the necessary actions. For production access, I prefer PIM with just-in-time and time-bound access. This prevents developers from accidentally modifying or deleting unrelated Azure resources."
 
+</details>
+
 ---
 
-## Q15. What is Azure Policy?
+<details><summary>Q15. What is Azure Policy?</summary>
 
 Azure Policy is an Azure **governance** service used to enforce organizational rules and compliance requirements on Azure resources.
 
@@ -1221,11 +1249,13 @@ So even if a user has Contributor, an Azure Policy can prevent certain resource 
 
 > "Azure Policy is a governance service used to enforce organizational standards and compliance across Azure resources. For example, I can create a policy to deny Storage Accounts with public network access enabled, enforce mandatory tags, or restrict deployments to approved regions. RBAC controls who can perform actions, while Azure Policy controls which resource configurations are allowed."
 
+</details>
+
 ---
 
 ## DevSecOps
 
-## Q16. Apart from pre-commit hooks, what other hooks and checks are there, inside and outside Git, and what is their purpose?
+<details><summary>Q16. Apart from pre-commit hooks, what other hooks and checks are there, inside and outside Git, and what is their purpose?</summary>
 
 Think of pre-commit hooks as **one layer in a larger validation chain**. In DevOps, you can have checks on the developer machine, in the Git repository, in the CI/CD pipeline, in Kubernetes, in Terraform, and at the Azure governance level.
 
@@ -1513,11 +1543,13 @@ Don't say all of these are pre-commit hooks. That's incorrect. Say:
 
 That distinction shows you understand **where each control belongs**, not just the tool names.
 
+</details>
+
 ---
 
 ## CI/CD and monitoring
 
-## Q17. If there is an issue with unit testing, how will you assist the developer?
+<details><summary>Q17. If there is an issue with unit testing, how will you assist the developer?</summary>
 
 ### Interview-ready answer
 
@@ -1592,9 +1624,11 @@ Don't say *"I ask the developer to fix it."* Say:
 
 That shows proper collaboration between Developer and DevOps, instead of treating every test failure as a developer problem.
 
+</details>
+
 ---
 
-## Q18. You have Splunk, Grafana and Prometheus. How do you use these tools effectively for multitasking?
+<details><summary>Q18. You have Splunk, Grafana and Prometheus. How do you use these tools effectively for multitasking?</summary>
 
 The key is not to use all three tools for the same purpose. Give each tool a clear responsibility and use them together for incident investigation.
 
@@ -1722,11 +1756,13 @@ Grafana    = visualization
 Splunk     = logs and investigation
 ```
 
+</details>
+
 ---
 
 ## Azure networking
 
-## Q19. How do you set up health probes in a load balancer?
+<details><summary>Q19. How do you set up health probes in a load balancer?</summary>
 
 An Azure Load Balancer **health probe** checks whether a backend VM or instance is healthy before sending traffic to it.
 
@@ -1820,11 +1856,13 @@ curl -i http://localhost:8080/health   # does it return 200?
 
 If `curl` works locally but the probe still fails, I'd investigate NSG rules, the guest OS firewall, routing, application binding and the probe configuration.
 
+</details>
+
 ---
 
 ## Kubernetes
 
-## Q20. What is the CrashLoopBackOff error, and how will you troubleshoot it?
+<details><summary>Q20. What is the CrashLoopBackOff error, and how will you troubleshoot it?</summary>
 
 ### What is CrashLoopBackOff?
 
@@ -1965,11 +2003,13 @@ Fix root cause
 Verify pod becomes Ready
 ```
 
+</details>
+
 ---
 
 ## Azure migration
 
-## Q21. How do you migrate servers from on-premises to Azure?
+<details><summary>Q21. How do you migrate servers from on-premises to Azure?</summary>
 
 I would follow a **plan → assess → replicate → test → migrate → validate → decommission** approach.
 
@@ -2092,11 +2132,13 @@ Assess → Dependency mapping → Azure preparation → Replication → Test mig
 
 Also mention **Azure Migrate** as the primary tool for a typical server migration scenario.
 
+</details>
+
 ---
 
 ## Azure VM operations
 
-## Q22. An application is down on an Azure Windows Server VM. How do you troubleshoot it? <em>(scenario)</em>
+<details><summary>Q22. An application is down on an Azure Windows Server VM. How do you troubleshoot it? <em>(scenario)</em></summary>
 
 I troubleshoot from the outside in: **Azure infrastructure → VM → network → Windows → application → dependencies**.
 
@@ -2275,9 +2317,11 @@ Fix → Validate → Monitor
 
 Don't immediately restart the server. First **collect evidence** and identify whether the problem is infrastructure, network, Windows service, application or dependency. A restart can clear the symptom and destroy the evidence you need for the root cause.
 
+</details>
+
 ---
 
-## Q23. If an application on a VM has dependencies, how do you make sure you update them?
+<details><summary>Q23. If an application on a VM has dependencies, how do you make sure you update them?</summary>
 
 I don't update dependencies directly in production without checking the impact. I follow a controlled update and change-management process.
 
@@ -2361,11 +2405,13 @@ In enterprise environments, updates should be **automated and standardized** rat
 | Application packaging and rollout | CI/CD pipelines |
 | New VMs | A golden image (Azure Compute Gallery) that already has the approved versions |
 
+</details>
+
 ---
 
 ## Load balancing
 
-## Q24. How does a Layer 4 load balancer distribute traffic?
+<details><summary>Q24. How does a Layer 4 load balancer distribute traffic?</summary>
 
 Layer 4 (L4) load balancing works at the **TCP/UDP** level. It makes routing decisions using the connection's flow information:
 
@@ -2453,11 +2499,13 @@ The load balancer stops sending **new** connections to VM2 and sends them to the
 
 > "L4 load balancing distributes TCP/UDP connections across healthy backend servers based on network flow information, not HTTP application content."
 
+</details>
+
 ---
 
 ## VNet connectivity
 
-## Q25. How do you establish a connection between two VNets (VNet-to-VNet)?
+<details><summary>Q25. How do you establish a connection between two VNets (VNet-to-VNet)?</summary>
 
 The most common approach is **VNet Peering**.
 
@@ -2574,11 +2622,13 @@ VNet-A **cannot** reach VNet-C through VNet-B automatically. For that I either p
 
 > "For normal VNet-to-VNet connectivity, I use VNet Peering; for cross-region connectivity, Global VNet Peering."
 
+</details>
+
 ---
 
 ## TLS and certificates
 
-## Q26. Your team uses HTTP for the frontend and backend. How do you change it to HTTPS? <em>(scenario)</em>
+<details><summary>Q26. Your team uses HTTP for the frontend and backend. How do you change it to HTTPS? <em>(scenario)</em></summary>
 
 I treat this as a **TLS termination and end-to-end encryption** change. It's not just changing `http` to `https`: I need to configure certificates, listeners, backend communication and application settings.
 
@@ -2699,9 +2749,11 @@ Then deploy through the normal **Dev → QA → UAT → Production** process.
 
 > "It's enough if encryption is only required from the client to Application Gateway. If the security requirement is end-to-end encryption, I'll configure HTTPS from Application Gateway to the backend as well."
 
+</details>
+
 ---
 
-## Q27. If a certificate expires, how do you make sure it won't impact the application? <em>(scenario)</em>
+<details><summary>Q27. If a certificate expires, how do you make sure it won't impact the application? <em>(scenario)</em></summary>
 
 The goal is that a certificate **never** reaches its expiry date in production: renew and deploy it before it expires, and automate monitoring so it doesn't become an incident.
 
@@ -2786,11 +2838,13 @@ If the new certificate causes an issue (for example, a missing intermediate cert
 
 Renewing a certificate in Key Vault doesn't mean every consuming service is immediately using it. I always verify each service's certificate binding/reference and how it picks up renewals.
 
+</details>
+
 ---
 
 ## Azure VM automation
 
-## Q28. How do you implement auto-shutdown for a VM?
+<details><summary>Q28. How do you implement auto-shutdown for a VM?</summary>
 
 The simplest approach is the built-in **Auto-shutdown** feature, or an automation-based schedule for many VMs.
 
@@ -2898,9 +2952,11 @@ This can significantly reduce compute costs (see Q11).
 
 > "For Azure VMs, I can configure the built-in Auto-shutdown feature for individual development or test VMs. If there are many VMs, I prefer centralized automation using Azure Automation runbooks, Logic Apps or the Start/Stop VMs solution. I use tags such as `Environment=Dev` and `AutoShutdown=Yes` to identify which VMs to stop, and make sure they're deallocated so compute billing stops. I configure the correct timezone and schedule, and exclude production VMs unless there's a specific requirement."
 
+</details>
+
 ---
 
-## Q29. Can we do cron scheduling in a VM?
+<details><summary>Q29. Can we do cron scheduling in a VM?</summary>
 
 Yes. Inside a **Linux** Azure VM, cron works exactly as it does on an on-prem Linux server.
 
@@ -2964,11 +3020,13 @@ $trigger = New-ScheduledTaskTrigger -Daily -At 8pm
 Register-ScheduledTask -TaskName "DailyCleanup" -Action $action -Trigger $trigger -User "SYSTEM"
 ```
 
+</details>
+
 ---
 
 ## Azure VM security
 
-## Q30. How do you remediate access to a Windows Azure server? <em>(scenario)</em>
+<details><summary>Q30. How do you remediate access to a Windows Azure server? <em>(scenario)</em></summary>
 
 If there is unauthorized or excessive access to a Windows Azure VM, I remediate it using **identity, network and least-privilege** controls.
 
@@ -3087,11 +3145,13 @@ I look for suspicious successful or failed logins, logins at unusual times or fr
 
 > "I remediate access using least privilege with Entra ID and RBAC, PIM/JIT, restricted RDP through Bastion or VPN, removal of unnecessary local admins, credential rotation, and log auditing."
 
+</details>
+
 ---
 
 ## Containers
 
-## Q31. A Docker image deployment takes 10 minutes. How do you reduce it to 5 minutes using ACI? <em>(scenario)</em>
+<details><summary>Q31. A Docker image deployment takes 10 minutes. How do you reduce it to 5 minutes using ACI? <em>(scenario)</em></summary>
 
 First I identify **where** the 10 minutes is spent: image build, image push, image pull or container startup.
 
@@ -3221,3 +3281,5 @@ If the container is pulled quickly but takes a long time to become ready, the pr
 If they specifically say *"using ACI"*, don't claim ACI itself magically makes the deployment twice as fast. Say:
 
 > "ACI is the runtime. To reduce deployment time, I optimize the image pull and startup path: mainly image size, ACR locality and application initialization."
+
+</details>

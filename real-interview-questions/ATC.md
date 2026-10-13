@@ -4,7 +4,7 @@ Real interview questions with simple, easy-to-read answers.
 
 ---
 
-## 1. Local accounts in Kubernetes
+<details><summary>Q1. Local accounts in Kubernetes</summary>
 
 If you mean **Local Accounts in Kubernetes**, this usually refers to user authentication using client certificates instead of an external identity provider.
 
@@ -77,9 +77,11 @@ az aks update \
 
 "Local accounts are Kubernetes users authenticated directly by the cluster, usually through client certificates rather than an external identity provider like Microsoft Entra ID. Access is controlled using Kubernetes RBAC. In AKS, local accounts provide cluster-admin access through kubeconfig, but many organizations disable them and use Microsoft Entra ID to improve security, auditing, and centralized access management."
 
+</details>
+
 ---
 
-## 2. How do you authenticate Terraform to Azure?
+<details><summary>Q2. How do you authenticate Terraform to Azure?</summary>
 
 This is a very common interview question. The interviewer usually wants to know the different authentication methods and when you would use each.
 
@@ -184,9 +186,11 @@ No credentials need to be hardcoded in the Terraform code.
 
 "Terraform authenticates to Azure using the AzureRM provider. For local development, I use Azure CLI with `az login`. In CI/CD pipelines, I prefer an Azure DevOps Service Connection or Workload Identity Federation because it avoids storing secrets. If Terraform runs on Azure resources like VMs or AKS, I use Managed Identity. In older environments, Service Principals with RBAC permissions are also commonly used. The preferred approach today is Workload Identity Federation or Managed Identity because they eliminate the need to manage client secrets."
 
+</details>
+
 ---
 
-## 3. VM vs Container
+<details><summary>Q3. VM vs Container</summary>
 
 This is one of the most common DevOps interview questions.
 
@@ -306,9 +310,11 @@ All share the same Linux kernel. No separate operating system is needed for each
 
 "A Virtual Machine virtualizes the hardware and includes its own guest operating system, making it larger, slower to start, and more resource-intensive. A container virtualizes the operating system, shares the host OS kernel, and packages only the application and its dependencies. Because containers are lightweight, they start in seconds and allow much higher application density on the same infrastructure. In my DevOps work, we package applications as Docker containers and orchestrate them with Kubernetes for faster deployments and easier scaling, while VMs are typically used for hosting the Kubernetes nodes or for workloads that require stronger isolation or different operating systems."
 
+</details>
+
 ---
 
-## 4. How do you isolate the container?
+<details><summary>Q4. How do you isolate the container?</summary>
 
 This is a common Kubernetes/Docker interview question. The interviewer wants to know the Linux kernel features behind container isolation.
 
@@ -391,9 +397,11 @@ securityContext:
 
 "Containers are isolated primarily through Linux namespaces and cgroups. Namespaces isolate processes, networking, filesystems, hostnames, IPC, and users so each container sees its own environment. cgroups enforce resource limits such as CPU and memory. Filesystem isolation ensures each container has its own writable layer, while security mechanisms like seccomp, AppArmor or SELinux, Linux capabilities, and running as a non-root user further reduce risk. In Kubernetes, we strengthen isolation with Network Policies, Security Contexts, Pod Security Admission, and resource limits."
 
+</details>
+
 ---
 
-## 5. Provisioners in Terraform
+<details><summary>Q5. Provisioners in Terraform</summary>
 
 Provisioners in Terraform are used to execute scripts or commands after a resource is created or before it is destroyed.
 
@@ -499,9 +507,11 @@ Instead, use:
 
 "Provisioners in Terraform execute scripts or commands after a resource is created or before it is destroyed. The three main provisioners are `local-exec`, which runs commands on the machine executing Terraform, `remote-exec`, which runs commands on the provisioned VM over SSH or WinRM, and `file`, which copies files to the remote machine. Although provisioners are useful for simple bootstrapping tasks, HashiCorp recommends avoiding them when possible because they are less reliable and not fully declarative. In production, I prefer cloud-init, Azure VM extensions, or Ansible for configuring resources after deployment."
 
+</details>
+
 ---
 
-## 6. Types of load balancers
+<details><summary>Q6. Types of load balancers</summary>
 
 This is a common interview question for Azure, Kubernetes, and networking.
 
@@ -622,9 +632,11 @@ On AKS:
 
 "Load balancers are mainly classified into Layer 4 and Layer 7. A Layer 4 load balancer routes traffic using IP addresses and TCP/UDP ports without inspecting application data, making it suitable for high-performance network traffic. A Layer 7 load balancer understands HTTP and HTTPS, so it can perform host-based and path-based routing, SSL termination, and other application-aware features. In Azure, Azure Load Balancer is a Layer 4 load balancer, while Azure Application Gateway is a Layer 7 load balancer. In AKS, a Service of type LoadBalancer uses Azure Load Balancer, whereas an Ingress Controller provides Layer 7 routing for web applications."
 
+</details>
+
 ---
 
-## 7. Which load balancer have you used in Azure?
+<details><summary>Q7. Which load balancer have you used in Azure?</summary>
 
 For an interview, answer based on practical experience. A strong response is:
 
@@ -661,9 +673,11 @@ A truthful answer is:
 
 This answer is technically accurate and reflects a common AKS deployment architecture.
 
+</details>
+
 ---
 
-## 8. How do you connect to AKS?
+<details><summary>Q8. How do you connect to AKS?</summary>
 
 This is a very common AKS interview question.
 
@@ -728,9 +742,11 @@ For a private AKS cluster, you cannot connect directly from the internet. You ty
 
 "I first authenticate to Azure using `az login` and select the correct subscription if needed. Then I run `az aks get-credentials` with the resource group and AKS cluster name. This downloads the cluster credentials into my local kubeconfig file. After that, I verify connectivity using commands like `kubectl get nodes` or `kubectl get pods -A`. If the AKS cluster is private, I connect from a machine that has network access to the cluster, such as a jump box, VPN-connected machine, or an Azure Bastion-hosted VM."
 
+</details>
+
 ---
 
-## 9. What is an Ingress Controller?
+<details><summary>Q9. What is an Ingress Controller?</summary>
 
 This is one of the most frequently asked Kubernetes interview questions.
 
@@ -863,9 +879,11 @@ Alternatively, you can use Azure Application Gateway with Application Gateway In
 
 "An Ingress Controller is a Kubernetes component that implements Ingress resources. It watches the Kubernetes API for Ingress rules and configures a reverse proxy to route incoming HTTP or HTTPS requests to the correct Services. It enables features such as host-based routing, path-based routing, SSL termination, and load balancing. In AKS, I've commonly used NGINX Ingress Controller with Azure Load Balancer to expose multiple applications through a single public IP. For applications requiring Azure-native Layer 7 capabilities and WAF, Azure Application Gateway with AGIC is another common choice."
 
+</details>
+
 ---
 
-## 10. What are the types of services in Kubernetes?
+<details><summary>Q10. What are the types of services in Kubernetes?</summary>
 
 This is a very common Kubernetes interview question.
 
@@ -1045,9 +1063,11 @@ Pod1   Pod2   Pod3
 
 "Kubernetes provides five Service types. ClusterIP is the default and is used for internal communication within the cluster. NodePort exposes the application on a port of every node, making it accessible using the node's IP and port. LoadBalancer provisions a cloud load balancer, such as Azure Load Balancer in AKS, to expose applications externally. ExternalName maps a Service to an external DNS name, allowing applications to access external resources through Kubernetes DNS. Headless Service does not allocate a ClusterIP and returns the IP addresses of individual Pods, making it useful for StatefulSets and distributed databases."
 
+</details>
+
 ---
 
-## 11. How do you expose an application in Kubernetes?
+<details><summary>Q11. How do you expose an application in Kubernetes?</summary>
 
 This is a common Kubernetes interview question. The interviewer wants to know the different ways to make an application accessible.
 
@@ -1170,9 +1190,11 @@ Here:
 
 "Applications in Kubernetes can be exposed using different Service types. ClusterIP is used for internal communication, NodePort exposes the application on a port of each worker node, and LoadBalancer provisions a cloud load balancer for external access. For production environments with multiple web applications, I typically use an Ingress Controller. In AKS, the Ingress Controller is exposed through an Azure Load Balancer, and it routes HTTP/HTTPS traffic to backend ClusterIP Services based on hostnames or URL paths. This approach is scalable, cost-effective, and supports features like SSL termination and path-based routing."
 
+</details>
+
 ---
 
-## 12. What are Linux namespaces and cgroups?
+<details><summary>Q12. What are Linux namespaces and cgroups?</summary>
 
 This is a very common Docker and Kubernetes interview question.
 
@@ -1271,9 +1293,11 @@ Kubernetes passes these limits to the container runtime, which uses cgroups to e
 
 "Linux namespaces and cgroups are the core technologies behind containers. Namespaces provide isolation by giving each container its own view of processes, networking, filesystems, hostnames, IPC, and users. This makes each container appear as if it has its own operating system. cgroups, or control groups, manage resource usage by limiting CPU, memory, disk I/O, and other resources for each container. Together, namespaces provide isolation and cgroups provide resource control, enabling multiple containers to run safely and efficiently on the same Linux host."
 
+</details>
+
 ---
 
-## 13. If `agent` is not given in a Jenkins Declarative Pipeline, what will happen?
+<details><summary>Q13. If <code>agent</code> is not given in a Jenkins Declarative Pipeline, what will happen?</summary>
 
 This is a common Jenkins interview question.
 
@@ -1376,9 +1400,11 @@ pipeline {
 
 "In a Declarative Pipeline, an agent is mandatory. If you don't specify one, Jenkins fails to validate the pipeline because it doesn't know where to execute the stages. You can either define a global agent, such as `agent any`, or use `agent none` at the pipeline level and specify an agent for each stage individually. Using `agent none` is useful when different stages need different build nodes or you want to optimize agent usage."
 
+</details>
+
 ---
 
-## 14. If `steps` are not given in a Jenkins Declarative Pipeline, what will happen?
+<details><summary>Q14. If <code>steps</code> are not given in a Jenkins Declarative Pipeline, what will happen?</summary>
 
 This is another common Jenkins interview question.
 
@@ -1457,9 +1483,11 @@ stage('Test') {
 
 "In a Declarative Pipeline, a stage that executes commands must include a `steps` block. If it's missing, Jenkins fails validation before execution because Declarative syntax requires executable statements to be inside `steps`. The only exception is when the stage contains valid alternatives like `parallel`, `matrix`, or nested stages instead of `steps`."
 
+</details>
+
 ---
 
-## 15. Sample providers.tf file
+<details><summary>Q15. Sample providers.tf file</summary>
 
 A `providers.tf` file is used to configure the provider that Terraform will use. In Azure projects, this is typically the AzureRM provider.
 
@@ -1576,9 +1604,11 @@ terraform {
 
 "The `providers.tf` file configures the cloud provider that Terraform uses to create and manage resources. In Azure, it typically contains the `azurerm` provider block with `features {}` and optionally settings like `subscription_id` or provider aliases for multiple subscriptions. Authentication is usually handled separately through Azure CLI, a Service Principal, Managed Identity, or Workload Identity Federation rather than hardcoding credentials in the provider configuration."
 
+</details>
+
 ---
 
-## 16. Sample Jenkins pipeline
+<details><summary>Q16. Sample Jenkins pipeline</summary>
 
 Here is a simple Declarative Jenkins Pipeline that is commonly used in DevOps interviews.
 
@@ -1689,3 +1719,5 @@ Deploy to AKS
 ### Interview answer (1 minute)
 
 "In my projects, I use a Declarative Jenkins Pipeline. It starts by checking out the source code from Git, builds the application using Maven, runs unit tests, performs a SonarQube scan for code quality, builds a Docker image, pushes it to Azure Container Registry, and finally deploys the application to AKS using Kubernetes manifests or Helm. I also use the `post` section to handle success, failure, and cleanup tasks such as notifications or workspace cleanup."
+
+</details>
