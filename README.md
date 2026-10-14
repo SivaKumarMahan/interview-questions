@@ -129,7 +129,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 
 ## Topic index
 
-29 topic folders, 178 topic files, and 1,740 interview questions in total.
+29 topic folders, 178 topic files, and 1,745 interview questions in total.
 
 ### Containers, orchestration, and GitOps
 
@@ -181,7 +181,7 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 | --- | --- | --- | --- |
 | [linux](linux/) | 11 | 153 | Fundamentals, files and text processing, users/permissions/SSH, processes and services, disks and filesystems, networking, packages, logs, performance troubleshooting, most asked basics and commands, sysadmin scenarios |
 | [windows](windows/) | 3 | 12 | Administration and patching, logs and troubleshooting, networking and remote access |
-| [shell-scripting](shell-scripting/) | 3 | 29 | Bash fundamentals and error handling, automation scripts in practice, cheat sheet and interview scripts |
+| [shell-scripting](shell-scripting/) | 3 | 34 | Bash fundamentals and error handling, automation scripts in practice, cheat sheet and interview scripts |
 | [python](python/) | 5 | 55 | Fundamentals, functions and classes, automation/APIs/data, logging with Loguru, coding challenges |
 
 ### Observability, operations, and networking
