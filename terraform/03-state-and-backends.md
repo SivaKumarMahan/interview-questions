@@ -868,3 +868,193 @@ Versioning, soft delete, locking, restricted delete permissions, and a restore y
 "First I stop all runs, because with an empty state Terraform will plan to recreate everything. Then I restore the previous version from bucket versioning or the backend's history and confirm it with a read-only plan. If there is genuinely no copy, I rebuild state by importing resources in small groups until the plan is clean. Afterwards I make sure versioning and delete protection are on and that the restore procedure is documented and tested."
 
 </details>
+
+<details><summary>Q26. [Intermediate] How do you manage Terraform state safely? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+State maps configuration to real resources and often contains sensitive values, so it must be remote, locked, versioned, encrypted, access-controlled and split into sensible blast-radius units.
+
+**Practices:**
+
+1. **Remote backend**: S3, Azure Storage, GCS or HCP Terraform; never local state or state in Git.
+2. **Locking**: S3 native locking with `use_lockfile = true` (Terraform 1.10+; DynamoDB locking is deprecated), Azure blob leases, GCS built-in locking.
+3. **Versioning and backups**: enable bucket/blob versioning and soft delete so any previous state can be restored.
+4. **Encryption and access**: encryption at rest (KMS/CMK), TLS, least-privilege IAM; only the CI identity writes state.
+5. **Separation**: one state per environment and per component (network, data, app), so a mistake cannot affect everything.
+6. **Only change state through Terraform**: use `moved`, `import` and `removed` blocks in code rather than ad hoc `state mv/rm`.
+7. **Pipeline-only applies**: plan on PR, apply after approval, with the saved plan file.
+8. **Mark secrets `sensitive`**, but remember they are still stored in plain text in state.
+
+**Example backend:**
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket       = "acme-tfstate-prod"
+    key          = "network/terraform.tfstate"
+    region       = "eu-west-1"
+    encrypt      = true
+    kms_key_id   = "alias/tfstate"
+    use_lockfile = true
+  }
+}
+```
+
+```hcl
+moved {
+  from = aws_instance.web
+  to   = module.web.aws_instance.this
+}
+```
+
+**Important points:**
+
+- Large single states are slow and risky; split by lifecycle and ownership.
+- Use `terraform_remote_state` or, better, data sources/outputs published to a parameter store for cross-stack values.
+- Avoid `-lock=false` except in a controlled recovery.
+
+See also: [State and backends](../terraform/03-state-and-backends.md), [Environments and workspaces](../terraform/05-environments-and-workspaces.md), [Terraform CI/CD, testing and security](../terraform/09-cicd-testing-and-security.md)
+
+**Interview-ready answer:**
+
+> "I keep state in a remote backend with locking, versioning and encryption: for AWS that is an S3 bucket with KMS encryption, versioning and native S3 locking using `use_lockfile`, since DynamoDB locking is now deprecated. Access is least privilege, and only the pipeline identity can write state. I split state per environment and per component to limit blast radius and keep plans fast. State changes go through code using `moved`, `import` and `removed` blocks rather than manual state commands. Applies only happen from CI after an approved plan. Because secrets end up in state in plain text, I treat the state bucket as sensitive data."
+
+</details>
+
+<details><summary>Q27. [Advanced] How do you recover from Terraform state corruption or state-lock failures? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Stuck locks and corrupted state are different problems. A stuck lock is usually left behind by an interrupted run and is safe to release once I confirm nothing is running. Corrupted or wrong state needs a restore from a version, followed by reconciliation.
+
+**Stuck lock:**
+
+1. Read the lock error: it shows the lock ID, who holds it and when.
+2. Confirm no pipeline or person is running Terraform against that state (CI jobs, colleagues).
+3. Release it: `terraform force-unlock <LOCK_ID>`.
+4. Prevent it: pipeline concurrency controls, sensible timeouts, do not kill runners mid-apply.
+
+**Corrupted or lost state:**
+
+1. **Stop all applies** against that state.
+2. **Back up the current file**: `terraform state pull > broken.tfstate`.
+3. **Restore a previous version** from bucket versioning or blob snapshots.
+4. **Validate**: `terraform plan` should show only the changes made since that version.
+5. **Reconcile**: `import` blocks for resources created after the backup; `removed` blocks or `state rm` for resources that no longer exist.
+6. If no backup exists: rebuild state by importing resources, using `-generate-config-out` to help.
+
+**Decision flow:**
+
+```text
+Terraform error
+      |
+      +-- "Error acquiring the state lock"
+      |        |
+      |        v
+      |   Anyone running? --yes--> wait
+      |        |no
+      |        v
+      |   terraform force-unlock <ID>
+      |
+      +-- state unreadable / resources missing / serial errors
+               |
+               v
+          freeze applies --> state pull backup --> restore previous version
+               |
+               v
+          plan --> import new resources / remove deleted ones --> plan clean
+```
+
+**Commands:**
+
+```bash
+terraform force-unlock 4c1d2f6e-8a3b-4e7f-9c2d-1a2b3c4d5e6f
+
+terraform state pull > broken-$(date +%F-%H%M).tfstate
+
+aws s3api list-object-versions --bucket acme-tfstate-prod \
+  --prefix network/terraform.tfstate --max-items 5
+aws s3api get-object --bucket acme-tfstate-prod --key network/terraform.tfstate \
+  --version-id <version-id> restored.tfstate
+
+terraform state push restored.tfstate     # only after review; may need -force if serial/lineage differ
+terraform plan
+```
+
+**Important points:**
+
+- `force-unlock` while another apply is genuinely running can corrupt state; always confirm first.
+- `state push -force` overrides lineage and serial checks; use it only when you are certain the file is correct.
+- With the S3 lock file, the lock is an object next to the state (`.tflock`); with the legacy DynamoDB lock, the item is in the table.
+- Partial applies are normal after a crash; a fresh plan shows what remains.
+
+See also: [State and backends](../terraform/03-state-and-backends.md), [Troubleshooting, performance and operations](../terraform/10-troubleshooting-performance-and-operations.md)
+
+**Interview-ready answer:**
+
+> "For a lock error I read the lock info, confirm with the team and CI that no run is active, and then run `terraform force-unlock` with the lock ID. I prevent repeats with pipeline concurrency controls so two applies cannot run on the same state. For corruption I first freeze applies and back up the current file with `terraform state pull`. Then I restore the last good version from S3 versioning or blob snapshots, and run a plan to see the difference. Resources created since that version are imported with `import` blocks, and deleted ones are removed from state. If there were no backups, I rebuild state by importing resources, which is why versioning on the state bucket is mandatory."
+
+</details>
+
+<details><summary>Q28. [Intermediate] What is the impact of terraform refresh vs terraform plan? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| Command | What it does | Risk |
+| --- | --- | --- |
+| `terraform refresh` | Deprecated alias for `terraform apply -refresh-only -auto-approve`; writes real-world values into state | Updates state with no review; can hide drift or record a deleted resource as gone |
+| `terraform plan` | Refreshes in memory, compares config with real state, proposes changes; does not modify state | Safe, read-only |
+| `terraform plan -refresh-only` | Shows only what changed outside Terraform | Safe, read-only |
+| `terraform apply -refresh-only` | Updates state after you review and approve | Reviewed change to state |
+
+```bash
+terraform plan -refresh-only      # review drift
+terraform apply -refresh-only     # accept it into state after review
+```
+
+**Interview-ready answer:**
+
+> `terraform plan` refreshes in memory and shows the changes needed to make reality match the code, without touching state. `terraform refresh` is deprecated; it is just `apply -refresh-only -auto-approve`, so it rewrites state with no review. That is risky, because a resource that was deleted or changed by mistake can be silently accepted into state. I use `plan -refresh-only` to review drift and `apply -refresh-only` only when I deliberately want to accept those changes.
+
+See also: [terraform refresh vs terraform plan](../terraform/01-fundamentals-and-workflow.md)
+
+</details>
+
+<details><summary>Q29. [Intermediate] How do you manage state locking and avoid conflicts in remote backends? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Locking stops two runs from writing the same state at the same time.
+
+| Backend | Locking |
+| --- | --- |
+| S3 | `use_lockfile = true` (native S3 lock file, Terraform 1.10+); DynamoDB table is the legacy method, now deprecated |
+| `azurerm` | Automatic blob lease on the state blob |
+| GCS, HCP Terraform | Built in |
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket       = "acme-tf-state"
+    key          = "prod/network/terraform.tfstate"
+    region       = "eu-west-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+```
+
+**Important points:**
+
+- Run applies only from CI with concurrency control (one job per state).
+- Use `terraform force-unlock LOCK_ID` only after confirming no run is active; otherwise you can corrupt state.
+- Enable versioning on the state bucket or container so you can recover.
+
+**Interview-ready answer:**
+
+> I always use a remote backend with locking: on S3 with Terraform 1.10 or later I enable `use_lockfile`, which replaces the old DynamoDB table, and on Azure the blob lease handles it automatically. Applies run only from CI with one concurrent job per state, so humans do not race the pipeline. I split state per environment and layer to reduce contention. If a lock is stuck I first confirm no job is running, then use `force-unlock`, and state versioning gives me a recovery path.
+
+See also: [State locking and avoiding conflicts](../terraform/03-state-and-backends.md)
+
+</details>

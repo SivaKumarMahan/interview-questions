@@ -495,3 +495,35 @@ Deployments roll out from a representative canary cluster to waves of others, an
 I test what happens if a whole cluster or region is lost, avoid any hidden shared control-plane dependency, and automate upgrades and drift correction with audited exceptions.
 
 </details>
+
+<details><summary>Q20. [Advanced] What is the role of etcd and how do you back it up? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+etcd is the consistent, distributed key-value store that holds all cluster state: objects, Secrets, ConfigMaps and leases. Only the API server talks to it. Losing etcd means losing the cluster's desired state, so it needs an odd number of members (3 or 5) and regular snapshots.
+
+Self-managed clusters (for example `kubeadm`):
+
+```bash
+ETCDCTL_API=3 etcdctl snapshot save /backup/etcd-$(date +%F).db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+etcdutl snapshot status /backup/etcd-$(date +%F).db
+```
+
+Restore with `etcdutl snapshot restore` into a new data directory and point the etcd static Pod at it.
+
+**Important points:**
+
+- On managed AKS, EKS or GKE the provider runs etcd and you cannot access it. Back up workloads with Velero (resources plus volume snapshots) and keep all manifests in Git so GitOps can rebuild the cluster.
+- Store snapshots off the node, encrypted, and test restores regularly.
+
+**Interview-ready answer:**
+
+> etcd is the source of truth for the whole cluster; every object the API server stores lives there. On self-managed clusters I schedule `etcdctl snapshot save` with the etcd client certificates, copy the snapshot off the node encrypted, and practise restores with `etcdutl`. On AKS or EKS I cannot reach etcd, so I rely on Velero for resources and persistent volumes and on GitOps so the cluster can be recreated from Git. A backup only counts once a restore has been tested.
+
+See also: [Role of etcd and how to back it up](../kubernetes/09-observability-backup-dr.md), [What is etcd](../kubernetes/01-architecture-and-fundamentals.md), [Snapshot, backup and restore](../repetitive-questions/snapshot-backup-restore.md)
+
+</details>

@@ -327,3 +327,223 @@ Done well, it groups related symptoms together, ranks impact, and supplies evide
 I monitor the underlying models for missing data, drift, precision and false-positive rate. Any automated remediation is limited to narrow, pre-approved runbooks, with approval steps where needed and SLO verification after it acts.
 
 </details>
+
+<details><summary>Q16. [Advanced] CPU and memory are normal, but latency increased 10x. What do you check? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Normal CPU and memory mean the service is probably **waiting**, not working: on a dependency, a lock, a pool, the network or the disk. I use traces and the golden signals to find where the time is spent.
+
+**Steps:**
+
+1. **Scope it**: all endpoints or one? All instances or one? All regions? p50 or only p99? When did it start, and what changed?
+2. **Traces**: open slow traces and find the span that grew: database, cache, external API, queue.
+3. **Dependencies**: database slow queries, locks, replication lag, connection count; cache hit rate; third-party API latency.
+4. **Pools and queues**: connection pool, thread pool or worker saturation (requests waiting for a connection look like latency with low CPU).
+5. **Runtime**: garbage collection pauses, CPU throttling from container limits (`container_cpu_cfs_throttled_periods_total`) even when average CPU looks normal.
+6. **Network and DNS**: TCP retransmissions, DNS lookup times, cross-zone or cross-region calls, TLS handshakes, load balancer queueing.
+7. **Disk I/O**: high `await` with low CPU.
+8. **Recent change**: release, config, feature flag, traffic mix, data growth (a query that became slow as a table grew).
+
+**Decision flow:**
+
+```text
+Latency 10x, CPU/memory normal
+      |
+      v
+One endpoint or all? one --> trace that endpoint --> slow span (DB query? external API?)
+      |all
+      v
+One instance/zone? yes --> bad node, noisy neighbour, AZ network --> remove from rotation
+      |no
+      v
+Pool saturation / throttling / GC? --> pool metrics, cfs throttling, GC logs
+      |
+      v
+Shared dependency slow? --> DB locks/slow queries, cache misses, DNS, third party
+```
+
+**Example queries:**
+
+```promql
+histogram_quantile(0.99, sum by (le, route) (rate(http_server_request_duration_seconds_bucket[5m])))
+
+sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="prod"}[5m]))
+  / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="prod"}[5m]))
+
+hikaricp_connections_pending{application="orders"}
+```
+
+**Important points:**
+
+- Averages hide problems; always look at percentiles and per-instance breakdowns.
+- CPU throttling with low average usage is common with tight CPU limits and spiky workloads.
+- Retries with no backoff can turn a small slowdown into a 10x latency increase.
+
+See also: [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [SRE](../ops/03-sre.md), [Linux performance troubleshooting](../linux/09-performance-troubleshooting-and-production.md)
+
+**Interview-ready answer:**
+
+> "If CPU and memory are normal, the service is usually waiting on something rather than working hard. I scope the problem first: which endpoints, which instances, which percentile, and what changed at that time. Then I open distributed traces and find the span whose duration grew, which typically points to a slow database query, lock contention, a cache miss storm or a slow third-party API. I check connection and thread pool saturation, garbage collection pauses and CPU throttling from container limits, because those all add latency without high CPU. I also look at DNS and network retransmissions. Once I find the cause, I mitigate, for example by rolling back, scaling the pool or failing over, and then fix it properly."
+
+</details>
+
+<details><summary>Q17. [Advanced] Logs look normal but users report failures. What next? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+If the logs look clean, either the failure happens **before** the request reaches the application, the application is **not logging** the failure, or I am **looking at the wrong logs**. I reproduce from the user's side and follow the request.
+
+**Steps:**
+
+1. **Get specifics**: time, region, user, request ID, URL, error message, browser or client version.
+2. **Reproduce** from the user's perspective: synthetic checks, `curl` from outside, different regions and networks.
+3. **Check the edge**: CDN, WAF (blocked requests), DNS, TLS certificate, load balancer and ingress logs. Many failures never reach the app.
+4. **Check the right logs**: correct environment, all instances, all regions; log sampling or dropped logs in the pipeline.
+5. **Use traces and request IDs**: follow one failing request across services.
+6. **Look for silent failures**: errors caught and returned as `200` with an error body, timeouts in the client, frontend JavaScript errors (use real-user monitoring).
+7. **Look at metrics**: error rate by status code at the edge, latency percentiles, dependency errors.
+8. **Fix observability gaps** found during the investigation.
+
+**Decision flow:**
+
+```text
+Users fail, logs clean
+      |
+      v
+Reproducible from outside? --no--> region/ISP/client specific: DNS, CDN POP, client version
+      |yes
+      v
+Reaches the LB/ingress? --no--> DNS, TLS, WAF, CDN
+      |yes
+      v
+Reaches the app? --no--> LB/ingress errors, routing, health of targets
+      |yes
+      v
+App returns success but wrong? --> silent errors, frontend errors, data issue --> traces + RUM
+```
+
+**Commands:**
+
+```bash
+curl -sv https://app.example.com/api/orders -H 'X-Request-ID: debug-123'
+dig +short app.example.com @8.8.8.8
+echo | openssl s_client -connect app.example.com:443 -servername app.example.com 2>/dev/null \
+  | openssl x509 -noout -dates
+kubectl logs -n ingress-nginx deploy/ingress-nginx-controller --since=30m | grep -v ' 200 '
+```
+
+**Important points:**
+
+- Correlation IDs that travel from the edge through every service make this kind of problem fast to solve.
+- Log levels can hide errors (`WARN` filtered out, or exceptions swallowed).
+- Synthetic monitoring and real-user monitoring catch what server logs cannot see.
+
+See also: [Logging](../monitoring-tools/04-logging.md), [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [Production issues](../repetitive-questions/production-issues.md)
+
+**Interview-ready answer:**
+
+> "If logs look normal, the failure is probably happening before the request reaches the app, or the app is not logging it. I get specifics from users, such as time, region and request IDs, and try to reproduce from outside. Then I work from the edge inward: DNS, CDN, WAF blocks, TLS certificate, load balancer and ingress logs, because many failures never reach the application. I make sure I am looking at the right environment and all instances, and check for log sampling. Next I follow a failing request with traces and look for silent failures, such as errors returned with status 200 or frontend JavaScript errors visible only in real-user monitoring. Finally I close the observability gap so the next failure is visible."
+
+</details>
+
+<details><summary>Q18. [Advanced] How do you investigate high latency using Prometheus, Grafana and OpenTelemetry? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I use the three tools together: **Prometheus** tells me *that* latency is high and *where* (service, route, instance), **OpenTelemetry traces** tell me *which span* inside the request is slow, and **Grafana** links them, with logs, in one workflow.
+
+**Steps:**
+
+1. **Confirm in Prometheus/Grafana**: p95/p99 latency per service and route from histogram metrics; when did it start; does it correlate with traffic, deployments or errors?
+2. **Narrow down**: break down by route, instance, zone and version. One route points to code or a query; one instance points to a node; all routes point to a shared dependency.
+3. **Check saturation signals**: CPU throttling, pool usage, queue depth, GC, database metrics.
+4. **Jump to traces**: Grafana exemplars on the latency histogram link to an OpenTelemetry trace for a slow request (in Tempo or Jaeger). Or query traces by service and duration.
+5. **Read the trace waterfall**: find the longest span, sequential calls that could be parallel, retries, N+1 query patterns, gaps (time spent waiting in queues).
+6. **Correlate logs** using the trace ID.
+7. **Fix and verify**: compare latency before and after on the same dashboard.
+
+**Flow:**
+
+```text
+Grafana alert: p99 latency high
+      |
+      v
+Prometheus breakdown by route / pod / version / zone
+      |
+      v
+Exemplar click --> OpenTelemetry trace in Tempo/Jaeger
+      |
+      v
+Slow span? DB query | external HTTP | cache miss | lock wait | queue time
+      |
+      v
+Logs for same trace_id --> root cause --> fix --> verify on dashboard
+```
+
+**Queries:**
+
+```promql
+# p99 latency per route (OpenTelemetry semantic conventions, seconds)
+histogram_quantile(0.99,
+  sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket{service_name="checkout"}[5m])))
+
+# Is it one pod?
+histogram_quantile(0.99,
+  sum by (le, pod) (rate(http_server_request_duration_seconds_bucket{service_name="checkout"}[5m])))
+
+# Downstream client latency
+histogram_quantile(0.99,
+  sum by (le, server_address) (rate(http_client_request_duration_seconds_bucket{service_name="checkout"}[5m])))
+```
+
+TraceQL in Grafana Tempo to find slow traces with a slow database span:
+
+```text
+{ resource.service.name = "checkout" && duration > 2s } >> { span.db.system != nil && duration > 1s }
+```
+
+**OpenTelemetry Collector essentials:**
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+processors:
+  batch: {}
+  tail_sampling:
+    policies:
+      - name: errors
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow
+        type: latency
+        latency: { threshold_ms: 1000 }
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: { insecure: true }
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling, batch]
+      exporters: [otlp/tempo]
+```
+
+**Important points:**
+
+- Use histograms, not summaries, so percentiles can be aggregated across instances.
+- Tail-based sampling keeps the slow and failed traces you actually need, at a fraction of the cost.
+- Exact metric names depend on the instrumentation and exporter; OpenTelemetry semantic conventions use `http.server.request.duration` in seconds, exported to Prometheus as `http_server_request_duration_seconds`.
+- `tls: insecure` is only for an in-cluster example; use TLS between collectors and back ends in production.
+
+See also: [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [Prometheus](../monitoring-tools/02-prometheus.md), [Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), [Prometheus and Grafana hands-on setup](../monitoring-tools/11-prometheus-grafana-hands-on-setup.md)
+
+**Interview-ready answer:**
+
+> "I start in Grafana with Prometheus histogram metrics to confirm the latency increase and see p95 and p99 by route, Pod, version and zone, which tells me whether it is one endpoint, one instance or everything. I check saturation signals like CPU throttling, connection pools and database metrics at the same time. Then I click an exemplar on the latency panel to open an OpenTelemetry trace in Tempo or Jaeger, and read the waterfall to find the slow span, such as a database query, an external call, a lock or retries. Using the trace ID, I pull the matching logs. The collector uses tail-based sampling so slow and failed traces are always kept. After the fix, I verify on the same dashboard that latency is back to normal."
+
+</details>

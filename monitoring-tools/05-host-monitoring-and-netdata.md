@@ -243,3 +243,133 @@ I don't assume the top process is leaking from a single sample. I check `free -h
 I compare the growth pattern against traffic, deployments, and scheduled jobs. If the impact is severe, I scale out or restart gracefully, but only after preserving diagnostics first. Then I fix the actual leak, cache or heap configuration, workload sizing, or resource limit, and confirm memory, latency, and error rate are back to normal under regular load.
 
 </details>
+
+<details><summary>Q10. [Intermediate] Before it reaches 90%, how do you set up monitoring and alerts to the right teams? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I alert **early and on trend**, not only on a static threshold: a warning at 75–80%, a critical alert at 90%, and a **"will fill within N hours"** prediction. Alerts are routed by **ownership labels or tags** to the right team's channel, with a runbook link.
+
+**Option A: AWS CloudWatch agent + alarm + SNS:**
+
+**1. CloudWatch agent config** (publishes `disk_used_percent` in the `CWAgent` namespace):
+
+```json
+{
+  "metrics": {
+    "append_dimensions": { "InstanceId": "${aws:InstanceId}" },
+    "metrics_collected": {
+      "disk": {
+        "measurement": ["used_percent", "inodes_free"],
+        "resources": ["/", "/var/log", "/data"],
+        "ignore_file_system_types": ["tmpfs", "devtmpfs", "overlay"],
+        "metrics_collection_interval": 60
+      }
+    }
+  }
+}
+```
+
+**2. Alarm routed to the owning team's SNS topic:**
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name "disk-root-80-i-0abc123" \
+  --namespace CWAgent --metric-name disk_used_percent \
+  --dimensions Name=InstanceId,Value=i-0abc123 Name=path,Value=/ Name=device,Value=nvme0n1p1 Name=fstype,Value=xfs \
+  --statistic Average --period 300 --evaluation-periods 3 \
+  --threshold 80 --comparison-operator GreaterThanOrEqualToThreshold \
+  --treat-missing-data breaching \
+  --alarm-actions arn:aws:sns:us-east-1:111122223333:team-payments-alerts
+```
+
+The dimensions must match exactly what the agent publishes (check with `aws cloudwatch list-metrics --namespace CWAgent`). The SNS topic fans out to email, Slack/Teams (via Amazon Q Developer in chat applications or a Lambda) or `PagerDuty`. At scale, alarms are created from IaC per instance, or via a Lambda triggered when instances launch, using the instance's `Team` tag to pick the topic.
+
+**Option B: Prometheus + `node_exporter` + Alertmanager:**
+
+```yaml
+groups:
+  - name: disk
+    rules:
+      - alert: DiskUsageHigh
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+             / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }} is {{ $value | humanize }}% full"
+          runbook_url: https://wiki.example.com/runbooks/disk-full
+
+      - alert: DiskWillFillIn24h
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 24 * 3600) < 0
+          and node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 0.4
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }} will fill within 24h"
+```
+
+The `team` label comes from scrape config relabeling (for example from an EC2 tag via `ec2_sd_configs`, or a Kubernetes label), and Alertmanager routes on it:
+
+```yaml
+route:
+  receiver: default-ops
+  group_by: [alertname, instance, mountpoint]
+  routes:
+    - matchers: ['team="payments"', 'severity="critical"']
+      receiver: payments-pagerduty
+    - matchers: ['team="payments"']
+      receiver: payments-slack
+    - matchers: ['team="data"']
+      receiver: data-slack
+receivers:
+  - name: default-ops
+    slack_configs:
+      - channel: "#ops-alerts"
+        api_url_file: /etc/alertmanager/secrets/slack-ops-url
+  - name: payments-slack
+    slack_configs:
+      - channel: "#payments-alerts"
+        api_url_file: /etc/alertmanager/secrets/slack-payments-url
+  - name: payments-pagerduty
+    pagerduty_configs:
+      - routing_key_file: /etc/alertmanager/secrets/pd-payments-key
+  - name: data-slack
+    slack_configs:
+      - channel: "#data-alerts"
+        api_url_file: /etc/alertmanager/secrets/slack-data-url
+```
+
+```text
+node_exporter / CloudWatch agent (per mount point)
+        |
+        v
+Prometheus rules / CloudWatch alarms
+  warning 80% | predicted full in 24h | critical 90%
+        |
+        v
+Alertmanager routes by team label  /  SNS topic per team
+        |
+        v
+Slack/Teams (warning)  |  PagerDuty/on-call (critical)  + runbook link
+```
+
+**Important points:**
+
+- Monitor each relevant mount point and inodes, and exclude pseudo filesystems (`tmpfs`, `overlay`).
+- `predict_linear` catches fast growth long before a static threshold, and avoids paging for disks that are high but stable.
+- Use `for:` / evaluation periods to avoid flapping, and group or inhibit alerts to reduce noise.
+- Every alert should have an owner, severity and runbook; consider automated remediation (log cleanup via SSM Automation) for known causes.
+
+See also: [Prometheus](../monitoring-tools/02-prometheus.md), [Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), [AWS and Azure monitoring](../monitoring-tools/08-aws-and-azure-monitoring.md).
+
+**Interview-ready answer:**
+
+> "I set up disk monitoring per mount point with alerts at two levels plus a trend alert. On AWS, the CloudWatch agent publishes `disk_used_percent`, and a CloudWatch alarm at 80% sends to the owning team's SNS topic, chosen from the instance's team tag, which forwards to Slack or `PagerDuty`. In Prometheus environments, `node_exporter` exposes filesystem metrics, and I have a threshold rule plus a `predict_linear` rule that fires if the disk will fill within 24 hours. Alertmanager routes on the team and severity labels, so warnings go to the team channel and critical alerts page on-call. Each alert includes the host, mount point and a runbook link, and I use `for` durations to avoid flapping."
+
+</details>

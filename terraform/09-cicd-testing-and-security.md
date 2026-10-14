@@ -1397,3 +1397,35 @@ TLS, secret management, backups of state and metadata, monitoring, an upgrade pl
 "A Git webhook or API call reaches the Terraform Enterprise application, which manages workspaces, variables, policies, and the run queue. A worker then runs init, plan, and apply, talking to module sources and cloud APIs, and returns logs and a new state version stored in object storage. In production I also plan for TLS, secrets, backups, monitoring, upgrades, and disaster recovery, and I make sure the workers have the network access they need, not just the UI."
 
 </details>
+
+<details><summary>Q28. [Intermediate] How do you test Terraform code before production? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| Level | Tool | Catches |
+| --- | --- | --- |
+| Static | `terraform fmt -check`, `terraform validate` | Syntax and type errors |
+| Lint | `tflint` | Provider-specific mistakes, unused variables |
+| Security and policy | Checkov, Trivy config, OPA / Sentinel | Public buckets, missing encryption |
+| Unit and integration | `terraform test` (`.tftest.hcl`, plan or apply mode) | Module logic and outputs |
+| End to end | Terratest in a sandbox account | Real resources actually work |
+| Review | `terraform plan` posted on the pull request | Unexpected replacements or deletions |
+
+```hcl
+# tests/bucket.tftest.hcl
+run "bucket_is_private" {
+  command = plan
+  assert {
+    condition     = aws_s3_bucket_public_access_block.this.block_public_acls == true
+    error_message = "Bucket must block public ACLs"
+  }
+}
+```
+
+**Interview-ready answer:**
+
+> I test Terraform in layers. Every pull request runs `fmt`, `validate`, `tflint` and a policy scan with Checkov or Trivy, then posts the plan for human review. Modules have `terraform test` files that assert on plan output, and important modules get Terratest or apply-mode tests in a sandbox account that is destroyed afterwards. Changes promote dev to staging to production using the same module versions, so production only sees code that has already been applied elsewhere.
+
+See also: [How do you test Terraform code](../terraform/09-cicd-testing-and-security.md)
+
+</details>

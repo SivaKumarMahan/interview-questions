@@ -535,3 +535,520 @@ ls -lh "$BACKUP_DIR/myapp-$DATE.tar.gz"
 `mkdir -p` ensures the backup directory exists without erroring if it already does. `tar -czf` creates a gzip-compressed archive (`c` = create, `z` = gzip, `f` = file) named with the current date, so re-running the script on a different day produces a separate, non-overwriting backup file.
 
 </details>
+
+<details><summary>Q13. [Basic] Write a shell script to delete all files from a specific directory safely. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+"Safely" is the key word. The script must validate the input, refuse dangerous paths such as `/`, show what will be deleted (dry run), ask for confirmation, and keep the directory itself.
+
+**Flow:**
+
+```text
+Parse options (-n dry run, -a all, -y yes)
+        |
+        v
+Validate: argument given, not empty, is a directory
+        |
+        v
+Resolve real path, block / and system paths
+        |
+        v
+List / count matches  --(dry run)--> print and exit
+        |
+        v
+Confirm --> find -mindepth 1 ... -delete
+```
+
+**Script:**
+
+```bash
+#!/usr/bin/env bash
+# clean_dir.sh - safely delete files inside a directory (the directory itself is kept)
+#
+# Usage: ./clean_dir.sh [-n] [-a] [-y] <directory>
+#   -n  dry run: only list what would be deleted
+#   -a  delete everything inside, including subdirectories (default: files only)
+#   -y  do not ask for confirmation (for cron / automation)
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 [-n] [-a] [-y] <directory>" >&2
+  exit 1
+}
+
+DRY_RUN=false
+ALL=false
+ASSUME_YES=false
+
+while getopts ":nay" opt; do
+  case "$opt" in
+    n) DRY_RUN=true ;;
+    a) ALL=true ;;
+    y) ASSUME_YES=true ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND - 1))
+[[ $# -eq 1 ]] || usage
+
+TARGET="$1"
+
+# 1. Basic validation
+if [[ -z "${TARGET// /}" ]]; then
+  echo "ERROR: directory path is empty" >&2
+  exit 1
+fi
+if [[ ! -d "$TARGET" ]]; then
+  echo "ERROR: '$TARGET' is not a directory" >&2
+  exit 1
+fi
+
+# 2. Resolve symlinks and ../ so the checks below cannot be bypassed
+TARGET="$(realpath -- "$TARGET")"
+
+# 3. Refuse root, system directories and the home directory itself
+case "$TARGET" in
+  / | /bin | /boot | /dev | /etc | /home | /lib | /lib64 | /opt | /proc | \
+  /root | /run | /sbin | /srv | /sys | /usr | /var)
+    echo "ERROR: refusing to clean protected path '$TARGET'" >&2
+    exit 1
+    ;;
+esac
+if [[ "$TARGET" == "${HOME:-}" ]]; then
+  echo "ERROR: refusing to clean the home directory" >&2
+  exit 1
+fi
+
+# 4. Build the find expression
+#    -xdev        : do not cross into other mounted filesystems
+#    -mindepth 1  : never match the target directory itself
+FIND_ARGS=(-xdev -mindepth 1)
+if ! $ALL; then
+  FIND_ARGS+=( \( -type f -o -type l \) )   # regular files and symlinks only
+fi
+
+COUNT=$(find "$TARGET" "${FIND_ARGS[@]}" -printf '.' | wc -c)
+echo "Target : $TARGET"
+echo "Matches: $COUNT"
+
+if [[ "$COUNT" -eq 0 ]]; then
+  echo "Nothing to delete."
+  exit 0
+fi
+
+if $DRY_RUN; then
+  echo "Dry run - these would be deleted:"
+  find "$TARGET" "${FIND_ARGS[@]}" -print
+  exit 0
+fi
+
+if ! $ASSUME_YES; then
+  read -r -p "Delete $COUNT item(s) under $TARGET? [y/N] " answer
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    exit 0
+  fi
+fi
+
+# 5. Delete. -delete does not follow symlinks, so a link to /etc removes only the link.
+find "$TARGET" "${FIND_ARGS[@]}" -delete
+echo "Deleted $COUNT item(s) from $TARGET"
+```
+
+**Usage:**
+
+```bash
+chmod +x clean_dir.sh
+./clean_dir.sh -n /var/app/tmp        # preview
+./clean_dir.sh /var/app/tmp           # delete files, keep subdirectories, ask first
+./clean_dir.sh -a -y /var/app/tmp     # delete everything inside, no prompt
+```
+
+To delete only old files, add an age test, for example `find "$TARGET" -xdev -mindepth 1 -type f -mtime +7 -delete`.
+
+**Important points:**
+
+- Never write `rm -rf $DIR/*`. If `DIR` is empty or unset, it becomes `rm -rf /*`. `set -u` and the empty-path check prevent this.
+- Quote every variable so paths with spaces work and are not split.
+- `find -mindepth 1` keeps the directory itself; `-delete` handles hidden files and huge directories without "argument list too long" errors.
+- Use `realpath` before the protected-path check, otherwise `/tmp/../etc` or a symlink could slip through.
+- Always offer a dry run; in production, log what was deleted.
+
+See also: [shell-scripting/03](../shell-scripting/03-cheat-sheet-and-interview-scripts.md).
+
+**Interview-ready answer:**
+
+> "I would not use a plain `rm -rf` on a variable, because an empty variable can turn it into `rm -rf /*`. My script uses `set -euo pipefail`, checks that an argument was passed, that it is not empty and that it is a directory. It resolves the real path with `realpath` and refuses `/`, system directories and the home directory. It then uses `find` with `-mindepth 1` so the directory itself stays, shows a count, supports a dry-run flag and asks for confirmation. The actual deletion is `find ... -delete`, which also handles hidden files and does not follow symlinks."
+
+</details>
+
+<details><summary>Q14. [Intermediate] Write a shell script to generate an alert when CPU utilization exceeds a defined threshold. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The script measures CPU usage, compares it with a threshold, and sends an alert (log, syslog and optionally a webhook such as Slack or Teams). It reads `/proc/stat` twice a few seconds apart, which is more reliable than parsing `top` output, and uses a cooldown so it does not send the same alert every minute.
+
+**Flow:**
+
+```text
+cron (every 5 min) --> read /proc/stat --> sleep N --> read again
+                                                  |
+                                                  v
+                                  usage = 100 * (busy delta / total delta)
+                                                  |
+                               usage >= threshold and not in cooldown?
+                                    |                     |
+                                   yes                    no --> log OK, exit
+                                    v
+                    log + logger + webhook (top 5 processes in the log)
+```
+
+**Script:**
+
+```bash
+#!/usr/bin/env bash
+# cpu_alert.sh - alert when CPU utilization exceeds a threshold
+#
+# Usage: ./cpu_alert.sh [threshold_percent]     (default 80)
+# Optional env vars:
+#   INTERVAL=5            seconds between the two samples
+#   COOLDOWN=900          seconds to wait before alerting again
+#   WEBHOOK_URL=https://hooks.slack.com/services/...   (Slack / Teams incoming webhook)
+#   LOG_FILE=/var/log/cpu_alert.log
+
+set -euo pipefail
+
+THRESHOLD="${1:-80}"
+INTERVAL="${INTERVAL:-5}"
+COOLDOWN="${COOLDOWN:-900}"
+WEBHOOK_URL="${WEBHOOK_URL:-}"
+LOG_FILE="${LOG_FILE:-/var/log/cpu_alert.log}"
+STATE_FILE="${STATE_FILE:-/tmp/cpu_alert.last}"
+HOST="$(hostname)"
+
+if ! [[ "$THRESHOLD" =~ ^[0-9]+$ ]] || (( THRESHOLD < 1 || THRESHOLD > 100 )); then
+  echo "ERROR: threshold must be an integer between 1 and 100" >&2
+  exit 1
+fi
+
+log() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$LOG_FILE"
+}
+
+# Prints "<total> <idle>" from the aggregate cpu line of /proc/stat
+read_cpu() {
+  local _cpu user nice system idle iowait irq softirq steal _rest
+  read -r _cpu user nice system idle iowait irq softirq steal _rest < /proc/stat
+  echo "$((user + nice + system + idle + iowait + irq + softirq + steal)) $((idle + iowait))"
+}
+
+read -r total1 idle1 <<< "$(read_cpu)"
+sleep "$INTERVAL"
+read -r total2 idle2 <<< "$(read_cpu)"
+
+total_delta=$((total2 - total1))
+idle_delta=$((idle2 - idle1))
+if (( total_delta <= 0 )); then
+  log "WARN: could not calculate CPU usage"
+  exit 0
+fi
+usage=$(( 100 * (total_delta - idle_delta) / total_delta ))
+
+if (( usage < THRESHOLD )); then
+  log "OK: CPU ${usage}% on ${HOST} (threshold ${THRESHOLD}%)"
+  exit 0
+fi
+
+# Cooldown: avoid sending the same alert on every run
+now=$(date +%s)
+last=0
+if [[ -f "$STATE_FILE" ]]; then
+  last=$(cat "$STATE_FILE")
+fi
+if (( now - last < COOLDOWN )); then
+  log "ALERT suppressed (cooldown): CPU ${usage}% on ${HOST}"
+  exit 0
+fi
+echo "$now" > "$STATE_FILE"
+
+message="ALERT: CPU ${usage}% on ${HOST} exceeds ${THRESHOLD}%"
+log "$message"
+log "Top processes:"
+ps -eo pid,user,comm,%cpu --sort=-%cpu | head -n 6 | tee -a "$LOG_FILE"
+logger -t cpu_alert -p user.warning "$message"
+
+if [[ -n "$WEBHOOK_URL" ]]; then
+  curl -fsS -m 10 -X POST -H 'Content-Type: application/json' \
+    -d "{\"text\": \"${message}\"}" "$WEBHOOK_URL" > /dev/null \
+    || log "WARN: failed to send webhook alert"
+fi
+
+exit 2   # non-zero so cron wrappers or CI can detect the alert
+```
+
+**Schedule it:**
+
+```bash
+chmod +x /opt/scripts/cpu_alert.sh
+crontab -e
+# every 5 minutes, threshold 85%
+*/5 * * * * WEBHOOK_URL=https://hooks.slack.com/services/XXX /opt/scripts/cpu_alert.sh 85 >/dev/null 2>&1
+```
+
+To test, generate load with `yes > /dev/null &` (one per core), run the script with a low threshold, then stop the load with `kill %1`.
+
+**Production alternative:**
+
+In production, I would use a monitoring system instead of a cron script, for example `node_exporter` with a Prometheus rule:
+
+```yaml
+groups:
+  - name: node
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU above 85% on {{ $labels.instance }} for 10 minutes"
+```
+
+On AWS, the equivalent is a CloudWatch alarm on `CPUUtilization` with an SNS action.
+
+**Important points:**
+
+- Sample over an interval; a single reading of `/proc/stat` only gives the average since boot.
+- Avoid alert noise: use a cooldown in scripts, or a `for:` duration in Prometheus.
+- Include context in the alert (host, value, top processes) so the on-call engineer can act quickly.
+- Do not put webhook URLs in the script; pass them through environment variables or a secret store.
+
+See also: [shell-scripting/02](../shell-scripting/02-automation-scripts-in-practice.md).
+
+**Interview-ready answer:**
+
+> "My script takes a threshold as an argument and validates it. It reads the aggregate CPU line from `/proc/stat` twice, a few seconds apart, and calculates usage from the busy and idle deltas, which is more reliable than parsing `top`. If usage is above the threshold, it logs the value with the top CPU processes, writes to syslog with `logger`, and posts to a Slack or Teams webhook passed in through an environment variable. It uses a cooldown file so the same alert is not sent on every run, and I schedule it with cron every five minutes. In production I would prefer `node_exporter` with a Prometheus alert rule that has a `for` duration, or a CloudWatch alarm on AWS."
+
+</details>
+
+<details><summary>Q15. [Advanced] You have 10,000 endpoints. How would you check whether all of them are working? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Checking 10,000 endpoints one after another is too slow (10,000 × 2 seconds is over 5 hours). The key is **bounded concurrency with timeouts**: run, say, 100–200 checks in parallel, give each a strict connect/total timeout, retry transient failures once or twice, and write a report of failures. For ongoing checks, I move it into monitoring (Blackbox exporter or synthetic canaries) instead of a script.
+
+**Steps:**
+
+1. Put the endpoints in a file (one URL per line) or pull them from an inventory/service catalog.
+2. Define "working": HTTP status 2xx/3xx, optionally response time below a threshold or a keyword in the body.
+3. Run checks in parallel with a concurrency limit so you don't exhaust file descriptors or overload a shared backend.
+4. Use timeouts and a small number of retries with backoff.
+5. Produce a summary (total, healthy, failed) and a CSV of failures, then alert or open tickets.
+
+```text
+endpoints.txt (10,000 URLs)
+        |
+        v
+Worker pool (100-200 concurrent, timeout 5s, retry 2)
+        |
+        v
+Result per URL: status code, latency, error
+        |
+        +--> report.csv (failures only)
+        +--> summary: 9,982 OK / 18 failed
+        +--> alert / ticket
+```
+
+**Bash: `xargs -P` with `curl`:**
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+check() {
+  local url="$1" out
+  out=$(curl -sS -o /dev/null -L \
+        --connect-timeout 3 --max-time 5 \
+        --retry 2 --retry-delay 1 \
+        -w '%{http_code} %{time_total}' "$url" 2>/dev/null) || out="000 0"
+  echo "$url $out"
+}
+export -f check
+
+xargs -a endpoints.txt -P 100 -I{} bash -c 'check "$@"' _ {} > results.txt
+
+awk '$2 !~ /^[23]/' results.txt > failed.txt
+echo "Total: $(wc -l < results.txt)  Failed: $(wc -l < failed.txt)"
+```
+
+`curl` returns `000` when it cannot connect at all (DNS failure, timeout, TLS error). GNU `parallel` (`parallel -j 100 check :::: endpoints.txt`) works the same way and adds a job log and progress bar.
+
+**Python: `asyncio` with a concurrency limit:**
+
+```python
+#!/usr/bin/env python3
+import asyncio
+import csv
+
+import httpx
+
+CONCURRENCY = 200
+TIMEOUT = httpx.Timeout(5.0, connect=3.0)
+
+async def check(client, sem, url):
+    async with sem:
+        for attempt in range(3):
+            try:
+                r = await client.get(url, follow_redirects=True)
+                return url, r.status_code, round(r.elapsed.total_seconds(), 3), ""
+            except httpx.HTTPError as exc:
+                if attempt == 2:
+                    return url, 0, 0, type(exc).__name__
+                await asyncio.sleep(2 ** attempt)
+
+async def main():
+    with open("endpoints.txt") as f:
+        urls = [line.strip() for line in f if line.strip()]
+    sem = asyncio.Semaphore(CONCURRENCY)
+    limits = httpx.Limits(max_connections=CONCURRENCY)
+    async with httpx.AsyncClient(timeout=TIMEOUT, limits=limits) as client:
+        results = await asyncio.gather(*(check(client, sem, u) for u in urls))
+
+    failed = [r for r in results if not (200 <= r[1] < 400)]
+    with open("failed.csv", "w", newline="") as f:
+        csv.writer(f).writerows([("url", "status", "seconds", "error"), *failed])
+    print(f"Total: {len(results)}  OK: {len(results) - len(failed)}  Failed: {len(failed)}")
+
+asyncio.run(main())
+```
+
+**Ongoing monitoring instead of a script:**
+
+- **Prometheus Blackbox exporter**: probe each URL with the `http_2xx` module; alert on `probe_success == 0` for 2–5 minutes.
+- **CloudWatch Synthetics canaries** or **Route 53 health checks** for the most critical public endpoints.
+- Grafana dashboard grouped by service/team so failures route to the right owner.
+
+**Important points:**
+
+- Always set both a connect timeout and a total timeout; one hung endpoint must not stall the run.
+- Limit concurrency; unbounded parallelism can hit file descriptor limits (`ulimit -n`), exhaust NAT Gateway ports or look like a DoS to a WAF.
+- Use `HEAD` only if the endpoints support it; many apps return 405 for `HEAD`, so `GET` on a lightweight `/health` path is safer.
+- Report root causes by category (DNS, TLS, timeout, 5xx) so teams can act quickly.
+
+See also: [Prometheus (Blackbox exporter)](../monitoring-tools/02-prometheus.md), [Shell automation scripts in practice](../shell-scripting/02-automation-scripts-in-practice.md).
+
+**Interview-ready answer:**
+
+> "I would never check 10,000 endpoints sequentially. I put the URLs in a file and run checks in parallel with a bounded worker pool, for example `xargs -P 100` with `curl` using a connect timeout, a total timeout and two retries, or a Python `asyncio` script with `httpx` and a semaphore of around 200. Each result records the status code, latency and error type, and I output a summary plus a CSV of only the failures. I treat 2xx and 3xx as healthy and group failures by DNS, TLS, timeout or 5xx so the right team can act. I limit concurrency so I don't hit file descriptor limits or trigger the WAF. For continuous checking I would move this into the Prometheus Blackbox exporter or CloudWatch Synthetics with alerts, instead of running a script by hand."
+
+</details>
+
+<details><summary>Q16. [Intermediate] Write a Bash script to identify failed services and alert on disk usage above 85%. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The script checks `systemd` for failed units and every real filesystem for usage above a threshold, prints a report, sends an alert (Slack-compatible webhook or syslog) only when something is wrong, and exits non-zero so it also works as a cron job or monitoring check.
+
+**Approach:**
+
+1. Use `systemctl list-units --state=failed` for failed services.
+2. Use `df -P` (POSIX output, one line per filesystem) and skip pseudo filesystems.
+3. Collect problems into an array; alert once with a summary.
+4. Use `set -euo pipefail`, quote variables and avoid parsing errors from long device names.
+
+**Flow:**
+
+```text
+Start
+  |
+  v
+List failed systemd units --> add each to problems[]
+  |
+  v
+df -P (exclude tmpfs/devtmpfs/overlay/squashfs) --> usage > threshold? --> add to problems[]
+  |
+  v
+problems empty? --yes--> log OK, exit 0
+  |no
+  v
+Send alert (webhook or logger) --> print report --> exit 1
+```
+
+**Script:**
+
+```bash
+#!/usr/bin/env bash
+# health-check.sh - report failed systemd services and filesystems above a usage threshold.
+# Usage: THRESHOLD=85 WEBHOOK_URL=https://hooks.example.com/xyz ./health-check.sh
+set -euo pipefail
+
+THRESHOLD="${THRESHOLD:-85}"
+WEBHOOK_URL="${WEBHOOK_URL:-}"
+HOST="$(hostname -f 2>/dev/null || hostname)"
+
+if ! [[ "${THRESHOLD}" =~ ^[0-9]+$ ]] || (( THRESHOLD < 1 || THRESHOLD > 100 )); then
+  echo "THRESHOLD must be an integer between 1 and 100" >&2
+  exit 2
+fi
+
+problems=()
+
+# 1. Failed systemd units
+while read -r unit _; do
+  [[ -n "${unit}" ]] && problems+=("Service failed: ${unit}")
+done < <(systemctl list-units --type=service --state=failed --no-legend --plain 2>/dev/null || true)
+
+# 2. Disk usage above threshold (POSIX format, skip pseudo filesystems)
+while read -r fs _size _used _avail pcent mount; do
+  usage="${pcent%\%}"
+  [[ "${usage}" =~ ^[0-9]+$ ]] || continue
+  if (( usage > THRESHOLD )); then
+    problems+=("Disk ${mount} (${fs}) at ${usage}% (threshold ${THRESHOLD}%)")
+  fi
+done < <(df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | tail -n +2)
+
+if (( ${#problems[@]} == 0 )); then
+  echo "$(date -Is) ${HOST}: OK - no failed services, all disks <= ${THRESHOLD}%"
+  exit 0
+fi
+
+report="$(printf '%s\n' "${problems[@]}")"
+message="ALERT on ${HOST}:
+${report}"
+
+echo "${message}"
+
+if [[ -n "${WEBHOOK_URL}" ]] && command -v jq >/dev/null 2>&1; then
+  payload="$(jq -n --arg text "${message}" '{text: $text}')"
+  curl -fsS --max-time 10 -H 'Content-Type: application/json' \
+    -d "${payload}" "${WEBHOOK_URL}" >/dev/null || echo "Webhook delivery failed" >&2
+else
+  logger -t health-check -p user.err -- "${message}"
+fi
+
+exit 1
+```
+
+Run it from cron every five minutes:
+
+```bash
+*/5 * * * * THRESHOLD=85 WEBHOOK_URL=https://hooks.example.com/xyz /usr/local/bin/health-check.sh >> /var/log/health-check.log 2>&1
+```
+
+**Important points:**
+
+- `df -P` keeps each filesystem on one line, so long device names do not break parsing.
+- `jq` builds the JSON payload safely; string concatenation breaks on quotes and newlines.
+- Exit codes (0 OK, 1 problems, 2 bad input) let the same script feed monitoring checks, cron alerting or a CI job.
+- `while read` with process substitution keeps the array in the current shell; piping into `while` would run it in a separate child process and lose the results.
+- In production, prefer node exporter and Alertmanager for this; the script is a fallback or a quick check.
+
+See also: [Automation shell and Python examples](../repetitive-questions/automation-shell-and-python-examples.md), [Bash automation scripts in practice](../shell-scripting/02-automation-scripts-in-practice.md), [Shell scripting cheat sheet and interview scripts](../shell-scripting/03-cheat-sheet-and-interview-scripts.md)
+
+**Interview-ready answer:**
+
+> "The script uses `set -euo pipefail` and checks two things. For services it reads `systemctl list-units --state=failed` and adds each failed unit to a problems array. For disks it parses `df -P`, excluding pseudo filesystems like `tmpfs` and `overlay`, strips the percent sign and compares the usage to a configurable threshold, 85 by default. If the array is empty it logs OK and exits 0; otherwise it builds one summary message, sends it to a webhook with the JSON built by `jq`, or falls back to `logger`, and exits 1 so cron or a monitoring tool can act on it. I use process substitution so the array is not lost in a child process, and in production I would back this with node exporter alerts."
+
+</details>

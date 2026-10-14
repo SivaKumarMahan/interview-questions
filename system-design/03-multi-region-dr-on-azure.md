@@ -403,3 +403,65 @@ I list them in the runbook and test each one in drills.
 See also [Azure storage, networking, and reliability](../azure/04-storage-networking-and-reliability.md) and [Kubernetes backup and DR](../kubernetes/09-observability-backup-dr.md).
 
 </details>
+
+<details><summary>Q15. [Advanced] How would you handle disaster recovery? Cover RTO, RPO, backups and failover. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Disaster recovery starts with business requirements: **RTO** (how long we can be down) and **RPO** (how much data we can lose). Those two numbers decide the DR pattern, the backup strategy and the cost.
+
+**Definitions:**
+
+- **RTO (Recovery Time Objective)**: maximum acceptable time to restore service.
+- **RPO (Recovery Point Objective)**: maximum acceptable data loss, measured in time.
+
+**DR patterns:**
+
+| Pattern | RTO | RPO | Cost | Description |
+| --- | --- | --- | --- | --- |
+| Backup and restore | Hours to a day | Hours | Lowest | Restore infrastructure from code and data from backups |
+| Pilot light | Tens of minutes to hours | Minutes | Low | Data replicated; minimal core running in DR region |
+| Warm standby | Minutes | Seconds to minutes | Medium | Scaled-down full stack running in DR region |
+| Multi-site active/active | Near zero | Near zero | Highest | Both regions serve traffic |
+
+**Steps:**
+
+1. **Classify services** by business criticality and agree RTO/RPO per tier.
+2. **Backups**: automated, encrypted, copied to another region and account, immutable (object lock, vault lock), with retention policies. Include databases, volumes, object storage, Kubernetes resources (Velero), secrets and configuration.
+3. **Replication** for low RPO: database cross-region replicas, storage replication.
+4. **Infrastructure as code** so the DR environment can be built or scaled quickly.
+5. **Failover**: health-checked DNS (Route 53 failover, Azure Front Door, Traffic Manager), promote the database replica, scale up DR compute.
+6. **Runbooks and automation** for failover and failback.
+7. **Test** with regular DR drills and restore tests; measure actual RTO and RPO.
+
+**Failover flow:**
+
+```text
+Primary region failure detected (health checks + human decision)
+      |
+      v
+Freeze writes / confirm replication state
+      |
+      v
+Promote DR database replica --> scale DR compute --> verify app health
+      |
+      v
+Switch DNS / global load balancer to DR --> monitor
+      |
+      v
+Later: rebuild primary, resync data, planned failback
+```
+
+**Important points:**
+
+- A backup that has never been restored is not a backup.
+- Replication also replicates corruption and deletions; keep point-in-time backups too.
+- Remember dependencies: DNS, identity, secrets, certificates, container images and CI/CD must also work in the DR region.
+
+See also: [Multi-region DR on Azure](../system-design/03-multi-region-dr-on-azure.md), [Snapshot, backup and restore](../repetitive-questions/snapshot-backup-restore.md), [Kubernetes observability, backup and DR](../kubernetes/09-observability-backup-dr.md), [Azure backup, recovery and PostgreSQL](../azure/10-backup-recovery-and-postgresql.md)
+
+**Interview-ready answer:**
+
+> "I start by agreeing RTO and RPO with the business for each service tier, because those decide the design and cost. For less critical systems, backup and restore with infrastructure as code is enough; for critical ones I use warm standby or active/active with cross-region database replication. Backups are automated, encrypted, immutable and copied to another region and account, and I include Kubernetes resources with Velero, secrets and configuration, not just databases. Failover uses health-checked DNS or a global load balancer, replica promotion and scaling up the DR stack, all scripted in runbooks. Most importantly, we run regular DR drills and restore tests and measure the real RTO and RPO against the targets."
+
+</details>

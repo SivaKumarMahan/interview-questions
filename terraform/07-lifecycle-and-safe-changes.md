@@ -749,3 +749,84 @@ terraform apply rollback.tfplan
 "Rollback is reverting the code and applying a new reviewed plan, not restoring an old state file. Applying old code cannot bring back deleted data or undo a migration, so I design for rollback up front. That means blue-green so rollback is just a traffic switch, backward-compatible migrations, deletion protection, and backups that have actually been restored once in a test."
 
 </details>
+
+<details><summary>Q20. [Intermediate] How would you delete a specific resource using Terraform without destroying the entire infrastructure? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Terraform only changes what is different between the code, the state and the real infrastructure. So the normal, safe way to delete one resource is to **remove it from the code and run plan and apply**. `terraform destroy -target` exists, but it is meant for exceptional situations, not routine work. If the goal is to stop managing a resource without deleting it, use a `removed` block (Terraform 1.7+) or `terraform state rm`.
+
+**Decision flow:**
+
+```text
+Do you want the real resource deleted?
+        |
+   yes  |                                   no (keep it, stop managing)
+        v                                         v
+Remove block from code              removed { lifecycle { destroy = false } }
+plan -> review "1 to destroy"       (Terraform 1.7+) or terraform state rm
+apply through the pipeline
+        |
+Emergency only: terraform plan -destroy -target=ADDRESS, then apply that plan
+```
+
+**Option 1: Remove it from the code (recommended):**
+
+```bash
+# 1. Delete the resource block (and references to it) from the .tf files
+# 2. Review the plan
+terraform plan -out=tfplan
+#   # aws_s3_bucket.old_logs will be destroyed
+#   Plan: 0 to add, 0 to change, 1 to destroy.
+# 3. Apply exactly the reviewed plan
+terraform apply tfplan
+```
+
+For a resource created with `for_each`, remove only its key from the map; with `count`, removing a middle item shifts indexes, which is one reason to prefer `for_each`.
+
+**Option 2: Targeted destroy (exception only):**
+
+```bash
+terraform plan -destroy -target='aws_instance.debug_vm' -out=destroy.tfplan
+terraform apply destroy.tfplan
+# or: terraform destroy -target='aws_instance.debug_vm'
+```
+
+Terraform itself warns that `-target` is for exceptional cases. It also destroys anything that depends on the target, and if the block is still in the code, the next normal apply will create the resource again. Follow up by removing the block from the code.
+
+**Option 3: Stop managing without deleting:**
+
+```hcl
+# Terraform 1.7+ : declarative, reviewed in the plan like any other change
+removed {
+  from = aws_s3_bucket.old_logs
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+Or imperatively, after taking a state backup:
+
+```bash
+terraform state pull > backup.tfstate
+terraform state rm 'aws_s3_bucket.old_logs'
+```
+
+`state rm` does not touch the cloud resource; it only removes it from state.
+
+**Important points:**
+
+- Always read the plan and confirm it says exactly `1 to destroy` and nothing else.
+- Protect critical resources with `lifecycle { prevent_destroy = true }`; Terraform refuses any plan that would destroy them.
+- Prefer the `removed` block over `state rm` in team workflows because it goes through code review and the pipeline.
+- Check for dependencies and data loss (databases, buckets with objects, volumes) before deleting.
+
+See also: [terraform/07](../terraform/07-lifecycle-and-safe-changes.md) and [terraform/03](../terraform/03-state-and-backends.md).
+
+**Interview-ready answer:**
+
+> "Terraform is declarative, so the standard way to delete one resource is to remove its block from the code, run `terraform plan`, confirm it shows only that one resource to destroy, and apply it through the pipeline. I use `terraform destroy -target` only as an exception, for example in an incident, because it bypasses the normal workflow and also removes dependent resources. If the block is left in the code, the next apply recreates it, so I always clean up the code afterwards. If I want to keep the real resource but stop managing it, I use a `removed` block with `destroy = false` on Terraform 1.7 or later, or `terraform state rm` after backing up the state. For critical resources I add `prevent_destroy`."
+
+</details>

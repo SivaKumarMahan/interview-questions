@@ -462,3 +462,40 @@ Agents are ephemeral, isolated, non-root where possible, and get a short-lived c
 Configuration, plugins, and the restore process are all backed up and tested.
 
 </details>
+
+<details><summary>Q22. [Advanced] How do you secure a Kubernetes cluster (RBAC, PSP, NetworkPolicy)? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Security is layered: who can call the API, what Pods are allowed to do, and what they can talk to.
+
+| Layer | Control |
+| --- | --- |
+| Access | RBAC with least privilege, SSO via OIDC or Entra ID, no shared admin kubeconfigs |
+| Pod security | Pod Security Admission (`restricted`), or Kyverno / Gatekeeper policies |
+| Network | Default-deny NetworkPolicy, then allow required flows |
+| Supply chain | Signed images, approved registries only |
+| Secrets and data | Encryption at rest, external secret manager, workload identity |
+| Platform | Private API endpoint, patched versions, audit logs, runtime detection (Falco) |
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: payments
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+```
+
+**Important points:**
+
+- PodSecurityPolicy (PSP) was deprecated in 1.21 and removed in Kubernetes 1.25. Mention it only as history; use Pod Security Admission namespace labels or Kyverno / Gatekeeper.
+
+**Interview-ready answer:**
+
+> I secure the cluster in layers. RBAC with SSO controls who can do what, with namespace-scoped roles and no shared admin credentials. PodSecurityPolicy no longer exists since Kubernetes 1.25, so I enforce Pod Security Admission at `restricted` on application namespaces and add Kyverno or Gatekeeper for custom rules like approved registries. NetworkPolicies start from default deny, secrets come from an external manager, and the API endpoint is private with audit logging enabled.
+
+See also: [Secure a Kubernetes cluster](../kubernetes/06-security-rbac-secrets.md), [Pod Security Admission, Kyverno and Gatekeeper](../ops/07-policy-as-code-opa-and-kyverno.md)
+
+</details>

@@ -392,3 +392,55 @@ Secret variables typed into the CI tool are hard to rotate, often shared too wid
 - I would revisit build vs buy for agents after six months of real cost and reliability data.
 
 </details>
+
+<details><summary>Q14. [Advanced] How would you design a highly available CI/CD platform? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A CI/CD platform is production infrastructure for engineers: if it is down, nobody can ship fixes. I make the control plane highly available and recoverable, make runners ephemeral and auto-scaling, and remove single points of failure in dependencies like the artifact registry and secrets.
+
+**Architecture:**
+
+```text
+Git (GitHub/GitLab, SaaS or HA self-hosted)
+      |
+      v
+CI orchestrator: GitHub Actions / GitLab / Jenkins controller
+  - config as code (JCasC, workflow files), backed-up state
+      |
+      v
+Ephemeral runners on Kubernetes or autoscaling VMs (multi-AZ)
+  - Actions Runner Controller / GitLab Runner autoscaler / Jenkins Kubernetes agents
+      |
+      +--> Artifact registry (ECR/ACR/Artifactory, replicated) + dependency cache/proxy
+      +--> Secrets via OIDC + Vault / cloud secret manager
+      +--> Deployment: GitOps (Argo CD/Flux) per cluster
+      |
+      v
+Observability: queue time, success rate, duration, runner utilisation, DORA metrics
+```
+
+**Steps:**
+
+1. **Control plane**: prefer SaaS for availability; if self-hosted, run multi-AZ with a managed database and shared storage, or an active/passive controller for Jenkins with automated recovery.
+2. **Everything as code**: pipeline definitions, controller configuration (JCasC), runner infrastructure in Terraform/Helm, so the platform can be rebuilt quickly.
+3. **Ephemeral, auto-scaling runners** across zones; one job per runner for isolation and security.
+4. **Caching and mirrors**: dependency proxy and registry pull-through cache to remove external dependencies and rate limits.
+5. **Secrets**: OIDC federation and a secret manager, no static credentials on runners.
+6. **Decouple deploys**: GitOps controllers pull from Git, so a CI outage does not stop a rollback.
+7. **Backups and DR**: back up controller data, test restore; replicate the registry across regions.
+8. **Monitor the platform**: queue time, failure rate by cause, runner capacity, SLOs for the platform itself.
+
+**Important points:**
+
+- Jenkins controllers are a single point of failure by design; reduce what lives on them and make them disposable.
+- Rate limits from public registries and package managers are a common hidden outage cause.
+- Golden pipeline templates give teams consistency and let the platform team roll out security controls centrally.
+
+See also: [CI/CD platform for 50 teams](../system-design/02-cicd-platform-for-50-teams.md), [Jenkins agents, scaling and high availability](../jenkins/07-agents-scaling-and-high-availability.md), [Runners and pipeline performance](../ci-cd/06-runners-and-pipeline-performance.md), [Running Jenkins on Kubernetes with Helm](../jenkins/10-running-jenkins-on-kubernetes-with-helm.md)
+
+**Interview-ready answer:**
+
+> "I treat CI/CD as a production system. The control plane is either SaaS or self-hosted across multiple zones with backed-up state, and all configuration, including pipelines and controller settings, is code so it can be rebuilt quickly. Builds run on ephemeral, auto-scaling runners on Kubernetes or VM scale sets across zones, one job per runner for isolation. Dependencies are served through a replicated artifact registry and pull-through caches to avoid external outages and rate limits. Pipelines authenticate with OIDC rather than stored keys, and deployments use GitOps so clusters can still roll back even if CI is down. I monitor queue time, success rate and runner capacity, and give the platform its own SLOs."
+
+</details>

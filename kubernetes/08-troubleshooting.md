@@ -813,3 +813,617 @@ For the long term, I move to structured logs at the right level, add rate limiti
 I confirm the application's logs are still sufficient, the agent delivers them without loss within the required window, node I/O, pressure, and restarts are back to normal, and central log cost and cardinality — meaning the number of unique label combinations being tracked — stay under control.
 
 </details>
+
+<details><summary>Q35. [Intermediate] A Kubernetes pod is stuck in the Pending state. What steps would you take to troubleshoot it? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A Pod in `Pending` has been accepted by the API server but is not fully running yet. Most often the scheduler cannot find a suitable node. The phase also stays `Pending` while images are being pulled or volumes are being mounted, so first check whether the Pod has a node assigned.
+
+**Flow:**
+
+```text
+kubectl get pod -o wide
+        |
+   NODE = <none> ? ----- yes ----> Scheduling problem: read Events
+        |                           (resources, taints, affinity, PVC, quota, autoscaler)
+        no
+        |
+        v
+Scheduled but not started: ContainerCreating / ImagePullBackOff
+        --> image pull, volume mount, CNI / IP allocation, secrets
+```
+
+**Steps:**
+
+**Step 1: Check the Pod and its node**
+
+```bash
+kubectl get pod <pod> -n <ns> -o wide
+```
+
+**Step 2: Read the Events (the answer is usually here)**
+
+```bash
+kubectl describe pod <pod> -n <ns>
+kubectl get events -n <ns> --sort-by=.lastTimestamp
+```
+
+**Step 3: Match the message to the cause**
+
+| Event message | Cause | Fix |
+| --- | --- | --- |
+| `0/5 nodes are available: 5 Insufficient cpu` (or memory) | Requests larger than free capacity | Lower requests, add nodes, check autoscaler |
+| `node(s) had untolerated taint` | Tainted nodes, no toleration | Add a toleration or use another node pool |
+| `node(s) didn't match Pod's node affinity/selector` | Label mismatch | Fix the labels or the affinity rule |
+| `pod has unbound immediate PersistentVolumeClaims` | PVC not bound | Check the StorageClass, provisioner, zone |
+| `Too many pods` | Node pod limit or IP exhaustion | Add nodes, increase max pods, check subnet IPs |
+| `didn't match pod anti-affinity rules` | Not enough nodes or zones to spread | Relax to preferred or add nodes |
+
+**Step 4: Check node capacity and requests**
+
+```bash
+kubectl get nodes
+kubectl describe node <node> | grep -A8 "Allocated resources"
+kubectl top nodes
+kubectl get pod <pod> -n <ns> -o jsonpath='{.spec.containers[*].resources}'
+```
+
+**Step 5: Check storage, quotas and the autoscaler**
+
+```bash
+kubectl get pvc -n <ns>
+kubectl describe resourcequota -n <ns>
+kubectl get events -n kube-system | grep -i -E "scale|autoscaler"
+```
+
+If the Cluster Autoscaler or `Karpenter` cannot add nodes (node group at its maximum, no capacity for that instance type in the zone, or IAM issues), the Pod stays `Pending`.
+
+Note: if a ResourceQuota is exceeded, the Pod is usually not created at all; the error appears in the ReplicaSet events (`kubectl describe rs`) rather than as a `Pending` Pod.
+
+**Important points:**
+
+- Always start with `kubectl describe pod`; the scheduler explains exactly why it skipped each node.
+- Requests, not actual usage, decide scheduling, so a node can look idle in `kubectl top` but still be full.
+- `WaitForFirstConsumer` storage classes bind volumes after scheduling, which avoids zone mismatches.
+- `Pending` with `ContainerCreating` points to image, volume, CNI or secret issues rather than scheduling.
+
+See also: [kubernetes/08](../kubernetes/08-troubleshooting.md) and [kubernetes/05](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "First I run `kubectl get pod -o wide` to see whether the Pod has a node. If it does not, it is a scheduling problem, and I run `kubectl describe pod` because the Events explain why each node was rejected. The usual causes are insufficient CPU or memory requests, taints without tolerations, node affinity or selector mismatches, an unbound PVC, or the autoscaler being unable to add nodes. I check node allocated resources, PVC status, quotas and autoscaler events to confirm. If the Pod is scheduled but still Pending, I look at image pulls, volume mounts and CNI IP allocation. Then I fix the root cause, for example adjust requests, add a toleration or scale the node pool."
+
+</details>
+
+<details><summary>Q36. [Intermediate] Explain a CrashLoopBackOff scenario and your troubleshooting approach. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+`CrashLoopBackOff` is not an error by itself. It means the container **starts, exits (or is killed), and the kubelet keeps restarting it** with an increasing delay (10s, 20s, 40s … capped at 5 minutes by default). The job is to find out **why the container exits**.
+
+**Real scenario:**
+
+After a release, the `payments-api` Pods went into `CrashLoopBackOff`. `kubectl logs --previous` showed `Connection refused: payments-db:5432`. The new version read a renamed environment variable `DB_HOST`, but the ConfigMap still had `DATABASE_HOST`, so the app fell back to a wrong default and exited on startup. We fixed the ConfigMap, restarted the Deployment, and added a config validation step to the pipeline.
+
+**Troubleshooting flow:**
+
+```text
+kubectl get pods  -> CrashLoopBackOff, RESTARTS increasing
+        |
+        v
+kubectl describe pod  -> Last State: Terminated, Reason, Exit Code, Events
+        |
+        +-- Exit 137 / OOMKilled      -> raise memory limit / fix leak
+        +-- Exit 1 / app error        -> kubectl logs --previous
+        +-- Liveness probe failed     -> tune probe / add startupProbe
+        +-- Exit 0 (command finishes) -> wrong command, not a long-running process
+        +-- Exit 126/127              -> wrong entrypoint/command or permission
+        |
+        v
+Check config: env vars, ConfigMap/Secret, mounted files, dependencies
+        |
+        v
+Fix -> roll out -> watch -> add guardrails
+```
+
+**Commands:**
+
+```bash
+kubectl get pods -n payments
+kubectl describe pod payments-api-6c9f7-abcde -n payments    # Last State, Exit Code, Events
+kubectl logs payments-api-6c9f7-abcde -n payments --previous # logs of the crashed container
+kubectl get events -n payments --sort-by=.lastTimestamp
+kubectl get deploy payments-api -n payments -o yaml          # image, env, probes, limits
+kubectl rollout history deploy/payments-api -n payments
+kubectl rollout undo deploy/payments-api -n payments         # quick mitigation
+
+# Debug when the container exits too quickly
+kubectl debug -it payments-api-6c9f7-abcde -n payments --image=busybox --copy-to=debug-pod -- sh
+```
+
+**Common causes:**
+
+| Exit code / reason | Likely cause |
+| --- | --- |
+| `OOMKilled` / 137 | Memory limit too low or memory leak |
+| 1 or other app code | Application exception, missing config, cannot reach dependency |
+| 0 | Process finished (wrong command, script instead of server) |
+| 126 / 127 | Command not executable / not found |
+| Liveness probe failures in events | Probe too aggressive or wrong path/port |
+
+**Important points:**
+
+- Always use `--previous`; the current container may have just restarted and have no useful logs.
+- If production is impacted, roll back first, then debug.
+- Prevent recurrence with startup probes, config validation, and canary or progressive delivery.
+
+See also: [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md).
+
+**Interview-ready answer:**
+
+> "CrashLoopBackOff means the container keeps exiting and the kubelet keeps restarting it with an increasing back-off. I start with `kubectl describe pod` to see the last state, exit code and events, then `kubectl logs --previous` to see why the last run died. Exit 137 with `OOMKilled` points to memory limits, exit 1 to an application or configuration error, exit 0 to a wrong command, and probe failures in events to a misconfigured liveness probe. In one incident the new version expected a renamed environment variable that the ConfigMap didn't have, so it couldn't reach the database and exited. I rolled back to restore service, fixed the ConfigMap, redeployed and added config validation to the pipeline. If the container dies too fast to inspect, I use `kubectl debug` with a copy of the Pod."
+
+</details>
+
+<details><summary>Q37. [Intermediate] A Pod is in Pending state. Why, and how do you troubleshoot it? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+`Pending` means the Pod has been accepted by the API server but **is not running yet**: usually it **has not been scheduled to a node**, or it was scheduled but containers have not been created yet (for example, still pulling images). The scheduler's reason is almost always in the Pod events.
+
+**Common causes:**
+
+| Cause | Event message example |
+| --- | --- |
+| Not enough CPU/memory | `0/5 nodes are available: 5 Insufficient cpu` |
+| Taints without tolerations | `node(s) had untolerated taint {dedicated: gpu}` |
+| Node selector / affinity mismatch | `node(s) didn't match Pod's node affinity/selector` |
+| PVC not bound / AZ conflict | `pod has unbound immediate PersistentVolumeClaims`, `volume node affinity conflict` |
+| Anti-affinity / topology spread | `didn't match pod anti-affinity rules` |
+| ResourceQuota | Pod not created at all (error on ReplicaSet), not Pending |
+| No nodes / autoscaler at max | `no nodes available to schedule pods` |
+| Max Pods per node / IP exhaustion (EKS VPC CNI) | `Too many pods` |
+
+**Troubleshooting steps:**
+
+```bash
+kubectl describe pod <pod> -n <ns>               # read the Events section first
+kubectl get events -n <ns> --sort-by=.lastTimestamp
+
+kubectl get nodes -o wide
+kubectl describe node <node> | grep -A8 "Allocated resources"
+kubectl top nodes
+
+kubectl get pod <pod> -n <ns> -o yaml | grep -A10 -E "resources:|nodeSelector|affinity|tolerations"
+kubectl describe node <node> | grep -i taints
+
+kubectl get pvc -n <ns>                          # is the claim Bound?
+kubectl describe pvc <pvc> -n <ns>
+
+# Cluster Autoscaler / Karpenter logs if nodes should have been added
+kubectl logs -n kube-system deploy/cluster-autoscaler
+```
+
+```text
+Pod Pending
+   |
+   v
+kubectl describe pod -> Events
+   |
+   +-- Insufficient cpu/memory -> lower requests / add nodes / check autoscaler limits
+   +-- untolerated taint       -> add toleration or use another node pool
+   +-- affinity/selector       -> fix labels or rules
+   +-- unbound PVC             -> check StorageClass, CSI driver, AZ of volume
+   +-- Too many pods           -> max pods / subnet IPs (VPC CNI prefix delegation)
+```
+
+**Important points:**
+
+- Requests, not actual usage, decide scheduling. A node at 20% CPU can still be "full" if requests are reserved.
+- For EBS volumes, a Pod must run in the same AZ as its volume; use `volumeBindingMode: WaitForFirstConsumer`.
+- If the autoscaler isn't adding nodes, check node group max size, instance availability and its logs.
+
+See also: [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "A Pending Pod has been accepted but not scheduled to a node, and the scheduler always records the reason. I run `kubectl describe pod` and read the events. The usual causes are insufficient CPU or memory based on requests, taints without tolerations, node selector or affinity mismatches, an unbound PVC or an EBS volume in a different AZ, or the node hitting its max Pods or IP limit. Then I check node capacity with `kubectl describe node`, the PVC status, and the Cluster Autoscaler or Karpenter logs to see why no new node was added. The fix depends on the cause: right-size requests, add tolerations, fix labels, adjust the node group limits, or fix the StorageClass."
+
+</details>
+
+<details><summary>Q38. [Advanced] If a subnet runs out of IP addresses, what happens to the Pod status, and how do you investigate a sandbox or network setup failure? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+With the Amazon VPC CNI, every Pod uses an IP from the node's subnet. If the subnet has no free IPs and the node's warm pool is empty, the CNI `ADD` fails. The Pod is scheduled but stays in **`ContainerCreating`**, and its events show `FailedCreatePodSandBox`.
+
+**Symptom:**
+
+```text
+$ kubectl get pods
+NAME                   READY   STATUS              RESTARTS   AGE
+orders-api-5f7d-xk2p   0/1     ContainerCreating   0          6m
+
+$ kubectl describe pod orders-api-5f7d-xk2p
+Events:
+  Warning  FailedCreatePodSandBox  kubelet  Failed to create pod sandbox: rpc error: code = Unknown
+  desc = failed to setup network for sandbox "...": plugin type="aws-cni" name="aws-cni"
+  failed (add): add cmd: failed to assign an IP address to container
+```
+
+New nodes may also fail to join or get no secondary IPs, and Karpenter or Cluster Autoscaler can keep adding nodes that cannot run Pods.
+
+**Investigation steps:**
+
+```text
+Pod stuck ContainerCreating
+  |
+  v
+1. kubectl describe pod  --> FailedCreatePodSandBox / failed to assign an IP
+  |
+  v
+2. aws-node logs on that node  --> ipamd errors (InsufficientFreeAddressesInSubnet,
+  |                                 InsufficientCidrBlocks, ENI limit reached)
+  v
+3. Subnet free IPs in AWS  --> AvailableIpAddressCount near 0?
+  |
+  v
+4. Node limits  --> max ENIs / IPs per instance type reached? max-pods correct?
+  |
+  v
+5. Fix capacity (short term) and redesign IP plan (long term)
+```
+
+```bash
+# 1. Which node and which Pods are affected
+kubectl get pods -A -o wide --field-selector=status.phase=Pending
+kubectl get events -A --field-selector reason=FailedCreatePodSandBox
+
+# 2. VPC CNI logs
+kubectl -n kube-system logs -l k8s-app=aws-node -c aws-node --tail=100
+# on the node (SSM Session Manager)
+sudo grep -iE "error|insufficient" /var/log/aws-routed-eni/ipamd.log | tail
+sudo cat /var/log/aws-routed-eni/plugin.log | tail
+
+# 3. Free IPs per subnet used by the cluster
+aws ec2 describe-subnets \
+  --filters "Name=tag:kubernetes.io/cluster/prod-eks,Values=shared,owned" \
+  --query 'Subnets[].{ID:SubnetId,AZ:AvailabilityZone,CIDR:CidrBlock,Free:AvailableIpAddressCount}' \
+  --output table
+
+# 4. ENIs and IPs on the node
+aws ec2 describe-network-interfaces \
+  --filters Name=attachment.instance-id,Values=i-0abc123 \
+  --query 'NetworkInterfaces[].{ENI:NetworkInterfaceId,IPs:length(PrivateIpAddresses)}'
+```
+
+**Fixes:**
+
+| Fix | What it does | Notes |
+| --- | --- | --- |
+| Tune warm pool | Set `WARM_IP_TARGET` and `MINIMUM_IP_TARGET` so nodes do not hoard spare IPs | Quick relief; more EC2 API calls |
+| Clean up | Delete leaked `ENIs`, unused nodes, completed Pods | Check for "available" `ENIs` not attached to anything |
+| Bigger or more subnets | Add subnets with larger CIDRs and use them for node groups or Karpenter `EC2NodeClass` subnet selectors | Existing subnets cannot be resized |
+| Custom networking | Add a secondary VPC CIDR from `100.64.0.0/10` (CG-NAT range), create Pod subnets, set `AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG=true` and an `ENIConfig` per AZ | Pods get IPs from the secondary range; nodes stay in the primary subnets. Nodes must be replaced; primary ENI is not used for Pods |
+| Prefix delegation | `ENABLE_PREFIX_DELEGATION=true` assigns `/28` prefixes | More Pods per node, but needs contiguous free `/28` blocks; fragmented subnets fail with `InsufficientCidrBlocks` (use subnet CIDR reservations) |
+| `max-pods` | Match `max-pods` to the real IP capacity (use the `max-pods-calculator.sh` script from the VPC CNI repo) | Avoid scheduling more Pods than the node can address |
+| IPv6 cluster | Pods get IPv6 addresses, no IPv4 exhaustion | Decided at cluster creation |
+
+**Example: custom networking `ENIConfig`:**
+
+```yaml
+apiVersion: crd.k8s.amazonaws.com/v1alpha1
+kind: ENIConfig
+metadata:
+  name: us-east-1a          # matches the zone label
+spec:
+  subnet: subnet-0pods1a    # subnet from the 100.64.0.0/16 secondary CIDR
+  securityGroups:
+    - sg-0eksnodes
+```
+
+```bash
+kubectl -n kube-system set env daemonset aws-node \
+  AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG=true \
+  ENI_CONFIG_LABEL_DEF=topology.kubernetes.io/zone
+```
+
+**Important points:**
+
+- The Pod is **scheduled** (the scheduler does not know about IPs), so it is `ContainerCreating`, not `Pending`.
+- Other causes of the same event: CNI not ready on a new node, `aws-node` IAM permissions (IRSA role missing `AmazonEKS_CNI_Policy`), security group or ENI limits.
+- Plan Pod IP capacity at design time: large private subnets or a `100.64.0.0/10` secondary CIDR for Pods.
+
+See also: [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md) and [AWS networking, security and IAM](../aws/03-networking-security-and-iam.md).
+
+**Interview-ready answer:**
+
+> "With the VPC CNI each Pod consumes a subnet IP, so when the subnet is exhausted the Pod is scheduled but stays in ContainerCreating. `kubectl describe` shows `FailedCreatePodSandBox` with 'failed to assign an IP address to container'. I check the aws-node and `ipamd` logs for errors like insufficient free addresses, then confirm with `aws ec2 describe-subnets` that `AvailableIpAddressCount` is near zero, and check the instance type's ENI and IP limits. Short term I tune WARM_IP_TARGET and MINIMUM_IP_TARGET, clean up leaked `ENIs` or add new subnets. Long term I enable custom networking with a 100.64.0.0/10 secondary CIDR for Pods, or prefix delegation with subnet CIDR reservations, and keep max-pods aligned with the real IP capacity."
+
+</details>
+
+<details><summary>Q39. [Intermediate] How do you troubleshoot CrashLoopBackOff, Pending Pods and ImagePullBackOff? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Each status points to a different phase: **Pending** is a scheduling problem, **ImagePullBackOff** is a pull problem before the container starts, and **CrashLoopBackOff** means the container starts and keeps exiting. `kubectl describe pod` and events are the starting point for all three.
+
+**Decision flow:**
+
+```text
+Pod not healthy
+      |
+      +-- Pending ---------> describe: events from scheduler
+      |                        - Insufficient cpu/memory --> requests too high / scale nodes
+      |                        - node(s) had untolerated taint / affinity mismatch
+      |                        - unbound PersistentVolumeClaim --> StorageClass, zone
+      |                        - quota exceeded (check ResourceQuota, ReplicaSet events)
+      |
+      +-- ImagePullBackOff -> describe: pull error
+      |                        - not found --> wrong repo/tag
+      |                        - unauthorized --> imagePullSecrets / node IAM role
+      |                        - timeout --> egress/NAT/proxy/private endpoint
+      |                        - rate limit --> mirror/cache registry
+      |
+      +-- CrashLoopBackOff -> logs --previous + exit code
+                               - 1 / app error --> config, secrets, dependency
+                               - 137 OOMKilled --> memory (see Q12)
+                               - liveness probe kills it --> probe timing
+                               - command/entrypoint wrong --> exits immediately
+```
+
+**Commands:**
+
+```bash
+kubectl get pods -n prod -o wide
+kubectl describe pod <pod> -n prod            # read the Events section at the bottom
+kubectl get events -n prod --sort-by=.lastTimestamp | tail -30
+kubectl logs <pod> -n prod --previous         # logs from the crashed container
+kubectl get pod <pod> -n prod -o jsonpath='{.status.containerStatuses[0].lastState}'
+kubectl describe nodes | grep -A5 'Allocated resources'
+kubectl get pvc -n prod
+kubectl get secret regcred -n prod
+kubectl debug -it <pod> -n prod --image=busybox:1.36 --copy-to=debug-pod --container=app -- sh
+```
+
+**Important points:**
+
+- `CrashLoopBackOff` is not the error; it is Kubernetes backing off restarts. The error is in `--previous` logs and the exit code.
+- Pods created by a Deployment that cannot be created at all (quota, admission webhook) do not appear; check the ReplicaSet events.
+- For a crashing container, `kubectl debug --copy-to` with a changed command lets you get a shell in an otherwise identical Pod.
+
+See also: [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md), [Scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md)
+
+**Interview-ready answer:**
+
+> "I treat them as three different phases. Pending means the scheduler cannot place the Pod, so I read the events for insufficient CPU or memory, taints, affinity rules, quotas or an unbound volume. ImagePullBackOff happens before the container starts, so I check the image name and tag, pull secrets or node IAM permissions, network access to the registry and rate limits. CrashLoopBackOff means the container starts and exits, so I read `kubectl logs --previous` and the last state exit code: 137 with OOMKilled is memory, 1 is usually configuration or a missing dependency, and repeated liveness failures point to probe timing. In all three cases `kubectl describe pod` and the events tell me which branch I am in."
+
+</details>
+
+<details><summary>Q40. [Advanced] Pods are Running but users get 5xx errors. What do you check? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Running only means the container process exists. 5xx errors can come from any hop between the user and the application, so I first identify **which component generates the 5xx**, then follow the path.
+
+**Steps:**
+
+1. **Who returns the 5xx?** Load balancer, ingress controller, service mesh sidecar, or the application? Check response headers and each layer's logs and metrics.
+2. **Are the Pods Ready?** `READY 0/1` means readiness is failing. Check Service endpoints: an empty endpoint list gives `503` at the ingress.
+3. **Service wiring**: selector labels match Pod labels, `targetPort` matches the container port.
+4. **Ingress/LB**: backend health checks, timeouts (`504`), body size limits, TLS between layers.
+5. **Application**: logs, error rate per Pod (is it one bad Pod?), thread pool or connection pool exhaustion.
+6. **Dependencies**: database, cache, downstream APIs, DNS, network policies.
+7. **Recent changes**: deployment, config, certificate, feature flag. If correlated, roll back first.
+
+**Decision flow:**
+
+```text
+Users see 5xx
+      |
+      v
+502/503 from ingress/LB? --yes--> endpoints empty? labels/targetPort? readiness? LB health checks?
+      |no
+      v
+504? --yes--> upstream slow: timeouts, saturation, slow dependency
+      |no
+      v
+500 from app --> app logs + traces --> one Pod or all?
+      |                                 one --> recycle Pod, investigate node
+      |                                 all --> dependency, config, recent release --> rollback
+```
+
+**Commands:**
+
+```bash
+kubectl get pods -n prod -l app=api -o wide
+kubectl get endpointslices -n prod -l kubernetes.io/service-name=api
+kubectl describe svc api -n prod
+kubectl get ingress -n prod
+kubectl logs -n ingress-nginx deploy/ingress-nginx-controller --since=10m | grep ' 50[234] '
+kubectl logs -n prod -l app=api --since=10m --prefix | grep -i error | tail -50
+kubectl run curl -n prod --rm -it --image=curlimages/curl:8.10.1 -- \
+  curl -sv http://api.prod.svc.cluster.local:8080/health
+kubectl rollout history deployment/api -n prod
+```
+
+**Important points:**
+
+- `502` usually means the proxy got a bad response or connection reset (often during Pod termination without graceful shutdown); `503` usually means no healthy backends; `504` means a timeout.
+- 5xx spikes during every deployment point to missing readiness probes or missing `preStop` delay.
+- Testing the Service from inside the cluster isolates the ingress from the app.
+
+See also: [Kubernetes networking and traffic](../kubernetes/03-networking-and-traffic.md), [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Production issues](../repetitive-questions/production-issues.md)
+
+**Interview-ready answer:**
+
+> "Running only means the process exists, so first I find which layer returns the 5xx: the load balancer, the ingress controller, a sidecar, or the app itself. A 503 from ingress usually means no ready endpoints, so I check readiness, the Service selector and `targetPort`. A 504 means the upstream is too slow, so I look at saturation and slow dependencies. If the app returns 500, I check logs and traces and whether it is one Pod or all of them. I always correlate with recent deployments or config changes, and if there is a match I roll back first and debug afterwards. If 5xx only appears during rollouts, it is usually missing readiness probes or graceful shutdown."
+
+</details>
+
+<details><summary>Q41. [Intermediate] How do you handle a NotReady Kubernetes node? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A node becomes `NotReady` when the control plane stops receiving healthy status from its kubelet. I first protect workloads, then find out whether the cause is the kubelet, the container runtime, resources, networking or the underlying VM.
+
+**Steps:**
+
+1. **Assess impact**: which Pods were on the node and are they being rescheduled? After the default toleration of about 5 minutes for `not-ready`/`unreachable` taints, Pods are evicted.
+2. **Read node conditions**: `kubectl describe node` shows `MemoryPressure`, `DiskPressure`, `PIDPressure`, `NetworkUnavailable` and the `Ready` reason.
+3. **Cordon** the node to stop new scheduling: `kubectl cordon <node>`.
+4. **On the node** (SSH or cloud console): kubelet and container runtime status and logs, disk space, memory, certificate expiry, time sync.
+5. **Network**: can the node reach the API server? Is the CNI Pod (for example `aws-node`, `calico-node`, `cilium`) running on it?
+6. **Fix or replace**: restart kubelet/runtime, free disk, or drain and replace the node. In managed node groups, replacing is often faster than repairing.
+7. **Uncordon** after it is healthy, and add monitoring for the root cause.
+
+**Decision flow:**
+
+```text
+Node NotReady
+      |
+      v
+describe node: pressure condition? --yes--> DiskPressure: clean images/logs; MemoryPressure: evictions, reserve
+      |no
+      v
+VM reachable? --no--> cloud status checks --> reboot or replace instance
+      |yes
+      v
+kubelet running? --no--> journalctl -u kubelet (certs, config, runtime socket)
+      |yes
+      v
+containerd running? --no--> restart runtime, check disk
+      |yes
+      v
+CNI/network to API server OK? --no--> CNI Pod, security groups, routes
+```
+
+**Commands:**
+
+```bash
+kubectl get nodes -o wide
+kubectl describe node <node> | sed -n '/Conditions/,/Addresses/p'
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node>
+kubectl cordon <node>
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data --timeout=5m
+
+# On the node
+systemctl status kubelet containerd
+journalctl -u kubelet --since "30 min ago" --no-pager | tail -50
+df -h /var/lib/containerd /var/lib/kubelet
+crictl ps -a | head
+openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -noout -enddate
+```
+
+**Important points:**
+
+- Do not drain blindly if many nodes are NotReady at once; that points to a shared cause (API server, network, CNI upgrade) and draining can make it worse.
+- PodDisruptionBudgets and multiple replicas spread across nodes and zones are what make a single node failure a non-event.
+- Configure kubelet eviction thresholds and `system-reserved`/`kube-reserved` so system daemons are not starved.
+
+See also: [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Kubernetes architecture and fundamentals](../kubernetes/01-architecture-and-fundamentals.md)
+
+**Interview-ready answer:**
+
+> "First I check impact: which Pods were on the node and whether they are being rescheduled, and I cordon the node so nothing new lands there. Then `kubectl describe node` tells me the condition, such as disk, memory or PID pressure, or that the kubelet stopped reporting. On the node I check kubelet and containerd status and logs, disk space, certificate expiry and connectivity to the API server, including the CNI Pod. Disk pressure is common and fixed by cleaning images and logs. If the VM itself is unhealthy, I drain and replace it rather than spend time repairing it, especially in a managed node group. If many nodes go NotReady together, I look for a shared cause instead of draining them all."
+
+</details>
+
+<details><summary>Q42. [Advanced] How do you debug failing probes, DNS, networking and service connectivity? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I test connectivity in layers from inside the cluster: Pod to itself, Pod to Pod IP, Pod to Service IP, Pod to Service DNS name, then external. Where it breaks tells me which component is at fault.
+
+**Probes:**
+
+1. `kubectl describe pod` shows `Liveness probe failed` or `Readiness probe failed` with the HTTP status or timeout.
+2. Check path, port, scheme (HTTP vs HTTPS), and `timeoutSeconds` (default 1 second, often too short).
+3. Slow-starting apps need a `startupProbe`, not a large `initialDelaySeconds` on liveness.
+4. Liveness must not depend on external dependencies, or a database outage restarts every Pod.
+
+**DNS:**
+
+1. `nslookup api.prod.svc.cluster.local` from a debug Pod.
+2. Check CoreDNS Pods and logs, and the `kube-dns` Service endpoints.
+3. Check the Pod's `/etc/resolv.conf`; `ndots:5` causes extra lookups for external names.
+
+**Network and Service:**
+
+1. Service has endpoints? Selector matches labels? `port` vs `targetPort` correct?
+2. NetworkPolicies: a default-deny policy needs explicit ingress *and* egress rules, including DNS on port 53 (UDP and TCP).
+3. CNI health, node security groups, and `kube-proxy` mode (iptables/IPVS) or eBPF data plane.
+
+**Decision flow:**
+
+```text
+Pod A cannot reach Service B
+      |
+      v
+nslookup B works? --no--> CoreDNS, resolv.conf, NetworkPolicy egress to port 53
+      |yes
+      v
+curl ClusterIP:port works? --no--> endpoints empty? selector/targetPort? readiness?
+      |yes                              |
+      |                                 v
+      |                        curl Pod IP directly works? --no--> NetworkPolicy, CNI, SG
+      v
+App-level issue --> TLS, auth, headers, timeouts
+```
+
+**Commands:**
+
+```bash
+kubectl run netdebug -n prod --rm -it --image=nicolaka/netshoot -- bash
+# inside the debug Pod:
+nslookup api.prod.svc.cluster.local
+curl -sv http://api.prod.svc.cluster.local:8080/health
+curl -sv http://<pod-ip>:8080/health
+nc -zv db.prod.svc.cluster.local 5432
+
+kubectl get endpointslices -n prod -l kubernetes.io/service-name=api
+kubectl get networkpolicy -n prod
+kubectl -n kube-system logs -l k8s-app=kube-dns --tail=50
+kubectl describe pod <pod> -n prod | grep -iA3 probe
+```
+
+**Important points:**
+
+- An empty endpoint list is the most common Service problem: either labels do not match or no Pod is Ready.
+- Intermittent DNS failures at scale are often CoreDNS capacity or conntrack issues; NodeLocal DNSCache helps.
+- Pin debug images in production clusters and remove debug Pods afterwards.
+
+See also: [Kubernetes networking and traffic](../kubernetes/03-networking-and-traffic.md), [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md)
+
+**Interview-ready answer:**
+
+> "For probes I read the probe failure in `kubectl describe`, then check the path, port, scheme and timeout, and I use a startup probe for slow starters so liveness does not kill them during boot. For connectivity I launch a debug Pod like `netshoot` in the same namespace and test in layers: DNS with `nslookup`, then the Service name, the ClusterIP, and finally the Pod IP directly. If DNS fails, I check CoreDNS and whether a NetworkPolicy blocks egress to port 53. If the Service fails but the Pod IP works, the Service selector, `targetPort` or readiness is wrong. If even the Pod IP fails, I look at NetworkPolicies, the CNI and node security groups."
+
+</details>
+
+<details><summary>Q43. [Intermediate] How do you troubleshoot CrashLoopBackOff or ImagePullBackOff? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+`CrashLoopBackOff`: the image was pulled and the container starts, but it keeps exiting. `ImagePullBackOff`: the node cannot pull the image at all.
+
+| Status | Check | Common causes |
+| --- | --- | --- |
+| `CrashLoopBackOff` | `kubectl logs --previous`, `describe` (exit code, `OOMKilled`), events | Bad config or missing secret, failing dependency, wrong command, OOM, liveness probe too aggressive |
+| `ImagePullBackOff` | `describe` events | Wrong image name or tag, missing `imagePullSecrets`, registry auth or network, rate limits |
+
+```bash
+kubectl describe pod orders-7d9f -n prod | sed -n '/State:/,/Events:/p'
+kubectl logs orders-7d9f -n prod --previous
+kubectl get events -n prod --sort-by=.lastTimestamp | tail -20
+kubectl debug -it orders-7d9f --image=busybox --target=orders   # ephemeral debug container
+```
+
+**Interview-ready answer:**
+
+> First I separate the two: `ImagePullBackOff` means the image never arrived, while `CrashLoopBackOff` means it started and keeps dying. For pull errors I read the events in `kubectl describe` and check the image name, tag, registry credentials and network access. For crash loops I check the exit code and reason, then `kubectl logs --previous` to see why the last run died, typically missing config, a failed dependency, OOM or a liveness probe firing too early. If logs are empty I use `kubectl debug` or temporarily override the command to inspect the container.
+
+See also: [Troubleshoot CrashLoopBackOff](../kubernetes/08-troubleshooting.md)
+
+</details>

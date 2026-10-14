@@ -620,3 +620,434 @@ kubectl scale deployment <name> --replicas=3
 The ReplicaSet controller keeps the pod count at whatever you set. For automatic scaling, use an HPA (see §3.6).
 
 </details>
+
+<details><summary>Q26. [Basic] What is the difference between a Deployment and a StatefulSet? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A **Deployment** manages stateless, interchangeable Pods. A **StatefulSet** manages Pods that need a stable identity, stable storage and ordered startup/shutdown.
+
+**Comparison:**
+
+| Feature | Deployment | StatefulSet |
+| --- | --- | --- |
+| Pod names | Random suffix (`web-7d9f8-x2k4p`) | Stable ordinal (`db-0`, `db-1`, `db-2`) |
+| Network identity | Shared Service; Pods interchangeable | Headless Service gives each Pod a DNS name (`db-0.db-headless.ns.svc.cluster.local`) |
+| Storage | Usually shared or none; a single PVC is shared by all replicas | `volumeClaimTemplates` create one PVC per Pod, which follows the Pod when rescheduled |
+| Scaling order | Parallel | Ordered by default (`OrderedReady`): 0, 1, 2 up; 2, 1, 0 down |
+| Rolling update | Via ReplicaSets, `maxSurge`/`maxUnavailable` | Updates Pods in reverse ordinal order, one at a time; supports `partition` |
+| Typical use | Web servers, APIs, workers | Databases, Kafka, ZooKeeper, Elasticsearch, Redis cluster |
+
+**Example:**
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres-headless   # headless Service (clusterIP: None)
+  replicas: 3
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 50Gi
+```
+
+This creates `postgres-0`, `postgres-1`, `postgres-2` with PVCs `data-postgres-0`, `data-postgres-1` and `data-postgres-2`.
+
+**Important points:**
+
+- Deleting or scaling down a StatefulSet does not delete its PVCs by default (configurable with `persistentVolumeClaimRetentionPolicy`).
+- A StatefulSet does not make an application clustered or replicated; the database itself (or an operator) handles replication and failover.
+- With EBS-backed volumes, a Pod is tied to the AZ of its volume.
+
+See also: [Workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md), [Storage and stateful apps](../kubernetes/04-storage-and-stateful-apps.md).
+
+**Interview-ready answer:**
+
+> "A Deployment is for stateless applications where every Pod is identical and replaceable, so Pods get random names and can start and stop in parallel. A StatefulSet is for stateful applications that need a stable identity: Pods get ordinal names like `db-0` and `db-1`, a headless Service gives each one its own DNS name, and `volumeClaimTemplates` give each Pod its own PersistentVolumeClaim that stays with it across restarts. StatefulSets also start, stop and update Pods in order. I use Deployments for APIs and web tiers, and StatefulSets for databases, Kafka or Elasticsearch. Even then, the StatefulSet only gives identity and storage; replication and failover come from the database or an operator."
+
+</details>
+
+<details><summary>Q27. [Basic] What is a DaemonSet? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A **DaemonSet** ensures that one copy of a Pod runs on every node (or on a selected set of nodes). When a node joins the cluster, the Pod is added automatically; when the node is removed, the Pod is garbage-collected.
+
+**Typical uses:**
+
+- Log collectors: Fluent Bit, Fluentd.
+- Monitoring agents: Prometheus `node-exporter`, Datadog agent, CloudWatch agent.
+- Networking and storage: `kube-proxy`, AWS VPC CNI (`aws-node`), CSI node plugins.
+- Security agents: `Falco`.
+
+**Example:**
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      hostNetwork: true
+      tolerations:
+        - operator: Exists          # also run on tainted nodes
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.8.2
+          ports:
+            - containerPort: 9100
+```
+
+Use `nodeSelector` or node affinity to target only some nodes (for example GPU nodes).
+
+**Important points:**
+
+- There is no `replicas` field; the number of Pods equals the number of matching nodes.
+- DaemonSet Pods automatically tolerate some node conditions (such as `not-ready` and `unreachable`), but to run on tainted nodes like control-plane nodes you add tolerations.
+- Set resource requests; a DaemonSet consumes capacity on every node.
+
+See also: [Workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md).
+
+**Interview-ready answer:**
+
+> "A DaemonSet runs one copy of a Pod on every node, or on a subset of nodes selected with a node selector or affinity. When a new node joins, Kubernetes schedules the Pod there automatically, and removes it when the node goes away. I use DaemonSets for node-level agents such as Fluent Bit for logs, node-exporter for metrics, the VPC CNI and CSI node drivers. I add tolerations when the agent must also run on tainted nodes, and I always set resource requests because the cost is multiplied by the number of nodes."
+
+</details>
+
+<details><summary>Q28. [Basic] What are Kubernetes probes? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Probes are health checks that the **kubelet** runs against a container so Kubernetes knows whether the container has started, whether it can receive traffic and whether it should be restarted.
+
+**The three probes:**
+
+| Probe | Question it answers | Action on failure |
+| --- | --- | --- |
+| `startupProbe` | Has the app finished starting? | Keeps checking; if it exceeds `failureThreshold`, the container is restarted. Liveness and readiness are paused until it succeeds. |
+| `readinessProbe` | Can it serve traffic right now? | Pod is removed from Service endpoints; **no restart**. |
+| `livenessProbe` | Is it alive or stuck (deadlock)? | Container is **restarted**. |
+
+**Check mechanisms:**
+
+- `httpGet`: success on HTTP 200–399.
+- `tcpSocket`: success if the port accepts a connection.
+- `exec`: success if the command exits 0.
+- `grpc`: uses the gRPC health checking protocol.
+
+**Example:**
+
+```yaml
+containers:
+  - name: api
+    image: myrepo/api:1.4.2
+    ports:
+      - containerPort: 8080
+    startupProbe:
+      httpGet:
+        path: /actuator/health/liveness
+        port: 8080
+      periodSeconds: 10
+      failureThreshold: 30        # up to 300s to start
+    readinessProbe:
+      httpGet:
+        path: /actuator/health/readiness
+        port: 8080
+      periodSeconds: 5
+      failureThreshold: 3
+    livenessProbe:
+      httpGet:
+        path: /actuator/health/liveness
+        port: 8080
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+```
+
+**Important points:**
+
+- A liveness probe should check only the process itself, not the database or downstream services; otherwise a database outage restarts every Pod and makes things worse.
+- Readiness can include dependencies that the Pod genuinely needs to serve requests.
+- Tune `timeoutSeconds` (default 1 second) and thresholds; aggressive liveness probes are a common cause of restart loops.
+
+See also: [Workloads and Pod lifecycle (probes)](../kubernetes/02-workloads-and-pod-lifecycle.md).
+
+**Interview-ready answer:**
+
+> "Probes are health checks the kubelet runs against each container. The startup probe protects slow-starting applications and pauses the other probes until the app is up. The readiness probe decides whether the Pod receives traffic; if it fails, the Pod is removed from the Service endpoints but not restarted. The liveness probe detects a stuck process, and if it fails, the kubelet restarts the container. They can use HTTP, TCP, exec or gRPC checks. I keep liveness checks shallow so a database outage doesn't restart every Pod, and I tune timeouts and thresholds based on how the application actually behaves."
+
+</details>
+
+<details><summary>Q29. [Intermediate] What is the difference between a readiness probe and a startup probe? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Both deal with "is the app ready", but at different times and with different consequences.
+
+| | Startup probe | Readiness probe |
+| --- | --- | --- |
+| When it runs | Only during startup, until it succeeds once | For the whole life of the container |
+| Purpose | Give slow apps time to boot without liveness killing them | Control whether the Pod receives traffic |
+| On failure | After `failureThreshold × periodSeconds`, the container is killed and restarted | Pod marked NotReady and removed from Service/EndpointSlice; no restart |
+| Effect on other probes | Liveness and readiness are disabled until it passes | None |
+
+**Timeline:**
+
+```text
+Container starts
+   |
+   |  startupProbe running (liveness/readiness paused)
+   |  e.g. every 10s, up to 30 failures = 300s budget
+   v
+startupProbe succeeds (never runs again)
+   |
+   +--> readinessProbe: Ready? -> added to Service endpoints
+   |                    Not ready? -> removed, NOT restarted
+   +--> livenessProbe:  failing? -> container restarted
+```
+
+**Example: a Java app that takes about 2 minutes to start:**
+
+```yaml
+startupProbe:
+  httpGet:
+    path: /health/started
+    port: 8080
+  periodSeconds: 10
+  failureThreshold: 18     # 180 seconds allowed for startup
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8080
+  periodSeconds: 5
+  failureThreshold: 3
+```
+
+Without the startup probe, you would have to set a large `initialDelaySeconds` on liveness, which also delays detection of real hangs.
+
+**Important points:**
+
+- Readiness failing during a rolling update stops the rollout from progressing, which protects users from a bad version.
+- A startup probe that is too short causes `CrashLoopBackOff`; one that is too long only delays restarts of a genuinely broken app.
+
+See also: [Workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md).
+
+**Interview-ready answer:**
+
+> "The startup probe only runs while the container is starting. Until it succeeds, liveness and readiness are paused, which gives slow applications like Java services time to boot without being killed. If it never succeeds within `failureThreshold` times `periodSeconds`, the container is restarted. The readiness probe runs for the whole life of the container and only controls traffic: when it fails the Pod is removed from the Service endpoints but not restarted, and it is added back when it recovers. So startup is about 'has it booted', and readiness is about 'can it take requests right now'."
+
+</details>
+
+<details><summary>Q30. [Basic] Write a Kubernetes Deployment and Service YAML manifest and explain the main fields. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A **Deployment** manages a ReplicaSet that keeps the desired number of identical Pods running and handles rolling updates. A **Service** gives those Pods a stable virtual IP and DNS name and load-balances to the Pods that match its selector and are Ready.
+
+**Example manifest:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  namespace: prod
+  labels:
+    app: orders-api
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: orders-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: orders-api
+    spec:
+      serviceAccountName: orders-api
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: orders-api
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/orders-api:1.8.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: orders-config
+                  key: db_host
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: orders-db
+                  key: password
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api
+  namespace: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: orders-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+```
+
+**Main fields:**
+
+| Field | Meaning |
+| --- | --- |
+| `apiVersion`, `kind` | API group and version (`apps/v1` for Deployment, `v1` for Service) and the object type |
+| `metadata.name`, `namespace`, `labels` | Identity of the object and labels for selection |
+| `spec.replicas` | Desired number of Pods |
+| `spec.selector.matchLabels` | Which Pods this Deployment owns; must match `template.metadata.labels` and is immutable |
+| `spec.strategy` | `RollingUpdate` (default) or `Recreate`; `maxSurge` and `maxUnavailable` control rollout speed |
+| `spec.template` | The Pod template; any change here triggers a new rollout |
+| `containers[].image` | Image with an immutable tag, not `latest` |
+| `resources.requests` | Used by the scheduler and autoscalers to place Pods |
+| `resources.limits` | Hard cap; exceeding memory limit causes OOMKilled, CPU limit causes throttling |
+| `readinessProbe` | Pod receives Service traffic only when this passes |
+| `livenessProbe` | Kubelet restarts the container if this fails |
+| `env` with `configMapKeyRef` / `secretKeyRef` | Inject config and secrets without baking them into the image |
+| Service `type` | `ClusterIP` (internal), `NodePort`, `LoadBalancer` (cloud load balancer) or `ExternalName` |
+| Service `selector` | Labels of the Pods that receive traffic |
+| `port` / `targetPort` | Port on the Service / port (or named port) on the container |
+
+**Apply and verify:**
+
+```bash
+kubectl apply -f orders-api.yaml
+kubectl -n prod rollout status deployment/orders-api
+kubectl -n prod get pods -l app=orders-api -o wide
+kubectl -n prod get endpointslices -l kubernetes.io/service-name=orders-api
+kubectl -n prod run tmp --rm -it --image=curlimages/curl -- curl -s http://orders-api/ready
+```
+
+**Important points:**
+
+- The Service selector must match the Pod template labels exactly, otherwise the Service has no endpoints.
+- Readiness and liveness probes should check different things; a liveness probe that depends on the database can cause restart storms.
+- Expose externally with an Ingress (AWS Load Balancer Controller creates an ALB) rather than many `LoadBalancer` Services.
+
+See also: [workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md) and [Kubernetes networking and traffic](../kubernetes/03-networking-and-traffic.md).
+
+**Interview-ready answer:**
+
+> "A Deployment declares how many replicas of a Pod template I want and how to roll out changes, and a Service gives those Pods a stable name and IP. In the Deployment, the selector must match the template labels; the template defines the container image, ports, environment from ConfigMaps and Secrets, resource requests and limits, and readiness and liveness probes. I use a RollingUpdate strategy with `maxUnavailable: 0` so capacity never drops. The Service of type ClusterIP selects Pods by the same label and maps port 80 to the container's named port. Only Ready Pods are added to the Service endpoints, and I expose it outside the cluster through an Ingress with the AWS Load Balancer Controller."
+
+</details>
+
+<details><summary>Q31. [Intermediate] How does Kubernetes handle self-healing at Pod and node level? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| Level | Mechanism |
+| --- | --- |
+| Container | `kubelet` restarts failed containers per `restartPolicy`; liveness probes restart hung ones |
+| Traffic | Readiness probes remove unready Pods from Service endpoints |
+| Pod | ReplicaSet, StatefulSet and DaemonSet controllers recreate missing Pods to match desired state |
+| Node | Node controller marks a node `NotReady`; after the eviction toleration (default 300 seconds) Pods are recreated on healthy nodes |
+| Infrastructure | Cluster Autoscaler or Karpenter and managed node groups replace unhealthy nodes |
+
+```yaml
+livenessProbe:
+  httpGet: { path: /healthz, port: 8080 }
+  periodSeconds: 10
+  failureThreshold: 3
+```
+
+**Interview-ready answer:**
+
+> Kubernetes heals through reconciliation: controllers constantly compare desired and actual state. At container level the `kubelet` restarts crashed containers and liveness probes restart hung ones, while readiness probes keep unhealthy Pods out of load balancing. If a Pod disappears, its ReplicaSet or StatefulSet creates a replacement. When a node goes `NotReady`, its Pods are evicted after the toleration period and rescheduled, and the node group or autoscaler replaces the machine.
+
+See also: [Self-healing at Pod and node level](../kubernetes/02-workloads-and-pod-lifecycle.md)
+
+</details>
+
+<details><summary>Q32. [Basic] Difference between ReplicaSet, Deployment, StatefulSet and DaemonSet? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| Object | Purpose | Identity and storage | Typical use |
+| --- | --- | --- | --- |
+| ReplicaSet | Keeps N identical Pods running | Random names, shared or no storage | Rarely used directly |
+| Deployment | Manages ReplicaSets; rolling updates and rollback | Stateless | Web apps, APIs |
+| StatefulSet | Ordered, stable Pods | Stable names (`db-0`), a PVC per Pod, headless Service | Databases, Kafka, ZooKeeper |
+| DaemonSet | One Pod per (selected) node | Node-scoped | Log agents, monitoring, CNI |
+
+```bash
+kubectl rollout history deployment/web      # Deployment keeps old ReplicaSets for rollback
+kubectl get pods -l app=db                  # StatefulSet: db-0, db-1, db-2
+```
+
+**Interview-ready answer:**
+
+> A ReplicaSet just keeps a fixed number of identical Pods alive. A Deployment sits on top of ReplicaSets and adds rolling updates and rollback, so it is what I use for stateless services. A StatefulSet gives each Pod a stable name, ordered start-up and its own persistent volume, which databases and brokers need. A DaemonSet runs exactly one Pod on every matching node, for agents like log shippers or node exporters.
+
+See also: [ReplicaSet vs Deployment vs StatefulSet vs DaemonSet](../kubernetes/02-workloads-and-pod-lifecycle.md), [StatefulSets and persistent storage](../kubernetes/04-storage-and-stateful-apps.md)
+
+</details>

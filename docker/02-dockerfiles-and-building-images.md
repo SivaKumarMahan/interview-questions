@@ -746,3 +746,38 @@ I never bake separate Dev, UAT, and Prod credentials into separate images. I bui
 I check `docker history`, the image's configuration, CI logs, the SBOM and provenance record, and registry access to make sure nothing sensitive leaked out. If a credential ever does end up in a layer, deleting the file later isn't enough — I rotate it immediately and rebuild without it.
 
 </details>
+
+<details><summary>Q13. [Intermediate] How do you optimize a Dockerfile for performance and security? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| Goal | Practice |
+| --- | --- |
+| Small image | Multi-stage build, slim or distroless runtime image |
+| Fast builds | Copy dependency manifests first, install, then copy source; use `.dockerignore`; BuildKit cache mounts |
+| Security | Pin base image by digest, run as non-root, no secrets in layers, scan with Trivy |
+| Reproducibility | Pinned versions, one process per container, `HEALTHCHECK` where useful |
+
+```dockerfile
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM gcr.io/distroless/nodejs22-debian12
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+USER nonroot
+CMD ["dist/server.js"]
+```
+
+**Interview-ready answer:**
+
+> I use multi-stage builds so compilers and dev dependencies never reach the runtime image, and I finish on a slim or distroless base. I order instructions from least to most frequently changed, copying dependency manifests before source code, so the cache is reused. For security I pin the base image, run as a non-root user, keep secrets out of layers and scan the image in CI. A good `.dockerignore` keeps the build context small and avoids leaking files like `.git` or `.env`.
+
+See also: [Optimize a Dockerfile for performance and security](../docker/03-image-optimization-multi-stage-and-bake.md), [Sample Dockerfiles](../repetitive-questions/sample-dockerfiles.md)
+
+</details>

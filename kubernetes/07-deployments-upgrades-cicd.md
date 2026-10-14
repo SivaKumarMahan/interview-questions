@@ -477,3 +477,35 @@ A manual emergency change might temporarily pause sync, but it gets captured thr
 Secrets use an external-secret or encrypted-secret workflow, never plaintext in Git. Sync failures, drift, controller access, and audit events are all monitored, and destructive pruning has explicit safeguards around it.
 
 </details>
+
+<details><summary>Q23. [Intermediate] How do you implement PodDisruptionBudgets and why are they critical? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A PodDisruptionBudget (PDB) limits how many Pods of an application can be down at once during voluntary disruptions: node drains, cluster upgrades, autoscaler scale-down. It does not protect against involuntary failures such as a node crash.
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orders-pdb
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: orders
+```
+
+**Important points:**
+
+- Without a PDB, a node drain during an upgrade can evict every replica at the same time.
+- Do not set `minAvailable` equal to the replica count or `maxUnavailable: 0`; drains and upgrades will block forever.
+- Combine with at least two replicas and topology spread or anti-affinity so replicas are on different nodes.
+
+**Interview-ready answer:**
+
+> A PodDisruptionBudget tells Kubernetes how many replicas must stay available during voluntary disruptions such as node drains, upgrades and autoscaler consolidation. I usually set `maxUnavailable: 1` on every production Deployment with at least two replicas spread across nodes. Without it, a managed cluster upgrade can drain all replicas at once and cause an outage. I also avoid over-strict budgets, because a PDB that allows zero disruptions blocks node upgrades.
+
+See also: [PodDisruptionBudget](../kubernetes/05-scheduling-resources-autoscaling.md)
+
+</details>

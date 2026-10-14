@@ -338,3 +338,74 @@ TODO (Siva): add how this setup supported your 99.9% AKS availability target.
 This way, monitoring does not depend on each engineer remembering a checkbox.
 
 </details>
+
+<details><summary>Q14. [Intermediate] An Azure Monitor alert is configured but the email is not received. What do you check? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I split the problem into two halves: **did the alert fire?** and **did the notification get delivered?** An alert rule does not send email by itself; it triggers an **action group**, and the action group sends the email.
+
+**Steps:**
+
+1. **Is the alert rule enabled?** Check the rule status in Azure Monitor > Alerts > Alert rules.
+2. **Did the alert fire?** Check Alerts (fired alerts) and the alert history for the time window. If it never fired, the problem is the rule, not the email.
+3. **Check the rule logic:** scope (correct resource/subscription), signal, threshold, aggregation, evaluation frequency and lookback window. For log search alerts, run the KQL query manually and confirm it returns rows. Also check whether the metric has data at all.
+4. **Is an action group attached** to the rule, and is the action group enabled?
+5. **Check the email receiver:** correct address, no typo, and the receiver is enabled. The "Email Azure Resource Manager Role" receiver only emails users with that role assigned directly.
+6. **Did the user unsubscribe?** Users can opt out from action group emails using the unsubscribe link; they must be re-added or resubscribed.
+7. **Rate limiting:** Azure Monitor sends no more than about 100 emails per hour to one email address; extra notifications are dropped.
+8. **Alert processing rules:** a rule may be suppressing notifications (maintenance window) for that scope.
+9. **Mailbox side:** check junk/spam and mail-flow rules; allow the sender `azure-noreply@microsoft.com`.
+10. **Use "Test action group"** to send a test notification and see the result per receiver.
+11. **Azure Service Health:** check whether there is an incident affecting Azure Monitor or notifications in that region.
+
+**Flow:**
+
+```text
+Alert rule enabled?  -- no --> enable it
+      | yes
+      v
+Alert fired? (Alerts history) -- no --> fix scope / condition / threshold / KQL
+      | yes
+      v
+Action group attached and enabled? -- no --> attach / enable
+      | yes
+      v
+Email receiver correct, not unsubscribed? -- no --> fix / resubscribe
+      | yes
+      v
+Suppressed by alert processing rule or rate limit? -- yes --> adjust
+      | no
+      v
+Test action group -> check spam/junk, mail-flow rules, Service Health
+```
+
+**Example commands:**
+
+```bash
+# Is the rule enabled and which action groups are attached?
+az monitor metrics alert show -g my-rg -n cpu-high \
+  --query "{enabled:enabled, actions:actions[].actionGroupId}"
+
+# Email receivers and their status
+az monitor action-group show -g my-rg -n ag-ops \
+  --query "emailReceivers[].{name:name, email:emailAddress, status:status}"
+
+# Alert processing rules that could suppress notifications
+az monitor alert-processing-rule list -g my-rg -o table
+```
+
+**Important points:**
+
+- Always confirm first whether the alert fired; that splits the problem in half.
+- The Common Alert Schema only changes the payload format; it does not cause emails to be missing.
+- Stateful alerts notify when they fire and when they resolve, not again while the condition stays true.
+- For critical alerts, do not rely on email only; add SMS, Teams/webhook or an ITSM integration.
+
+See also: [Azure Monitor, KQL and alerting](../azure/09-azure-monitor-kql-and-alerting.md).
+
+**Interview-ready answer:**
+
+> "First I check whether the alert actually fired by looking at the fired alerts and alert history. If it did not fire, I check that the rule is enabled and review the scope, threshold, aggregation and evaluation window, and for a log alert I run the KQL query myself. If it did fire, I check that an action group is attached and enabled and that the email receiver address is correct and not unsubscribed. I also check alert processing rules that might suppress notifications and the email rate limit of about 100 emails per hour per address. Then I use the Test action group feature and ask the user to check junk mail and allow `azure-noreply@microsoft.com`. Finally I check Azure Service Health for any platform issue."
+
+</details>

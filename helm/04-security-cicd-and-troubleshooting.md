@@ -142,3 +142,71 @@ I compare the rendered manifest and values against the last good revision. Then 
 Tests, schema validation, pinned chart versions, and time-limited atomic upgrades are what prevent this from happening again.
 
 </details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot Helm upgrade failures and perform safe rollbacks? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Helm stores each release revision as a Secret in the release namespace. Most upgrade problems are either a template or validation error before anything is applied, resources that do not become healthy within the timeout, or a release stuck in a `pending-*` state after an interrupted operation.
+
+**Steps:**
+
+1. **Check the release state**: `helm status` and `helm history`. Note the last revision with status `deployed`.
+2. **Render before applying**: `helm template` or `helm upgrade --dry-run=server` and `helm diff` (plugin) to see what will change.
+3. **If resources were applied but are unhealthy**: debug Pods, events and hooks like any Kubernetes failure (image, probes, config).
+4. **If the release is stuck in `pending-upgrade`/`pending-install`/`pending-rollback`** (pipeline cancelled, runner killed, timeout), the next upgrade fails with "another operation (install/upgrade/rollback) is in progress". Roll back to the last `deployed` revision; for a stuck first install, uninstall and reinstall. Deleting the pending release Secret is a last resort.
+5. **Use safety flags in CI**: `--wait` and `--timeout` so Helm waits for readiness; `--atomic` in Helm 3 or `--rollback-on-failure` in Helm 4 so a failed upgrade rolls back automatically.
+6. **Roll back**: `helm rollback <release> <revision> --wait`. Rollback creates a *new* revision with the old manifest.
+
+**Decision flow:**
+
+```text
+helm upgrade failed
+      |
+      v
+Error before apply (template, schema, API version)? --yes--> fix chart/values; nothing changed
+      |no
+      v
+Status pending-*? --yes--> helm rollback to last deployed revision (or uninstall if first install)
+      |no
+      v
+Status failed after --wait timeout? --> debug Pods/hooks --> helm rollback <rev> --wait
+      |
+      v
+Fix chart, re-run upgrade with --wait --timeout and automatic rollback flag
+```
+
+**Commands:**
+
+```bash
+helm status api -n prod
+helm history api -n prod --max 10
+helm get values api -n prod --revision 7
+helm get manifest api -n prod --revision 7 | head -50
+
+helm template api ./chart -f values-prod.yaml | kubectl apply --dry-run=server -f -
+helm diff upgrade api ./chart -n prod -f values-prod.yaml      # helm-diff plugin
+
+# Helm 3
+helm upgrade --install api ./chart -n prod -f values-prod.yaml --atomic --wait --timeout 10m
+# Helm 4 (--atomic renamed)
+helm upgrade --install api ./chart -n prod -f values-prod.yaml --rollback-on-failure --wait --timeout 10m
+
+helm rollback api 7 -n prod --wait --timeout 10m
+kubectl get secrets -n prod -l owner=helm,name=api
+```
+
+**Important points:**
+
+- Without `--wait`, Helm marks the release `deployed` as soon as the manifests are accepted, even if Pods never become ready.
+- `--atomic`/`--rollback-on-failure` implies waiting; set a realistic `--timeout` (default 5 minutes) for slow starters and hooks.
+- Rollback does not undo database migrations run by hooks, or delete CRDs; plan those separately.
+- Always pin chart versions and keep values in Git so any revision can be reproduced.
+
+See also: [Helm security, CI/CD and troubleshooting](../helm/04-security-cicd-and-troubleshooting.md), [Helm release workflow, values and hooks](../helm/02-release-workflow-values-and-hooks.md)
+
+**Interview-ready answer:**
+
+> "I start with `helm status` and `helm history` to see the current state and the last revision that was actually deployed. If the error happened at template or validation time, nothing changed and I fix the chart. If the release is stuck in `pending-upgrade` because a pipeline was cancelled, Helm blocks further operations, so I roll back to the last deployed revision, or uninstall if it was a first install. If resources were applied but unhealthy, I debug the Pods and hooks, then `helm rollback` with `--wait`. In CI I always use `--wait` with a realistic `--timeout`, plus `--atomic` in Helm 3, which Helm 4 renames to `--rollback-on-failure`, so a failed upgrade rolls itself back. I also run `helm diff` before production upgrades."
+
+</details>

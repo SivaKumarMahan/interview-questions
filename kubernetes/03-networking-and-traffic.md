@@ -1391,3 +1391,259 @@ I identify the required direction and port from the provider's docs, test DNS/ro
 To prevent this: manage firewall rules through IaC and policy, monitor node heartbeat and connectivity, build redundant network paths, and actually test how the cluster behaves under a network partition.
 
 </details>
+
+<details><summary>Q44. [Basic] Can Pods talk to each other by default, and how does communication work inside an EKS or AKS cluster?</summary>
+
+**Answer:**
+
+**Yes.** The Kubernetes network model requires that every Pod can reach every other Pod, in any namespace and on any node, using the Pod IP and without NAT. Nothing is blocked until you apply **NetworkPolicies** (and you need a CNI that enforces them, such as Calico or Cilium, or Azure Network Policy Manager). A common baseline is a default-deny policy per namespace, plus explicit allow rules.
+
+How traffic flows in a managed cluster:
+
+1. **CNI plugin** gives each Pod an IP. On EKS the **Amazon VPC CNI** assigns real VPC IPs; on AKS **Azure CNI** (flat or Overlay) or Cilium does the same job.
+2. **Services** give a stable virtual IP and DNS name in front of changing Pods: `ClusterIP` (inside the cluster), `NodePort`, and `LoadBalancer` (creates an AWS NLB or Azure Load Balancer).
+3. **CoreDNS** resolves names such as `orders.prod.svc.cluster.local` to the Service IP.
+4. **kube-proxy** (iptables or IPVS) or eBPF (Cilium) sends Service traffic to a healthy Pod endpoint.
+5. **Ingress or Gateway API** controllers (AWS Load Balancer Controller with an ALB, NGINX, Application Gateway for Containers) handle HTTP traffic from outside.
+6. **VPC or VNet routing**, security groups and NSGs control traffic between nodes and to other networks.
+
+</details>
+
+<details><summary>Q45. [Intermediate] A user is unable to access an application exposed through a Kubernetes NodePort service. How would you troubleshoot the issue? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A NodePort Service opens the same port (by default in the range 30000 to 32767) on every node. Traffic to `NodeIP:NodePort` is forwarded by `kube-proxy` (or the CNI, for example Cilium) to a ready Pod on the `targetPort`. I troubleshoot from the inside out: first the Pod, then the Service and endpoints, then the node, then the network path from the user.
+
+**Traffic flow:**
+
+```text
+User --> NodeIP:30080 --> cloud firewall / security group
+                               |
+                               v
+                     kube-proxy rules on the node
+                               |
+                               v
+                Service (port 80) --> EndpointSlice (ready pod IPs)
+                               |
+                               v
+                     Pod containerPort / targetPort 8080
+```
+
+**Steps:**
+
+**Step 1: Check the Pods are running and ready**
+
+```bash
+kubectl get pods -n shop -l app=web -o wide
+kubectl describe pod <pod-name> -n shop
+kubectl logs <pod-name> -n shop
+```
+
+If the readiness probe fails, the Pod is removed from the endpoints and the Service has nowhere to send traffic.
+
+**Step 2: Test the application directly, bypassing the Service**
+
+```bash
+kubectl port-forward -n shop pod/<pod-name> 8080:8080
+curl -v http://localhost:8080/
+```
+
+If this fails, the problem is the application, for example it listens on `127.0.0.1` instead of `0.0.0.0`, or on a different port.
+
+**Step 3: Check the Service definition and endpoints**
+
+```bash
+kubectl get svc web -n shop -o yaml
+kubectl get endpointslices -n shop -l kubernetes.io/service-name=web
+```
+
+Common mistakes:
+
+- The Service `selector` does not match the Pod labels, so there are no endpoints.
+- `targetPort` does not match the port the container listens on.
+- The user is calling the Service `port` instead of the `nodePort`.
+
+**Step 4: Test the Service inside the cluster**
+
+```bash
+kubectl run tmp -it --rm --image=curlimages/curl -n shop -- \
+  curl -sv http://web.shop.svc.cluster.local:80/
+```
+
+If this works, the Service is fine and the issue is node-level or external.
+
+**Step 5: Test the NodePort on the node itself**
+
+```bash
+kubectl get nodes -o wide                 # note INTERNAL-IP / EXTERNAL-IP
+curl -v http://<node-internal-ip>:30080/  # from another node or a bastion host
+kubectl get pods -n kube-system -l k8s-app=kube-proxy
+```
+
+Check that `kube-proxy` (or the CNI that replaces it) is healthy on that node.
+
+**Step 6: Check the external network path**
+
+- Cloud firewall: the security group (AWS) or NSG (Azure) must allow the NodePort from the user's IP range.
+- The node must have a reachable IP. Nodes in private subnets are not reachable from the internet, which is why NodePort is rarely used directly in managed clusters.
+- If `externalTrafficPolicy: Local` is set, only nodes that run a Pod answer; calling a node without a Pod fails.
+- A `NetworkPolicy` may block ingress to the Pods.
+- Corporate proxy or firewall rules on the user side may block high ports.
+
+**Example Service:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: shop
+spec:
+  type: NodePort
+  selector:
+    app: web            # must match pod labels
+  ports:
+    - port: 80          # cluster-internal port
+      targetPort: 8080  # container port
+      nodePort: 30080   # user calls http://<node-ip>:30080
+```
+
+**Important points:**
+
+- Empty endpoints is the most common cause: check selectors, labels and readiness.
+- Work layer by layer: Pod, Service, node, firewall, user. Each test narrows the fault.
+- For real users, prefer a LoadBalancer Service or an Ingress / Gateway instead of exposing node ports directly.
+
+See also: [kubernetes/03](../kubernetes/03-networking-and-traffic.md) and [kubernetes/08](../kubernetes/08-troubleshooting.md).
+
+**Interview-ready answer:**
+
+> "I troubleshoot layer by layer. First I check that the Pods are running and ready, and I use `kubectl port-forward` to confirm the application responds on its container port. Then I check the Service: the selector must match the Pod labels, `targetPort` must match the container port, and the EndpointSlice must list Pod IPs. Next I test the Service from a temporary Pod inside the cluster and then `NodeIP:NodePort` from inside the VPC, and I confirm `kube-proxy` is healthy. If it works internally but not for the user, I check the security group or NSG for the NodePort range, whether the node has a reachable IP, `externalTrafficPolicy`, and network policies. For production access I would recommend a LoadBalancer or Ingress instead of a raw NodePort."
+
+</details>
+
+<details><summary>Q46. [Basic] What are the different types of Kubernetes Services, and when would you use each? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A Service gives a stable virtual IP and DNS name to a changing set of Pods selected by labels, and load-balances traffic across them.
+
+**Service types:**
+
+```text
+ClusterIP     : client in cluster --> ClusterIP:80 --> Pods
+NodePort      : client --> NodeIP:30080 --> ClusterIP --> Pods
+LoadBalancer  : client --> cloud LB --> NodePort / Pod IP --> Pods
+ExternalName  : Pod --> my-db.svc DNS --> CNAME db.example.com (no proxying)
+```
+
+| Type | What it does | When to use |
+| --- | --- | --- |
+| `ClusterIP` (default) | Internal virtual IP reachable only inside the cluster | Service-to-service traffic, backends, databases |
+| `NodePort` | Opens a port (30000 to 32767) on every node | Testing, on-premises setups, or behind an external load balancer |
+| `LoadBalancer` | Provisions a cloud load balancer (AWS NLB, Azure Load Balancer) | Exposing a TCP or UDP service externally |
+| `ExternalName` | Returns a DNS CNAME to an external hostname | Giving an external database or API a cluster-internal name |
+| Headless (`clusterIP: None`) | No virtual IP; DNS returns individual Pod IPs | StatefulSets such as Kafka, Cassandra, MongoDB |
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders
+spec:
+  type: ClusterIP
+  selector:
+    app: orders
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: legacy-db
+spec:
+  type: ExternalName
+  externalName: db.prod.example.com
+```
+
+**Important points:**
+
+- Each type builds on the previous one: a LoadBalancer Service also gets a NodePort and a ClusterIP (the NodePort can be disabled with `allocateLoadBalancerNodePorts: false`).
+- For HTTP and HTTPS, use one Ingress or Gateway API controller behind a single load balancer instead of one LoadBalancer Service per app; it saves cost and adds host and path routing and TLS.
+- On EKS, the AWS Load Balancer Controller creates an NLB for `LoadBalancer` Services and an ALB for Ingress.
+- Ingress and Gateway are not Service types; they route to Services.
+
+See also: [kubernetes/03](../kubernetes/03-networking-and-traffic.md).
+
+**Interview-ready answer:**
+
+> "A Service gives a stable IP and DNS name to a set of Pods. `ClusterIP` is the default and is for internal communication between services. `NodePort` exposes the service on a high port on every node, which I use mainly for testing or behind an external load balancer. `LoadBalancer` asks the cloud provider for a load balancer and is the standard way to expose TCP services externally. `ExternalName` maps a Service name to an external DNS name, and a headless Service with `clusterIP: None` returns Pod IPs directly for StatefulSets. For web applications I usually use ClusterIP Services behind an Ingress or Gateway controller."
+
+</details>
+
+<details><summary>Q47. [Intermediate] How does a newly created Pod get its IP address? Which component handles Pod networking? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The kubelet does not assign IPs itself. When the kubelet starts a Pod, it asks the container runtime (`containerd`) through CRI to create the Pod sandbox, and the runtime calls the **CNI plugin** with the `ADD` command. On EKS the CNI is the **Amazon VPC CNI**, which gives each Pod a real IP from the VPC subnet, so Pods are directly routable inside the VPC.
+
+**Flow on EKS:**
+
+```text
+Scheduler binds Pod to node-a
+        |
+        v
+kubelet --> CRI RunPodSandbox --> containerd creates network namespace (pause container)
+        |
+        v
+containerd --> CNI ADD --> aws-cni binary on the node
+        |
+        v
+aws-cni --> gRPC --> ipamd (L-IPAM daemon inside the aws-node Pod)
+        |          ipamd hands out a free secondary IP from its warm pool
+        v
+aws-cni creates veth pair, moves one end into the Pod namespace,
+        assigns the IP, adds host routes and policy routing rules
+        |
+        v
+Pod gets IP 10.0.12.47 (a real VPC address) --> kubelet reports Pod IP to API server
+```
+
+**How `ipamd` keeps IPs ready:**
+
+- Each EC2 instance type has a limit on `ENIs` and IPs per ENI. For example, `m5.large` supports 3 `ENIs` with 10 IPv4 addresses each.
+- `ipamd` attaches `ENIs` and secondary IPs in advance (the **warm pool**) so Pods start quickly instead of waiting for EC2 API calls.
+- Warm pool settings on the `aws-node` DaemonSet: `WARM_ENI_TARGET` (default 1 spare ENI), `WARM_IP_TARGET` and `MINIMUM_IP_TARGET` (keep a fixed number of spare IPs, useful when the subnet is small).
+- **Prefix delegation** (`ENABLE_PREFIX_DELEGATION=true`, Nitro instances only) assigns `/28` prefixes (16 IPs each) to ENI slots instead of single IPs, which greatly increases Pod density per node and reduces EC2 API calls.
+- `max-pods` per node is calculated from ENI and IP limits (`(ENIs x (IPs per ENI - 1)) + 2`, so 29 for `m5.large` without prefix delegation).
+
+**Example: inspect it:**
+
+```bash
+kubectl get pod web-7d9c -o wide                       # Pod IP and node
+kubectl -n kube-system get ds aws-node -o yaml | grep -A1 -E "WARM_|PREFIX"
+kubectl -n kube-system set env daemonset aws-node ENABLE_PREFIX_DELEGATION=true
+
+# On the node
+sudo cat /etc/cni/net.d/10-aws.conflist
+sudo tail -f /var/log/aws-routed-eni/ipamd.log
+```
+
+**Important points:**
+
+- Pod IP comes from the CNI, not from Kubernetes itself; the kubelet just reports it.
+- With the VPC CNI, Pod IPs consume subnet IPs, so subnet sizing matters (see Q6).
+- Security groups for Pods and custom networking are VPC CNI features.
+- Other clusters may use Calico, Cilium or Flannel, which usually use an overlay or a separate Pod CIDR instead of VPC IPs.
+
+See also: [Kubernetes networking and traffic](../kubernetes/03-networking-and-traffic.md).
+
+**Interview-ready answer:**
+
+> "After the scheduler places the Pod, the kubelet asks containerd through CRI to create the Pod sandbox, and containerd calls the CNI plugin with an ADD command. On EKS that plugin is the Amazon VPC CNI. The CNI binary asks `ipamd`, which runs in the aws-node DaemonSet, for a free IP from its warm pool of secondary IPs on the node's `ENIs`. It then creates a `veth` pair, places the IP inside the Pod namespace and sets up routes, so the Pod gets a real VPC IP. `ipamd` keeps spare `ENIs` and IPs warm so Pods start quickly, and with prefix delegation it assigns /28 prefixes to get much higher Pod density per node."
+
+</details>

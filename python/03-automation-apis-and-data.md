@@ -829,3 +829,200 @@ print(data["kind"])
 **Use case:** validate Kubernetes manifests before applying them - catches YAML syntax errors and lets you sanity-check fields (like confirming `kind` is what you expect) before they ever reach `kubectl apply`.
 
 </details>
+
+<details><summary>Q21. [Intermediate] How do you access AWS from Python using Boto3 and manage credentials securely? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Boto3 is the AWS SDK for Python. I never put access keys in code. Boto3 uses a **credential provider chain**, so the same code works on a laptop with SSO, on EC2 with an instance role, and in EKS with IRSA or EKS Pod Identity; only the environment changes.
+
+**Credential provider chain (in order):**
+
+```text
+1. Credentials passed explicitly to boto3.client() / Session()   <-- avoid
+2. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)
+3. Assume role with web identity (AWS_ROLE_ARN + AWS_WEB_IDENTITY_TOKEN_FILE)  <-- IRSA
+4. IAM Identity Center (SSO) profile in ~/.aws/config
+5. ~/.aws/credentials and ~/.aws/config profiles (including assume-role profiles)
+6. Container credentials (AWS_CONTAINER_CREDENTIALS_FULL_URI)  <-- ECS tasks, EKS Pod Identity
+7. EC2 instance metadata (IMDSv2)  <-- instance profile role
+```
+
+**Where the credentials come from:**
+
+| Where the code runs | Secure method |
+| --- | --- |
+| Developer laptop | `aws configure sso` then `aws sso login --profile dev`; temporary credentials |
+| EC2 | IAM role attached through an instance profile; enforce IMDSv2 |
+| EKS Pod | IRSA (service account annotated with a role ARN) or EKS Pod Identity association |
+| Lambda / ECS | Execution or task role |
+| CI/CD (GitHub Actions) | OIDC to assume a role |
+| Another account | `sts:AssumeRole` with a scoped role |
+
+**Example code:**
+
+```python
+import boto3
+from botocore.config import Config
+
+# No keys in code: Boto3 resolves credentials from the environment.
+session = boto3.Session(region_name="us-east-1")  # profile_name="dev" on a laptop
+
+s3 = session.client("s3", config=Config(retries={"max_attempts": 10, "mode": "standard"}))
+
+identity = session.client("sts").get_caller_identity()
+print(f"Running as: {identity['Arn']}")
+
+for bucket in s3.list_buckets()["Buckets"]:
+    print(bucket["Name"])
+```
+
+Assuming a role in another account:
+
+```python
+import boto3
+
+sts = boto3.client("sts")
+creds = sts.assume_role(
+    RoleArn="arn:aws:iam::222233334444:role/read-only-audit",
+    RoleSessionName="audit-script",
+)["Credentials"]
+
+ec2 = boto3.client(
+    "ec2",
+    region_name="us-east-1",
+    aws_access_key_id=creds["AccessKeyId"],
+    aws_secret_access_key=creds["SecretAccessKey"],
+    aws_session_token=creds["SessionToken"],
+)
+```
+
+**EKS: IRSA and Pod Identity:**
+
+```yaml
+# IRSA: annotate the service account with the role
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: report-job
+  namespace: prod
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/report-job-s3
+```
+
+```bash
+# EKS Pod Identity: associate the role with the service account (needs the Pod Identity Agent add-on)
+aws eks create-pod-identity-association \
+  --cluster-name prod-eks --namespace prod \
+  --service-account report-job \
+  --role-arn arn:aws:iam::123456789012:role/report-job-s3
+```
+
+**Important points:**
+
+- Never commit keys; use `git-secrets` or `gitleaks` in CI to catch mistakes.
+- Use least-privilege IAM policies and temporary credentials only.
+- Application secrets (database passwords, API keys) go in Secrets Manager or Parameter Store, read with Boto3 at runtime.
+- Use a recent Boto3 version so newer providers such as Pod Identity are supported.
+
+See also: [Python automation, APIs and data](../python/03-automation-apis-and-data.md) and [AWS networking, security and IAM](../aws/03-networking-security-and-iam.md).
+
+**Interview-ready answer:**
+
+> "I use Boto3 sessions and clients without ever putting keys in the code, and let Boto3's credential provider chain find temporary credentials. On my laptop I use IAM Identity Center profiles with `aws sso login`. On EC2 the script uses the instance profile role through IMDSv2, and in EKS the Pod gets a role through IRSA or EKS Pod Identity bound to its service account. In CI I use GitHub OIDC to assume a role, and for cross-account work I call STS `AssumeRole`. Every role follows least privilege, and application secrets are read from Secrets Manager at runtime."
+
+</details>
+
+<details><summary>Q22. [Intermediate] Write Python code to check whether an S3 bucket exists and print the result. How do you distinguish 403 from 404? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I use `head_bucket`, which is a cheap call that returns successfully if the bucket exists **and** I have permission to access it. If it fails, Boto3 raises `botocore.exceptions.ClientError`, and I read the HTTP status code from the error response:
+
+- **404** (error code `404` or `NoSuchBucket`): the bucket does not exist.
+- **403** (error code `403` or `AccessDenied`): the bucket **exists**, but I am not allowed to access it (it may belong to another account, because bucket names are globally unique).
+
+`HEAD` responses have no body, so the error code is usually just the status as a string (`"404"` or `"403"`); checking `HTTPStatusCode` handles both forms.
+
+**Flow:**
+
+```text
+head_bucket(Bucket=name)
+   |
+   |-- 200 OK          --> exists and accessible
+   |-- ClientError 404 --> does not exist
+   |-- ClientError 403 --> exists, but access denied (or owned by someone else)
+   |-- other           --> re-raise (throttling, credentials, network)
+```
+
+**Code:**
+
+```python
+import sys
+
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
+
+
+def check_bucket(bucket_name: str) -> str:
+    s3 = boto3.client("s3")
+    try:
+        s3.head_bucket(Bucket=bucket_name)
+        return "exists"
+    except ClientError as err:
+        code = err.response["Error"]["Code"]
+        status = err.response["ResponseMetadata"]["HTTPStatusCode"]
+        if status == 404 or code in ("404", "NoSuchBucket"):
+            return "not_found"
+        if status == 403 or code in ("403", "AccessDenied"):
+            return "forbidden"
+        raise
+
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        print("Usage: python check_bucket.py <bucket-name>")
+        return 2
+
+    bucket = sys.argv[1]
+    try:
+        result = check_bucket(bucket)
+    except NoCredentialsError:
+        print("No AWS credentials found.")
+        return 1
+
+    messages = {
+        "exists": f"Bucket '{bucket}' exists and is accessible.",
+        "not_found": f"Bucket '{bucket}' does not exist.",
+        "forbidden": f"Bucket '{bucket}' exists, but access is denied (403).",
+    }
+    print(messages[result])
+    return 0 if result == "exists" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+Run it:
+
+```bash
+python check_bucket.py my-app-artifacts-prod
+# Bucket 'my-app-artifacts-prod' exists and is accessible.
+```
+
+**Important points:**
+
+- A 403 does **not** mean "missing"; never try to create a bucket after a 403, because the name is already taken.
+- `head_bucket` needs `s3:ListBucket` permission on the bucket.
+- In newer Boto3 versions, a successful `head_bucket` also returns `BucketRegion` (and access point information), which helps when the bucket is in another Region.
+- You can also use `ExpectedBucketOwner="123456789012"` to make sure the bucket belongs to your account.
+- `list_buckets` only shows buckets in your own account, so it is not a reliable existence check.
+
+See also: [Python automation, APIs and data](../python/03-automation-apis-and-data.md).
+
+**Interview-ready answer:**
+
+> "I call `head_bucket` inside a try block. If it succeeds, the bucket exists and I can access it. If Boto3 raises a `ClientError`, I read the error code and HTTP status from `err.response`. A 404 or `NoSuchBucket` means the bucket does not exist, while a 403 means the bucket exists but I do not have permission, possibly because another account owns that globally unique name. Any other error, such as throttling or missing credentials, I re-raise or handle separately. I also note that `head_bucket` needs `s3:ListBucket`, and I can pass `ExpectedBucketOwner` to confirm the bucket is ours."
+
+</details>

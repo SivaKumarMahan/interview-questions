@@ -150,3 +150,132 @@ I've also worked with, or understand, similar patterns in Jenkins, Azure Pipelin
 Which tool I pick depends on the repository platform, how much customization is needed, where the runners sit, governance requirements, cost, and the team's existing skills.
 
 </details>
+
+<details><summary>Q5. [Basic] What are the key stages involved in a CI/CD pipeline using GitHub Actions? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A GitHub Actions pipeline is defined as YAML in `.github/workflows/`. It is triggered by events (push, pull request, tag, manual dispatch), and runs jobs on runners. Each job has steps. CI validates and builds the code; CD deploys the same artifact through environments with approvals.
+
+**Stages:**
+
+```text
+Trigger (PR / push to main / tag / workflow_dispatch)
+   |
+   v
+Checkout + setup (language, cache dependencies)
+   |
+   v
+Lint + unit tests + code coverage
+   |
+   v
+Security scans (SAST, dependency scan, secret scan)
+   |
+   v
+Build artifact / Docker image (tag = commit SHA)
+   |
+   v
+Image scan + push to registry (ECR / ACR)
+   |
+   v
+Deploy to dev / stage --> smoke and integration tests
+   |
+   v
+Manual approval (GitHub environment protection)
+   |
+   v
+Deploy to production --> health check --> rollback on failure
+```
+
+**Example workflow:**
+
+```yaml
+name: ci-cd
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPO: orders-api
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest --maxfail=1
+
+  build-push:
+    needs: build-test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write        # required for OIDC
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-ecr
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - id: meta
+        run: echo "image=${{ steps.ecr.outputs.registry }}/${ECR_REPO}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - run: |
+          docker build -t "${{ steps.meta.outputs.image }}" .
+          docker push "${{ steps.meta.outputs.image }}"
+
+  deploy-prod:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production  # required reviewers configured on this environment
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+      - run: aws eks update-kubeconfig --name prod-cluster --region "$AWS_REGION"
+      - run: |
+          helm upgrade --install orders-api ./chart \
+            --namespace orders \
+            --set image.repository="${{ needs.build-push.outputs.image }}" \
+            --atomic --wait --timeout 5m
+```
+
+In a real pipeline, add the dev and stage deploy jobs before production, and add scanning steps (for example CodeQL, Trivy, dependency review).
+
+**Important points:**
+
+- Use **OIDC** (`id-token: write` plus an IAM role trust policy restricted to the repository and branch or environment) instead of storing long-lived cloud keys as secrets.
+- Build once and promote the same image (tagged with the commit SHA) through all environments.
+- Use GitHub environments for approvals, environment-specific secrets and deployment history.
+- Set minimal `permissions` at workflow level, pin third-party actions to a full commit SHA, and protect the main branch with required status checks.
+- Use caching, `concurrency` groups and reusable workflows to keep pipelines fast and consistent.
+- `helm --atomic` rolls back automatically if the release fails.
+
+See also: [github-actions/03](../github-actions/03-end-to-end-pipelines-security-and-troubleshooting.md) and [github-actions/01](../github-actions/01-fundamentals-and-workflows.md).
+
+**Interview-ready answer:**
+
+> "A GitHub Actions pipeline starts with a trigger such as a pull request or a push to main. In CI, it checks out the code, sets up the language with dependency caching, runs linting and unit tests, and runs security scans. It then builds a Docker image tagged with the commit SHA, scans it and pushes it to ECR. In CD, it deploys the same image to dev and stage, runs smoke tests, waits for approval through a protected production environment, and deploys to production with Helm using `--atomic` so a failed release rolls back. For cloud access I use OIDC with a scoped IAM role instead of static keys, and I keep workflow permissions minimal."
+
+</details>

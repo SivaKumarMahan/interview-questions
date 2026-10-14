@@ -795,3 +795,198 @@ Move one module or one group at a time, each with a clean plan.
 "I prefer `moved` blocks, because the move is visible in the plan and reviewable, instead of a state command that someone has to remember to run. I back up state first, then check the plan JSON to confirm no deletes are hiding in it. I split the refactor into small pull requests, one group at a time, and each must plan clean before the next one starts."
 
 </details>
+
+<details><summary>Q21. [Intermediate] The Terraform file is missing. What do you do? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+First I find out **what** is missing: the `.tf` configuration code or the state file. If only the code is missing, the infrastructure and state are still there; I recover the code from Git or rebuild it from the state. The most important rule: **never run `terraform apply` with an empty or incomplete configuration**, because Terraform will plan to destroy every resource that is in state but not in code.
+
+**Steps:**
+
+1. **Stop:** pause pipelines and tell the team not to apply.
+2. **Is the code only deleted locally?** Run `git status`; restore with `git restore` or pull again from the remote.
+3. **Was it deleted in a commit?** Find it in Git history and restore it from the commit before deletion.
+4. **Check the remote backend:** with an Azure Storage, S3 or HCP Terraform backend, the state is still there. Also check blob versioning / S3 versioning for older state versions.
+5. **If the code is really lost, rebuild it from state:**
+   - `terraform state list` and `terraform show` to see all resources and their attributes.
+   - Write `import` blocks (Terraform 1.5+) for each resource.
+   - Run `terraform plan -generate-config-out=generated.tf` to generate HCL.
+   - Clean up the generated code (variables, modules, remove read-only attributes).
+6. **Run `terraform plan` until it shows no changes** (the code matches real infrastructure).
+7. **Prevent:** keep code in Git with branch protection, a remote backend with locking and versioning, and plans run in CI.
+
+**Flow:**
+
+```text
+"Terraform file missing"
+        |
+        v
+Code (.tf) or state?  -- state --> restore from backend versioning / import
+        | code
+        v
+Deleted locally? -- yes --> git restore / git pull
+        | no
+        v
+In Git history? -- yes --> git checkout <commit>^ -- path
+        | no
+        v
+State in remote backend -> terraform show / state list
+        |
+        v
+import blocks + terraform plan -generate-config-out=generated.tf
+        |
+        v
+Clean up -> terraform plan = "No changes" -> commit to Git
+```
+
+**Example:**
+
+```bash
+# Recover from Git
+git log --diff-filter=D --oneline -- infra/main.tf      # commit that deleted it
+git checkout <commit>^ -- infra/main.tf                   # restore from the commit before
+
+# Inspect the remote state (backend config only, no resources yet)
+terraform init
+terraform state list
+terraform show
+```
+
+```hcl
+# imports.tf
+import {
+  to = azurerm_resource_group.app
+  id = "/subscriptions/<sub-id>/resourceGroups/rg-app-prod"
+}
+
+import {
+  to = azurerm_storage_account.logs
+  id = "/subscriptions/<sub-id>/resourceGroups/rg-app-prod/providers/Microsoft.Storage/storageAccounts/stapplogs"
+}
+```
+
+```bash
+terraform plan -generate-config-out=generated.tf   # writes HCL for the import blocks
+terraform plan                                     # repeat until "No changes"
+```
+
+**Important points:**
+
+- Missing code plus existing state equals a plan to **destroy everything**; never apply in that situation.
+- `-generate-config-out` only generates code for resources referenced by `import` blocks, and the output needs review and cleanup.
+- If the resources are already in state, rebuild the code from `terraform show` and confirm with a plan; import blocks are needed when state is also lost.
+- Enable versioning and soft delete on the state storage, and restrict who can modify it.
+
+See also: [Terraform state and backends](../terraform/03-state-and-backends.md), [Drift, import and refactoring](../terraform/08-drift-import-and-refactoring.md).
+
+**Interview-ready answer:**
+
+> "First I check whether the configuration code or the state is missing, and I make sure nobody runs `apply`, because with empty code and existing state Terraform would plan to destroy everything. If the code was only deleted locally, I restore it with Git, and if it was deleted in a commit I recover it from Git history. The state is usually still safe in the remote backend, so if the code is really lost I use `terraform state list` and `terraform show` to see what exists. Then I write `import` blocks and run `terraform plan -generate-config-out` on Terraform 1.5 or later to generate the HCL. I clean up the generated code and keep running `plan` until it shows no changes. To prevent this, all code is in Git with branch protection and the state backend has locking and versioning."
+
+</details>
+
+<details><summary>Q22. [Advanced] Terraform shows no drift, but infrastructure was changed manually. What now? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Terraform only detects drift on **resources in its state** and **attributes it manages and can read**. A clean plan after a manual change means the change is outside what Terraform is comparing, or the comparison was skipped.
+
+**Why the plan shows nothing:**
+
+1. **The attribute is not in the configuration**: for many optional arguments, if the config does not set them, the provider ignores remote changes to them.
+2. **`lifecycle { ignore_changes = [...] }`** covers that attribute (or `all`).
+3. **The resource is not in state**: someone created a new resource manually (an extra security group rule, a new IAM policy). Terraform does not know it exists.
+4. **Refresh was skipped**: the plan ran with `-refresh=false`, so it compared configuration with stale state.
+5. **The provider does not read that field**: some attributes are write-only or not returned by the cloud API, or are managed by a separate resource type (for example inline rules vs separate rule resources).
+6. **Wrong workspace, backend or account**: the plan is checking a different state file or credentials.
+
+**Steps:**
+
+1. Run `terraform plan -refresh-only` to see what Terraform's view of real infrastructure would update in state.
+2. Check `ignore_changes`, the exact arguments set in config, and the provider documentation for the field.
+3. Check CloudTrail or the Azure Activity Log to find exactly what was changed and by whom.
+4. Decide: **revert** the manual change (apply the code) or **adopt** it (update the code).
+5. For resources created outside Terraform, bring them under management with an `import` block (Terraform 1.5+), optionally generating config.
+6. Prevent recurrence: restrict console write access, scheduled drift detection, policies/SCPs.
+
+**Decision flow:**
+
+```text
+Manual change, clean plan
+      |
+      v
+Right workspace/backend/account? --no--> fix context
+      |yes
+      v
+plan -refresh-only shows it? --yes--> state was stale --> adopt into code or apply to revert
+      |no
+      v
+Resource in state? (terraform state list) --no--> import block / remove manually
+      |yes
+      v
+Attribute in config and not in ignore_changes? --no--> add it to config to enforce it
+      |yes
+      v
+Provider does not read the field --> separate resource type, provider upgrade, policy controls
+```
+
+**Commands and config:**
+
+```bash
+terraform workspace show
+terraform plan -refresh-only
+terraform apply -refresh-only        # accept real values into state (no infra change)
+terraform state list | grep aws_security_group
+terraform state show aws_security_group.app
+```
+
+```hcl
+import {
+  to = aws_security_group_rule.manual_https
+  id = "sg-0abc123_ingress_tcp_443_443_10.0.0.0/16"
+}
+```
+
+```bash
+terraform plan -generate-config-out=generated.tf   # draft config for import blocks
+```
+
+**Important points:**
+
+- `terraform refresh` is deprecated in favour of `plan -refresh-only` and `apply -refresh-only`, which show changes before accepting them.
+- `apply -refresh-only` only updates state; it does not make the code match. Update code too, or the next plan will try to revert.
+- Prefer separate rule resources over inline blocks consistently, and never mix both for the same resource.
+
+See also: [Drift, import and refactoring](../terraform/08-drift-import-and-refactoring.md), [Lifecycle and safe changes](../terraform/07-lifecycle-and-safe-changes.md), [State and backends](../terraform/03-state-and-backends.md)
+
+**Interview-ready answer:**
+
+> "A clean plan only means Terraform sees no difference in what it manages, so I check what it is not comparing. Common reasons are that the changed attribute is not set in the configuration, it is covered by `ignore_changes`, the change created a new resource that is not in state, or someone ran plan with `-refresh=false`. I run `terraform plan -refresh-only` and check CloudTrail or the Activity Log to see exactly what changed. Then I decide whether to revert by applying the code, or adopt the change by updating code and using an `import` block for anything created manually. Finally I prevent it recurring with restricted console access and scheduled drift detection in the pipeline."
+
+</details>
+
+<details><summary>Q23. [Intermediate] How do you handle drift detection? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Drift is when real infrastructure no longer matches the Terraform configuration and state, usually because of manual changes in the console.
+
+1. Schedule `terraform plan -detailed-exitcode` (or `plan -refresh-only`) in CI, for example nightly per workspace or stack.
+2. Exit code `2` means changes exist; raise an alert or open a ticket.
+3. Decide: revert the manual change by applying the code, or adopt it by updating the code.
+4. Prevent it: restrict console write access, use policy and change-control, and route all changes through pull requests.
+
+```bash
+terraform plan -detailed-exitcode -lock=false -out=drift.tfplan
+rc=$?
+if [ "$rc" -eq 2 ]; then echo "Drift detected"; exit 1; fi
+```
+
+**Interview-ready answer:**
+
+> I run a scheduled drift job that executes `terraform plan -detailed-exitcode` against every stack and alerts when the exit code is 2. For each drift I decide whether the code wins, in which case I apply to revert it, or whether the change was valid, in which case I update the code. Tools like HCP Terraform, Spacelift or Atlantis can run this continuously. Long term I reduce drift by limiting console write access so every change goes through a reviewed pull request.
+
+See also: [What is drift and how to detect it](../terraform/08-drift-import-and-refactoring.md), [Monitor Terraform changes and drift](../monitoring-tools/09-ci-cd-and-iac-monitoring.md)
+
+</details>

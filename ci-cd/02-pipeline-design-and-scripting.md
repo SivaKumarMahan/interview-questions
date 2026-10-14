@@ -175,3 +175,257 @@ I build one representative pipeline first, migrate secrets securely, recreate th
 Cutover happens in a freeze or change window, with owner communication, a rollback plan to the old pipeline, and monitoring. I only decommission the old credentials and runners after things have run stably and any retention requirements are met.
 
 </details>
+
+<details><summary>Q12. [Intermediate] Walk me through your CI/CD pipeline. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+My pipeline follows **build once, deploy many**: every commit is built, tested and scanned once, the artifact is an immutable container image, and that same image is promoted through dev, staging and production using GitOps.
+
+**Pipeline flow:**
+
+```text
+Developer -> feature branch -> Pull Request
+        |
+        v
+PR checks (required): build, unit tests, lint, SonarQube quality gate,
+                      dependency/secret scan, terraform plan (if infra)
+        |
+        v
+Merge to main
+        |
+        v
+CI: build -> tests -> SonarQube -> Docker build -> Trivy scan
+    -> push image to ECR (tag = git SHA) -> sign / SBOM
+        |
+        v
+Update Helm values in GitOps repo (dev) -> Argo CD sync -> EKS dev
+        |
+        v
+Automated integration / smoke tests
+        |
+        v
+Promote same image tag to staging -> tests -> manual approval
+        |
+        v
+Production: canary or blue/green (Argo Rollouts) -> monitor -> full rollout
+        |
+        v
+Rollback: revert GitOps commit / Argo Rollouts abort
+```
+
+**Example (GitHub Actions excerpt):**
+
+```yaml
+name: ci
+on:
+  push:
+    branches: [main]
+permissions:
+  id-token: write     # OIDC to AWS, no long-lived keys
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: mvn -B verify sonar:sonar -Dsonar.qualitygate.wait=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::111122223333:role/github-ci
+          aws-region: us-east-1
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - run: docker build -t ${{ steps.ecr.outputs.registry }}/orders:${{ github.sha }} .
+      - run: |
+          trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed \
+            ${{ steps.ecr.outputs.registry }}/orders:${{ github.sha }}
+      - run: docker push ${{ steps.ecr.outputs.registry }}/orders:${{ github.sha }}
+```
+
+A follow-up job (or a tool like Argo CD Image Updater) updates the image tag in the GitOps repository, and Argo CD deploys it.
+
+**Important points:**
+
+- Immutable tags (git SHA), never `latest`, so the exact image is traceable and rollback is a tag change.
+- OIDC federation instead of stored cloud keys; secrets in Secrets Manager/External Secrets.
+- Separate approvals and environments for production; audit trail via Git history.
+- Post-deployment verification with metrics and automatic rollback on error-rate increase.
+
+See also: [CI/CD flow](../repetitive-questions/cicd-flow.md), [Pipeline design and scripting](../ci-cd/02-pipeline-design-and-scripting.md), [Deployment strategies and rollback](../ci-cd/04-deployment-strategies-and-rollback.md).
+
+**Interview-ready answer:**
+
+> "Developers work on short-lived feature branches and open a pull request, where required checks run: build, unit tests, linting, the SonarQube quality gate and dependency and secret scanning. After merge to main, the pipeline builds the app, runs tests, builds the Docker image, scans it with Trivy and pushes it to ECR tagged with the commit SHA, authenticating to AWS with OIDC instead of stored keys. Deployment is GitOps: the pipeline updates the image tag in the Helm values of the environment repository and Argo CD syncs it to EKS. The same image moves from dev to staging and, after tests and an approval, to production using a canary rollout. If metrics degrade, we roll back by reverting the GitOps commit or aborting the rollout."
+
+</details>
+
+<details><summary>Q13. [Intermediate] Explain your actual CI/CD work: commit, build, test, security scan, image push and Kubernetes deployment. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+My pipeline follows a "build once, deploy many" model. GitHub Actions builds and tests the code, scans the image, pushes it to Amazon ECR using short-lived credentials from GitHub OIDC, and then updates the Helm values in a GitOps repository. Argo CD running in EKS syncs the change into the cluster. No long-lived AWS keys are stored in GitHub.
+
+**End-to-end flow:**
+
+```text
+Developer push / pull request
+        |
+        v
+GitHub Actions (CI)
+  |-- checkout, lint, unit tests
+  |-- SAST / dependency scan
+  |-- docker build (tag = git SHA)
+  |-- Trivy image scan (fail on HIGH / CRITICAL)
+  |-- OIDC --> assume IAM role --> login to ECR --> push image
+  |-- update image tag in GitOps repo (Helm values) / open PR for prod
+        v
+Argo CD (CD, inside EKS)
+  |-- detects the Git change --> helm template --> applies to cluster
+  |-- rolling update or Argo Rollouts canary
+  |-- health checks; auto rollback by reverting Git
+        v
+Prometheus / Grafana verify error rate and latency
+```
+
+**Example: GitHub Actions workflow:**
+
+```yaml
+name: build-and-deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write     # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: orders-api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unit tests
+        run: |
+          pip install -r requirements.txt
+          pytest -q
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-ecr-push
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: |
+          docker build -t ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} .
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push image
+        run: docker push ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+  update-gitops:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: my-org/gitops-config
+          token: ${{ secrets.GITOPS_TOKEN }}
+      - name: Bump image tag for dev
+        run: |
+          yq -i '.image.tag = "${{ github.sha }}"' apps/orders-api/values-dev.yaml
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git commit -am "orders-api: deploy ${{ github.sha }} to dev"
+          git push
+```
+
+The IAM role trust policy allows only this repository and branch:
+
+```json
+{
+  "Effect": "Allow",
+  "Principal": { "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com" },
+  "Action": "sts:AssumeRoleWithWebIdentity",
+  "Condition": {
+    "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+    "StringLike": { "token.actions.githubusercontent.com:sub": "repo:my-org/orders-api:ref:refs/heads/main" }
+  }
+}
+```
+
+**Promotion to production:**
+
+- The same image digest is promoted from dev to staging to prod; only Helm values change.
+- Production changes go through a pull request on the GitOps repo with approval, or a GitHub Environment with required reviewers.
+- Rollback: revert the Git commit, and Argo CD syncs the previous tag.
+
+**Important points:**
+
+- OIDC removes static AWS keys; scope the trust policy `sub` claim to the repository and branch or environment.
+- Tag images with the Git SHA (immutable tags enabled in ECR), never only `latest`.
+- Pin third-party actions to a release or commit SHA.
+- Enable ECR scan on push as a second layer and sign images (for example with `cosign`) if required.
+
+See also: [GitHub Actions end-to-end pipelines and security](../github-actions/03-end-to-end-pipelines-security-and-troubleshooting.md) and [CI/CD pipeline design](../ci-cd/02-pipeline-design-and-scripting.md).
+
+**Interview-ready answer:**
+
+> "When a developer pushes to main, GitHub Actions runs linting and unit tests, builds the Docker image tagged with the Git SHA and scans it with Trivy, failing the build on critical or high vulnerabilities. The workflow authenticates to AWS with GitHub OIDC, assuming an IAM role that trusts only our repository and branch, so there are no stored access keys. It logs in to ECR and pushes the image, then updates the image tag in our GitOps repository. Argo CD in EKS detects the change and deploys the Helm chart with a rolling update or a canary. Production promotion uses the same image through an approved pull request, and rollback is a Git revert."
+
+</details>
+
+<details><summary>Q14. [Advanced] How do you design a CI/CD pipeline for microservices running in Kubernetes? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Each microservice gets its own pipeline triggered by changes to its own path or repository, so one service can ship without rebuilding the others. CI produces one immutable, signed image per commit; CD promotes that same image through environments, ideally through GitOps.
+
+| Stage | What happens |
+| --- | --- |
+| Build and test | Lint, unit tests, SAST, dependency scan |
+| Package | Multi-stage Docker build, tag with the Git SHA, generate SBOM, sign |
+| Publish | Push to a private registry (ECR, ACR, Artifactory) |
+| Deploy | Update the Helm values or Kustomize overlay in a GitOps repo; Argo CD or Flux syncs |
+| Verify | Smoke tests, canary analysis, automatic rollback on failed health checks |
+
+```yaml
+# GitHub Actions: build only when this service changes
+on:
+  push:
+    branches: [main]
+    paths: ["services/orders/**"]
+```
+
+**Interview-ready answer:**
+
+> I give every microservice an independent pipeline triggered by path filters, so teams release on their own cadence. CI builds one immutable image tagged with the commit SHA, scans and signs it, and pushes it to a private registry. CD never rebuilds; it promotes the same digest by updating a GitOps repo that Argo CD syncs to each cluster. Production uses canary or blue/green with health-based automatic rollback, and approvals sit in front of the production promotion.
+
+See also: [CI/CD pipeline for microservices on Kubernetes](../ci-cd/02-pipeline-design-and-scripting.md), [GitOps fundamentals](../gitops/01-gitops-fundamentals.md)
+
+</details>

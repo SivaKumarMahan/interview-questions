@@ -368,3 +368,48 @@ The main challenges:
 Best practice: use CSI drivers with dynamic provisioning and a proper StorageClass, run stateful workloads through mature operators where possible, and back up regularly.
 
 </details>
+
+<details><summary>Q15. [Intermediate] Why can't we use a Deployment for a database? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Technically you *can* run a **single-replica** database with a Deployment and one PVC, and some teams do for dev. But for a real database, especially more than one replica, a Deployment is the wrong controller because it assumes Pods are identical and disposable.
+
+**What breaks with a Deployment:**
+
+1. **Shared PVC**: all replicas reference the same PVC. With `ReadWriteOnce` (EBS) only Pods on one node can mount it, so other replicas stay in `ContainerCreating`. With `ReadWriteMany` (EFS/NFS), several database processes write the same data files and corrupt them.
+2. **No stable identity**: Pod names and IPs change on every restart. A primary/replica setup needs to know "`db-0` is primary, `db-1` replicates from it".
+3. **No ordering**: replicas must start after the primary is ready; a Deployment starts everything in parallel.
+4. **Rolling update with surge**: the default `RollingUpdate` can start a new Pod before the old one stops, so two database processes may try to use the same volume. For a single-replica Deployment you would at least need `strategy: Recreate`.
+5. **Scale down**: a Deployment can delete any Pod, not necessarily the last replica.
+
+```text
+Deployment, replicas: 3
+  web-abc  --\
+  web-def  ----> one PVC (RWO)  -> only one Pod can mount it
+  web-ghi  --/                     others stuck, or data corruption with RWX
+
+StatefulSet, replicas: 3
+  db-0 -> data-db-0 (primary)
+  db-1 -> data-db-1 (replica of db-0)
+  db-2 -> data-db-2 (replica of db-0)
+```
+
+**Better options:**
+
+- StatefulSet with `volumeClaimTemplates` and a headless Service.
+- A database **operator** (`CloudNativePG`, `Percona`, `Strimzi` for Kafka) that handles replication, failover and backups.
+- In production on AWS I usually prefer a managed database (**Amazon RDS / Aurora Multi-AZ**) and keep only stateless apps in EKS.
+
+**Important points:**
+
+- A StatefulSet alone does not configure replication; the database or operator does.
+- Use a `PodDisruptionBudget` and anti-affinity/topology spread so replicas are on different nodes and AZs.
+
+See also: [Storage and stateful apps](../kubernetes/04-storage-and-stateful-apps.md).
+
+**Interview-ready answer:**
+
+> "A Deployment treats Pods as identical and disposable, which conflicts with how databases work. All replicas would share one PVC, so with EBS only one Pod could mount it, and with a shared file system multiple database processes would corrupt the same data files. Pod names and IPs change on restart, there is no ordered startup, and a rolling update can run the old and new Pod at the same time against the same volume. A StatefulSet fixes this with stable names, a headless Service for per-Pod DNS, one PVC per Pod and ordered rollout. For production I would use a StatefulSet with an operator, or more often a managed service like RDS Multi-AZ or Aurora."
+
+</details>

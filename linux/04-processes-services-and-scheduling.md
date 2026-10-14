@@ -288,3 +288,97 @@ This runs at minutes 0, 15, 30, and 45 of every hour — not fifteen minutes aft
 If overlapping runs would be unsafe, I wrap it with `flock -n /run/collect-metrics.lock ...`. I test the script as that user and add monitoring, since cron itself only proves the job started, not that the actual task succeeded.
 
 </details>
+
+<details><summary>Q11. [Intermediate] How do you troubleshoot a failing service using logs, systemd and Bash? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+`systemd` tells me *how* the service failed (exit code, signal, restart loop), the journal tells me *why*, and Bash lets me reproduce the start command with the same environment.
+
+**Steps:**
+
+1. `systemctl status <svc>`: state, main PID, exit code or signal, last log lines.
+2. `journalctl -u <svc> -b -n 200 --no-pager`, and `-f` while restarting.
+3. Inspect the unit: `systemctl cat <svc>` shows the unit plus drop-ins. Check `ExecStart`, `User`, `WorkingDirectory`, `EnvironmentFile`.
+4. Check restart behaviour: `Restart=`, `StartLimitBurst`. A unit in `failed` after too many restarts needs `systemctl reset-failed`.
+5. Reproduce manually as the service user: `sudo -u appuser bash -x /opt/app/start.sh`.
+6. Check the common causes: port in use, missing file or permission, bad config syntax, missing environment variable, dependency not up, disk full, SELinux.
+7. After editing a unit, run `systemctl daemon-reload` before restarting.
+
+**Decision flow:**
+
+```text
+systemctl status
+      |
+      +-- status=203/EXEC ----> binary path or permissions wrong
+      +-- status=217/USER ----> User= does not exist
+      +-- status=1 / custom --> app error --> journalctl -u
+      +-- signal=KILL --------> OOM killer or timeout --> dmesg, TimeoutStopSec
+      +-- start-limit-hit ----> crash loop --> fix cause, reset-failed
+```
+
+**Commands:**
+
+```bash
+systemctl status myapp --no-pager -l
+journalctl -u myapp -b --since "30 min ago" --no-pager
+journalctl -u myapp -p err -n 50
+systemctl cat myapp
+systemctl show myapp -p ExecMainStatus -p NRestarts -p Result
+systemctl list-dependencies myapp
+sudo -u appuser bash -c 'set -a; . /etc/myapp/env; set +a; exec /opt/myapp/bin/myapp --config /etc/myapp/app.yml'
+sudo ss -lntp | grep ':8080'          # port already taken?
+sudo systemctl daemon-reload && sudo systemctl restart myapp
+```
+
+A quick Bash helper that prints the essentials for any failed unit:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+for unit in $(systemctl list-units --state=failed --no-legend --plain | awk '{print $1}'); do
+  echo "=== ${unit}"
+  systemctl show "${unit}" -p Result -p ExecMainStatus -p NRestarts
+  journalctl -u "${unit}" -n 20 --no-pager
+done
+```
+
+**Important points:**
+
+- Use `systemctl edit <svc>` for overrides rather than editing vendor unit files.
+- Environment variables from your shell are not present under `systemd`; that is why "it works when I run it manually" is common.
+- Log to `stdout`/`stderr` so the journal captures everything, and set journal retention so logs survive reboots (`Storage=persistent`).
+
+See also: [Processes, services and scheduling](../linux/04-processes-services-and-scheduling.md), [Logs and log analysis](../linux/08-logs-and-log-analysis.md), [Bash fundamentals and error handling](../shell-scripting/01-bash-fundamentals-and-error-handling.md)
+
+**Interview-ready answer:**
+
+> "I start with `systemctl status` to see the exit code or signal, because that narrows it down quickly: 203 is a bad `ExecStart` path, a KILL signal often means the OOM killer, and start-limit-hit means a crash loop. Then I read `journalctl -u` for the actual error. I use `systemctl cat` to see the full unit including drop-ins, and check the user, working directory and environment file. If it is still unclear, I reproduce the start command manually as the service user with `bash -x`, which usually exposes a missing variable, permission or port conflict. After fixing it I run `daemon-reload` if I changed the unit, restart, and follow the journal to confirm it stays up."
+
+</details>
+
+<details><summary>Q12. [Intermediate] Handle zombie and orphan processes. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+| | Zombie (`Z` state) | Orphan |
+| --- | --- | --- |
+| What | Finished, but the parent has not read its exit status with `wait()` | Still running, but its parent died |
+| Resources | Only a process table entry (PID) | Normal resources |
+| Who handles it | Parent must reap it | Re-parented to PID 1 (or a `subreaper`), which reaps it |
+
+You cannot kill a zombie; it is already dead. Signal or restart the parent so it reaps the child, or kill the parent so the zombie is re-parented to PID 1 and reaped. Many zombies point to a parent bug and can exhaust PIDs. In containers, use an init such as `tini` (`docker run --init`) because the app often runs as PID 1 and does not reap children.
+
+```bash
+ps -eo pid,ppid,stat,cmd | awk '$3 ~ /Z/'
+kill -s SIGCHLD <PPID>     # ask the parent to reap
+```
+
+**Interview-ready answer:**
+
+> A zombie is a process that has exited but whose parent has not collected its exit status, so it only holds a PID entry; an orphan is a live process whose parent died and that gets adopted by PID 1. I find zombies with `ps` filtered on state `Z` and look at their parent PID. Since a zombie cannot be killed, I send `SIGCHLD` to the parent or restart it, and if needed kill the parent so init reaps them. In containers I run a minimal init like `tini` so PID 1 reaps children properly.
+
+See also: [Zombie and orphan processes](../linux/04-processes-services-and-scheduling.md)
+
+</details>

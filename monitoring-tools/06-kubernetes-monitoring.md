@@ -166,3 +166,158 @@ If a target's metrics aren't showing up in Grafana, work through it in order:
 6. **Review Prometheus logs** - scrape errors (TLS, auth, timeouts) usually show up here.
 
 </details>
+
+<details><summary>Q5. [Intermediate] How do you troubleshoot CPU, memory, restarts, latency and production issues with Prometheus and Grafana? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I start from the user-facing symptom (errors or latency) on a Grafana dashboard, then narrow down to the service, the Pod and the node. Prometheus collects metrics from cAdvisor (through the kubelet), `kube-state-metrics`, `node-exporter` and the application's own `/metrics` endpoint; Grafana visualizes them and Alertmanager sends alerts.
+
+**Troubleshooting flow:**
+
+```text
+Alert or user complaint
+  |
+  v
+Service dashboard: request rate, error rate, p95/p99 latency (RED method)
+  |
+  v
+Which Pods / versions? --> correlate with deployment time
+  |
+  v
+Pod resources: CPU usage vs limit, throttling, memory working set vs limit, restarts
+  |
+  v
+Node resources: CPU, memory, disk, network (USE method)
+  |
+  v
+Dependencies: database, cache, external API latency
+  |
+  v
+Logs (Loki / CloudWatch) and traces for the slow or failing requests
+```
+
+**PromQL examples:**
+
+**CPU usage per Pod (cores):**
+
+```promql
+sum by (pod) (
+  rate(container_cpu_usage_seconds_total{namespace="prod", container!=""}[5m])
+)
+```
+
+**CPU throttling ratio (high values mean the CPU limit is too low):**
+
+```promql
+sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="prod"}[5m]))
+/
+sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="prod"}[5m]))
+```
+
+**Memory working set as a percentage of the limit (OOM risk):**
+
+```promql
+sum by (pod, container) (container_memory_working_set_bytes{namespace="prod", container!=""})
+/
+sum by (pod, container) (kube_pod_container_resource_limits{namespace="prod", resource="memory"})
+* 100
+```
+
+**Restarts in the last hour and last termination reason:**
+
+```promql
+increase(kube_pod_container_status_restarts_total{namespace="prod"}[1h]) > 0
+
+kube_pod_container_status_last_terminated_reason{namespace="prod", reason="OOMKilled"} == 1
+```
+
+**p95 latency per service (application histogram):**
+
+```promql
+histogram_quantile(0.95,
+  sum by (le, service) (rate(http_request_duration_seconds_bucket[5m]))
+)
+```
+
+**Error rate (5xx percentage):**
+
+```promql
+sum by (service) (rate(http_requests_total{status=~"5.."}[5m]))
+/
+sum by (service) (rate(http_requests_total[5m])) * 100
+```
+
+**Node disk and memory:**
+
+```promql
+100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})
+
+100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+```
+
+**Pods not ready:**
+
+```promql
+sum by (namespace, pod) (kube_pod_status_ready{condition="false"}) > 0
+```
+
+**How I read the results:**
+
+| Symptom | What I check | Typical fix |
+| --- | --- | --- |
+| High CPU | Usage vs requests and limits, throttling | Raise limit or remove CPU limit, tune HPA, profile code |
+| Memory growth | Working set trend, OOMKilled reason | Fix leak, raise limit, tune JVM heap (`-XX:MaxRAMPercentage`) |
+| Restarts | `kubectl describe pod`, last state, exit code 137 (OOM) or probe failures | Fix probes, resources or app crash |
+| Latency | p95/p99 by endpoint, dependency latency, throttling | Scale out, fix slow queries, add caching |
+| Errors after deploy | Error rate by version label | Roll back with Argo CD or `kubectl rollout undo` |
+
+**Important points:**
+
+- Use `container_memory_working_set_bytes`, because that is what the OOM killer and kubelet eviction use.
+- Use percentiles from histograms, not averages, for latency.
+- Correlate graphs with deployment annotations in Grafana.
+- Alert on symptoms (error rate, latency SLO burn) rather than only on CPU.
+
+See also: [Prometheus](../monitoring-tools/02-prometheus.md), [Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md) and [Kubernetes monitoring](../monitoring-tools/06-kubernetes-monitoring.md).
+
+**Interview-ready answer:**
+
+> "I start from the service dashboard in Grafana with request rate, error rate and p95 latency, and check whether the problem started with a deployment. Then I drill into Pods: CPU with `rate(container_cpu_usage_seconds_total[5m])` and the CFS throttling ratio, memory with `container_memory_working_set_bytes` against the limit, and restarts with `increase(kube_pod_container_status_restarts_total[1h])` plus the last terminated reason to spot OOMKilled. For latency I use `histogram_quantile(0.95, ...)` on the request duration histogram and compare it with database and dependency latency. If the node is the problem I check node-exporter metrics for disk, memory and CPU. Finally I confirm the root cause with logs and traces and either roll back, adjust resources or fix the code."
+
+</details>
+
+<details><summary>Q6. [Intermediate] Monitor Kubernetes clusters with Prometheus and Grafana. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Install the `kube-prometheus-stack` Helm chart: Prometheus Operator, Prometheus, Alertmanager, Grafana, `node-exporter` and `kube-state-metrics`.
+
+| Signal | Source |
+| --- | --- |
+| Node CPU, memory, disk | `node-exporter` |
+| Object state (replicas, restarts, Pending Pods) | `kube-state-metrics` |
+| Container usage | `kubelet` / cAdvisor |
+| Application metrics | `ServiceMonitor` or `PodMonitor` scraping `/metrics` |
+
+```bash
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+  -n monitoring --create-namespace -f values.yaml
+```
+
+```yaml
+- alert: PodCrashLooping
+  expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+  for: 5m
+  labels: { severity: critical }
+```
+
+For scale and retention, add `Thanos` or `Mimir` (or a managed Prometheus service), and alert on SLO symptoms routed through Alertmanager.
+
+**Interview-ready answer:**
+
+> I deploy `kube-prometheus-stack` with Helm, which gives Prometheus, Alertmanager, Grafana, `node-exporter` and `kube-state-metrics` managed by the operator. Applications expose `/metrics` and are discovered through `ServiceMonitor` objects, so teams onboard without editing Prometheus config. Grafana shows cluster, node, namespace and per-service golden-signal dashboards, and Alertmanager routes alerts to Slack or PagerDuty. For many clusters or long retention I add `Thanos` or `Mimir`, or use a managed Prometheus service.
+
+See also: [Operate Prometheus for Kubernetes at production scale](../monitoring-tools/02-prometheus.md), [Kubernetes monitoring](../monitoring-tools/06-kubernetes-monitoring.md), [Prometheus and Grafana hands-on setup](../monitoring-tools/11-prometheus-grafana-hands-on-setup.md)
+
+</details>

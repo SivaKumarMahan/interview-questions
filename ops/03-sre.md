@@ -302,3 +302,157 @@ I automate restoring into a clean environment and check integrity, application t
 Regular exercises record the actual recovery time, any missing dependencies, and manual steps needed — and the runbook, capacity, DNS TTLs, contact paths, and retention policy get updated based on what they find.
 
 </details>
+
+<details><summary>Q22. [Intermediate] How do you perform Root Cause Analysis? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+RCA is a structured, blameless process to find **why** an incident happened and what will **prevent it from happening again**. It starts after the service is stable, using evidence collected during the incident.
+
+**Steps:**
+
+1. **Stabilise first**: mitigation comes before analysis.
+2. **Preserve evidence**: logs, metrics, traces, dumps, configuration and the timeline of actions taken.
+3. **Build a timeline**: detection, impact start and end, every change and action, with timestamps.
+4. **Identify the trigger and the contributing factors**: the change or event that started it, and the conditions that let it cause impact (missing test, weak alert, no rate limit).
+5. **Ask "why" repeatedly** (5 Whys) or use a cause-and-effect diagram across people, process, technology and environment. Stop at causes you can act on.
+6. **Validate**: reproduce in a lower environment or confirm with data.
+7. **Define actions**: prevent, detect earlier, reduce impact, recover faster. Each with an owner and due date.
+8. **Share the write-up** and track actions to completion.
+
+**Example 5 Whys:**
+
+```text
+Checkout returned 5xx for 25 minutes
+  Why? Orders service exhausted DB connections
+  Why? A new query held connections for 30s
+  Why? Missing index on a new column
+  Why? Migration review did not include query plans
+  Why? No performance test or index check in the pipeline
+Actions: add index (fix), query-plan check in CI (prevent),
+         alert on pool saturation (detect), connection timeouts (limit impact)
+```
+
+**Important points:**
+
+- Blameless: "why did the system allow this?" rather than "who did this?".
+- There is rarely a single root cause; list contributing factors.
+- An RCA without tracked action items is just a story.
+
+See also: [SRE](../ops/03-sre.md), [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [Kubernetes observability, backup and DR](../kubernetes/09-observability-backup-dr.md)
+
+**Interview-ready answer:**
+
+> "I do RCA after the service is stable, and I make sure evidence is preserved during the incident. I build a detailed timeline of impact, changes and actions, then separate the trigger from the contributing factors that allowed it to cause impact. I use 5 Whys or a cause-and-effect diagram to keep asking why until I reach something we can act on, and I validate the cause with data or a reproduction. The output is a blameless write-up with actions to prevent, detect earlier, reduce impact and recover faster, each with an owner and date. I track those actions to completion, because the review only helps if the actions are done."
+
+</details>
+
+<details><summary>Q23. [Advanced] How do you define SLOs, alerts and actionable dashboards to reduce MTTR? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I define what "good" means from the user's perspective (SLIs and SLOs), alert on how fast we are consuming the error budget, and build dashboards that move from "is the user affected?" to "where is the problem?" in a few clicks. That shortens detection and diagnosis, which is most of MTTR.
+
+**Definitions:**
+
+- **SLI**: a measurement of good events over valid events, for example the ratio of successful requests faster than 300 ms.
+- **SLO**: a target for the SLI over a window, for example 99.9% over 30 days.
+- **Error budget**: `1 - SLO`, here 0.1%, about 43 minutes of full downtime per 30 days. If the budget is spent, reliability work takes priority over features.
+
+**Steps:**
+
+1. Pick critical user journeys (login, checkout, search).
+2. Define SLIs for availability and latency at the edge closest to the user.
+3. Set realistic SLOs with stakeholders, based on historical data.
+4. Alert on **multi-window, multi-burn-rate** conditions rather than raw thresholds.
+5. Every page has a runbook and an owner; cause-based alerts go to tickets.
+6. Build dashboards in layers: SLO overview, service golden signals (RED/USE), dependencies, then per-instance detail, linked together and to traces and logs.
+7. Review alerts after each incident: missed, noisy or unactionable alerts get fixed.
+
+**Burn-rate alerting (99.9% SLO, 30-day window):**
+
+| Severity | Burn rate | Long window | Short window | Budget consumed |
+| --- | --- | --- | --- | --- |
+| Page | 14.4 | 1 hour | 5 minutes | 2% |
+| Page | 6 | 6 hours | 30 minutes | 5% |
+| Ticket | 1 | 3 days | 6 hours | 10% |
+
+```promql
+# Page: fast burn
+(
+  sum(rate(http_requests_total{job="checkout",code=~"5.."}[1h]))
+  / sum(rate(http_requests_total{job="checkout"}[1h]))
+) > (14.4 * 0.001)
+and
+(
+  sum(rate(http_requests_total{job="checkout",code=~"5.."}[5m]))
+  / sum(rate(http_requests_total{job="checkout"}[5m]))
+) > (14.4 * 0.001)
+```
+
+The long window gives significance; the short window makes the alert reset quickly once the problem is fixed.
+
+**Dashboard flow:**
+
+```text
+SLO overview (budget remaining, burn rate)
+      |
+      v
+Service RED: rate, errors, duration (p50/p95/p99) per route
+      |
+      v
+Dependencies: DB, cache, queues, third parties
+      |
+      v
+Infrastructure USE: utilisation, saturation, errors per node/Pod
+      |
+      v
+Exemplars --> traces --> logs (same trace ID)
+```
+
+**Important points:**
+
+- 100% is never the right SLO; it leaves no room for change.
+- Burn-rate alerts reduce noise and catch both fast outages and slow degradation.
+- MTTR also improves with runbooks, recent-change annotations on dashboards and one-click rollback.
+
+See also: [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), [Prometheus](../monitoring-tools/02-prometheus.md), [SRE](../ops/03-sre.md)
+
+**Interview-ready answer:**
+
+> "I start from critical user journeys and define SLIs at the edge, such as the percentage of successful checkout requests under 300 milliseconds, then agree SLOs like 99.9 percent over 30 days, which gives an error budget of about 43 minutes. Instead of static thresholds I use multi-window, multi-burn-rate alerts: for example page when the burn rate is above 14.4 over both one hour and five minutes, and open a ticket for slow burns over days. Every page has a runbook and an owner, and cause-level alerts go to tickets to avoid fatigue. Dashboards are layered from SLO overview to golden signals, dependencies and infrastructure, with deployment annotations and links from metrics to traces and logs. That reduces both detection time and diagnosis time, which is most of MTTR."
+
+</details>
+
+<details><summary>Q24. [Advanced] Chaos engineering — how would you use it in production? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Chaos engineering is controlled experimentation to prove the system tolerates failure, not random breakage.
+
+1. Define steady state with SLO metrics (error rate, latency).
+2. Form a hypothesis: "if one AZ's nodes are lost, error rate stays under 0.5 percent".
+3. Start in staging, then production with a small blast radius, during business hours, with the team watching.
+4. Inject the fault: Pod kill, node drain, latency, dependency outage.
+5. Automatic abort conditions tied to alarms; a tested rollback.
+6. Fix findings, then automate the experiment as a recurring game day.
+
+Tools: AWS Fault Injection Service, Azure Chaos Studio, `LitmusChaos`, Chaos Mesh, Gremlin.
+
+```yaml
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata: { name: kill-one-orders-pod, namespace: chaos }
+spec:
+  action: pod-kill
+  mode: one
+  selector: { namespaces: [prod], labelSelectors: { app: orders } }
+```
+
+**Interview-ready answer:**
+
+> I treat chaos engineering as a scientific experiment. I define steady state from SLO metrics, write a hypothesis, and run the fault first in staging, then in production with a small blast radius and stop conditions wired to alarms. Typical experiments are killing Pods, draining a node, adding latency to a dependency or failing an AZ, using AWS FIS, Azure Chaos Studio or Chaos Mesh. Every experiment ends with action items, and the useful ones become regular automated game days.
+
+See also: [Chaos engineering safely in production](../ops/03-sre.md), [Chaos engineering in Kubernetes](../kubernetes/09-observability-backup-dr.md)
+
+</details>

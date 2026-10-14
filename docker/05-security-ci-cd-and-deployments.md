@@ -201,3 +201,27 @@ Controls cover where data can live, where the registry is located and how it's e
 I test that unapproved regions, unapproved registries, and unsigned images all get rejected. Disaster recovery planning has to account for registry availability too — replication needs to stay trustworthy, not just fast, and can't be used as an excuse to skip compliance checks.
 
 </details>
+
+<details><summary>Q11. [Intermediate] How do you handle secrets inside containers? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Secrets must never be baked into the image (`ENV`, `COPY .env`, or `ARG` values remain visible in history and layers). Inject them at runtime and fetch them from a secret manager.
+
+- Build time: BuildKit secret mounts, which are not stored in any layer.
+- Runtime on Kubernetes: Secrets mounted as files, ideally synced from Vault, AWS Secrets Manager or Azure Key Vault through External Secrets Operator or the Secrets Store CSI driver.
+- Cloud identity (IRSA, EKS Pod Identity, Azure Workload Identity) instead of static keys.
+- Encrypt Secrets at rest in etcd and restrict access with RBAC.
+
+```dockerfile
+# syntax=docker/dockerfile:1
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm ci
+```
+
+**Interview-ready answer:**
+
+> I never put secrets in the image, because anything in `ENV`, `ARG` or a copied file can be read from the layers. At build time I use BuildKit secret mounts, and at runtime the secret comes from Vault or the cloud secret manager, usually synced into Kubernetes by External Secrets Operator or mounted with the CSI driver. Wherever possible the Pod uses workload identity so there is no static credential at all. Kubernetes Secrets are encrypted at rest and locked down with RBAC.
+
+See also: [Handle secrets inside containers](../docker/05-security-ci-cd-and-deployments.md), [Secrets management](../repetitive-questions/secrets-management.md)
+
+</details>

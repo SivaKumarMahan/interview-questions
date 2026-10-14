@@ -368,3 +368,151 @@ Identities are named or tied to a workload rather than shared, with separation o
 I periodically pick a release and trace it end-to-end, from the original ticket through to production and back, then fix any missing evidence before an external audit finds the gap.
 
 </details>
+
+<details><summary>Q22. [Intermediate] How do you manage secrets across pipelines and Kubernetes without exposing credentials? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The goal is **no long-lived secrets in code, images, logs or pipeline variables where avoidable**. I keep secrets in a central secret manager, let workloads and pipelines authenticate with short-lived federated identities, and sync or mount secrets at runtime.
+
+**Steps:**
+
+1. **Central store**: HashiCorp Vault, AWS Secrets Manager, Azure Key Vault or GCP Secret Manager as the single source of truth.
+2. **Pipelines use OIDC federation**: GitHub Actions, GitLab CI and Azure DevOps can exchange a short-lived token for cloud credentials, so no cloud keys are stored in CI.
+3. **Kubernetes workloads use workload identity**: IRSA or EKS Pod Identity, Azure Workload Identity, GKE Workload Identity.
+4. **Deliver secrets to Pods** with External Secrets Operator (syncs to a Kubernetes Secret) or the Secrets Store CSI Driver (mounts as files).
+5. **Protect Kubernetes Secrets**: etcd encryption at rest (KMS provider), RBAC restricting `get/list` on Secrets, no secrets in ConfigMaps or Helm values in Git (use Sealed Secrets or SOPS if they must live in Git).
+6. **Prevent leaks**: secret scanning (Gitleaks, GitHub push protection), masked variables, no `set -x` around secret use, no secrets as build args.
+7. **Rotate** automatically and audit access.
+
+**Flow:**
+
+```text
+GitHub Actions --OIDC token--> cloud IAM role (short-lived) --> deploy
+                                                         |
+Kubernetes Pod --service account--> workload identity --> Secret manager
+                                                         |
+                    External Secrets Operator / CSI driver --> Pod env or mounted file
+```
+
+**Examples:**
+
+```yaml
+# GitHub Actions: OIDC to AWS, no stored keys
+permissions:
+  id-token: write
+  contents: read
+steps:
+  - uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: arn:aws:iam::123456789012:role/gha-deploy
+      aws-region: eu-west-1
+```
+
+```yaml
+# External Secrets Operator
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: db-credentials
+  data:
+    - secretKey: password
+      remoteRef:
+        key: prod/orders/db
+        property: password
+```
+
+**Important points:**
+
+- Kubernetes Secrets are only base64-encoded; encryption at rest and RBAC are what protect them.
+- Restrict OIDC trust policies to specific repositories, branches or environments, not the whole organisation.
+- Prefer mounted files over environment variables for highly sensitive values, as environment variables leak more easily into crash dumps and debug output.
+- Older clusters may run the `external-secrets.io/v1beta1` API; check the installed version.
+
+See also: [Secrets management](../repetitive-questions/secrets-management.md), [Secrets management at scale](../system-design/05-secrets-management-at-scale.md), [HashiCorp Vault](../ops/06-hashicorp-vault.md), [Kubernetes security, RBAC and secrets](../kubernetes/06-security-rbac-secrets.md)
+
+**Interview-ready answer:**
+
+> "I keep secrets in a central manager like Vault, AWS Secrets Manager or Key Vault, and avoid long-lived credentials entirely where possible. Pipelines authenticate with OIDC federation, so GitHub Actions or GitLab get short-lived cloud credentials scoped to a specific repository and environment, with no keys stored in CI. In Kubernetes, Pods use workload identity, and secrets are delivered by External Secrets Operator or the Secrets Store CSI Driver. Kubernetes Secrets are encrypted at rest with KMS and protected by RBAC, and nothing sensitive lives in Git unless it is encrypted with Sealed Secrets or SOPS. I add secret scanning to catch leaks, mask values in logs, and rotate secrets automatically."
+
+</details>
+
+<details><summary>Q23. [Intermediate] How do you integrate vulnerability scanning, IAM least privilege and policy checks into CI/CD? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I add security as automated gates at each stage of the pipeline, so problems are found as early and cheaply as possible, and enforce the most important rules again at deploy time with admission control.
+
+**Pipeline stages:**
+
+```text
+Commit / PR
+  |-- Secret scanning (Gitleaks, push protection)
+  |-- SAST (CodeQL, Semgrep, SonarQube)
+  |-- Dependency scanning / SCA (Dependabot, Trivy fs, Snyk)
+  |-- IaC scanning (Checkov, Trivy config, tfsec rules) + OPA/Conftest policies on terraform plan
+  v
+Build
+  |-- Container image scan (Trivy, Grype) - fail on CRITICAL/HIGH with fix available
+  |-- SBOM (Syft) + signing (Cosign) + provenance attestation
+  v
+Deploy
+  |-- Admission control (Kyverno / OPA Gatekeeper): signed images only, no privileged,
+  |   non-root, resource limits, approved registries
+  v
+Runtime
+  |-- Continuous image rescans, runtime detection (Falco), cloud posture checks
+```
+
+**IAM least privilege in pipelines:**
+
+1. Separate roles per pipeline and environment: plan role is read-only, apply role is limited to that environment.
+2. OIDC federation with trust conditions on repository, branch and environment.
+3. Permission boundaries and SCPs to cap what any pipeline role can do.
+4. Use IAM Access Analyzer to generate policies from actual CloudTrail activity and remove unused permissions.
+5. Protected branches and required approvals before production roles can be assumed.
+
+**Examples:**
+
+```yaml
+- name: Scan image
+  run: trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 "$IMAGE"
+
+- name: Policy check on Terraform plan
+  run: |
+    terraform plan -out=tfplan
+    terraform show -json tfplan > tfplan.json
+    conftest test tfplan.json --policy policy/
+```
+
+```rego
+package main
+
+deny contains msg if {
+  some r in input.resource_changes
+  r.type == "aws_s3_bucket_public_access_block"
+  r.change.after.block_public_acls == false
+  msg := sprintf("%s must block public ACLs", [r.address])
+}
+```
+
+**Important points:**
+
+- Start in audit/warn mode, fix the backlog, then switch to blocking, or teams will bypass the gates.
+- Fail on what is actionable (critical with a fix available), and track the rest with exceptions that expire.
+- Pipeline checks can be bypassed; admission control and cloud policies are the real enforcement points.
+
+See also: [DevSecOps](../ops/02-devsecops.md), [Policy as code with OPA and Kyverno](../ops/07-policy-as-code-opa-and-kyverno.md), [CI/CD security and compliance](../ci-cd/05-security-and-compliance.md), [Terraform CI/CD, testing and security](../terraform/09-cicd-testing-and-security.md)
+
+**Interview-ready answer:**
+
+> "I shift security left with automated gates: secret scanning, SAST and dependency scanning on every pull request, and IaC scanning with Checkov plus Conftest policies on the Terraform plan JSON. At build time I scan the image with Trivy, fail on critical vulnerabilities that have a fix, generate an SBOM and sign the image with Cosign. At deploy time Kyverno or Gatekeeper enforces that only signed images from approved registries run, without privileged mode and with resource limits. For IAM, pipelines use OIDC with separate read-only plan roles and environment-scoped apply roles, bounded by SCPs and refined with Access Analyzer. I roll out new gates in audit mode first, then make them blocking, so teams adopt them instead of working around them."
+
+</details>

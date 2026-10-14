@@ -182,3 +182,97 @@ On the server I check the NFS services, `/etc/exports`, `exportfs -v`, the firew
 I agree on the NFS version and safe timeout options, test reads and writes with the real service account, and only then make the entry in `/etc/fstab` or the automounter permanent.
 
 </details>
+
+<details><summary>Q9. [Intermediate] The server is reachable but the application isn't. What do you check? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+If I can ping or SSH to the server, the host and basic network path are fine. The problem is somewhere between the port and the application: the process, its listening address, the local firewall, or a security layer in front of it.
+
+**Steps:**
+
+1. Is the process running? `systemctl status <service>` or `ps`.
+2. Is it listening on the expected port and address? `ss -lntp`. Listening on `127.0.0.1` instead of `0.0.0.0` is a classic cause.
+3. Does it answer locally? `curl -v http://127.0.0.1:<port>/health`.
+4. Does it answer from another host? `nc -zv <ip> <port>` or `curl` from a peer in the same subnet.
+5. Check the host firewall (`iptables`, `nftables`, `firewalld`, `ufw`) and SELinux denials.
+6. Check cloud network controls: security groups, NACLs, NSGs, load balancer target health.
+7. Check the reverse proxy (`nginx`, `HAProxy`) and TLS: wrong upstream port, expired certificate, wrong server name.
+8. Check application logs and dependencies: the app may be up but failing on its database.
+
+**Decision flow:**
+
+```text
+Ping/SSH works, app does not
+      |
+      v
+Process running? --no--> journalctl -u <svc> --> fix startup error
+      |yes
+      v
+ss -lntp: listening on right port and 0.0.0.0? --no--> fix bind address/port
+      |yes
+      v
+curl localhost works? --no--> app/dependency error --> app logs
+      |yes
+      v
+Works from peer host? --no--> host firewall / SELinux / SG / NACL
+      |yes
+      v
+Works through LB / DNS name? --no--> LB target health, proxy, TLS, DNS
+```
+
+**Commands:**
+
+```bash
+systemctl status myapp
+ss -lntp | grep -E ':8080|:443'
+curl -sv http://127.0.0.1:8080/health
+nc -zv 10.0.1.25 8080                      # from another host
+sudo iptables -L -n -v | head -40
+sudo nft list ruleset | head -40
+sudo firewall-cmd --list-all
+sudo ausearch -m avc -ts recent            # SELinux denials
+journalctl -u myapp -n 100 --no-pager
+openssl s_client -connect app.example.com:443 -servername app.example.com </dev/null
+```
+
+**Important points:**
+
+- `connection refused` means the packet reached the host but nothing is listening; a timeout usually means a firewall is silently dropping it.
+- A `502` from a proxy means the proxy cannot reach the upstream; a `504` means the upstream is too slow.
+- Always test from inside out: localhost, then same subnet, then through the load balancer, then through public DNS.
+
+See also: [Linux networking](../linux/06-networking.md), [Linux sysadmin scenarios](../linux/11-sysadmin-scenarios.md), [Production issues](../repetitive-questions/production-issues.md)
+
+**Interview-ready answer:**
+
+> "If the server is reachable, I work from the inside out. I check the service is running with `systemctl status`, then use `ss -lntp` to confirm it is listening on the right port and on `0.0.0.0` rather than only localhost. I `curl` the health endpoint locally; if that fails, it is an application or dependency issue and I go to the logs. If it works locally but not from a peer host, I check the host firewall, SELinux, and the cloud security groups or NACLs. If it works directly but not through the load balancer, I check target health, the reverse proxy configuration and TLS. The error type also helps: connection refused means nothing is listening, and a timeout usually means a firewall is dropping traffic."
+
+</details>
+
+<details><summary>Q10. [Advanced] Investigate intermittent packet loss between containers or nodes. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Intermittent loss is usually saturation, MTU, conntrack or a flaky path, so measure over time and narrow down the layer.
+
+1. Reproduce and measure: `mtr` or long `ping` runs between Pod-to-Pod, node-to-node and Pod-to-node to find which hop drops packets.
+2. Interface counters: `ip -s link`, `ethtool -S eth0` for drops, errors and ring buffer overruns.
+3. MTU: overlays (VXLAN, GENEVE, `WireGuard`) add headers; test with `ping -M do -s 1422`.
+4. Conntrack: `conntrack -S` and kernel logs for "nf_conntrack: table full".
+5. CNI and kube-proxy health, NetworkPolicy, security groups; cloud limits such as `ENA` `pps_allowance_exceeded` on AWS.
+6. Capture on both ends with `tcpdump` to see where packets disappear.
+
+```bash
+mtr -rwzc 200 10.0.2.15
+ethtool -S eth0 | grep -Ei 'drop|err|allowance'
+dmesg -T | grep -i conntrack
+```
+
+**Interview-ready answer:**
+
+> I first find where the loss happens by running `mtr` or long pings Pod-to-Pod, Pod-to-node and node-to-node. Then I check interface drop and error counters, MTU mismatches caused by the overlay network, a full conntrack table and the health of the CNI Pods. On AWS I also check `ENA` allowance counters, because instances silently drop packets when they exceed packets-per-second limits. If it is still unclear, I capture with `tcpdump` on both sides to see exactly where packets disappear.
+
+See also: [Investigate intermittent packet loss between containers / nodes](../linux/06-networking.md), [Container networking debugging](../docker/04-networking-volumes-and-compose.md)
+
+</details>

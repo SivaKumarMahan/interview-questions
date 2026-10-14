@@ -125,3 +125,91 @@ ansible --version
 ```
 
 Do not place private keys, passwords or vault passwords directly in `ansible.cfg`. Do not set `host_key_checking = False` globally without a reviewed risk decision.
+
+## Interview Questions
+
+<details><summary>Q1. [Basic] What is a playbook, and how would you install Nginx on 10 servers with Ansible?</summary>
+
+**Answer:**
+
+A **playbook** is a YAML file with one or more **plays**. Each play maps a group of hosts to an ordered list of **tasks**, and each task calls a **module** (for example `apt`, `dnf`, `service`, `template`). Modules are idempotent, so running the playbook again changes nothing if the servers are already in the desired state.
+
+`inventories/prod/hosts.ini`:
+
+```ini
+[web]
+web[01:10].example.com
+```
+
+`playbooks/nginx.yml`:
+
+```yaml
+- name: Install and start Nginx on web servers
+  hosts: web
+  become: true
+  tasks:
+    - name: Install nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+
+    - name: Start and enable nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+```
+
+```bash
+ansible -i inventories/prod web -m ping                  # check connectivity first
+ansible-playbook -i inventories/prod playbooks/nginx.yml --check --diff   # dry run
+ansible-playbook -i inventories/prod playbooks/nginx.yml
+```
+
+Ansible runs on 5 hosts at a time by default (`forks = 5`); raise `forks` or use `serial` to control rolling batches.
+
+</details>
+
+<details><summary>Q2. [Basic] How do you structure an Ansible project?</summary>
+
+**Answer:**
+
+```text
+ansible-project/
+├── ansible.cfg                 # inventory path, roles path, forks, SSH settings
+├── inventories/
+│   ├── dev/
+│   │   ├── hosts.ini
+│   │   └── group_vars/
+│   │       └── web.yml
+│   └── prod/
+│       ├── hosts.ini
+│       ├── group_vars/
+│       │   ├── all.yml
+│       │   └── web.yml
+│       └── host_vars/
+│           └── web01.example.com.yml
+├── playbooks/
+│   ├── site.yml                # imports the other playbooks
+│   └── nginx.yml
+├── roles/
+│   └── nginx/
+│       ├── tasks/main.yml
+│       ├── handlers/main.yml
+│       ├── templates/nginx.conf.j2
+│       ├── files/
+│       ├── vars/main.yml
+│       ├── defaults/main.yml   # lowest-priority, overridable variables
+│       └── meta/main.yml       # role dependencies
+├── collections/requirements.yml
+└── README.md
+```
+
+Key points:
+
+- One inventory folder per environment, so the same playbooks run against dev or prod by changing `-i`.
+- Reusable logic lives in **roles**; playbooks just assign roles to host groups.
+- Secrets are encrypted with **Ansible Vault** or pulled from a secret manager, never stored in plain text in `group_vars`.
+- Pin collection and role versions in `requirements.yml`, and lint with `ansible-lint` in CI.
+
+</details>

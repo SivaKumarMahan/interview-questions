@@ -181,3 +181,149 @@ Kernel live-patching tools — Canonical Livepatch, kpatch, or a cloud provider'
 On a single host, you can't truly guarantee zero downtime for the application — the architecture needs another instance to fail over to.
 
 </details>
+
+<details><summary>Q11. [Intermediate] A container works locally but fails in production. Why? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The image is the same, but almost everything around it is different: configuration, secrets, network, permissions, resource limits, CPU architecture and the orchestrator's health checks. I compare those differences systematically.
+
+**Common causes:**
+
+1. **Different image**: a mutable tag such as `latest` pulled a different build, or a different digest was deployed.
+2. **CPU architecture**: built on an ARM Mac (`arm64`) but production runs `amd64`, giving `exec format error`.
+3. **Configuration and secrets**: environment variables, mounted files or secrets missing or different.
+4. **Resource limits**: production memory limit lower than the app needs, leading to OOM kills (exit code 137) or CPU throttling.
+5. **Permissions**: production runs as non-root, with a read-only root filesystem, or under a restrictive security context.
+6. **Networking**: different DNS, service names, proxies, network policies or firewall rules; `localhost` assumptions that only worked in Docker Compose.
+7. **Health checks**: probes that time out before the app finishes starting.
+8. **Volumes and state**: local bind mounts or files that do not exist in production.
+
+**Decision flow:**
+
+```text
+Fails in prod only
+      |
+      v
+Same image digest? --no--> pin digest, stop using latest
+      |yes
+      v
+Container starts? --no--> exec format error (arch), permissions, missing entrypoint/files
+      |yes
+      v
+Exit code 137 / OOMKilled? --yes--> memory limit vs usage (see Q12)
+      |no
+      v
+Probe failures? --yes--> startup probe, correct path/port
+      |no
+      v
+App errors --> compare env vars, secrets, DNS, network policies, dependencies
+```
+
+**Commands:**
+
+```bash
+docker image inspect myapp:1.2.3 --format '{{.Os}}/{{.Architecture}} {{.Id}}'
+docker buildx build --platform linux/amd64,linux/arm64 -t registry/myapp:1.2.3 --push .
+kubectl get pod <pod> -o jsonpath='{.status.containerStatuses[0].imageID}'
+kubectl describe pod <pod> -n prod
+kubectl logs <pod> -n prod --previous
+kubectl exec -it <pod> -n prod -- env | sort
+kubectl debug -it <pod> -n prod --image=busybox:1.36 --target=app
+```
+
+**Important points:**
+
+- Reproduce production locally: same digest, `--platform`, `--user`, `--read-only`, `--memory` and the same environment.
+- Never rely on tags for deployments; use immutable tags or digests.
+- Keep configuration external but validated at startup, so a missing variable fails loudly with a clear message.
+
+See also: [Docker troubleshooting and host maintenance](../docker/06-troubleshooting-and-host-maintenance.md), [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md)
+
+**Interview-ready answer:**
+
+> "When it works locally but not in production, the image is rarely the problem; the environment around it is. First I confirm production is running the same digest, and that the image was built for the right architecture, because an image built on an ARM laptop gives `exec format error` on `amd64` nodes. Then I check `kubectl describe` and previous logs for OOM kills, probe failures or permission errors from running as non-root with a read-only filesystem. After that I compare configuration, secrets, DNS and network policies between environments. To reproduce, I run the image locally with the same platform, user, memory limit and environment variables as production."
+
+</details>
+
+<details><summary>Q12. [Intermediate] How do you debug containers exiting with code 137? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Exit code 137 means the process was killed by **SIGKILL**: 128 + signal number 9. SIGKILL cannot be caught, so the application has no chance to log anything. The real question is *who* sent the SIGKILL: the kernel OOM killer, or something external.
+
+**Possible senders:**
+
+| Cause | How to recognise it |
+| --- | --- |
+| OOM kill (container memory limit reached) | `docker inspect` shows `State.OOMKilled: true`; Kubernetes shows `Last State: Terminated, Reason: OOMKilled` |
+| Node memory pressure eviction | Pod status `Evicted`, events mention memory pressure |
+| Graceful shutdown timed out | App ignored `SIGTERM`; after the grace period (`docker stop -t`, `terminationGracePeriodSeconds`) it gets SIGKILL |
+| Liveness probe failure | Events show `Liveness probe failed ... will be restarted`; kubelet stops it and kills it if it does not exit in time |
+| Manual or tooling kill | `docker kill`, `kill -9`, scripts |
+
+Exit code 143 (128 + 15) means it exited on `SIGTERM`, which is a normal graceful stop.
+
+**Decision flow:**
+
+```text
+Exit code 137
+      |
+      v
+OOMKilled = true? --yes--> memory usage vs limit --> leak? heap too big? limit too small?
+      |no
+      v
+Events: liveness probe failed? --yes--> fix probe timing / app hang
+      |no
+      v
+Evicted / node memory pressure? --yes--> requests too low, node over-committed
+      |no
+      v
+Stop/rollout timed out? --yes--> handle SIGTERM, raise grace period
+```
+
+**Commands:**
+
+```bash
+# Docker
+docker inspect <container> --format '{{.State.ExitCode}} OOMKilled={{.State.OOMKilled}}'
+docker stats --no-stream
+dmesg -T | grep -iE 'oom|killed process'
+
+# Kubernetes
+kubectl describe pod <pod> -n prod | grep -A5 'Last State'
+kubectl get pod <pod> -n prod \
+  -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason}'
+kubectl get events -n prod --field-selector involvedObject.name=<pod>
+kubectl top pod <pod> -n prod --containers
+```
+
+**Fixing a JVM that keeps getting OOMKilled:**
+
+Modern JVMs (JDK 10+, and 8u191+) are container-aware, but the heap is only part of memory use: `Metaspace`, thread stacks, direct buffers and native memory are on top. Size the heap as a percentage of the container limit and leave headroom:
+
+```yaml
+resources:
+  requests:
+    memory: "1Gi"
+  limits:
+    memory: "1Gi"
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+```
+
+**Important points:**
+
+- Do not hard-code `-Xmx` larger than the container limit; the kernel kills the container before the JVM throws `OutOfMemoryError`.
+- If usage grows steadily until the kill, suspect a leak; if it spikes, suspect a large request, batch job or cache.
+- Set memory requests equal to limits for critical workloads to avoid node-level over-commit evictions.
+- A process that ignores `SIGTERM` (for example a shell script as PID 1 that does not forward signals) ends with 137 on every rollout; use `exec` in entrypoint scripts or an init such as `tini`.
+
+See also: [Docker troubleshooting and host maintenance](../docker/06-troubleshooting-and-host-maintenance.md), [Kubernetes troubleshooting](../kubernetes/08-troubleshooting.md), [Scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md)
+
+**Interview-ready answer:**
+
+> "Exit code 137 is 128 plus 9, so the process received SIGKILL, and my job is to find out who sent it. I first check whether it was an OOM kill: `docker inspect` shows `State.OOMKilled`, and in Kubernetes `kubectl describe` shows the last state reason as `OOMKilled`. If it was OOM, I compare usage with the limit to decide whether it is a leak, a heap configured larger than the container, or simply an undersized limit. For Java I use `MaxRAMPercentage` around 75 percent instead of a hard-coded `-Xmx`, so there is headroom for non-heap memory. If it was not OOM, I check events for failed liveness probes, evictions, or a shutdown that timed out because the app ignored SIGTERM."
+
+</details>

@@ -1016,3 +1016,85 @@ I use owner references for anything Kubernetes should clean up automatically, le
 Tests cover reconciling the same state repeatedly, partial failure, deletion, an upgrade or schema conversion, and a dependency outage — not just the happy path. A good operator encodes the real lifecycle of its domain, not just a wrapper around a Deployment.
 
 </details>
+
+<details><summary>Q19. [Basic] Explain the Kubernetes control-plane and worker-node components and what each one actually does. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A Kubernetes cluster has a **control plane** that stores the desired state and makes decisions, and **worker nodes** that run the containers. Every component talks to the API server; nothing else talks to etcd directly. On Amazon EKS, AWS runs and patches the control plane across multiple Availability Zones, and I manage the worker nodes (managed node groups, Karpenter nodes or Fargate).
+
+**Control-plane components:**
+
+| Component | What it actually does |
+| --- | --- |
+| `kube-apiserver` | Front door of the cluster. Authenticates and authorizes every request, runs admission controllers (mutating and validating webhooks), validates the object and writes it to etcd. Serves watches to all other components. |
+| `etcd` | Distributed key-value store (Raft consensus) that holds the whole cluster state: Deployments, Pods, Secrets, ConfigMaps, leases. Losing etcd means losing the cluster state, so it is backed up. |
+| `kube-scheduler` | Watches for Pods with no `nodeName`. Filters nodes (resources, taints and tolerations, affinity, topology spread, volume zones), scores the rest and writes the chosen node back to the Pod (binding). It does not start anything. |
+| `kube-controller-manager` | Runs the reconcile loops: Deployment controller creates ReplicaSets, ReplicaSet controller creates Pods, plus the Node, Job, EndpointSlice, ServiceAccount and namespace controllers. Each loop compares desired with actual state and fixes the difference. |
+| `cloud-controller-manager` | Cloud-specific loops: node lifecycle (removes Node objects when the EC2 instance is gone), node addresses and zone labels, and Service type `LoadBalancer`. On EKS, load balancers are normally handled by the AWS Load Balancer Controller instead. |
+
+**Worker-node components:**
+
+| Component | What it actually does |
+| --- | --- |
+| `kubelet` | Agent on each node. Watches for Pods bound to its node, asks the container runtime to create them, mounts volumes, runs liveness, readiness and startup probes, and reports Pod and node status back to the API server. |
+| `kube-proxy` | Watches Services and EndpointSlices and programs iptables, IPVS or nftables rules so traffic to a Service ClusterIP is load-balanced to healthy Pod IPs. Some CNI plugins (for example Cilium) can replace it. |
+| Container runtime | `containerd` on EKS. Pulls images, creates the Pod sandbox and containers through the Container Runtime Interface (CRI), and calls the CNI plugin to set up networking. |
+| CNI plugin | Gives each Pod an IP and wires its network interface. On EKS this is the Amazon VPC CNI (`aws-node` DaemonSet). |
+| Add-ons | CoreDNS for service discovery, metrics-server for `kubectl top` and HPA. |
+
+**Flow: `kubectl apply` to a running Pod:**
+
+```text
+kubectl apply -f deployment.yaml
+        |
+        v
+kube-apiserver --> authN (IAM / OIDC) --> authZ (RBAC) --> admission webhooks --> validation
+        |
+        v
+etcd  (Deployment object stored)
+        |
+        v
+Deployment controller --> creates ReplicaSet
+ReplicaSet controller --> creates Pod objects (no node assigned yet)
+        |
+        v
+kube-scheduler --> filters and scores nodes --> binds Pod to node-a
+        |
+        v
+kubelet on node-a (watching the API server)
+        |-- CRI: containerd creates the Pod sandbox (pause container)
+        |-- CNI: VPC CNI assigns a VPC IP and sets up the network namespace
+        |-- pulls the image, starts init containers, then app containers
+        |-- runs startup / readiness probes
+        v
+kubelet reports Pod Running + Ready --> EndpointSlice controller adds the Pod IP
+        |
+        v
+kube-proxy updates Service rules --> Pod starts receiving traffic
+```
+
+**Example: watch it happen:**
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl get events --sort-by=.lastTimestamp -w
+# Scheduled -> Pulling -> Pulled -> Created -> Started
+kubectl get pod -o wide            # node and Pod IP
+kubectl get endpointslices -l kubernetes.io/service-name=web
+```
+
+**Important points:**
+
+- The API server is the only component that reads and writes etcd; all others use watches on the API server.
+- Controllers are level-based: they keep reconciling, so a deleted Pod is recreated by its ReplicaSet.
+- The scheduler only decides placement; the kubelet makes it real.
+- On EKS I do not see etcd or the scheduler as Pods; I only see the API endpoint and control-plane logs in CloudWatch if I enable them.
+
+See also: [Kubernetes architecture and fundamentals](../kubernetes/01-architecture-and-fundamentals.md) and [workloads and Pod lifecycle](../kubernetes/02-workloads-and-pod-lifecycle.md).
+
+**Interview-ready answer:**
+
+> "The control plane has the API server, etcd, the scheduler, the controller manager and the cloud controller manager. The API server authenticates, authorizes and admits every request and is the only component that writes to etcd, which stores the whole cluster state. When I run `kubectl apply`, the Deployment is stored in etcd, the Deployment and ReplicaSet controllers create Pod objects, and the scheduler picks a node based on resources, taints and affinity. The kubelet on that node sees the Pod, asks containerd to create the sandbox, the VPC CNI assigns an IP, and the containers start. Once the readiness probe passes, the Pod IP is added to the EndpointSlice and kube-proxy routes Service traffic to it. On EKS, AWS manages the control plane, so I focus on the nodes, add-ons and workloads."
+
+</details>

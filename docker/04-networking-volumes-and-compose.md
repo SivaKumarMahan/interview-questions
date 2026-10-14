@@ -545,3 +545,79 @@ The delivery pipeline publishes signed, fixed images, and then Helm, plain manif
 I make sure there's redundancy, health probes, a rolling or canary rollout strategy, network policies, monitoring, logging, backups, and a disaster recovery plan. Compose is a good way to model services locally, but production needs a real cluster scheduler and the operational pieces around it.
 
 </details>
+
+<details><summary>Q10. [Basic] What are the types of Docker volumes and mounts?</summary>
+
+**Answer:**
+
+| Type | Example | Managed by | Use |
+| --- | --- | --- | --- |
+| **Named volume** | `-v pgdata:/var/lib/postgresql/data` | Docker (`/var/lib/docker/volumes/`) | Persistent application data; survives container removal; easy to back up and share |
+| **Anonymous volume** | `-v /data`, or `VOLUME /data` in a Dockerfile | Docker, with a random name | Temporary data; hard to find again and removed with `docker rm -v` or `--rm` |
+| **Bind mount** (host volume) | `-v /opt/app/config:/etc/app:ro` | You (any host path) | Config files, source code in development; depends on the host's directory layout |
+| **tmpfs mount** | `--tmpfs /tmp` | Memory only | Sensitive or scratch data that must never be written to disk |
+
+```bash
+docker volume create pgdata
+docker run -d --name db -v pgdata:/var/lib/postgresql/data postgres:16
+docker volume ls
+docker volume inspect pgdata
+docker volume prune          # removes unused volumes - check before running
+```
+
+If data disappears when a container is recreated, it was written to the container's writable layer instead of a volume. Mount a named volume (or a bind mount) at the application's data path. The `--mount type=volume,src=pgdata,dst=/var/lib/postgresql/data` syntax is more explicit than `-v` and is preferred in scripts.
+
+</details>
+
+<details><summary>Q11. [Intermediate] What strategies do you use for debugging container networking issues? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Work from the inside out: the container, the Docker or CNI network, the host, then the outside world.
+
+1. Check the container is running and listening: `docker ps`, `docker logs`, `ss -lntp` inside the container. Make sure the app binds to `0.0.0.0`, not `127.0.0.1`.
+2. Inspect the network: `docker network inspect`, confirm both containers share a user-defined network (embedded DNS only works there).
+3. Test DNS and connectivity from a debug container that shares the namespace.
+4. Check host firewall, `iptables` or `nftables` rules, port publishing and MTU.
+5. Capture traffic with `tcpdump` if needed.
+
+```bash
+docker run --rm -it --network container:app nicolaka/netshoot
+# inside: dig db; curl -v http://api:8080/health; ss -lntp; tcpdump -i eth0 port 5432
+```
+
+**Interview-ready answer:**
+
+> I start inside the container to confirm the process is listening on the right interface and port, because binding to localhost is a very common cause. Then I check that both containers are on the same user-defined network so Docker DNS resolves service names. I attach a `netshoot` container to the target network namespace to run `dig`, `curl`, `ss` and `tcpdump` without changing the image. Finally I look at the host layer: published ports, firewall rules, `iptables` NAT and MTU mismatches.
+
+See also: [Debugging container networking issues](../docker/04-networking-volumes-and-compose.md), [Docker troubleshooting](../docker/06-troubleshooting-and-host-maintenance.md)
+
+</details>
+
+<details><summary>Q12. [Intermediate] How do you run multi-container apps in production without Compose? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Compose is good for local development, but production needs scheduling, self-healing, scaling, rolling updates and secrets management across hosts. Use an orchestrator:
+
+| Option | When |
+| --- | --- |
+| Kubernetes (EKS, AKS, GKE) | Default choice for many services and teams |
+| Amazon ECS or Fargate, Azure Container Apps | Managed, simpler, cloud-native |
+| Docker Swarm or Nomad | Small footprint, simpler operations |
+| `systemd` units or `Podman Quadlet` | Single host, few containers |
+
+Each container becomes a Deployment (or a sidecar in the same Pod), connected through Services, configured with ConfigMaps and Secrets, and packaged with Helm or Kustomize.
+
+```bash
+# convert an existing Compose file as a starting point, then refine
+kompose convert -f compose.yaml -o k8s/
+```
+
+**Interview-ready answer:**
+
+> In production I move from Compose to an orchestrator, normally Kubernetes or a managed service like ECS or Azure Container Apps. Each service becomes its own Deployment with a Service for discovery, probes for health, resource limits and Secrets from a secret manager, packaged with Helm and deployed through GitOps. Tightly coupled helpers such as a log shipper or proxy run as sidecars in the same Pod. For a single small host, `systemd` units or `Podman Quadlet` are a reasonable lighter option.
+
+See also: [Run multi-container applications in production without Compose](../docker/04-networking-volumes-and-compose.md)
+
+</details>

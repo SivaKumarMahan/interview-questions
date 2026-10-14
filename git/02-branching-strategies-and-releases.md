@@ -100,3 +100,64 @@ CI builds a versioned artifact or image and records the commit SHA, tag, checksu
 I restrict who can create or delete tags, sign tags when required, and never quietly move a published release tag. If something needs fixing, it gets a new version instead.
 
 </details>
+
+<details><summary>Q7. [Intermediate] Explain your Git repository structure. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I separate repositories by **lifecycle and ownership**: application code, deployment configuration (GitOps) and infrastructure (Terraform). Inside each repo, the folder structure and branching strategy are standardized.
+
+**Repositories:**
+
+```text
+orders-service/                 # application repo (one per service, or a monorepo)
+  src/  tests/
+  Dockerfile
+  helm/orders/                  # chart (or in a shared charts repo)
+  .github/workflows/ci.yml
+  sonar-project.properties
+  CODEOWNERS
+
+platform-gitops/                # what runs where (Argo CD watches this)
+  apps/
+    orders/
+      base/values.yaml
+      envs/dev/values.yaml      # image.tag: 3f9c2ab
+      envs/staging/values.yaml
+      envs/prod/values.yaml
+  argocd/applicationsets/
+
+infrastructure-live/            # Terraform
+  modules/                      # or separate versioned module repos
+    vpc/ eks/ rds/
+  envs/
+    dev/  staging/  prod/       # backend + tfvars per env
+```
+
+**Branching strategy:**
+
+- **Trunk-based** with short-lived `feature/*` and `bugfix/*` branches, merged to `main` through pull requests.
+- `main` is always deployable and protected: required reviews, required status checks, no direct pushes or force pushes.
+- Releases are tags (`v1.4.0`, semantic versioning); `hotfix/*` branches from the release tag if needed.
+- Environments are **not** branches in the GitOps repo; they are folders, which avoids drift and painful merges between environment branches.
+
+```text
+feature/ORD-123 --PR--> main --tag v1.4.0--> image orders:3f9c2ab
+                                               |
+                       GitOps: envs/dev -> envs/staging -> envs/prod
+```
+
+**Important points:**
+
+- `CODEOWNERS` routes reviews to the right team automatically.
+- Conventional commit messages and linked ticket IDs make changelogs and audits easier.
+- No secrets in Git: use External Secrets/Secrets Manager; scan with `Gitleaks`.
+- `monorepo` vs `polyrepo` is a trade-off: `monorepo` simplifies shared changes, `polyrepo` gives clearer ownership and independent pipelines.
+
+See also: [Branching strategies and releases](../git/02-branching-strategies-and-releases.md), [Branching strategy](../repetitive-questions/branching-strategy.md).
+
+**Interview-ready answer:**
+
+> "We keep three kinds of repositories. Each service has an application repo with source code, tests, Dockerfile, Helm chart and pipeline definition. A separate GitOps repo holds the per-environment Helm values, and Argo CD watches it, so promoting a release is a pull request that changes the image tag in the staging or prod folder. Infrastructure lives in a Terraform repo with reusable modules and per-environment folders. We use trunk-based development with short-lived feature branches, a protected `main` with required reviews and checks, and semantic version tags for releases. CODEOWNERS routes reviews, and secrets never go into Git."
+
+</details>

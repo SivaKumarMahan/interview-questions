@@ -202,3 +202,25 @@ sudo find /var/log -xdev -type f -name '*.log' -mtime +30 -delete
 I avoid deleting the log a process is actively writing to, since it can keep writing to the old file handle without freeing any disk space. Afterward I check `df -hT`, confirm the service is still logging, confirm rotation works, confirm central logs are still searchable, and make sure alerts and retention policy prevent this from happening again.
 
 </details>
+
+<details><summary>Q8. [Advanced] Centralized logging across distributed microservices. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+1. Applications write structured JSON to stdout with a consistent schema: timestamp, level, service, environment, message, `trace_id`, `span_id`, correlation ID.
+2. A node-level agent (Fluent Bit, Vector or the OpenTelemetry Collector) runs as a DaemonSet, adds Kubernetes metadata and ships logs.
+3. A central backend stores and indexes them: Elasticsearch or OpenSearch, Loki, Splunk, CloudWatch or Azure Monitor.
+4. The gateway generates or accepts a correlation ID and every service propagates it (W3C `traceparent` header), so one request can be followed across services and linked to traces.
+5. Retention tiers, PII masking, access control and alerts on error patterns.
+
+```json
+{"ts":"2026-10-14T09:12:03Z","level":"ERROR","service":"payments","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","correlation_id":"ord-81723","msg":"card auth timeout"}
+```
+
+**Interview-ready answer:**
+
+> Every service logs structured JSON to stdout with a shared schema that includes the service name, environment, `trace_id` and a correlation ID. A DaemonSet agent such as Fluent Bit or the OpenTelemetry Collector enriches logs with Kubernetes metadata and ships them to a central store like OpenSearch, Loki or Splunk. The ID is created at the edge and propagated with the W3C trace context header, so I can search one ID and see the whole request path, then jump to the matching trace. Retention, masking of sensitive data and role-based access are part of the design.
+
+See also: [Centralized logging platform design](../system-design/04-centralized-logging-platform.md), [Logging](../monitoring-tools/04-logging.md)
+
+</details>

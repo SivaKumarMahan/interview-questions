@@ -297,3 +297,189 @@ To migrate an application from a Linux server to a serverless setup in Azure, I'
 7. **Monitor and maintain.** Set up `Azure Monitor` and `Application Insights` so you can see the application is running smoothly.
 
 </details>
+
+<details><summary>Q17. [Intermediate] How do you troubleshoot high CPU or memory usage? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I start by confirming whether the load is real and current, then find the process responsible, then work out *why* it is consuming resources before I restart or kill anything.
+
+**Steps:**
+
+1. Check overall load and pressure with `uptime`, `top` and `vmstat 1 5`. Compare load average with the CPU count from `nproc`.
+2. Split CPU time into user (`us`), system (`sy`), I/O wait (`wa`) and steal (`st`). High `wa` means a disk problem, high `st` means a noisy neighbour or an undersized VM.
+3. Find the top consumers with `ps` sorted by CPU or memory, and per-thread with `top -H -p <pid>`.
+4. For memory, read `free -h` correctly: `available` matters, not `free`. Check swap activity (`si`/`so` in `vmstat`) and `dmesg` for OOM-killer events.
+5. Look inside the process: `pidstat`, `perf top`, `strace -c`, or language tools (`jstack`, `jmap`, `py-spy`).
+6. Correlate with recent changes: deployment, cron job, traffic spike, log rotation.
+7. Mitigate (scale out, restart one instance, throttle the job), then fix the root cause.
+
+**Decision flow:**
+
+```text
+High load reported
+      |
+      v
+uptime / vmstat: is it CPU, I/O wait, steal or memory?
+      |
+      +-- us/sy high --> ps / top -H --> which process and thread? --> perf / jstack
+      |
+      +-- wa high -----> iostat -xz 1 / iotop --> disk problem (see Q3)
+      |
+      +-- st high -----> hypervisor contention --> resize or move the VM
+      |
+      +-- available memory low / swapping
+              |
+              v
+          ps --sort=-rss --> leak or misconfigured heap? --> dmesg for OOM kills
+```
+
+**Commands:**
+
+```bash
+uptime; nproc
+vmstat 1 5
+ps -eo pid,ppid,user,%cpu,%mem,rss,cmd --sort=-%cpu | head -10
+ps -eo pid,user,%mem,rss,cmd --sort=-rss | head -10
+top -H -p <pid>                       # hot threads inside one process
+pidstat -u -r 1 5                     # per-process CPU and memory over time
+free -h
+dmesg -T | grep -iE 'out of memory|oom-kill|killed process'
+journalctl -k --since "1 hour ago" | grep -i oom
+```
+
+For a Java process, convert the hot thread ID to hex and match it in a thread dump:
+
+```bash
+printf '%x\n' <tid>
+jstack <pid> | grep -A 20 'nid=0x<hex-tid>'
+```
+
+**Important points:**
+
+- Load average includes processes waiting on I/O (state `D`), so a high load with idle CPUs usually points to storage or NFS.
+- Linux uses spare RAM for page cache; low `free` with high `available` is normal.
+- Killing the process is mitigation, not a fix. Capture evidence (thread dump, heap dump, `perf` sample) first if it is safe.
+- Steady memory growth after each request or deployment usually means a leak; sudden growth usually means a traffic or data-size change.
+
+See also: [Linux performance troubleshooting](../linux/09-performance-troubleshooting-and-production.md), [Linux sysadmin scenarios](../linux/11-sysadmin-scenarios.md), [Linux processes and services](../linux/04-processes-services-and-scheduling.md)
+
+**Interview-ready answer:**
+
+> "First I confirm what kind of pressure it is using `uptime` and `vmstat`, because high load can be CPU, I/O wait, steal time or memory pressure, and each has a different fix. Then I find the process with `ps` sorted by CPU or RSS and drill into threads with `top -H`. For memory I look at `available` rather than `free`, check swap activity, and search `dmesg` for OOM-killer events. Once I know the process, I capture evidence such as a thread dump or `perf` sample before restarting anything. I correlate the timing with deployments, cron jobs and traffic. I mitigate first, for example by scaling out or restarting a single instance, and then fix the root cause, such as a leak, a bad query or an undersized heap."
+
+</details>
+
+<details><summary>Q18. [Intermediate] How do you troubleshoot disk and network issues? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I treat disk and network the same way: check capacity, then errors, then latency and saturation, and identify which process or flow is responsible.
+
+**Disk steps:**
+
+1. Space: `df -h`. Inodes: `df -i`. Either at 100% causes write failures.
+2. Find what grew: `du -xh --max-depth=1 / | sort -h`.
+3. Deleted-but-open files still hold space: `lsof +L1`. Restart or truncate via `/proc/<pid>/fd/<n>`.
+4. Performance: `iostat -xz 1` (look at `%util`, `await`, queue size) and `iotop` for the process.
+5. Errors: `dmesg -T` for I/O errors, read-only remounts, and `smartctl` on physical disks.
+
+**Network steps:**
+
+1. Interface and addressing: `ip a`, `ip r`, link state and errors in `ip -s link`.
+2. DNS: `dig`, `resolvectl status`, `/etc/resolv.conf`.
+3. Reachability and path: `ping`, `traceroute` or `mtr`, `nc -zv host port`.
+4. Connections: `ss -s`, `ss -tan state time-wait | wc -l`, socket backlog drops.
+5. Packets: `tcpdump -i eth0 host <ip> and port <port>` to see SYN without SYN-ACK, resets or retransmissions.
+6. Firewalls and MTU: security rules, and `ping -M do -s 1472` to detect MTU black holes.
+
+**Decision flow:**
+
+```text
+Disk issue                                Network issue
+    |                                          |
+df -h / df -i full? --yes--> du, lsof +L1     DNS resolves? --no--> dig, resolver config
+    |no                                        |yes
+iostat await/%util high? --yes--> iotop      port open? (nc) --no--> firewall / SG / listener
+    |no                                        |yes
+dmesg I/O errors / read-only? --> disk/FS     latency/loss? --> mtr, tcpdump, MTU, ss retrans
+```
+
+**Commands:**
+
+```bash
+df -hT; df -i
+sudo du -xh --max-depth=1 /var | sort -h | tail
+sudo lsof +L1
+iostat -xz 1 5
+sudo iotop -oPa
+ip -s link show eth0
+dig +short api.internal.example.com
+mtr -rwc 50 api.example.com
+ss -s
+sudo tcpdump -nn -i eth0 host 10.0.2.15 and port 5432 -c 50
+```
+
+**Important points:**
+
+- A full disk can also mean full inodes from millions of small files (session files, mail queues).
+- Log files deleted while the process is still writing them do not free space until the file handle is closed.
+- Intermittent network failures are often DNS, connection-tracking table exhaustion (`nf_conntrack` full in `dmesg`), or ephemeral port exhaustion.
+
+See also: [Disk storage and filesystems](../linux/05-disk-storage-and-filesystems.md), [Linux networking](../linux/06-networking.md), [Linux performance troubleshooting](../linux/09-performance-troubleshooting-and-production.md)
+
+**Interview-ready answer:**
+
+> "For disk I check space and inodes with `df -h` and `df -i`, find what grew with `du`, and look for deleted files still held open with `lsof +L1`. For performance I use `iostat -xz` to see utilisation and await time, and `iotop` to find the process. I also check `dmesg` for I/O errors or a filesystem remounted read-only. For network I go layer by layer: interface and routes, DNS with `dig`, port reachability with `nc`, path and loss with `mtr`, and finally `tcpdump` to see whether SYNs are answered or reset. I also check for conntrack exhaustion, ephemeral port exhaustion and MTU problems, which cause intermittent failures that are easy to miss."
+
+</details>
+
+<details><summary>Q19. [Advanced] Troubleshoot a memory leak on a production Linux server. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A leak shows as steadily growing resident memory (RSS) of one process that never returns, eventually causing swapping or the OOM killer.
+
+1. Confirm: `free -h` (look at "available", not "free"; page cache is not a leak), `vmstat 5`, `dmesg -T | grep -i oom`.
+2. Find the process: `ps aux --sort=-rss | head`, `pidstat -r 60`; trend RSS over time in monitoring.
+3. Inspect it: `pmap -x PID`, `/proc/PID/smaps_rollup`, open file descriptors (`ls /proc/PID/fd | wc -l`).
+4. Profile with language tools: heap dump for Java (`jcmd PID GC.heap_dump`), `tracemalloc` for Python, `Valgrind` or `heaptrack` for C/C++.
+5. Mitigate: restart or roll back, set limits (cgroup `MemoryMax`), then fix the code.
+
+```bash
+watch -n 30 'ps -o pid,rss,vsz,cmd -p 4321'
+journalctl -k | grep -i "killed process"
+```
+
+**Interview-ready answer:**
+
+> First I confirm it is really a leak and not page cache, by checking available memory and whether one process's RSS keeps growing without dropping. I find the culprit with `ps --sort=-rss` and `pidstat -r`, look for OOM killer entries in `dmesg`, and inspect the process with `pmap` and `/proc/PID/smaps_rollup`. Then I take a heap dump or use the runtime's profiler to find the objects that keep growing. To protect production I restart or roll back and add a memory limit, while the root cause is fixed in code.
+
+See also: [Troubleshoot a memory leak on a production Linux server](../linux/09-performance-troubleshooting-and-production.md)
+
+</details>
+
+<details><summary>Q20. [Advanced] Debug high I/O latency. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+1. Confirm the symptom: high `wa` in `top` or `vmstat 1`, and processes in `D` state.
+2. Per device: `iostat -xz 1` and check `r_await`/`w_await` (latency), `aqu-sz` (queue) and `%util`.
+3. Per process: `iotop -o` or `pidstat -d 1`.
+4. Check the cause: file system full or nearly full, swapping (`vmstat` `si`/`so`), heavy logging, backups, RAID rebuild, noisy neighbors.
+5. In the cloud, check the volume limits: EBS IOPS and throughput or burst credits, Azure disk tier caps.
+6. Fix: move or throttle the workload, tune queries, add caching, upgrade to gp3 or Premium SSD with provisioned IOPS, separate data and log volumes.
+
+```bash
+iostat -xz 1 5
+pidstat -d 1 5
+cat /proc/pressure/io      # pressure stall information
+```
+
+**Interview-ready answer:**
+
+> I start by confirming the system is waiting on disk: high `iowait`, processes in `D` state and rising I/O pressure. `iostat -xz` tells me which device has high await times and a long queue, and `iotop` or `pidstat -d` tells me which process is driving it. Then I look for the reason, such as swapping, a backup or log storm, a nearly full file system, or a cloud volume hitting its IOPS or throughput limit. The fix is either to reduce or move that I/O or to give the volume more performance.
+
+See also: [Debug high I/O latency](../linux/09-performance-troubleshooting-and-production.md)
+
+</details>

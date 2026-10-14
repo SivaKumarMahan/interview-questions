@@ -409,3 +409,52 @@ See [observability and APM](../monitoring-tools/01-observability-and-apm.md) and
 - Revisit the **split between Log Analytics, Splunk, and the archive** after six months of real query patterns; some data may not need indexing at all.
 
 </details>
+
+<details><summary>Q14. [Advanced] How would you design centralized monitoring and logging? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+I collect metrics, logs and traces with a standard agent layer, send them to scalable central back ends, correlate them with shared labels and trace IDs, and control cost and access from the start.
+
+**Architecture:**
+
+```text
+Sources: apps (OpenTelemetry SDKs), Kubernetes, VMs, cloud services, load balancers
+      |
+      v
+Collection: OpenTelemetry Collector / Fluent Bit (DaemonSet + gateway)
+  - enrich with labels: env, cluster, service, team, version
+  - filter, sample, redact PII, buffer
+      |
+      +--> Metrics: Prometheus per cluster --> Thanos / Mimir / managed Prometheus (long-term, global view)
+      +--> Logs: Loki / Elasticsearch / OpenSearch / Splunk / cloud logging (hot and cold tiers)
+      +--> Traces: Tempo / Jaeger / vendor APM
+      |
+      v
+Grafana: dashboards, exploration, links metrics -> traces -> logs
+Alertmanager / Grafana alerting --> PagerDuty / Opsgenie / Slack
+```
+
+**Steps:**
+
+1. **Standardise instrumentation** with OpenTelemetry and structured JSON logs that include trace and span IDs.
+2. **Consistent labels** across all signals so you can pivot between them.
+3. **Scalable storage** with retention by tier: short hot retention, longer cheap archive in object storage.
+4. **Multi-tenancy and access control** per team, with PII redaction at collection time.
+5. **Reliability**: buffering in collectors, HA back ends, and monitoring of the monitoring stack (meta-monitoring).
+6. **Cost control**: drop debug logs in production, limit high-cardinality labels, sample traces (tail-based sampling keeps errors and slow traces).
+7. **Self-service**: dashboard and alert templates, SLO dashboards per service.
+
+**Important points:**
+
+- High-cardinality labels (user ID, request ID) in metrics are the most common cause of Prometheus performance and cost problems.
+- The monitoring system must not share a failure domain with what it monitors; alert from outside the cluster too.
+- Logs are for detail, metrics for alerting, traces for latency and dependency analysis.
+
+See also: [Centralized logging platform](../system-design/04-centralized-logging-platform.md), [Logging](../monitoring-tools/04-logging.md), [Kubernetes monitoring](../monitoring-tools/06-kubernetes-monitoring.md), [Monitoring cost and FinOps](../monitoring-tools/10-monitoring-cost-finops.md)
+
+**Interview-ready answer:**
+
+> "I standardise collection with OpenTelemetry SDKs in applications and the OpenTelemetry Collector or Fluent Bit as agents, which enrich every signal with the same labels, such as environment, cluster, service and version, and redact sensitive data. Metrics go to Prometheus per cluster with Thanos or Mimir for long-term global queries, logs to Loki or Elasticsearch, and traces to Tempo or Jaeger. Grafana sits on top, and because logs carry trace IDs, engineers can jump from a metric spike to a trace to the exact logs. I control cost with retention tiers, sampling and cardinality limits, and enforce per-team access. The monitoring stack itself is highly available and monitored from outside, so we are never blind during an incident."
+
+</details>

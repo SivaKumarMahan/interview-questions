@@ -411,3 +411,122 @@ If none of that works, I unmount or snapshot the filesystem and do any forensic 
 Once I have a recovered file, I check it with a checksum or against the application, restore the correct owner and permissions, document the incident, and push for better tested backups and deletion controls.
 
 </details>
+
+<details><summary>Q24. [Intermediate] A filesystem reached 90% utilization. How do you troubleshoot and resolve it? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+At 90% the server still works, so I act carefully: **find what is using the space, free it safely, and fix the cause** (log rotation, retention, or capacity). The goal is never to just `rm` files blindly.
+
+**Steps:**
+
+1. **Confirm which filesystem** and whether it is blocks or inodes.
+2. **Find the largest directories and files** on that filesystem only (`-x` stays on one filesystem).
+3. **Check for deleted-but-open files** (space not released because a process still holds the file).
+4. **Free space safely**: rotate/compress logs, clean package caches, Docker images, old releases, core dumps, temp files; archive to S3 if needed.
+5. **Extend the volume** if the growth is legitimate.
+6. **Fix the root cause** and add monitoring (see Q27).
+
+**Commands:**
+
+```bash
+# 1. Which filesystem, and is it inodes?
+df -hT
+df -i
+
+# 2. Biggest directories/files on this filesystem only
+sudo du -xh --max-depth=1 /var 2>/dev/null | sort -rh | head -15
+sudo find /var -xdev -type f -size +500M -exec ls -lh {} \; 2>/dev/null | sort -k5 -rh | head
+# interactive alternative: sudo ncdu -x /
+
+# 3. Deleted files still held open
+sudo lsof +L1 | sort -k7 -rn | head
+
+# 4. Safe cleanup examples
+sudo journalctl --vacuum-size=500M                 # systemd journal
+sudo logrotate -f /etc/logrotate.d/myapp           # force rotation
+sudo truncate -s 0 /var/log/myapp/app.log          # empty a live log without breaking the file handle
+sudo apt-get clean          # or: sudo dnf clean all
+docker system df && docker image prune -a --filter "until=168h"
+sudo find /var/log/myapp -name "*.log.*" -mtime +14 -delete
+```
+
+If `lsof +L1` shows a large deleted log still open, restart or reload the service (or truncate via `/proc/<pid>/fd/<fd>`) to release the space.
+
+**Extend the volume (AWS EBS, no downtime):**
+
+```bash
+aws ec2 modify-volume --volume-id vol-0abc123 --size 200
+lsblk                                   # confirm new size is visible
+sudo growpart /dev/nvme0n1 1            # grow the partition
+sudo resize2fs /dev/nvme0n1p1           # ext4
+# or: sudo xfs_growfs -d /              # XFS (takes the mount point)
+# LVM: pvresize, then lvextend -r -l +100%FREE /dev/vg/lv
+```
+
+```text
+Alert: / at 90%
+   -> df -h / df -i (blocks or inodes?)
+   -> du -x / find -size (what grew?)
+   -> lsof +L1 (deleted but open?)
+   -> safe cleanup: rotate, vacuum, prune, archive
+   -> extend EBS + growpart + resize if growth is legitimate
+   -> root cause: logrotate, retention, separate /var/log, alerts
+```
+
+**Important points:**
+
+- Don't `rm` an active log file; the process keeps writing to the deleted inode and space is not freed. Truncate or rotate instead.
+- 100% inode usage looks like "disk full" even with free space: usually millions of small files (sessions, mail queue, cache).
+- Take a snapshot before major cleanup on critical servers.
+- Long term: logrotate with `compress` and `maxsize`, ship logs to CloudWatch/ELK, separate volumes for `/var/log` or data, and retention policies.
+
+See also: [Linux disk, storage and filesystems](../linux/05-disk-storage-and-filesystems.md).
+
+**Interview-ready answer:**
+
+> "I first run `df -hT` and `df -i` to confirm which filesystem is full and whether it's blocks or inodes. Then I use `du -xh --max-depth=1` and `find -size` to locate what grew, and `lsof +L1` to catch deleted files still held open by a process. I clean up safely: rotate or truncate large logs instead of deleting them, vacuum the journal, clean package caches and old Docker images, and archive old data to S3. If the growth is legitimate, I extend the EBS volume online with `modify-volume`, `growpart` and `resize2fs` or `xfs_growfs`. Finally I fix the cause, usually missing log rotation or retention, and make sure monitoring alerts us before it reaches 90% again."
+
+</details>
+
+<details><summary>Q25. [Basic] Which Linux commands check disk usage and available space? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+`df` shows free space per **file system**; `du` shows how much space **directories and files** use. When a disk is full, I use `df` to find which mount is full, then `du` to find what is filling it.
+
+**Commands:**
+
+```bash
+df -h                     # size, used, available per mounted file system (human readable)
+df -hT /var               # include file system type, for one mount point
+df -i                     # inode usage; "No space left on device" can mean inodes are full
+
+du -sh /var/log           # total size of one directory
+du -h --max-depth=1 /var | sort -h      # size of each subdirectory, sorted
+du -ah /var/log | sort -rh | head -20   # top 20 largest files and directories
+find / -xdev -type f -size +500M -exec ls -lh {} \; 2>/dev/null   # files over 500 MB
+
+ncdu /var                 # interactive disk usage browser (if installed)
+lsblk                     # block devices, partitions, sizes and mount points
+lsblk -f                  # with file system type and UUID
+findmnt                   # mount tree
+
+lsof +L1                  # deleted files still held open (space not freed)
+journalctl --disk-usage   # systemd journal size
+docker system df          # Docker images, containers, volumes
+```
+
+**Important points:**
+
+- If `df` shows full but `du` does not add up, a process is holding a deleted file open; find it with `lsof +L1` and restart the process.
+- Use `-x` / `-xdev` so `du` and `find` stay on one file system.
+- On EKS nodes, check `/var/lib/containerd` and `/var/log/pods`; kubelet image garbage collection and log rotation should clean them.
+
+See also: [Linux disk, storage and file systems](../linux/05-disk-storage-and-filesystems.md).
+
+**Interview-ready answer:**
+
+> "I use `df -h` to see which file system is full and `df -i` to check inode usage. Then I use `du -h --max-depth=1` on that mount, sorted with `sort -h`, or `ncdu`, to find the largest directories, and `lsblk` to see disks and partitions. If `df` and `du` do not match, I check `lsof +L1` for deleted files that a process still holds open."
+
+</details>

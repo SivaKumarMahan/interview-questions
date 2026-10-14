@@ -243,3 +243,39 @@ Don't destroy useful caches unnecessarily - a workspace clean that also wipes a 
 **Key five interview points:** parallel execution + caching + conditional stages + optimized agents + Docker optimization.
 
 </details>
+
+<details><summary>Q9. [Intermediate] How do you manage parallel builds and artifacts in Jenkins/GitLab? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Run independent work in parallel, build once, and pass artifacts between stages instead of rebuilding them.
+
+| Need | Jenkins | GitLab CI |
+| --- | --- | --- |
+| Parallel work | `parallel` block, `matrix` | `parallel:`, `parallel:matrix` |
+| Pass files between stages | `stash` / `unstash` | `artifacts:` with `needs:` |
+| Long-term storage | Artifactory or Nexus, `archiveArtifacts` | Package or container registry |
+| Speed up builds | Dependency caching on agents | `cache:` keyed on the lock file |
+
+```yaml
+# GitLab: test in parallel, reuse the build artifact
+build:
+  stage: build
+  script: mvn -B package -DskipTests
+  artifacts:
+    paths: [target/*.jar]
+    expire_in: 1 week
+test:
+  stage: test
+  needs: [build]
+  parallel: 4
+  script: ./run-tests.sh --shard "$CI_NODE_INDEX/$CI_NODE_TOTAL"
+```
+
+**Interview-ready answer:**
+
+> I split independent work such as unit tests, linting and scans into parallel stages, and shard large test suites across agents. The application is built once, and the exact artifact is passed downstream with `stash` in Jenkins or `artifacts` plus `needs` in GitLab. Release artifacts go to Artifactory, Nexus or a registry with a version tied to the commit, while caches are keyed on lock files. That keeps the pipeline fast and guarantees that what was tested is what gets deployed.
+
+See also: [Manage parallel builds and artifacts in Jenkins / GitLab](../ci-cd/02-pipeline-design-and-scripting.md), [Jenkins pipeline performance](../jenkins/08-pipeline-performance-optimization.md)
+
+</details>

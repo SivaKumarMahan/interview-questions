@@ -447,3 +447,87 @@ The build stage has Maven, the source code, and everything needed to compile. Th
 A `.dockerignore` file excludes `.git`, local build output, credentials, and anything else that doesn't belong in the build context. In production, I'd pin the base images by digest, scan and sign the result, set sensible JVM and container resource limits, and test that shutdown signals and health checks both work.
 
 </details>
+
+<details><summary>Q7. [Intermediate] How do you optimize image size, caching and container security? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Smaller images build faster, pull faster and have fewer vulnerabilities. I optimise with multi-stage builds, minimal base images and careful layer ordering, and secure them by running as non-root, scanning and signing.
+
+**Steps:**
+
+1. **Multi-stage build**: compile in a builder stage, copy only the runtime artifact into the final stage.
+2. **Minimal base**: `-slim`, Alpine (watch `musl` compatibility), or distroless; pin by version or digest.
+3. **Layer order for caching**: copy dependency manifests first, install dependencies, then copy source code.
+4. **BuildKit cache mounts** for package managers, and a remote cache (`--cache-to`/`--cache-from`) in CI.
+5. **`.dockerignore`** to exclude `.git`, `node_modules`, tests and local secrets.
+6. **Security**: non-root `USER`, no secrets in layers (use `--mount=type=secret`), read-only root filesystem, drop capabilities at runtime.
+7. **Scan and sign** in CI: Trivy or Grype, an SBOM, and signing with Cosign; fail the build on critical vulnerabilities.
+
+**Example:**
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY pom.xml .
+RUN --mount=type=cache,target=/root/.m2 mvn -q dependency:go-offline
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -q package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+RUN addgroup -S app && adduser -S app -G app
+WORKDIR /app
+COPY --from=build /src/target/app.jar app.jar
+USER app
+EXPOSE 8080
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+```
+
+```bash
+docker buildx build --cache-from type=registry,ref=registry/app:cache \
+  --cache-to type=registry,ref=registry/app:cache,mode=max -t registry/app:${GIT_SHA} --push .
+trivy image --severity CRITICAL,HIGH --exit-code 1 registry/app:${GIT_SHA}
+cosign sign registry/app@sha256:<digest>
+```
+
+**Important points:**
+
+- Each `RUN` creates a layer; deleting files in a later layer does not shrink the image.
+- A secret copied in one stage and deleted later still exists in the history; use BuildKit secret mounts.
+- Rebuild regularly so base image security patches are picked up, and pin versions for reproducibility.
+
+See also: [Image optimization, multi-stage and Bake](../docker/03-image-optimization-multi-stage-and-bake.md), [Docker security, CI/CD and deployments](../docker/05-security-ci-cd-and-deployments.md), [Sample Dockerfiles](../repetitive-questions/sample-dockerfiles.md)
+
+**Interview-ready answer:**
+
+> "I use multi-stage builds so build tools stay in the builder stage and the final image contains only the runtime and the artifact, on a slim or distroless base pinned to a version. For caching I copy dependency files before source code, use BuildKit cache mounts, and push a registry cache from CI so builds on fresh runners are still fast. A `.dockerignore` keeps the context small. For security the container runs as a non-root user, secrets are passed with BuildKit secret mounts so they never land in a layer, and at runtime I use a read-only filesystem and drop capabilities. In CI I scan with Trivy, fail on critical findings, generate an SBOM and sign the image with Cosign."
+
+</details>
+
+<details><summary>Q8. [Intermediate] Explain image layering in Docker — how can it cause cache busting? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Each `RUN`, `COPY` and `ADD` instruction creates a read-only layer. During a build, Docker reuses a cached layer only if the instruction and its inputs are unchanged; once one layer changes, every later layer is rebuilt. That is cache busting.
+
+Common causes:
+
+- `COPY . .` before installing dependencies, so any source change reinstalls everything.
+- A changing build argument or timestamp early in the file.
+- Related pitfall: `apt-get update` in its own layer stays cached and goes stale, so combine it with `apt-get install` in one `RUN`.
+- Missing `.dockerignore`, so log or `.git` changes alter the build context.
+
+```dockerfile
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt   # cached until requirements change
+COPY . .                                              # only this layer rebuilds on code change
+```
+
+**Interview-ready answer:**
+
+> Every filesystem-changing instruction in a Dockerfile becomes a layer, and the build cache is reused only until the first instruction whose inputs changed. After that point all following layers are rebuilt, which is cache busting. The classic mistake is copying the whole source before installing dependencies, so a one-line code change reinstalls every package. I order layers from stable to volatile, use `.dockerignore`, and in CI I export the BuildKit cache to the registry so builds stay fast on fresh runners.
+
+See also: [Docker image layering and cache busting](../docker/03-image-optimization-multi-stage-and-bake.md)
+
+</details>

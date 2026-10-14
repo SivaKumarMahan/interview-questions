@@ -1011,3 +1011,335 @@ I contain it safely with budgets, scaling caps, quotas, or shutting down confirm
 Required tags, anomaly alerts, rightsizing, schedules, lifecycle retention, reserved or spot instance choices, and owner showback are what make cost optimization an ongoing habit rather than a one-time cleanup. I always verify performance and SLOs are still fine after reducing cost.
 
 </details>
+
+<details><summary>Q35. [Intermediate] What is affinity in Kubernetes, and how does node affinity work? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Affinity is a set of scheduling rules that tells the scheduler where a Pod should or should not run. There are two kinds:
+
+- **Node affinity**: place Pods on nodes with certain labels (for example GPU nodes or a specific zone).
+- **Pod affinity and anti-affinity**: place Pods near or away from other Pods (for example, spread replicas across nodes or zones, or keep a cache next to the app).
+
+Node affinity is a more expressive version of `nodeSelector`.
+
+**How node affinity works:**
+
+```text
+Pod spec with nodeAffinity
+        |
+        v
+Scheduler filters nodes   <-- required rules (hard): node must match or it is excluded
+        |
+        v
+Scheduler scores nodes    <-- preferred rules (soft): matching nodes get extra weight
+        |
+        v
+Pod bound to best node
+```
+
+- `requiredDuringSchedulingIgnoredDuringExecution`: hard rule. If no node matches, the Pod stays `Pending`.
+- `preferredDuringSchedulingIgnoredDuringExecution`: soft rule with a weight from 1 to 100. The scheduler tries, but schedules elsewhere if needed.
+- "IgnoredDuringExecution" means that if node labels change later, already running Pods are not evicted.
+- Operators: `In`, `NotIn`, `Exists`, `DoesNotExist`, `Gt`, `Lt`.
+
+**Example:**
+
+Label the nodes, then require SSD nodes and prefer a specific zone:
+
+```bash
+kubectl label node worker-1 disktype=ssd
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: disktype
+                    operator: In
+                    values: ["ssd"]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 80
+              preference:
+                matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values: ["us-east-1a"]
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: api
+                topologyKey: kubernetes.io/hostname   # spread replicas across nodes
+      containers:
+        - name: api
+          image: myrepo/api:1.4.2
+```
+
+**Important points:**
+
+- Multiple `nodeSelectorTerms` are combined with OR; multiple `matchExpressions` inside one term are combined with AND.
+- Affinity attracts Pods to nodes; taints and tolerations repel Pods from nodes. For dedicated nodes, use both: a taint to keep others off and affinity to pull the right Pods on.
+- Overly strict required rules are a common cause of `Pending` Pods.
+- For even spreading, `topologySpreadConstraints` is often simpler than anti-affinity.
+
+See also: [kubernetes/05](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "Affinity is a set of scheduling rules that controls where Pods run. Node affinity matches Pods to nodes based on node labels, and it is a more flexible version of `nodeSelector`. It has a required type, which is a hard filter so the Pod stays Pending if no node matches, and a preferred type with weights that only influences scoring. 'IgnoredDuringExecution' means running Pods are not evicted if labels change later. Pod affinity and anti-affinity work on other Pods' labels with a topology key, for example to spread replicas across nodes or zones. For dedicated node pools I combine node affinity with taints and tolerations."
+
+</details>
+
+<details><summary>Q36. [Intermediate] What are taints and tolerations? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+**Taints** are applied to **nodes** to repel Pods. **Tolerations** are applied to **Pods** to allow (not force) them to be scheduled on nodes with matching taints.
+
+**Taint effects:**
+
+| Effect | Meaning |
+| --- | --- |
+| `NoSchedule` | New Pods without a matching toleration are not scheduled here. Existing Pods stay. |
+| `PreferNoSchedule` | Scheduler tries to avoid the node (soft). |
+| `NoExecute` | New Pods are not scheduled and existing Pods without the toleration are evicted (optionally after `tolerationSeconds`). |
+
+**Example: dedicated GPU nodes:**
+
+```bash
+kubectl taint nodes gpu-node-1 dedicated=gpu:NoSchedule
+# remove it later with a trailing dash
+kubectl taint nodes gpu-node-1 dedicated=gpu:NoSchedule-
+```
+
+```yaml
+spec:
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    dedicated: gpu        # node label, to actually attract the Pod
+```
+
+**Important points:**
+
+- A toleration only **allows** scheduling; to make Pods land on those nodes, combine it with a `nodeSelector` or node affinity.
+- Kubernetes adds taints itself, for example `node.kubernetes.io/not-ready` and `node.kubernetes.io/unreachable` (`NoExecute`), and control-plane nodes carry `node-role.kubernetes.io/control-plane:NoSchedule`.
+- In EKS managed node groups and Karpenter NodePools, taints are defined in the node group or NodePool configuration.
+
+See also: [Scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "Taints go on nodes and tolerations go on Pods. A taint like `dedicated=gpu:NoSchedule` keeps ordinary Pods away from that node, and only Pods with a matching toleration can be scheduled there. `NoSchedule` blocks new Pods, `PreferNoSchedule` is a soft preference, and `NoExecute` also evicts running Pods that don't tolerate it. A toleration doesn't force a Pod onto the node, so I combine it with a node selector or affinity for dedicated pools such as GPU or system nodes. Kubernetes also uses taints itself, for example to evict Pods from unreachable nodes."
+
+</details>
+
+<details><summary>Q37. [Intermediate] Explain HPA. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+The **Horizontal Pod Autoscaler (HPA)** automatically changes the number of replicas of a Deployment, StatefulSet or other scalable resource based on metrics such as CPU, memory, custom or external metrics.
+
+**How it works:**
+
+```text
+metrics-server / Prometheus Adapter / KEDA
+        |
+        v
+HPA controller (every 15s by default)
+  desiredReplicas = ceil(currentReplicas x currentMetric / targetMetric)
+        |
+        v
+Deployment replicas updated (within minReplicas..maxReplicas)
+        |
+        v
+New Pods Pending? -> Cluster Autoscaler / Karpenter adds nodes
+```
+
+Example: 4 replicas at 90% average CPU with a 60% target gives `ceil(4 × 90 / 60) = 6` replicas.
+
+**Example (`autoscaling/v2`):**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+```
+
+**Important points:**
+
+- CPU/memory utilization is calculated against the container **requests**; without requests, HPA cannot compute utilization.
+- Needs `metrics-server` for resource metrics; custom metrics need Prometheus Adapter, `KEDA` or a cloud adapter.
+- Default scale-down stabilization is 300 seconds to avoid flapping; there is a 10% tolerance before scaling.
+- HPA scales Pods only. Node capacity comes from Cluster Autoscaler or Karpenter.
+- Don't let HPA and VPA both act on CPU/memory for the same workload.
+- Check with `kubectl get hpa` and `kubectl describe hpa api`.
+
+See also: [Scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "HPA scales the number of Pod replicas based on metrics. Every 15 seconds the controller compares the current metric, for example average CPU utilization against requests, with the target and calculates the desired replicas as current replicas times current over target, within the min and max I set. I use the `autoscaling/v2` API, so I can scale on CPU, memory, or custom metrics like requests per second through Prometheus Adapter or `KEDA`, and tune the `behavior` section to scale up fast and scale down slowly. It needs metrics-server and proper resource requests. HPA only adds Pods, so I pair it with Cluster Autoscaler or Karpenter to add nodes when Pods go Pending."
+
+</details>
+
+<details><summary>Q38. [Intermediate] How does node autoscaling work when demand rises or falls? Compare Cluster Autoscaler and Karpenter with HPA. <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Autoscaling in Kubernetes works at two levels. **HPA** scales the number of Pods based on metrics. **Cluster Autoscaler** or **Karpenter** scales the number of nodes when Pods cannot be scheduled or nodes are underused. They work together: HPA creates Pods, and if those Pods are Pending, the node autoscaler adds capacity.
+
+**Scale-up and scale-down flow:**
+
+```text
+Traffic rises
+  |
+  v
+HPA sees CPU > target (from metrics-server) --> replicas 4 -> 10
+  |
+  v
+Scheduler cannot place 3 Pods --> Pods Pending (Unschedulable)
+  |
+  v
+Cluster Autoscaler: increases desired size of a matching node group (ASG)
+Karpenter:         picks the best-fit EC2 instance type and launches it directly
+  |
+  v
+Node joins --> Pods scheduled --> Running
+
+Traffic falls
+  |
+  v
+HPA scales Pods down (after its stabilization window, 5 minutes by default)
+  |
+  v
+Cluster Autoscaler: node under ~50% requested for 10 minutes and its Pods fit elsewhere --> drain and remove
+Karpenter:         consolidation deletes empty nodes or replaces them with cheaper ones
+```
+
+**Cluster Autoscaler vs Karpenter vs HPA:**
+
+| Item | HPA | Cluster Autoscaler | Karpenter |
+| --- | --- | --- | --- |
+| Scales | Pods | Nodes in existing node groups (ASGs) | Nodes directly through EC2, no ASG |
+| Trigger | CPU, memory, custom or external metrics | Pending Pods; low node utilization | Pending Pods; consolidation |
+| Instance choice | Not applicable | Fixed per node group | Picks from many types, Spot and On-Demand |
+| Speed | Seconds | Minutes (ASG then node join) | Usually faster, launches exactly what is needed |
+| Config | `HorizontalPodAutoscaler` | Deployment with ASG auto-discovery tags | `NodePool` and `EC2NodeClass` |
+
+**Example: HPA:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+**Example: Karpenter `NodePool`:**
+
+```yaml
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: general
+spec:
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["c", "m", "r"]
+  limits:
+    cpu: "200"
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+```
+
+**Important points:**
+
+- Node autoscalers react to **resource requests**, not actual usage. Pods without requests break both scheduling and scaling decisions.
+- HPA needs metrics-server (or Prometheus Adapter or KEDA for custom metrics).
+- Use PodDisruptionBudgets so scale-down and consolidation do not take down too many replicas at once.
+- Scale-down is blocked by Pods with local storage, Pods without a controller, or annotations such as `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` (Karpenter uses `karpenter.sh/do-not-disrupt: "true"`).
+- EKS Auto Mode runs Karpenter-based node management for you.
+
+See also: [scheduling, resources and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md).
+
+**Interview-ready answer:**
+
+> "HPA and the node autoscaler solve different problems. HPA watches CPU, memory or custom metrics and changes the number of replicas. When new replicas cannot fit on existing nodes, they stay Pending, and Cluster Autoscaler or Karpenter adds nodes. Cluster Autoscaler increases the desired size of an existing Auto Scaling group, while Karpenter looks at the Pending Pods' requirements and launches the best-fit EC2 instance directly, including Spot. When demand falls, HPA scales Pods down, then Cluster Autoscaler removes underused nodes or Karpenter consolidates onto fewer, cheaper nodes. I always set resource requests and PodDisruptionBudgets because both scaling decisions and safe scale-down depend on them."
+
+</details>

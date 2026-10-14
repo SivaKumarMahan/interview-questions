@@ -166,3 +166,80 @@ GitHub Actions offers hosted or self-hosted runners, secrets management, matrix 
 It's built into GitHub, so there's no extra server to run. The pipeline config lives with the code as YAML, so it's versioned and reviewed through pull requests. It has a huge marketplace of reusable actions and generous hosted runners, and matrix builds are easy to set up. It needs far less maintenance than running Jenkins yourself, and it supports OIDC, so cloud login doesn't need long-lived keys. For teams already on GitHub, this lowers the barrier to CI/CD a lot.
 
 </details>
+
+<details><summary>Q7. [Basic] How does a CI/CD pipeline work? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A CI/CD pipeline is an automated workflow that takes a code change from a commit to a running deployment. **Continuous Integration (CI)** builds and tests every change so problems are caught early. **Continuous Delivery/Deployment (CD)** packages the tested artifact once and promotes the same artifact through environments (dev, staging, production), with approvals where needed.
+
+**Steps:**
+
+1. A developer pushes code or opens a pull request.
+2. The pipeline is triggered by a webhook (push, PR, tag, schedule or manual run).
+3. **Build:** restore dependencies, compile, and build the artifact (JAR, npm bundle, Docker image).
+4. **Test:** unit tests, linting, code coverage.
+5. **Security and quality scans:** SAST, dependency (SCA) scan, secret scan, image scan.
+6. **Publish:** push the versioned artifact or image to a registry (ACR, ECR, Nexus, Artifactory).
+7. **Deploy to dev**, then run smoke or integration tests.
+8. **Promote to staging/production** after approvals, using the same artifact.
+9. **Verify and monitor:** health checks, metrics, and rollback if something fails.
+
+**Flow:**
+
+```text
+git push / PR
+     |
+     v
+Trigger (webhook)
+     |
+     v
+CI: checkout -> build -> unit tests -> scans -> publish artifact (image:1.4.2)
+     |
+     v
+CD: deploy dev -> smoke tests -> deploy staging -> approval -> deploy prod
+     |
+     v
+Health checks + monitoring -> rollback if unhealthy
+```
+
+**Example (GitHub Actions):**
+
+```yaml
+name: ci-cd
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm test
+      - run: docker build -t myregistry.azurecr.io/web:${{ github.sha }} .
+      - run: docker push myregistry.azurecr.io/web:${{ github.sha }}
+
+  deploy-prod:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production   # required reviewers configured on this environment
+    steps:
+      - run: echo "Deploy web:${{ github.sha }} with Helm or kubectl"
+```
+
+**Important points:**
+
+- Build once, deploy many times: promote the same artifact, do not rebuild per environment.
+- Keep environment-specific values in configuration and secrets, not in the artifact.
+- Fail fast: put quick checks (lint, unit tests) first.
+- Production deploys should have approvals, a deployment strategy (rolling, blue-green, canary) and a rollback plan.
+
+See also: [CI/CD fundamentals](../ci-cd/01-fundamentals-and-tooling.md), [CI/CD flow](../repetitive-questions/cicd-flow.md).
+
+**Interview-ready answer:**
+
+> "A CI/CD pipeline automates the path from a commit to production. When I push code or open a pull request, a webhook triggers the pipeline. The CI part checks out the code, builds it, runs unit tests and security scans, and publishes a versioned artifact or Docker image to a registry. The CD part deploys that same artifact to dev, runs smoke tests, then promotes it to staging and production, with an approval gate before production. After deployment I verify health checks and monitoring, and if something is wrong I roll back to the previous version. The key principles are fail fast, build once and deploy the same artifact everywhere."
+
+</details>

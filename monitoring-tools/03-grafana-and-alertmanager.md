@@ -357,3 +357,188 @@ Flow: the rule fires → labels are matched by the notification policy → the a
 Grafana can also use an external **Alertmanager** as a data source, so alerts from Prometheus and Grafana can be viewed and silenced in one place.
 
 </details>
+
+<details><summary>Q10. [Intermediate] How would you integrate Prometheus with Grafana for application monitoring? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Prometheus collects and stores metrics by scraping HTTP endpoints. Grafana does not collect metrics itself; it queries Prometheus as a data source and visualizes the results in dashboards and alerts.
+
+**Flow:**
+
+```text
+Application (/metrics endpoint)   node-exporter / kube-state-metrics
+        \                                   /
+         \  scrape every 15-30s            /
+          v                               v
+                 Prometheus (TSDB)
+                  |            |
+     PromQL query |            | alert rules
+                  v            v
+               Grafana     Alertmanager --> Slack / email / PagerDuty
+```
+
+**Steps:**
+
+**Step 1: Expose metrics from the application**
+
+Use a Prometheus client library (Java Micrometer, Python `prometheus_client`, Go `client_golang`) so the app exposes `/metrics` with request count, latency histogram and error count.
+
+**Step 2: Install Prometheus and Grafana**
+
+On Kubernetes the usual way is the `kube-prometheus-stack` Helm chart, which installs Prometheus Operator, Prometheus, Alertmanager, Grafana, node-exporter and kube-state-metrics.
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace
+```
+
+**Step 3: Tell Prometheus to scrape the application**
+
+With the operator, create a `ServiceMonitor` that selects the application Service.
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: orders-api
+  namespace: monitoring
+  labels:
+    release: monitoring          # must match the Prometheus serviceMonitorSelector
+spec:
+  namespaceSelector:
+    matchNames: ["orders"]
+  selector:
+    matchLabels:
+      app: orders-api
+  endpoints:
+    - port: http-metrics         # named port on the Service
+      path: /metrics
+      interval: 30s
+```
+
+Without the operator, add a job to `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: orders-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["orders-api.internal:8080"]
+```
+
+Confirm the target is `UP` in the Prometheus UI under Status, Targets.
+
+**Step 4: Add Prometheus as a Grafana data source**
+
+The Helm chart does this automatically. Otherwise, provision it as code:
+
+```yaml
+# /etc/grafana/provisioning/datasources/prometheus.yaml
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus-server.monitoring.svc:9090
+    isDefault: true
+```
+
+**Step 5: Build dashboards with PromQL**
+
+Use the RED method (rate, errors, duration) for services:
+
+```text
+Request rate : sum(rate(http_server_requests_seconds_count{app="orders-api"}[5m]))
+Error rate % : 100 * sum(rate(http_server_requests_seconds_count{app="orders-api",status=~"5.."}[5m]))
+               / sum(rate(http_server_requests_seconds_count{app="orders-api"}[5m]))
+p95 latency  : histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{app="orders-api"}[5m])))
+```
+
+Store dashboards as JSON in Git and load them through provisioning or a ConfigMap with the Grafana sidecar label, so they are versioned.
+
+**Step 6: Add alerting**
+
+Define alert rules in Prometheus (`PrometheusRule`) and route them through Alertmanager, or use Grafana alerting. Alert on symptoms such as error rate and latency, not on every metric.
+
+**Important points:**
+
+- Grafana is only the visualization and alerting layer; if a panel is empty, check the Prometheus target and the PromQL query first.
+- Watch label cardinality: user IDs or request IDs as labels can overload Prometheus.
+- Secure Grafana with SSO and role-based access, and do not expose Prometheus publicly.
+- For long retention or multiple clusters, use remote write to Thanos, Mimir or a managed Prometheus service.
+
+See also: [monitoring-tools/11](../monitoring-tools/11-prometheus-grafana-hands-on-setup.md) and [monitoring-tools/03](../monitoring-tools/03-grafana-and-alertmanager.md).
+
+**Interview-ready answer:**
+
+> "I first make sure the application exposes a `/metrics` endpoint using a Prometheus client library. On Kubernetes I install the `kube-prometheus-stack` Helm chart and create a `ServiceMonitor` so Prometheus scrapes the application Service, then I confirm the target is up. In Grafana I add Prometheus as a data source, ideally through provisioning so it is in code. I build dashboards around request rate, error rate and p95 latency using PromQL, and keep the dashboard JSON in Git. Finally I add alert rules for error rate and latency and route them through Alertmanager to Slack or email."
+
+</details>
+
+<details><summary>Q11. [Advanced] Thousands of alerts fire at once. How do you find the real problem? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+A flood of alerts is usually one root cause with many symptoms. I stop reading alerts one by one, look for the **earliest** and **lowest-layer** failure, and fix the alerting so the next incident produces a handful of meaningful pages.
+
+**Steps:**
+
+1. **Declare an incident** and assign roles (incident commander, communications) so people do not work in parallel on symptoms.
+2. **Check user impact** first: SLO dashboards, synthetic checks, error rate at the edge.
+3. **Group alerts** by time, cluster, zone, service and dependency. Look at what fired **first**.
+4. **Look for the common dependency**: network, DNS, a database, an identity provider, a certificate, a cloud provider incident, a configuration change.
+5. **Check change logs**: deployments, infrastructure changes, certificate expiry, feature flags.
+6. **Mitigate** the shared cause; most alerts should resolve on their own.
+7. **Afterwards**: add inhibition rules, grouping, dependency-aware alerting, and move cause-based alerts from pages to tickets.
+
+**Decision flow:**
+
+```text
+Alert storm
+      |
+      v
+Is the user-facing SLO affected? --> sets severity and urgency
+      |
+      v
+Sort by first-fired time + group by zone/cluster/service
+      |
+      v
+Common layer? network / DNS / DB / auth / cloud region / cert --> fix that first
+      |
+      v
+Recent change in that layer? --> roll back
+```
+
+**Alertmanager grouping and inhibition:**
+
+```yaml
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+inhibit_rules:
+  - source_matchers: [ 'alertname = ClusterUnreachable' ]
+    target_matchers: [ 'severity =~ "warning|critical"' ]
+    equal: ['cluster']
+  - source_matchers: [ 'alertname = DatabaseDown' ]
+    target_matchers: [ 'alertname = HighErrorRate' ]
+    equal: ['environment']
+```
+
+**Important points:**
+
+- Page on symptoms (SLO burn, user-facing errors); send cause-level alerts (CPU, disk, single Pod restarts) to tickets or dashboards.
+- Every page must be actionable and have a runbook link.
+- Track alert volume and pages per on-call shift as a reliability metric.
+
+See also: [Observability and APM](../monitoring-tools/01-observability-and-apm.md), [Grafana and Alertmanager](../monitoring-tools/03-grafana-and-alertmanager.md), [SRE](../ops/03-sre.md)
+
+**Interview-ready answer:**
+
+> "When thousands of alerts fire, it is almost always one cause with many symptoms, so I do not try to read them individually. I declare an incident, check user impact on the SLO dashboards, and then group alerts by time, cluster, zone and service to find which fired first and which layer they share. That usually points to something common such as DNS, the network, a database, an identity provider or a certificate, and I check whether anything changed there. Fixing that one component normally clears most of the alerts. Afterwards I improve the alerting: grouping and inhibition rules in Alertmanager, paging only on symptom-based SLO alerts, and sending cause-level alerts to tickets."
+
+</details>

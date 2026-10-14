@@ -518,3 +518,37 @@ This keeps modules independently reusable - the AKS module doesn't need to know 
 Each module exposes what other modules need through `outputs.tf`, and the consuming module takes it as an input variable - `subnet_id = module.network.subnet_id`, for example. That keeps modules loosely coupled and reusable, and makes cross-module dependencies explicit in code instead of relying on naming conventions or manual data lookups.
 
 </details>
+
+<details><summary>Q12. [Advanced] How do you structure large Terraform projects using workspaces and modules? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Modules give reuse; separate root configurations and state files give isolation. Workspaces are only a way to keep several states for the same configuration.
+
+```text
+modules/            # versioned, reusable: network, aks, rds
+live/
+  prod/network/     # small root modules, one state each
+  prod/app/
+  dev/network/
+  dev/app/
+```
+
+| Use workspaces when | Avoid workspaces when |
+| --- | --- |
+| Environments are nearly identical | Environments differ in shape or provider settings |
+| Short-lived copies (feature or test stacks) | You need different backends, accounts or access controls per environment |
+| Same team, same credentials | Prod needs strict isolation and separate approvals |
+
+**Important points:**
+
+- Keep state small: split by environment and by layer (network, data, app), and connect stacks with outputs or data sources.
+- Pin module versions from a registry or Git tag.
+
+**Interview-ready answer:**
+
+> I build reusable, versioned modules for things like networking, clusters and databases, and call them from small root configurations per environment and layer. Each root has its own remote state, so the blast radius of a mistake is one stack. I use workspaces only when environments are truly identical or for short-lived test copies, because all workspaces share one backend and one set of credentials. Production usually lives in a separate directory or account with its own state, pipeline and approvals.
+
+See also: [Workspaces or separate state files](../terraform/05-environments-and-workspaces.md), [Modules and project structure](../terraform/04-modules-and-project-structure.md)
+
+</details>

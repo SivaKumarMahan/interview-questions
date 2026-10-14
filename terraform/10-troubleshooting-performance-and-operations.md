@@ -501,3 +501,62 @@ curl -X POST -H 'Content-type: application/json' \
 "The pipeline produces JSON output and posts a change summary to the team channel, so everyone can see what was applied and by whom. Terraform also creates the alarms and dashboards for the resources it builds, so the service is monitored from day one. On top of that, cloud audit logs and the nightly drift job catch changes that did not come from the pipeline."
 
 </details>
+
+<details><summary>Q16. [Intermediate] What is parallelism in Terraform, and how does it affect resource creation? <em>(asked in interview round)</em></summary>
+
+**Answer:**
+
+Parallelism is the maximum number of resource operations Terraform runs at the same time while walking the dependency graph. The default is **10**. It is set with the `-parallelism=N` flag on `plan`, `apply` and `destroy`.
+
+**How it works:**
+
+```text
+Dependency graph:            VPC
+                           /  |  \
+                    subnet-a subnet-b subnet-c      (independent -> run in parallel)
+                           \  |  /
+                         EKS cluster                (waits for its dependencies)
+
+-parallelism=10 : up to 10 independent operations in flight at once
+-parallelism=1  : one operation at a time (slow, but easy to debug)
+```
+
+Parallelism never breaks dependency order. A resource still waits for everything it depends on; the setting only limits how many independent resources are processed at once.
+
+**Example:**
+
+```bash
+# Default (10)
+terraform apply
+
+# Reduce to avoid cloud API throttling / rate limit errors
+terraform apply -parallelism=3
+
+# Set it for every apply in a CI job
+export TF_CLI_ARGS_apply="-parallelism=5"
+terraform apply -auto-approve tfplan
+```
+
+**When to change it:**
+
+| Situation | Setting |
+| --- | --- |
+| API rate limit or throttling errors (`TooManyRequests`, `429`) | Lower it, for example 2 to 5 |
+| Many small independent resources (DNS records, IAM policies) | Raise it, for example 20 to 30, if the API allows |
+| Debugging ordering or a flaky provider | 1 |
+| Small CI runners running out of memory or CPU | Lower it |
+
+**Important points:**
+
+- It affects the refresh during `plan` as well as create, update and delete operations.
+- Higher is not always faster: the slowest resource on the critical path (for example a database or a cluster) usually decides the total time.
+- If ordering problems appear only with high parallelism, a dependency is missing; fix it with a reference or `depends_on` instead of lowering parallelism.
+- Splitting very large states into smaller ones usually helps performance more than tuning this flag.
+
+See also: [terraform/10](../terraform/10-troubleshooting-performance-and-operations.md).
+
+**Interview-ready answer:**
+
+> "Parallelism controls how many resource operations Terraform performs at the same time while it walks the dependency graph, and the default is 10. Independent resources, such as several subnets, can be created concurrently, but a resource always waits for its dependencies, so parallelism never changes ordering. I lower it with `-parallelism` when I hit cloud API rate limits or when CI runners are small, and I set it to 1 when debugging. I raise it only for many small independent resources. If a higher value causes failures, that usually means a missing dependency, which I fix in the code."
+
+</details>
