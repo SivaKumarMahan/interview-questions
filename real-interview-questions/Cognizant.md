@@ -861,3 +861,1016 @@ Common problems:
 **Key point:** HPA scales **Pods**. Cluster Autoscaler scales **nodes**. They work together but solve different problems.
 
 </details>
+
+<details><summary>Q9. In how many different ways can a pipeline run in GitHub Actions?</summary>
+
+### Interview-style answer
+
+In GitHub Actions, a workflow can start in many ways, depending on the triggers we set with the `on` keyword. The main ones are push, pull request, schedule, manual run, release, and triggers from other workflows or external systems.
+
+### 1. Common ways to trigger a pipeline
+
+| Trigger | When does it run? | Real-time example |
+| --- | --- | --- |
+| `push` | Code is pushed to a branch or tag | Build the application after a developer pushes code |
+| `pull_request` | A pull request is opened, updated, or reopened | Run tests before merging |
+| `schedule` | At set times, using cron (UTC) | Daily security scan |
+| `workflow_dispatch` | Manually from the Actions UI, CLI, or API | Production deployment when approved |
+| `release` | A release is published or created | Build and publish release artifacts |
+| `workflow_run` | Another workflow finishes | Deploy after the CI workflow succeeds |
+| `workflow_call` | Another workflow calls this reusable workflow | Reuse a standard build workflow across repositories |
+| `repository_dispatch` | An external system sends an event through the API | Trigger a pipeline from another tool |
+| `issue_comment` | A comment is added to an issue or pull request | Run a controlled test from a `/deploy` comment |
+
+These are the common ones. GitHub Actions supports many more events.
+
+### 2. Examples of the most common triggers
+
+**A. Automatically on code push**
+
+```yaml
+on:
+  push:
+    branches:
+      - main
+```
+
+**B. On a pull request**
+
+```yaml
+on:
+  pull_request:
+    branches:
+      - main
+```
+
+This runs when a pull request targets `main`.
+
+**C. On a schedule**
+
+```yaml
+on:
+  schedule:
+    - cron: '0 2 * * *'
+```
+
+This runs daily at 02:00 UTC.
+
+**D. Manually**
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, qa, prod]
+```
+
+This adds the **Run workflow** button, with an optional input. You can also start it from the CLI: `gh workflow run deploy.yml -f environment=qa`.
+
+**E. After another workflow finishes**
+
+```yaml
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying"
+```
+
+`completed` also fires when CI fails, so check the `conclusion` before deploying.
+
+**F. Several triggers together**
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+```
+
+### 3. Real-time DevOps example
+
+For a Java application deployed to AKS:
+
+- **Push to `main`:** build, test, scan, and publish the Docker image.
+- **Pull request:** validate code and run tests.
+- **Manual trigger:** deploy to production after approval.
+- **Schedule:** regular dependency and security scans.
+- **After CI completes:** start the deployment workflow only if CI succeeded.
+
+**Gotcha:** events created by the default `GITHUB_TOKEN` (for example, a push made by a workflow) do **not** start new workflows, except `workflow_dispatch` and `repository_dispatch`. This prevents endless loops.
+
+### Interview answer to remember
+
+> "In GitHub Actions, workflows are triggered with the `on` keyword. The most common triggers are `push`, `pull_request`, `schedule`, and `workflow_dispatch`. Workflows can also run on releases, after another workflow completes, when called as a reusable workflow, or from external events through `repository_dispatch`. I use `push` for automatic builds, `pull_request` for validation before merging, and `workflow_dispatch` for controlled production deployments."
+
+**Remember:** `on` defines **when** a workflow starts. Jobs and steps define **what** happens after it starts.
+
+</details>
+
+<details><summary>Q10. What resources have you used in Azure DevOps?</summary>
+
+### Interview-style answer
+
+> "In my project, I used Azure DevOps to manage source code, automate CI/CD pipelines, store packages, manage configuration, and track work. The main services I worked with are Azure Repos, Azure Pipelines, Azure Artifacts, and Azure Boards. Inside pipelines I also used service connections, agent pools, variable groups, environments, and templates."
+
+### 1. Main Azure DevOps services
+
+| Service | Purpose | Real-time example |
+| --- | --- | --- |
+| Azure Repos | Git repositories for source code | Developers push Java and React code; branch policies protect `main` |
+| Azure Pipelines | Build, test, and deploy automation | Build Docker images and deploy to AKS |
+| Azure Artifacts | Package feeds (Maven, npm, NuGet, Python) | Store internal Maven libraries and cache public packages via upstream sources |
+| Azure Boards | Work items, sprints, and bugs | Track sprint tasks and production issues |
+| Azure Test Plans | Manual and exploratory testing | QA team validates application features |
+
+### 2. Other important Azure DevOps components
+
+| Component | Purpose |
+| --- | --- |
+| Agent pools | Microsoft-hosted or self-hosted machines that run jobs |
+| Service connections | Let pipelines authenticate to Azure, ACR, Kubernetes, SonarQube, and other services |
+| Variable groups | Share configuration variables (and Key Vault secrets) across pipelines |
+| Secure files | Store files such as certificates or signing keys securely |
+| Library | Central place for variable groups and secure files |
+| Environments | Deployment targets (for example `dev`, `prod`) with deployment history |
+| Approvals and checks | Manual approval, branch control, business hours, and other gates before deploying |
+| Pipeline templates | Reusable YAML steps, jobs, and stages |
+| Branch policies | Require PR reviews, build validation, and linked work items before merging |
+| Wiki and dashboards | Project documentation and team status views |
+
+### 3. Real-time DevOps project example
+
+A React frontend and Java Spring Boot backend deployed to AKS:
+
+```text
+Azure Repos (code + branch policies)
+  -> Azure Pipelines: build, test, SonarQube scan
+  -> Docker image pushed to Azure Container Registry
+  -> Service connection + variable groups + Key Vault secrets
+  -> Azure Pipelines deploys to AKS (dev -> qa -> prod environments)
+```
+
+Azure Boards tracks the related tasks and bugs, while environments with approvals and checks control production deployments.
+
+### Interview answer to remember
+
+> "In Azure DevOps, I mainly use Azure Repos for source control with branch policies, and Azure Pipelines for CI/CD. I also work with agent pools, service connections, variable groups, templates, environments, and approvals. For example, I configured a pipeline that builds a Java application, pushes a Docker image to ACR, and deploys it to AKS. Secrets come from Azure Key Vault through a variable group, and production deployments need approval on the environment."
+
+**Interview tip:** if the interviewer asks which resources **you** used, talk only about the components you actually configured, and be ready with one real example for each.
+
+</details>
+
+<details><summary>Q11. How do you automate version upgrades in AKS?</summary>
+
+### Interview-style answer
+
+I automate AKS Kubernetes upgrades with Azure CLI inside Azure DevOps pipelines, and I also use AKS's built-in auto-upgrade with planned maintenance windows. Before upgrading, I check the current version, the available upgrades, deprecated APIs, and application compatibility.
+
+An AKS upgrade has two parts:
+
+- **Control plane upgrade:** upgrades the Kubernetes API server and other managed components.
+- **Node pool upgrade:** upgrades the worker nodes where application Pods run.
+
+For production, I use a controlled pipeline with validation, approval, upgrade, and post-upgrade health checks, not a blind automatic upgrade.
+
+### Automation flow
+
+```text
+Scheduled or manual Azure DevOps pipeline
+  -> Check available AKS versions and deprecated APIs
+  -> Validate workloads, PDBs, and node pool surge settings
+  -> Production approval
+  -> Upgrade control plane, then node pools
+  -> Validate nodes, Pods, Services, and application health
+```
+
+### 1. Check the current and available versions
+
+```bash
+# Current version
+az aks show \
+  --resource-group my-rg \
+  --name my-aks \
+  --query kubernetesVersion \
+  -o tsv
+
+# Available upgrade versions
+az aks get-upgrades \
+  --resource-group my-rg \
+  --name my-aks \
+  -o table
+```
+
+Choose a supported target version. AKS upgrades one **minor** version at a time (for example 1.29 to 1.30, then 1.30 to 1.31). You cannot skip minor versions.
+
+### 2. Configure the upgrade strategy
+
+Set node surge to reduce disruption:
+
+```bash
+az aks nodepool update \
+  --resource-group my-rg \
+  --cluster-name my-aks \
+  --name nodepool1 \
+  --max-surge 33%
+```
+
+`--max-surge` tells AKS how many extra nodes to add during the upgrade (a number like `1` or a percentage). More surge means a faster upgrade but needs more VM quota and subnet IPs.
+
+Before upgrading, check:
+
+- **PodDisruptionBudgets:** too strict a PDB (for example `maxUnavailable: 0`) blocks node drain.
+- **Readiness probes** and at least 2 replicas for important apps.
+- **Spare capacity:** VM quota and free IPs for surge nodes.
+- **Deprecated APIs:** scan with Pluto or kubent (see Q1).
+
+### 3. Upgrade AKS using Azure CLI
+
+```bash
+# Upgrade control plane and all node pools
+az aks upgrade \
+  --resource-group my-rg \
+  --name my-aks \
+  --kubernetes-version <target-version> \
+  --yes
+
+# Or upgrade in phases: control plane first...
+az aks upgrade -g my-rg -n my-aks --kubernetes-version <target-version> --control-plane-only --yes
+
+# ...then each node pool
+az aks nodepool upgrade -g my-rg --cluster-name my-aks -n nodepool1 --kubernetes-version <target-version> --yes
+```
+
+Phased upgrades let you upgrade a system pool or a less critical pool first and check it before the rest.
+
+### 4. Built-in AKS auto-upgrade
+
+AKS can upgrade itself on a schedule:
+
+```bash
+# Auto-upgrade channel: none | patch | stable | rapid | node-image
+az aks update -g my-rg -n my-aks --auto-upgrade-channel patch
+
+# Node OS security updates
+az aks update -g my-rg -n my-aks --node-os-upgrade-channel NodeImage
+
+# Planned maintenance window: Sundays 00:00-04:00
+az aks maintenanceconfiguration add \
+  -g my-rg --cluster-name my-aks \
+  --name aksManagedAutoUpgradeSchedule \
+  --schedule-type Weekly --day-of-week Sunday \
+  --interval-weeks 1 --start-time 00:00 --duration 4
+```
+
+A common pattern: `patch` auto-upgrade for safe patch versions in a maintenance window, and a pipeline with approval for **minor** version upgrades.
+
+### 5. Automate it in Azure DevOps
+
+The pipeline uses an Azure Resource Manager service connection with permission to upgrade the cluster.
+
+```yaml
+trigger: none
+
+parameters:
+  - name: targetVersion
+    type: string
+
+stages:
+  - stage: Validate
+    jobs:
+      - job: CheckAKS
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: AzureCLI@2
+            displayName: Check available AKS upgrades
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az aks show -g my-rg -n my-aks --query kubernetesVersion -o tsv
+                az aks get-upgrades -g my-rg -n my-aks -o table
+
+                # Fail if the target version is not an allowed upgrade
+                az aks get-upgrades -g my-rg -n my-aks \
+                  --query "controlPlaneProfile.upgrades[].kubernetesVersion" -o tsv \
+                  | grep -qx '${{ parameters.targetVersion }}' \
+                  || { echo "Target version not allowed"; exit 1; }
+
+  - stage: Upgrade
+    dependsOn: Validate
+    jobs:
+      - deployment: UpgradeAKS
+        environment: 'production-aks'   # approval check configured here
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: Upgrade AKS
+                  inputs:
+                    azureSubscription: 'azure-service-connection'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az aks upgrade \
+                        --resource-group my-rg \
+                        --name my-aks \
+                        --kubernetes-version '${{ parameters.targetVersion }}' \
+                        --yes
+```
+
+Configure an **approval check** on the `production-aks` environment so the upgrade stage waits for sign-off. Upgrade **dev first, then QA, then prod**, with time between them to catch problems.
+
+### 6. Validate after the upgrade
+
+```bash
+kubectl get nodes
+kubectl get pods -A
+kubectl get deployments -A
+kubectl get events -A --sort-by=.lastTimestamp
+```
+
+Then check application health with readiness checks, service endpoints, monitoring dashboards, and smoke tests.
+
+If validation fails, stop further upgrades and investigate. **You cannot roll back an AKS control plane to an older version**, so the safe recovery plan is testing in lower environments first, backups (for example Velero or Azure Backup for AKS), and, for critical systems, a blue-green cluster upgrade (build a new cluster on the new version and switch traffic).
+
+### Interview answer to remember
+
+> "I automate AKS upgrades with Azure DevOps pipelines and Azure CLI. First I check the current version and available upgrades, scan for deprecated APIs, and check PodDisruptionBudgets and node pool surge capacity. After approval on the production environment, the pipeline upgrades the control plane and node pools, one minor version at a time. Then it validates node and Pod health and runs smoke tests. For patch versions and node OS images, I use AKS auto-upgrade channels with a planned maintenance window. I always go dev, then QA, then prod, because a control plane upgrade cannot be rolled back."
+
+</details>
+
+<details><summary>Q12. What are templates in Azure DevOps?</summary>
+
+### Interview-style answer
+
+In Azure DevOps, YAML **templates** let us reuse common pipeline code across many pipelines instead of copying it.
+
+For example, if we have Dev, QA, UAT, and Production pipelines, we create one common build template and use it in all four. When the build steps change, we update the template once instead of every pipeline.
+
+### 1. Types of templates
+
+| Template type | Purpose | Example |
+| --- | --- | --- |
+| Step template | Reuses a group of steps | Build and test a Java application |
+| Job template | Reuses a complete job | Build plus security scanning |
+| Stage template | Reuses a whole stage | Deploy an application to an environment |
+| Variable template | Reuses a set of variables | Common application configuration |
+| Extends template | Defines the whole pipeline structure that others must follow | Enforce mandatory security scans in every pipeline |
+
+### 2. Example: step template with parameters
+
+**File:** `templates/build.yml`
+
+```yaml
+parameters:
+  - name: mavenGoals
+    type: string
+    default: 'clean package'
+
+steps:
+  - script: mvn ${{ parameters.mavenGoals }}
+    displayName: Build Java application
+
+  - script: echo "Build completed"
+    displayName: Verify build
+```
+
+**File:** `azure-pipelines.yml`
+
+```yaml
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+
+  - template: templates/build.yml
+    parameters:
+      mavenGoals: 'clean verify'
+```
+
+When the pipeline runs, Azure DevOps expands the template and runs its steps. Parameters make one template work for different services.
+
+### 3. Example: variable template
+
+**File:** `templates/dev-variables.yml`
+
+```yaml
+variables:
+  environmentName: dev
+  appName: myapp
+```
+
+```yaml
+variables:
+  - template: templates/dev-variables.yml
+
+steps:
+  - script: |
+      echo "Environment: $(environmentName)"
+      echo "Application: $(appName)"
+```
+
+### 4. Example: templates from a shared repository
+
+Teams usually keep templates in a central repository and reference them from every service:
+
+```yaml
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Platform/pipeline-templates
+      ref: refs/tags/v1.2.0   # pin a version
+
+stages:
+  - template: stages/build-and-deploy.yml@templates
+    parameters:
+      serviceName: orders-api
+```
+
+Pinning a tag means a template change does not break every pipeline at once.
+
+### 5. How templates help in real projects
+
+With many microservices on AKS, each service would otherwise repeat build, test, SonarQube scan, Docker build, and deploy steps.
+
+```text
+Shared Azure DevOps templates
+  |-- Service A (Java API)
+  |-- Service B (React UI)
+  |-- Service C (Worker)
+```
+
+Benefits: less duplicate YAML, consistent builds and deployments, easier maintenance, and fewer mistakes. With **extends templates** plus a **required template check** on environments, you can also enforce that every production deployment goes through approved security steps.
+
+### Interview answer to remember
+
+> "In Azure DevOps, templates are reusable YAML files that stop us from duplicating pipeline code. There are step, job, stage, and variable templates, plus extends templates that enforce a standard pipeline structure. In a microservices project, I keep common templates for Maven build, Docker image creation, and Kubernetes deployment in a shared repository, pass parameters such as the service name, and reuse them across all pipelines. If the build process changes, I update the template once."
+
+**Important:** templates are expanded when the pipeline is **compiled**, before it runs. They are different from **variable groups**, which store variables centrally in the Library and can hold secrets.
+
+</details>
+
+<details><summary>Q13. What is the use of <code>.tpl</code> and helper files (<code>_helpers.tpl</code>) in Helm?</summary>
+
+In Helm, `_helpers.tpl` is used to define **reusable named templates** (small functions), which you call from your Kubernetes YAML templates.
+
+### 1. What is `_helpers.tpl`?
+
+`_helpers.tpl` is a file in the chart's `templates/` folder. It usually defines:
+
+- Application name
+- Full resource name
+- Common labels
+- Selector labels
+- Service account name
+
+**Main benefit:** define it once and reuse it everywhere, instead of repeating the same code in every YAML file.
+
+### 2. Example Helm chart structure
+
+```text
+myapp/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    └── _helpers.tpl
+```
+
+**Step 1: Define helpers in `_helpers.tpl`**
+
+```yaml
+{{- define "myapp.fullname" -}}
+{{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "myapp.labels" -}}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end -}}
+```
+
+`trunc 63` is used because Kubernetes names and labels have a 63-character limit.
+
+**Step 2: Use them in `deployment.yaml`**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "myapp.fullname" . }}
+  labels:
+    {{- include "myapp.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "myapp.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "myapp.fullname" . }}
+```
+
+`{{ include "myapp.fullname" . }}` calls the helper and inserts its output. If the release is `dev` and the chart is `myapp`, the name becomes `dev-myapp`. `nindent 4` adds a new line and indents the labels correctly.
+
+**Check the output before installing:**
+
+```bash
+helm template dev ./myapp
+helm lint ./myapp
+```
+
+### 3. Files in a chart
+
+| File | Purpose |
+| --- | --- |
+| `_helpers.tpl` | Reusable named templates (helpers) |
+| Other `_*.tpl` files | More reusable template logic, split by topic |
+| `deployment.yaml` | The Kubernetes Deployment |
+| `service.yaml` | The Kubernetes Service |
+| `values.yaml` | Configurable values such as replicas, image, and ports |
+| `Chart.yaml` | Chart name, version, and appVersion |
+
+**Important:** the `.tpl` extension itself does not make a helper. The `define` and `include` functions give the reusable behavior. Files starting with `_` are **partials**: Helm does not render them as Kubernetes manifests.
+
+### 4. `include` vs `template`, and the `tpl` function
+
+- **`include`** returns the output as a string, so you can pipe it, for example `| nindent 4`. Prefer it.
+- **`template`** inserts the output directly and cannot be piped.
+- **`tpl`** is a different thing: a function that renders a **string from `values.yaml` as a template**. Example: `{{ tpl .Values.configTemplate . }}` lets a value contain `{{ .Release.Name }}`.
+
+### 5. Interview-ready answer
+
+> "In Helm, we use `_helpers.tpl` to define reusable named templates for things like the full resource name, common labels, and selector labels. We call them from `deployment.yaml`, `service.yaml`, and other templates with the `include` function. Files starting with an underscore are not rendered as manifests. This removes duplicate code, keeps names and labels consistent across all resources, and makes charts easier to maintain."
+
+</details>
+
+<details><summary>Q14. What is the use of <code>NOTES.txt</code> in Helm?</summary>
+
+In Helm, `NOTES.txt` shows important information and instructions to the user **after a chart is installed or upgraded**. It lives in the chart's `templates/` folder.
+
+### 1. Example Helm chart structure
+
+```text
+myapp/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── _helpers.tpl
+    └── NOTES.txt
+```
+
+### 2. Example `NOTES.txt`
+
+Suppose the application runs in AKS behind a Kubernetes Service.
+
+**`templates/NOTES.txt`**
+
+```text
+{{ .Chart.Name }} was deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Check your application pods:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+Check your services:
+  kubectl get svc -n {{ .Release.Namespace }}
+
+To access the application locally:
+  kubectl port-forward svc/{{ include "myapp.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+{{- if .Values.ingress.enabled }}
+
+Application URL: https://{{ .Values.ingress.host }}
+{{- end }}
+```
+
+Install the chart:
+
+```bash
+helm install myapp ./myapp
+```
+
+Helm prints the rendered `NOTES.txt` at the end of the output:
+
+```text
+NAME: myapp
+STATUS: deployed
+REVISION: 1
+NOTES:
+myapp was deployed as release "myapp" in namespace "default".
+
+Check your application pods:
+  kubectl get pods -n default
+...
+```
+
+Because `NOTES.txt` is a template, it can use values, release information, helpers, and `if` conditions, as in the example above.
+
+To see the notes again later:
+
+```bash
+helm status myapp
+helm get notes myapp
+```
+
+### 3. Difference between `_helpers.tpl` and `NOTES.txt`
+
+| File | Purpose |
+| --- | --- |
+| `_helpers.tpl` | Defines reusable named templates (helpers) |
+| `NOTES.txt` | Shows post-install or post-upgrade instructions to the user |
+| `deployment.yaml` | Defines the Kubernetes Deployment |
+| `values.yaml` | Stores configurable chart values |
+
+**Important:** `NOTES.txt` is only information. Helm does **not** run the commands written in it, and it does not create any Kubernetes resource. Only the parent chart's `NOTES.txt` is shown; notes from subcharts are not printed.
+
+### Interview-ready answer
+
+> "In Helm, `NOTES.txt` displays post-install or post-upgrade information, such as how to access the application, how to check Pods and Services, or the application URL. It is a template, so it can use values and release details like the namespace and release name. Helm only prints it; the commands in it are not executed. We can view it again with `helm status` or `helm get notes`."
+
+</details>
+
+<details><summary>Q15. If you want to use <code>dev-config.yaml</code>, how will you deploy it using Helm?</summary>
+
+To deploy with `dev-config.yaml`, I pass it with the `-f` (or `--values`) option during install or upgrade.
+
+### 1. Example folder structure
+
+```text
+myapp/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    └── service.yaml
+
+dev-config.yaml
+```
+
+### 2. Deploy using Helm
+
+```bash
+# New deployment
+helm install myapp ./myapp -f dev-config.yaml
+
+# Existing deployment
+helm upgrade myapp ./myapp -f dev-config.yaml
+
+# One command for both (common in pipelines)
+helm upgrade --install myapp ./myapp \
+  -f dev-config.yaml \
+  --namespace dev --create-namespace \
+  --wait --atomic
+```
+
+- `myapp`: the Helm release name.
+- `./myapp`: the chart folder.
+- `-f dev-config.yaml`: the development values.
+- `--wait`: waits until the Pods are ready.
+- `--atomic`: rolls back automatically if the upgrade fails.
+
+### 3. Example `dev-config.yaml`
+
+```yaml
+replicaCount: 2
+
+image:
+  repository: myregistry.azurecr.io/myapp
+  tag: "v1"
+
+service:
+  type: ClusterIP
+  port: 80
+```
+
+The chart templates must reference these values (for example `{{ .Values.replicaCount }}`) for them to change anything.
+
+### 4. How values are merged
+
+Helm combines values in this order; later ones win:
+
+1. The chart's own `values.yaml` (defaults)
+2. Each `-f` file, in the order given
+3. `--set` values on the command line
+
+```bash
+helm upgrade --install myapp ./myapp \
+  -f dev-config.yaml \
+  --set image.tag=v2
+```
+
+Here, `image.tag` becomes `v2` even though `dev-config.yaml` says `v1`.
+
+### 5. Check before and after deploying
+
+```bash
+# Preview the rendered YAML without deploying
+helm template myapp ./myapp -f dev-config.yaml
+
+# After deploying
+helm list -n dev
+helm get values myapp -n dev
+kubectl get pods -n dev
+kubectl get svc -n dev
+```
+
+### Interview-ready answer
+
+> "To deploy with the development configuration, I run `helm install myapp ./myapp -f dev-config.yaml`, or `helm upgrade myapp ./myapp -f dev-config.yaml` if the release already exists. In pipelines I use `helm upgrade --install` with `--wait` and `--atomic`. Values in the `-f` file override the chart's default `values.yaml`, and `--set` overrides both. This lets me keep separate configuration files for Dev, QA, UAT, and Production without changing the chart."
+
+**Note:** `dev-config.yaml` is a **values file**, not something Helm executes. Helm reads its values and uses them to render the chart templates.
+
+</details>
+
+<details><summary>Q16. If you have multiple environments, how do you write the templates so that only one environment is deployed?</summary>
+
+With Dev, QA, UAT, and Prod, I keep **one chart** and **one values file per environment**, and pass only the required environment's file during deployment. The templates stay the same; only the values change. I do not write separate templates for each environment.
+
+### 1. Folder structure
+
+```text
+myapp/
+├── Chart.yaml
+├── values.yaml          # common defaults
+├── values-dev.yaml
+├── values-qa.yaml
+├── values-uat.yaml
+├── values-prod.yaml
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── hpa.yaml
+    └── _helpers.tpl
+```
+
+### 2. Configure each environment
+
+**`values-dev.yaml`**
+
+```yaml
+environment: dev
+replicaCount: 1
+image:
+  tag: "dev"
+autoscaling:
+  enabled: false
+```
+
+**`values-prod.yaml`**
+
+```yaml
+environment: prod
+replicaCount: 3
+image:
+  tag: "v1.0.0"
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+```
+
+### 3. Use the values in the templates
+
+**`templates/deployment.yaml`**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "myapp.fullname" . }}
+  labels:
+    environment: {{ include "myapp.environment" . | quote }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "myapp.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "myapp.fullname" . }}
+    spec:
+      containers:
+        - name: myapp
+          image: "myregistry.azurecr.io/myapp:{{ .Values.image.tag }}"
+```
+
+`replicas` is skipped when HPA is enabled, so Helm and HPA do not fight over the replica count.
+
+### 4. Create a resource only in some environments
+
+Use an `if` condition around the whole file. **`templates/hpa.yaml`**:
+
+```yaml
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "myapp.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "myapp.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+{{- end }}
+```
+
+With `values-dev.yaml`, no HPA is created. With `values-prod.yaml`, it is. Prefer **feature flags** like `autoscaling.enabled` over `if eq .Values.environment "prod"`, because flags keep the templates simple and let you turn a feature on in QA without changing the chart.
+
+### 5. Use `_helpers.tpl` for common logic
+
+```yaml
+{{- define "myapp.environment" -}}
+{{- required "environment is required: pass -f values-<env>.yaml" .Values.environment -}}
+{{- end -}}
+```
+
+The helper reads the environment from the selected values file. `required` makes the deployment **fail** with a clear message if someone forgets to pass an environment file.
+
+### 6. Deploy only one environment
+
+```bash
+# Dev
+helm upgrade --install myapp-dev ./myapp \
+  -f ./myapp/values-dev.yaml \
+  --namespace dev --create-namespace
+
+# QA
+helm upgrade --install myapp-qa ./myapp \
+  -f ./myapp/values-qa.yaml \
+  --namespace qa --create-namespace
+
+# Production
+helm upgrade --install myapp-prod ./myapp \
+  -f ./myapp/values-prod.yaml \
+  --namespace prod --create-namespace
+```
+
+Each command deploys only that environment's configuration. Separate release names and namespaces keep the environments isolated. The chart's `values.yaml` still applies as the base, and the environment file overrides it.
+
+In a pipeline, the environment is a parameter, so the same step deploys any environment:
+
+```bash
+helm upgrade --install "myapp-${ENV}" ./myapp \
+  -f "./myapp/values-${ENV}.yaml" \
+  --namespace "${ENV}" --create-namespace --wait --atomic
+```
+
+### Interview-ready answer
+
+> "I keep one Helm chart and separate values files for Dev, QA, UAT, and Production. I deploy one environment by passing only its values file with `-f`, using a separate release name and namespace per environment. The templates read values for replicas, image tags, and settings. For resources needed only in some environments, such as an HPA in production, I wrap the template in an `if` on a flag like `autoscaling.enabled`. I use `_helpers.tpl` for shared logic, for example a helper that uses `required` so the deployment fails if no environment is passed."
+
+</details>
+
+<details><summary>Q17. What do you know about Azure Front Door?</summary>
+
+### Interview answer
+
+Azure Front Door is a **global Layer 7 (HTTP/HTTPS) load balancer and CDN** from Microsoft Azure. It improves performance, availability, and security by sending each user request to the best available backend across regions.
+
+In simple words: if your application runs in several Azure regions, Front Door gives users **one global entry point** and sends them to a healthy region close to them.
+
+### 1. How does Azure Front Door work?
+
+Example: the application runs in **East US** and **West Europe**.
+
+```text
+Users worldwide
+      |
+Azure Front Door (Microsoft edge locations)
+  global routing · HTTPS · WAF · caching
+      |
+      |-- East US      -> AKS / App Service
+      |-- West Europe  -> AKS / App Service
+```
+
+Request flow:
+
+1. The user opens the application through the Front Door URL or a custom domain.
+2. Front Door receives the request at the nearest Microsoft edge location.
+3. It checks routing rules, origin health, and the routing method.
+4. It forwards the request to a suitable healthy origin over Microsoft's network.
+5. If a region becomes unhealthy, the health probes detect it and Front Door sends traffic to another healthy region.
+
+### 2. Key features
+
+| Feature | Purpose |
+| --- | --- |
+| Global load balancing | Routes requests across origins in different regions |
+| Routing methods | Latency (closest), priority (active-passive), weighted (for example 90/10), session affinity |
+| Health probes | Check origin health and route away from unhealthy origins |
+| WAF (Web Application Firewall) | Blocks attacks such as SQL injection and cross-site scripting; rate limiting and geo-filtering |
+| TLS termination | Handles HTTPS at the edge, with free managed certificates for custom domains; use HTTPS to the origin too |
+| Caching (CDN) | Caches static content close to users to reduce latency and origin load |
+| URL-based routing | For example `/api/*` to the API origin and `/images/*` to a storage origin |
+| Rules engine | Redirects, header changes, URL rewrites |
+| Private Link origins (Premium) | Connects to origins privately, so they need no public endpoint |
+
+**Tiers:** **Standard** (CDN, routing, basic WAF custom rules) and **Premium** (adds managed WAF rule sets, bot protection, and Private Link origins). The older **Front Door (classic)** tier is being retired; new setups should use Standard or Premium.
+
+### 3. Front Door vs Application Gateway vs Load Balancer vs Traffic Manager
+
+| Service | Scope | Layer | Main use |
+| --- | --- | --- | --- |
+| Azure Front Door | Global | Layer 7 | Global HTTP/S routing, acceleration, caching, WAF, failover |
+| Traffic Manager | Global | DNS | DNS-based routing for any protocol; does not proxy traffic |
+| Application Gateway | Regional | Layer 7 | Regional HTTP/S routing, TLS termination, WAF, AKS ingress |
+| Azure Load Balancer | Regional | Layer 4 | TCP/UDP load balancing |
+
+In an AKS architecture:
+
+- **Front Door:** sends global users to the right regional application.
+- **Application Gateway or an ingress controller:** routes HTTP/S traffic inside the region to the AKS Services.
+- **Load Balancer:** distributes TCP/UDP traffic to nodes (AKS creates one for `LoadBalancer` Services).
+
+You do not always need all of them; it depends on the requirements.
+
+### 4. Real-time DevOps scenario
+
+**Interviewer:** "Your application runs in East US and West Europe. East US goes down. How do you handle it?"
+
+**Answer:**
+
+1. Deploy the application in both regions.
+2. Create a Front Door **origin group** containing both regional endpoints.
+3. Configure **health probes** against a real health endpoint, for example `/health`.
+4. Set **priority**: East US = 1, West Europe = 2, so West Europe is the backup (or use latency routing for active-active).
+5. When East US fails its probes, Front Door sends requests to West Europe automatically.
+6. Monitor origin health, error rates, latency, and WAF logs with Azure Monitor and diagnostic logs.
+
+Front Door handles **traffic** failover only. The database, storage, secrets, and other dependencies must also be designed for disaster recovery (for example geo-replication and failover groups). Front Door alone does not make the application recover.
+
+```bash
+az afd profile create -g rg-app --profile-name afd-app --sku Premium_AzureFrontDoor
+az afd endpoint create -g rg-app --profile-name afd-app --endpoint-name app-endpoint --enabled-state Enabled
+az afd origin-group create -g rg-app --profile-name afd-app --origin-group-name og-app \
+  --probe-request-type GET --probe-protocol Https --probe-path /health \
+  --probe-interval-in-seconds 30 \
+  --sample-size 4 --successful-samples-required 3 --additional-latency-in-milliseconds 50
+az afd origin create -g rg-app --profile-name afd-app --origin-group-name og-app \
+  --origin-name eastus --host-name app-eastus.example.com --origin-host-header app-eastus.example.com \
+  --priority 1 --weight 1000 --enabled-state Enabled --http-port 80 --https-port 443
+```
+
+### 5. Security tip: lock the origins to Front Door
+
+Users could bypass Front Door (and its WAF) by calling the origin directly. To prevent this:
+
+- Allow only the `AzureFrontDoor.Backend` service tag in the origin's NSG or access restrictions, **and** check the `X-Azure-FDID` header matches your Front Door ID.
+- Or, on the Premium tier, use **Private Link** origins so the backend has no public endpoint at all.
+
+### 6. When would you use Azure Front Door?
+
+- Users access the application from many countries.
+- The application runs in multiple Azure regions.
+- You need global routing and regional failover.
+- You want one global HTTPS entry point with WAF protection.
+- You want caching to speed up static content.
+
+For a single-region internal application, Front Door is usually not needed; Application Gateway is enough.
+
+### Interview-ready answer
+
+> "Azure Front Door is a global Layer 7 load balancer and CDN in Azure. It receives HTTP and HTTPS traffic at Microsoft's edge locations and routes it to the best healthy backend using health probes and routing methods such as latency, priority, or weighted. It provides global load balancing, caching, TLS termination, WAF protection, and regional failover. In my architecture, I use Front Door as the global entry point for an application deployed in multiple regions, with Application Gateway or an AKS ingress controller handling traffic inside each region. I lock the origins so they accept traffic only from Front Door."
+
+</details>
