@@ -48,7 +48,7 @@ These files cover the questions that come up most in Senior and Lead DevOps roun
 | 9 | [ops/03-sre.md](ops/03-sre.md) | SLOs, incidents, and postmortems, which are central to lead roles |
 | 10 | [repetitive-questions/production-issues.md](repetitive-questions/production-issues.md) | Real production incidents, told as stories |
 
-For a **Lead** role, also read [system-design/01-approach-and-framework.md](system-design/01-approach-and-framework.md) and [leadership/04-leading-incidents.md](leadership/04-leading-incidents.md), and rehearse your own stories in [my-projects](my-projects/README.md).
+For a **Lead** role, also read [system-design/01-approach-and-framework.md](system-design/01-approach-and-framework.md) and rehearse your own stories in [my-projects](my-projects/README.md).
 
 ### 1-day revision path
 
@@ -91,7 +91,7 @@ flowchart LR
     D --> F["Cloud<br/>Azure"]
     E --> F
     F --> G["Operations<br/>Azure Monitor, Prometheus, Splunk,<br/>SRE, DevSecOps, FinOps"]
-    G --> L["Lead-level preparation<br/>System design, leadership,<br/>your own projects"]
+    G --> L["Lead-level preparation<br/>System design,<br/>your own projects"]
     L --> H["Interview practice<br/>Labs, repetitive and real questions,<br/>managerial round"]
 ```
 
@@ -197,7 +197,6 @@ The same content is published as a searchable [website](https://sivakumarmahan.g
 | Folder | Files | Questions | Topics |
 | --- | --- | --- | --- |
 | [system-design](system-design/) | 6 | 76 | How to run a design interview, CI/CD platform for 50 teams, multi-region DR on Azure, centralized logging platform, secrets management at scale, secure monolithic application on Azure |
-| [leadership](leadership/) | 5 | 59 | Architecture decision records, writing postmortems, mentoring, leading incidents, stakeholder communication |
 | [my-projects](my-projects/) | 7 | 66 | STAR templates for the projects on your resume (AKS upgrades, Helm RBAC in Go, Bicep RBAC, DevSecOps gates, VMSS and backup automation, monitoring and Splunk, Functions with Service Bus). See its [README](my-projects/README.md). |
 
 ## Other folders
