@@ -62,3 +62,12 @@ A two-minute answer is usually right for the first telling. Let the interviewer 
 | 7 | Azure Functions with Service Bus for document generation | Infosys | Service Bus-triggered Azure Functions that process requests asynchronously and write documents to Storage | [07-azure-functions-service-bus-documents.md](07-azure-functions-service-bus-documents.md) |
 
 Employers come from the resume: Impressico Business Solutions (Jan 2025 to now) and Infosys (Mar 2021 to Dec 2024). Keep the same employer for each project every time you tell the story, so your timeline stays consistent when the interviewer asks.
+
+## Hands-On Scenarios and Practice Projects
+
+These come from personal notes and labs, not from resume bullets. Use them only for work you actually did, and say clearly when something was a lab.
+
+| # | Topic | File |
+| --- | --- | --- |
+| 8 | Consumption Logic App reading a firewall-protected Storage account (managed identity + resource instance rule) | [08-logic-app-secured-storage-access.md](08-logic-app-secured-storage-access.md) |
+| 9 | Fifteen hands-on practice projects, plus notes on Storage snapshots, Azure Policy, vulnerability scanners, and PDBs | [09-hands-on-practice-projects.md](09-hands-on-practice-projects.md) |
