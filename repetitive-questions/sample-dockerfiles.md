@@ -26,8 +26,9 @@ FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
-COPY src ./src
+RUN mvn -B dependency:go-offline
 
+COPY src ./src
 RUN mvn -B clean verify
 
 FROM eclipse-temurin:21-jre-jammy
@@ -51,7 +52,7 @@ ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 
 - The first `FROM` stage uses Maven and Java to build and test the application.
 - `WORKDIR` sets the directory for the following commands.
-- `COPY` adds the Maven file and source code.
+- `pom.xml` is copied and dependencies are downloaded before the source code. When only code changes, Docker reuses the cached dependency layer.
 - `RUN mvn -B clean verify` compiles, tests, and packages the application.
 - The second `FROM` starts a smaller runtime image.
 - `COPY --from=build` copies only the final JAR from the build stage.
@@ -100,6 +101,22 @@ CMD ["nginx", "-g", "daemon off;"]
 
 If the project creates a `build` directory instead of `dist`, I change the source path to match the project.
 
+## How the frontend talks to the backend
+
+**Interviewer:** How is the React frontend connected to the Spring Boot backend?
+
+**Candidate:** The React app runs in the user's browser and calls the backend REST APIs over HTTPS. It never connects to the database. In AKS, both run as separate Deployments and Services behind one ingress:
+
+```text
+User -> Application Gateway / Ingress
+          /      -> frontend Service (NGINX + React files)
+          /api/* -> backend Service (Spring Boot) -> PostgreSQL
+```
+
+Because both use the same host name, React simply calls `fetch("/api/orders")`. No backend URL is hard-coded in the image, and there is no CORS problem.
+
+The pipeline builds two images (`frontend:<build-id>` and `backend:<build-id>`), pushes them to ACR, and deploys both with Helm.
+
 ## `.dockerignore`
 
 I add a `.dockerignore` file so unnecessary or sensitive files are not sent to the Docker build:
@@ -124,14 +141,24 @@ I normally use `COPY` because it has simple and predictable behavior.
 
 - `ENTRYPOINT` defines the main executable.
 - `CMD` provides the default command or arguments.
+- Arguments given to `docker run` **replace** `CMD` but are **appended** to `ENTRYPOINT`.
 
-Both should normally use JSON form:
+Used together, `ENTRYPOINT` is the fixed program and `CMD` is its default argument:
 
 ```dockerfile
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+CMD ["--spring.profiles.active=default"]
 ```
 
-This helps the process receive stop signals correctly.
+```bash
+docker run orders-service                                   # uses the CMD default
+docker run orders-service --spring.profiles.active=prod     # replaces CMD only
+docker run --entrypoint sh -it orders-service               # replaces ENTRYPOINT
+```
+
+In Kubernetes, `command:` overrides `ENTRYPOINT` and `args:` overrides `CMD`.
+
+Both should normally use JSON (exec) form. In shell form, `/bin/sh` becomes PID 1 and may not pass `SIGTERM` to the application, so the Pod does not shut down gracefully.
 
 ## Configuration and secrets
 
@@ -143,6 +170,24 @@ At runtime:
 - Secrets come from Azure Key Vault through workload identity or the CSI driver.
 
 The same image can then run in Development, Testing, and Production.
+
+### Secrets needed during the build
+
+Sometimes the build needs a secret, for example a token for a private npm or Maven feed. I do not use `ARG` or `ENV` for it, because those values can be seen with `docker history` or in the image metadata. A multi-stage build does not fully protect it either: the build stage can still be in the build cache.
+
+I use a BuildKit secret mount. The secret is available only for that one `RUN` step and is never written to a layer:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+RUN --mount=type=secret,id=npm_token \
+    NPM_TOKEN=$(cat /run/secrets/npm_token) npm ci
+```
+
+```bash
+docker build --secret id=npm_token,env=NPM_TOKEN -t frontend:1.0.0 .
+```
+
+In the pipeline, Trivy (with secret scanning) and Gitleaks check the image and repository for leaked credentials. If a secret ever gets into an image, I rotate the secret first. Deleting the line and rebuilding is not enough.
 
 ## Health checks in AKS
 
@@ -165,6 +210,56 @@ docker history orders-service:1.0.0
 ```
 
 In CI/CD, I also scan the image and push it with a unique version or commit ID. I do not deploy the changing `latest` tag.
+
+## How do you reduce Docker build time?
+
+**Interviewer:** Your Docker build is slow. How do you make it faster?
+
+**Candidate:** I make sure unchanged layers are reused instead of rebuilt on every commit.
+
+- **Order layers by change frequency.** Copy `package*.json` or `pom.xml`, install dependencies, then copy the source code.
+- **Use `.dockerignore`** so `.git`, `node_modules`, and `target` are not sent as build context.
+- **Use BuildKit cache mounts** so the package cache survives between builds:
+
+```dockerfile
+RUN --mount=type=cache,target=/root/.m2 mvn -B clean verify
+RUN --mount=type=cache,target=/root/.npm npm ci
+```
+
+The cache mount is not part of the image, so every `RUN` that needs the cache must mount it.
+
+- **Use registry cache in CI.** Hosted pipeline agents start empty, so I keep the cache in ACR:
+
+```bash
+docker buildx build \
+  --cache-from type=registry,ref=myacr.azurecr.io/orders-service:buildcache \
+  --cache-to type=registry,ref=myacr.azurecr.io/orders-service:buildcache,mode=max \
+  -t myacr.azurecr.io/orders-service:$(Build.BuildId) --push .
+```
+
+- **Use a slim base image** and combine `apt-get update && apt-get install ... && rm -rf /var/lib/apt/lists/*` in one `RUN`.
+- **Run independent pipeline jobs in parallel**, for example unit tests, SonarQube, and dependency scans.
+
+## Deployment to ACI takes 10 minutes. How do you make it 5?
+
+**Interviewer:** An image deployment to Azure Container Instances takes 10 minutes. How do you bring it down to 5?
+
+**Candidate:** First I measure where the time goes: build, push, pull, or application startup. ACI does not cache images between new container groups, so a large image is pulled in full every time.
+
+```bash
+az container show -g rg-app -n orders-api \
+  --query "containers[0].instanceView.events" -o table   # Pulling -> Pulled -> Started
+docker history myacr.azurecr.io/orders-api:1.4.2         # biggest layers
+```
+
+Then I fix the slow part:
+
+- **Slow pull:** a multi-stage build, a slim base image, and `.dockerignore` make the image smaller. Use Linux containers instead of Windows if possible, because Windows images are several GB. Keep ACR in the same region as ACI, or use ACR geo-replication.
+- **Slow build:** layer ordering and registry cache, as above.
+- **Slow startup:** check the app for slow initialization, database migrations at startup, or waiting on a dependency.
+- If start time still matters, ACI **standby pools** keep pre-created container groups ready to use.
+
+ACI itself does not make anything faster. The time is saved by a smaller image, a closer registry, and a faster startup.
 
 ## Common mistakes I avoid
 

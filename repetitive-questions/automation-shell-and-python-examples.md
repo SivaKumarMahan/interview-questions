@@ -18,6 +18,16 @@ For an Azure DevOps / DevOps interview, use examples that sound like real operat
 - [Which examples should you tell the interviewer?](#which-examples-should-you-tell-the-interviewer)
 - [Best 30-second answer](#best-30-second-answer)
 
+**Set 3 - short scripts asked in real interviews**
+
+- [Ping a list of IPs and write a CSV report](#ping-a-list-of-ips-and-write-a-csv-report)
+- [Check SSH login on all servers](#check-ssh-login-on-all-servers)
+- [Health check for 500 Linux VMs - disk, memory, Nginx, CSV report](#health-check-for-500-linux-vms---disk-memory-nginx-csv-report)
+- [Find missing tags in a JSON file with jq](#find-missing-tags-in-a-json-file-with-jq)
+- [Check if a file exists](#check-if-a-file-exists)
+- [Cron scheduling inside a VM](#cron-scheduling-inside-a-vm)
+- [What is umask?](#what-is-umask)
+
 **Collected from elsewhere in this repo**
 
 - [More automation scripts from other notes in this repo](#more-automation-scripts-from-other-notes-in-this-repo)
@@ -102,6 +112,24 @@ fi
 **Interview explanation:**
 
 > "I used shell scripting to monitor disk utilization on Linux servers. If usage crossed the configured threshold, the script returned a failure code so the monitoring or pipeline process could trigger an alert."
+
+**Follow-up: check every filesystem, then find what is using the space.**
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+THRESHOLD=${1:-80}
+
+# -P keeps each filesystem on one line; skip pseudo filesystems
+df -P -x tmpfs -x devtmpfs -x overlay -x efivarfs | awk -v t="$THRESHOLD" '
+  NR > 1 { sub(/%/, "", $5); if ($5 + 0 >= t) printf "WARNING: %s is %s%% full\n", $6, $5 }'
+
+# Then find the biggest directories (stay on one filesystem with -x)
+du -xh --max-depth=1 /var 2>/dev/null | sort -hr | head -10
+```
+
+Flow: `df` tells you **which filesystem** is full -> `du` tells you **which directory** is using it -> check big logs, old Docker images, core dumps. If `df` says full but `du` does not add up, a deleted file is still held open by a process: `lsof +L1`.
 
 ### 4. Backup and compress application logs
 
@@ -365,7 +393,7 @@ fi
 
 Automation flow:
 
-```
+```text
 Check service
      |
 Service down?
@@ -404,7 +432,7 @@ fi
 
 Schedule it with cron:
 
-```
+```text
 */10 * * * * /opt/scripts/check_logs.sh
 ```
 
@@ -437,7 +465,7 @@ fi
 
 Schedule:
 
-```
+```text
 0 2 * * * /opt/scripts/backup.sh
 ```
 
@@ -492,6 +520,31 @@ echo "Old logs cleaned successfully"
 **Interview:**
 
 > "I automated log retention using the Linux find command. Logs older than seven days were removed based on our retention requirement. This prevented unnecessary disk consumption."
+
+**Follow-up: "delete logs older than N days" - make N a parameter and add a dry run.**
+
+```bash
+#!/usr/bin/env bash
+# Usage: ./cleanup_logs.sh /var/log/myapp 7 [--dry-run]
+set -euo pipefail
+
+LOG_DIR=${1:?Usage: $0 <dir> <days> [--dry-run]}
+DAYS=${2:?Usage: $0 <dir> <days> [--dry-run]}
+[[ -d $LOG_DIR ]] || { echo "Not a directory: $LOG_DIR" >&2; exit 2; }
+[[ $DAYS =~ ^[0-9]+$ ]] || { echo "Days must be a number" >&2; exit 2; }
+
+if [[ ${3:-} == --dry-run ]]; then
+  find "$LOG_DIR" -type f -name '*.log*' -mtime +"$DAYS" -print
+else
+  find "$LOG_DIR" -type f -name '*.log*' -mtime +"$DAYS" -print -delete
+fi
+```
+
+Remember:
+
+- `-mtime +7` means **more than 7 full days**. `find` drops the fraction, so a file 7 days and 5 hours old is not matched; it must be 8 days old.
+- Always run once without `-delete` (dry run) and validate the input path - an empty variable must never turn into `find /`.
+- For a log that a running service still writes to, use `logrotate` instead. Deleting an open file does not free the space until the process closes it.
 
 ## 5 more Python automation examples
 
@@ -647,7 +700,7 @@ else:
 
 This can be extended to send one consolidated email:
 
-```
+```text
 Server Health Report
 
 server01 -> OK
@@ -717,6 +770,312 @@ These ten examples sound realistic for a DevOps role:
 ## Best 30-second answer
 
 > "Yes, I have automated several repetitive operational tasks using Shell and Python. In Shell, I automated service restart, application log error checking with email alerts, server backups, disk-space monitoring and log cleanup using cron. In Python, I used scripts for more complex automation such as service monitoring with email notifications, parsing application logs and generating reports, backup and retention management, checking multiple servers, and API health monitoring. These scripts reduced manual intervention and could be integrated with our Azure DevOps pipelines or scheduled through cron."
+
+---
+
+# Set 3 - short scripts asked in real interviews
+
+These are the "write a script for X" questions that came up live. Write the short version first, then mention the production details (timeouts, quoting, parallel runs).
+
+## Ping a list of IPs and write a CSV report
+
+**Interviewer:** Write a shell script to ping a list of IPs.
+
+**Candidate:** I keep the IPs in a file, read them with a `while read` loop, send one ping with a timeout, and use the exit code to decide UP or DOWN.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+INPUT=${1:-ips.txt}
+OUTPUT=ping_report.csv
+
+echo "IP,Status,Response_ms" > "$OUTPUT"
+
+while read -r ip; do
+  [[ -z $ip || $ip == \#* ]] && continue      # skip blank lines and comments
+
+  if reply=$(ping -c 1 -W 2 "$ip" 2>/dev/null); then
+    ms=$(grep -o 'time=[0-9.]*' <<< "$reply" | cut -d= -f2 || true)
+    echo "$ip,UP,${ms:-N/A}" >> "$OUTPUT"
+  else
+    echo "$ip,DOWN,N/A" >> "$OUTPUT"
+  fi
+done < "$INPUT"
+
+echo "Report: $OUTPUT"
+```
+
+Output:
+
+```text
+IP,Status,Response_ms
+10.0.1.4,UP,0.84
+10.0.1.5,DOWN,N/A
+```
+
+Remember:
+
+- `-c 1` = one packet, `-W 2` = wait 2 seconds. Without a timeout, one dead host slows the whole loop.
+- A failed ping does not always mean the server is down. Azure NSGs and firewalls often block ICMP. Check the real service port too: `nc -z -w 3 "$ip" 443`.
+- For hundreds of IPs, run in parallel: `xargs -P 50 -I{} sh -c 'ping -c1 -W2 "$1" >/dev/null 2>&1 && echo "$1,UP" || echo "$1,DOWN"' _ {} < ips.txt`.
+
+## Check SSH login on all servers
+
+**Interviewer:** Write a script to check whether SSH login works on all servers.
+
+**Candidate:** I run a harmless remote command (`true`) on each server with key-based login. `BatchMode=yes` stops it from waiting for a password, and `ConnectTimeout` stops it from hanging.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+INPUT=${1:-servers.txt}
+SSH_USER=${SSH_USER:-devops}
+OUTPUT=ssh_report.csv
+
+echo "Server,SSH_Status" > "$OUTPUT"
+
+while read -r server; do
+  [[ -z $server || $server == \#* ]] && continue
+
+  # -n: do not let ssh read the rest of servers.txt from stdin
+  if ssh -n -o BatchMode=yes -o ConnectTimeout=5 \
+         -o StrictHostKeyChecking=accept-new \
+         "$SSH_USER@$server" true 2>/dev/null; then
+    echo "$server,LOGIN_OK" >> "$OUTPUT"
+  else
+    echo "$server,LOGIN_FAILED" >> "$OUTPUT"
+  fi
+done < "$INPUT"
+
+echo "Report: $OUTPUT"
+```
+
+Remember:
+
+- **The classic bug:** without `-n`, `ssh` reads the loop's stdin, eats the rest of `servers.txt`, and the loop stops after the first server.
+- Use `SSH_USER`, not `USER`, so you do not overwrite the shell's own `$USER`.
+- `accept-new` trusts a new host once but still rejects a **changed** key. `StrictHostKeyChecking=no` is only for a lab. In production, ship a managed `known_hosts` file.
+- To tell "network down" from "key rejected", check port 22 first with `nc -z -w 3 "$server" 22`.
+
+## Health check for 500 Linux VMs - disk, memory, Nginx, CSV report
+
+**Interviewer:** You manage 500 Linux VMs. Write a Bash script that checks disk, memory and Nginx, writes a CSV, handles unreachable servers, and reports only the unhealthy ones.
+
+**Candidate:** I run it from a central jump/management server with SSH keys. Two things make it work at 500 servers: **one SSH call per server** (not three), and **parallel runs** with `xargs -P`. A server that does not answer is marked `UNREACHABLE` and the script moves on.
+
+```text
+servers.txt -> xargs -P 25 -> check_server (1 SSH call, 30s max)
+                                 |-- SSH fails       -> UNREACHABLE
+                                 |-- disk/mem >= 80% -> UNHEALTHY
+                                 |-- nginx != active -> UNHEALTHY
+                                 `-- else            -> HEALTHY
+           -> health_<time>.csv (all) -> unhealthy_<time>.csv (only problems)
+```
+
+```bash
+#!/usr/bin/env bash
+# Usage: ./fleet_health.sh servers.txt
+set -euo pipefail
+
+SERVERS_FILE=${1:?Usage: $0 servers.txt}
+export DISK_MAX=${DISK_MAX:-80}
+export MEM_MAX=${MEM_MAX:-80}
+PARALLEL=${PARALLEL:-25}
+STAMP=$(date +%Y%m%d_%H%M%S)
+REPORT="health_${STAMP}.csv"
+UNHEALTHY="unhealthy_${STAMP}.csv"
+
+# Runs on the remote server: returns 3 lines (disk %, memory %, nginx state)
+REMOTE_CMD=$(cat <<'EOF'
+df -P / | awk 'NR==2 {sub(/%/, "", $5); print $5}'
+free | awk '/^Mem:/ {printf "%d\n", ($2 - $7) * 100 / $2}'
+systemctl is-active nginx || true
+EOF
+)
+export REMOTE_CMD
+
+check_server() {
+  local server=$1 out disk mem nginx status reasons=""
+
+  # ConnectTimeout = host unreachable; timeout 30 = remote command hangs
+  if ! out=$(timeout 30 ssh -n -o BatchMode=yes -o ConnectTimeout=5 \
+                 "$server" "$REMOTE_CMD" 2>/dev/null); then
+    echo "$server,UNREACHABLE,N/A,N/A,N/A,\"SSH failed or timed out\""
+    return 0
+  fi
+  { read -r disk; read -r mem; read -r nginx; } <<< "$out"
+
+  if [[ ! $disk =~ ^[0-9]+$ ]]; then reasons+="disk check failed; "
+  elif (( disk >= DISK_MAX )); then reasons+="disk ${disk}%; "; fi
+
+  if [[ ! $mem =~ ^[0-9]+$ ]]; then reasons+="memory check failed; "
+  elif (( mem >= MEM_MAX )); then reasons+="memory ${mem}%; "; fi
+
+  [[ $nginx == active ]] || reasons+="nginx ${nginx:-unknown}; "
+
+  if [[ -z $reasons ]]; then status=HEALTHY; reasons=none
+  else status=UNHEALTHY; reasons=${reasons%; }; fi
+
+  echo "$server,$status,${disk:-N/A},${mem:-N/A},${nginx:-N/A},\"$reasons\""
+}
+export -f check_server
+
+echo "Server,Status,Disk_%,Memory_%,Nginx,Reason" > "$REPORT"
+
+# Skip blank lines and comments, check 25 servers at a time
+grep -Ev '^[[:space:]]*(#|$)' "$SERVERS_FILE" \
+  | xargs -P "$PARALLEL" -I{} bash -c 'check_server "$1"' _ {} \
+  | sort >> "$REPORT"
+
+# Header + every row that is not HEALTHY
+awk -F, 'NR == 1 || $2 != "HEALTHY"' "$REPORT" > "$UNHEALTHY"
+
+count=$(( $(wc -l < "$UNHEALTHY") - 1 ))
+echo "Full report: $REPORT"
+echo "Unhealthy:   $UNHEALTHY ($count servers)"
+(( count == 0 )) || exit 1      # non-zero exit so cron/pipeline can alert
+```
+
+Unhealthy report:
+
+```text
+Server,Status,Disk_%,Memory_%,Nginx,Reason
+web-017,UNHEALTHY,91,52,active,"disk 91%"
+web-142,UNHEALTHY,45,88,inactive,"memory 88%; nginx inactive"
+web-311,UNREACHABLE,N/A,N/A,N/A,"SSH failed or timed out"
+```
+
+Remember:
+
+- **Memory:** use `total - available`, not the `used` column. Linux uses free RAM for cache, and `available` counts what can be reclaimed.
+- **Sequential is too slow:** 500 servers x 5-second timeout can take over 40 minutes. With `-P 25` it is a couple of minutes.
+- `systemctl is-active` prints `active`, `inactive` or `failed` and exits non-zero when not active, so `|| true` keeps the output without failing the remote command.
+- The non-zero exit lets cron, an Azure DevOps scheduled pipeline or a monitoring job raise an alert, and the CSV can be emailed or uploaded to Blob Storage.
+- **At real scale I would not grow this script forever.** For 500 VMs, Azure Monitor Agent + a log alert on `Heartbeat` (unreachable), disk and memory metrics is the permanent answer, and Ansible (`forks`) is better for running checks or fixes across the fleet. The script is good for a quick audit.
+
+## Find missing tags in a JSON file with jq
+
+**Interviewer:** You have a JSON file of resources. Find which ones are missing required tags.
+
+**Candidate:** I pass the required keys into `jq` as an array and, for each object, keep the keys that are missing or empty.
+
+```json
+[
+  { "name": "server1", "environment": "prod", "owner": "devops" },
+  { "name": "server2", "environment": "prod" },
+  { "name": "server3", "owner": "devops" }
+]
+```
+
+```bash
+jq -r --argjson req '["name","environment","owner"]' '
+  .[] as $o
+  | [ $req[] | select($o[.] == null or $o[.] == "") ] as $missing
+  | select($missing | length > 0)
+  | "\($o.name // "unknown"): missing \($missing | join(", "))"
+' servers.json
+```
+
+```text
+server2: missing owner
+server3: missing environment
+```
+
+The same idea on real Azure resources (`tags` can be `null`, so default it to `{}`):
+
+```bash
+az resource list --query "[].{name:name, tags:tags}" -o json \
+  | jq -r --argjson req '["Environment","Owner","CostCenter"]' '
+      .[]
+      | (.tags // {}) as $t
+      | [ $req[] | select($t[.] == null) ] as $missing
+      | select($missing | length > 0)
+      | [.name, ($missing | join(";"))] | @csv' > missing-tags.csv
+```
+
+Remember:
+
+- Save the object first (`.[] as $o`). Inside `$req[] | select(...)`, the `.` is the **tag name**, not the object - the most common mistake here.
+- `has("owner")` is true even when the value is `null`. Checking `== null` catches both "key missing" and "key is null".
+- jq is case-sensitive, but Azure tag **names** are not, so `environment` and `Environment` count as the same tag in Azure. Normalise with `ascii_downcase` if teams are inconsistent.
+- The script **finds** missing tags. To **prevent** them, use Azure Policy ("Require a tag on resources" with Deny, or "Inherit a tag from the resource group" with Modify).
+
+## Check if a file exists
+
+**Interviewer:** Write a script to check if `/etc/config.js` exists.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+FILE=${1:-/etc/config.js}
+
+if [[ -f $FILE ]]; then
+  echo "$FILE exists"
+else
+  echo "$FILE not found" >&2
+  exit 1
+fi
+```
+
+| Test | True when |
+|---|---|
+| `-e` | Path exists (file, directory, anything) |
+| `-f` | It is a regular file |
+| `-d` | It is a directory |
+| `-s` | File exists and is not empty |
+| `-r` / `-w` / `-x` | Current user can read / write / execute it |
+
+Remember: return a non-zero exit code when the file is missing, so a pipeline step or the next script stops. A config file that exists but is empty usually needs `-s`, not just `-f`.
+
+## Cron scheduling inside a VM
+
+**Interviewer:** Can we use cron in a VM?
+
+**Candidate:** Yes. Inside a Linux Azure VM, cron works the same as on any Linux server. I use it for OS-level jobs such as log cleanup, backups and health scripts.
+
+```bash
+crontab -e       # edit the current user's jobs
+crontab -l       # list them
+```
+
+```text
+# min hour day-of-month month day-of-week  command
+0 20 * * *   /opt/scripts/cleanup_logs.sh /var/log/myapp 7 >> /var/log/cleanup.log 2>&1
+*/10 * * * * /usr/bin/flock -n /tmp/health.lock /opt/scripts/health.sh >> /var/log/health.log 2>&1
+```
+
+Remember:
+
+- Cron has a **minimal environment** - use full paths, set `PATH` at the top of the crontab, and redirect output to a log file. "Works by hand, fails in cron" is almost always this.
+- `flock -n` stops a second run from starting if the previous one is still running.
+- Cron times use the VM's timezone (Azure VMs default to UTC).
+- `shutdown -h now` from cron stops the OS, but the VM shows **Stopped**, not **Stopped (deallocated)**, so compute is still billed. To save cost, use VM Auto-shutdown, Azure Automation or the Start/Stop VMs v2 solution - or call `az vm deallocate` after `az login --identity` using the VM's managed identity with a narrowly scoped role.
+- `systemd` timers are the modern alternative: logs go to `journalctl` and missed runs can be caught up (`Persistent=true`). On Windows, the equivalent is Task Scheduler.
+
+## What is umask?
+
+**Candidate:** `umask` is the mask that **removes** permissions from newly created files and directories. Files start from `666`, directories from `777`, and the umask bits are taken away.
+
+```text
+umask 022 -> files 644 (rw-r--r--)   dirs 755 (rwxr-xr-x)   default on most systems
+umask 027 -> files 640 (rw-r-----)   dirs 750 (rwxr-x---)   group can read, others nothing
+umask 077 -> files 600 (rw-------)   dirs 700 (rwx------)   private, good for backups and keys
+```
+
+```bash
+umask          # show current value, e.g. 0022
+umask 077      # only for this shell or script
+```
+
+Remember:
+
+- It is a bit mask, not subtraction. With `umask 033`, a new file is `644`, not `633`, because files never get execute bits by default.
+- It only affects **new** files. Use `chmod` to change existing ones.
+- In scripts that write backups or secrets, put `umask 077` at the top (as in the backup script below) so nothing is readable by other users, even for a moment.
+- Persistent value: `~/.bashrc` for one user, `/etc/login.defs` or `/etc/profile` system-wide; for a systemd service, `UMask=` in the unit file.
 
 ---
 

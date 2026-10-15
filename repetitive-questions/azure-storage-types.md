@@ -48,9 +48,12 @@ For most application files, I use block blobs.
 
 ### Access tiers
 
-- **Hot:** Frequently accessed data.
-- **Cool:** Infrequently accessed data.
-- **Cold/Archive:** Long-term data that is rarely read.
+- **Hot:** Frequently accessed data. Highest storage cost, lowest read cost.
+- **Cool:** Infrequently accessed data. Minimum 30 days.
+- **Cold:** Rarely accessed data that must still be readable at once. Minimum 90 days.
+- **Archive:** Offline tier for long-term retention. Minimum 180 days. A blob must be rehydrated to Hot or Cool before it can be read, which can take hours.
+
+If a blob leaves a tier before its minimum period, Azure charges an early-deletion fee.
 
 I use lifecycle rules to move older files to a cheaper tier or delete them after the retention period.
 
@@ -186,6 +189,118 @@ For storage security, I:
 - Monitor access and configuration changes.
 
 I do not store account keys in source code.
+
+## Scenario: a Storage Account became public. How do you fix it?
+
+**Interviewer:** A Storage Account has become public. How do you remediate it?
+
+**Candidate:** First I find out **what kind of public** it is. There are two separate settings, and I check both:
+
+| Setting | What it means |
+| --- | --- |
+| **Public network access** | Anyone on the internet can reach the account endpoint (they still need a key, SAS or RBAC) |
+| **Anonymous blob access** | Anyone can read blobs **without any credentials** - this is the dangerous one |
+
+Remediation flow:
+
+```text
+Identify the exposure (network access? anonymous container?)
+        |
+Disable anonymous blob access + set containers to Private
+        |
+Disable public network access -> use Private Endpoint / selected networks
+        |
+Review keys, SAS tokens and RBAC
+        |
+Activity Log + storage logs -> who changed it, was data read?
+        |
+Prevent: Azure Policy + Terraform/Bicep
+```
+
+Quick commands:
+
+```bash
+# Which containers allow anonymous access?
+az storage container list --account-name <account> --auth-mode login \
+  --query "[].{name:name, access:properties.publicAccess}" -o table
+
+# Lock the account down
+az storage account update -g <rg> -n <account> \
+  --allow-blob-public-access false \
+  --public-network-access Disabled
+```
+
+If some clients really need internet access, I set it to **selected networks** with IP rules instead of all networks.
+
+After closing the exposure:
+
+- If anonymous access was on, I check the storage logs (diagnostic settings to Log Analytics) to see whether data was read.
+- If a key or SAS may have leaked, I rotate the account keys. Rotating keys invalidates account SAS tokens signed with that key.
+- I remove extra RBAC roles such as Storage Blob Data Contributor or Owner where they are not needed.
+
+Prevention in code:
+
+```hcl
+resource "azurerm_storage_account" "app" {
+  name                     = "stappprod001"
+  resource_group_name      = azurerm_resource_group.app.name
+  location                 = azurerm_resource_group.app.location
+  account_tier             = "Standard"
+  account_replication_type = "ZRS"
+
+  public_network_access_enabled   = false
+  allow_nested_items_to_be_public = false # no anonymous blob access
+  shared_access_key_enabled       = false # Entra ID only, no account keys
+  min_tls_version                 = "TLS1_2"
+}
+```
+
+And Azure Policy (built-in) with **Deny** effect:
+
+```text
+Storage accounts should disable public network access
+Storage account public access should be disallowed
+```
+
+Remember:
+
+- Public network access and anonymous blob access are different controls.
+- Turn on private access only after the Private Endpoint and Private DNS are tested, or the application will break.
+- Before disabling shared keys, check that nothing still uses a connection string. Some tools and older SDKs need keys.
+
+## Azure Functions writing generated files to Blob Storage
+
+**Interviewer:** An Azure Function generates a PDF and stores it in a Storage Account. How is the storage part set up?
+
+**Candidate:** In my project, an Azure Function picked up requests from Service Bus, generated the document, and saved it to Blob Storage.
+
+```text
+Request -> Service Bus queue
+              |
+         Azure Function (managed identity)
+              |
+         Generate PDF
+              |
+         Blob Storage
+           input/      <- source files (if a file upload starts the flow)
+           output/     <- generated PDFs
+           failed/     <- files that could not be processed
+```
+
+Storage-side points:
+
+- **Separate containers** for input, output and failed files, all private.
+- **Managed identity** on the Function App, with **Storage Blob Data Contributor** scoped to the account or to the output container. No account keys in app settings.
+- The Function App also has its own **host storage** (`AzureWebJobsStorage`). I use an identity-based connection (`AzureWebJobsStorage__accountName`) instead of a connection string.
+- If the flow starts from a file upload, a **Blob Created** event through **Event Grid** triggers the Function. This is faster and more reliable than the old polling blob trigger.
+- **Idempotent writes:** use a fixed blob name such as `output/<request-id>.pdf`, so a retry overwrites the same file instead of creating duplicates.
+- **Lifecycle rule:** move PDFs older than 30 days to Cool and delete them after the retention period.
+- Users download through a **short-lived user delegation SAS** or through the API, never through a public container.
+
+Remember:
+
+- Blob is the right choice here because PDFs are unstructured files.
+- Keep the generated-file account private, with a Private Endpoint if the Function is VNet-integrated.
 
 ## Backup and recovery
 

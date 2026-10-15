@@ -283,7 +283,48 @@ This Jenkins Declarative Pipeline checks out the source, builds it, and runs uni
 
 ---
 
+## Jenkins follow-ups: what if `agent` or `steps` is missing?
+
+**Interviewer:** In a Declarative Pipeline, what happens if you do not give `agent`? And if a stage has no `steps`?
+
+**Candidate:**
+
+Both fail **before the pipeline starts**. Jenkins validates the Declarative syntax first, so nothing runs and no agent is used.
+
+| Missing | Error | Fix |
+| --- | --- | --- |
+| `agent` at the top level | `Missing required section "agent"` | Add `agent any` or a label at the top, or use `agent none` and give each stage its own `agent` |
+| `steps` in a stage | `Expected one of "steps", "stages", or "parallel" for stage "Build"` | Put commands like `sh` inside `steps { }` |
+
+```groovy
+pipeline {
+  agent none                          // no default agent
+  stages {
+    stage('Build') {
+      agent { label 'maven' }         // so each stage must choose one
+      steps {
+        sh 'mvn -B clean package'
+      }
+    }
+    stage('Approve') {
+      agent none                      // no agent needed while waiting
+      steps {
+        input message: 'Deploy to production?'
+      }
+    }
+  }
+}
+```
+
+Remember:
+
+- `agent none` at the top is useful when stages need different agents, or when an approval stage should not hold an agent while it waits.
+- A stage needs exactly one of `steps`, `stages` (nested sequential stages), `parallel`, or `matrix`.
+- Scripted Pipelines (`node { }`) do not have these rules. The checks apply only to Declarative syntax.
+
 ## Answer 2: Azure DevOps Pipeline
+
+If the interviewer gives a stage list like `stages: - Build - Test - DockerBuild`, point out that this is not valid YAML for Azure DevOps. Each item must be an object with `stage:` and `jobs:`. A React + Spring Boot version with all nine stages (Build, Test, SonarQube, DockerBuild, TrivyScan, PushACR, DeployDev, Approval, DeployProd) is in `cicd-flow.md`.
 
 ### `azure-pipelines.yml`
 
@@ -907,6 +948,228 @@ The runner should use a protected short-lived Azure identity. Store `SONAR_TOKEN
 ### One-minute interview answer
 
 This GitLab pipeline runs for merge requests and the default branch. It builds and tests the Maven project, performs SonarQube analysis, waits for the Quality Gate, and scans dependencies with OWASP Dependency-Check. On the default branch, it builds one commit-tagged container, blocks high and critical Trivy findings, and pushes the image to ACR. GitLab then deploys the same image to Development and verifies both rollout and health. Production is a protected manual job, and its resource group prevents concurrent releases. Test, coverage, and security reports are retained for troubleshooting and audit.
+
+---
+
+## Answer 5: Terraform files and a Terraform pipeline
+
+Interviewers often ask for small Terraform files and a pipeline that runs them.
+
+### Sample `providers.tf` and `versions.tf`
+
+**Interviewer:** Write a sample `providers.tf`.
+
+**Candidate:**
+
+`versions.tf` pins Terraform and the provider. `providers.tf` configures the provider. `backend.tf` says where the state file lives.
+
+```hcl
+# versions.tf
+terraform {
+  required_version = ">= 1.9.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+```
+
+```hcl
+# providers.tf
+provider "azurerm" {
+  features {}
+  subscription_id = var.subscription_id   # required in azurerm 4.x (or set ARM_SUBSCRIPTION_ID)
+}
+
+# Second subscription, used with provider = azurerm.prod
+provider "azurerm" {
+  alias           = "prod"
+  features {}
+  subscription_id = var.prod_subscription_id
+}
+```
+
+```hcl
+# variables.tf
+variable "subscription_id" {
+  type = string
+}
+
+variable "prod_subscription_id" {
+  type = string
+}
+```
+
+```hcl
+# backend.tf
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "tfstate-rg"
+    storage_account_name = "companytfstate"
+    container_name       = "tfstate"
+    key                  = "dev.tfstate"
+    use_azuread_auth     = true
+  }
+}
+```
+
+Remember:
+
+- No secrets in the provider block. Login comes from `az login` locally, and from OIDC (workload identity federation) or a managed identity in the pipeline. With OIDC, the provider reads `ARM_USE_OIDC=true`, `ARM_CLIENT_ID`, and `ARM_TENANT_ID` from the environment.
+- `~> 4.0` allows 4.x updates but not 5.0. Commit `.terraform.lock.hcl` so everyone uses the same provider build.
+
+### Terraform file to create a Resource Group
+
+It uses the `versions.tf` and `providers.tf` shown above.
+
+```hcl
+# main.tf
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-payment-dev"
+  location = "Central India"
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "DevOps"
+  }
+}
+
+output "resource_group_id" {
+  value = azurerm_resource_group.rg.id
+}
+```
+
+```bash
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+If someone deletes the resource group in the portal, the next `terraform plan` shows it will be created again, because the state still has it.
+
+### Azure DevOps pipeline using Terraform
+
+**Interviewer:** How do you run Terraform from Azure DevOps?
+
+**Candidate:**
+
+Plan in one stage, review and approve, then apply **that exact saved plan**.
+
+```text
+PR / push to main
+-> init, fmt -check, validate, Checkov, plan -out=tfplan
+-> publish tfplan as an artifact
+-> approval on the prod environment
+-> init, apply tfplan
+```
+
+```yaml
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include: [terraform/*]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  tfDir: $(System.DefaultWorkingDirectory)/terraform/environments/prod
+  serviceConnection: prod-terraform-wif     # ARM connection with workload identity federation
+
+stages:
+  - stage: Plan
+    jobs:
+      - job: Plan
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: '<approved-version>'
+
+          - task: TerraformTask@5
+            displayName: Init
+            inputs:
+              provider: azurerm
+              command: init
+              workingDirectory: $(tfDir)
+              backendServiceArm: $(serviceConnection)
+              backendAzureRmResourceGroupName: tfstate-rg
+              backendAzureRmStorageAccountName: companytfstate
+              backendAzureRmContainerName: tfstate
+              backendAzureRmKey: prod.tfstate
+
+          - script: |
+              terraform fmt -check -recursive
+              terraform validate
+              pip install checkov && checkov -d . --quiet
+            displayName: Format, validate, and scan
+            workingDirectory: $(tfDir)
+
+          - task: TerraformTask@5
+            displayName: Plan
+            inputs:
+              provider: azurerm
+              command: plan
+              workingDirectory: $(tfDir)
+              environmentServiceNameAzureRM: $(serviceConnection)
+              commandOptions: '-out=tfplan -input=false'
+
+          - publish: $(tfDir)/tfplan
+            artifact: tfplan
+
+  - stage: Apply
+    dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Apply
+        environment: prod                    # approval check is set on this environment
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - download: current
+                  artifact: tfplan
+
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: '<approved-version>'
+
+                - task: TerraformTask@5
+                  displayName: Init
+                  inputs:
+                    provider: azurerm
+                    command: init
+                    workingDirectory: $(tfDir)
+                    backendServiceArm: $(serviceConnection)
+                    backendAzureRmResourceGroupName: tfstate-rg
+                    backendAzureRmStorageAccountName: companytfstate
+                    backendAzureRmContainerName: tfstate
+                    backendAzureRmKey: prod.tfstate
+
+                - task: TerraformTask@5
+                  displayName: Apply saved plan
+                  inputs:
+                    provider: azurerm
+                    command: apply
+                    workingDirectory: $(tfDir)
+                    environmentServiceNameAzureRM: $(serviceConnection)
+                    commandOptions: '$(Pipeline.Workspace)/tfplan/tfplan'
+```
+
+Remember:
+
+- `TerraformTask@5` and `TerraformInstaller@1` come from the Microsoft DevLabs Terraform extension. Use the version installed in your organization.
+- Remote state in Azure Storage gives locking (blob lease), versioning, and one state key per environment (`dev.tfstate`, `prod.tfstate`).
+- A deployment job does not check out code, so `checkout: self` is needed before `init`.
+- The plan file can contain sensitive values. Limit who can read pipeline artifacts.
+- If the state changed after the plan, Terraform rejects the stale plan. Run the pipeline again.
+- Dev, QA, and Prod reuse the same stages through a template, each with its own `.tfvars`, state key, and service connection. Only Production needs approval.
 
 ---
 
