@@ -228,4 +228,4 @@ I would also add predictive autoscale or a scheduled profile for known busy hour
 
 </details>
 
-See also: [Azure compute and app hosting](../azure/02-compute-and-app-hosting.md), [Azure storage, networking, and reliability](../azure/04-storage-networking-and-reliability.md), and [Automation scripts in practice](../shell-scripting/02-automation-scripts-in-practice.md).
+See also: [Azure compute and app hosting](../../azure/02-compute-and-app-hosting.md), [Azure storage, networking, and reliability](../../azure/04-storage-networking-and-reliability.md), and [Automation scripts in practice](../../shell-scripting/02-automation-scripts-in-practice.md).

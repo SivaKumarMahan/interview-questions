@@ -233,4 +233,4 @@ Third, I would decide earlier which data belongs in Azure Monitor and which in S
 
 </details>
 
-See also: [Azure automation, monitoring, and cost](../azure/06-automation-monitoring-and-cost.md), [Prometheus](../monitoring-tools/02-prometheus.md), and [Splunk alerts and dashboards](../splunk/03-alerts-and-dashboards.md).
+See also: [Azure automation, monitoring, and cost](../../azure/06-automation-monitoring-and-cost.md), [Prometheus](../../monitoring-tools/02-prometheus.md), and [Splunk alerts and dashboards](../../splunk/03-alerts-and-dashboards.md).

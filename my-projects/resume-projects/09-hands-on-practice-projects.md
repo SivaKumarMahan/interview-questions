@@ -4,33 +4,33 @@
 
 ## Key Concepts
 
-These are **practice and lab projects** from my own learning plan, not resume projects. In an interview, call them "hands-on labs I built to practise X" and only describe the ones you actually built. Each project below has a short summary here and a full step-by-step guide (code, commands, troubleshooting, clean-up, and interview questions) in the [practice-projects](practice-projects/) folder. Mark your progress in the table and keep a GitHub link for each one you finish.
+These are **practice and lab projects** from my own learning plan, not resume projects. In an interview, call them "hands-on labs I built to practise X" and only describe the ones you actually built. Each project below has a short summary here and a full step-by-step guide (code, commands, troubleshooting, clean-up, and interview questions) in the [practice-projects](../practice-projects/) folder. Mark your progress in the table and keep a GitHub link for each one you finish.
 
 ### Project list at a glance
 
 | # | Project | Main tools | Level | Detailed guide | Built? |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Dockerized Node.js app to an Azure VM | GitHub Actions, Docker Hub, Azure VM | Beginner | [Guide](practice-projects/01-nodejs-docker-azure-vm-github-actions.md) | `[Confirm]` |
-| 2 | Web app and infrastructure with Azure DevOps | Azure Repos, YAML pipelines, Bicep | Intermediate | [Guide](practice-projects/02-azure-devops-bicep-web-app-and-infra.md) | `[Confirm]` |
-| 3 | 3-tier architecture with Terraform | Terraform, Azure CLI, remote state | Intermediate | [Guide](practice-projects/03-terraform-3-tier-architecture.md) | `[Confirm]` |
-| 3.1 | Modular Terraform with remote state | Terraform modules, Azure Storage backend | Intermediate | [Guide](practice-projects/03-1-terraform-modules-remote-state.md) | `[Confirm]` |
-| 3.2 | Terraform CI/CD | GitHub Actions or Azure DevOps | Intermediate | [Guide](practice-projects/03-2-terraform-cicd-pipelines.md) | `[Confirm]` |
-| 4 | Jenkins CI/CD to AKS | Jenkins, Docker, ACR, AKS | Intermediate | [Guide](practice-projects/04-jenkins-docker-aks-cicd.md) | `[Confirm]` |
-| 5 | Container to Azure Web App for Containers | App Service, GitHub Actions | Beginner | [Guide](practice-projects/05-container-azure-web-app-for-containers.md) | `[Confirm]` |
-| 6 | Microservices with Helm on AKS | Helm, AKS, Ingress, GitHub Actions | Advanced | [Guide](practice-projects/06-helm-microservices-aks.md) | `[Confirm]` |
-| 7 | Azure VM configuration with Ansible | Ansible, `azure.azcollection` | Intermediate | [Guide](practice-projects/07-ansible-azure-vm-automation.md) | `[Confirm]` |
-| 8 | Key Vault with managed identity | Key Vault, managed identity, Azure SDK | Intermediate | [Guide](practice-projects/08-key-vault-managed-identity.md) | `[Confirm]` |
-| 9 | Containerize a Flask app | Docker, Docker Hub, Docker Compose | Beginner | [Guide](practice-projects/09-flask-app-docker.md) | `[Confirm]` |
-| 10 | Flask app on Azure Container Instances | ACI, GitHub Actions | Beginner | [Guide](practice-projects/10-flask-app-azure-container-instances.md) | `[Confirm]` |
-| 11 | Flask app on AKS provisioned by Terraform | Terraform, AKS, ACR, kubectl | Intermediate | [Guide](practice-projects/11-flask-app-aks-terraform.md) | `[Confirm]` |
-| 12 | Azure Function App with GitHub Actions | Azure Functions, GitHub Actions | Beginner | [Guide](practice-projects/12-azure-function-app-github-actions.md) | `[Confirm]` |
-| 13 | Logic App + Function event-driven flow | Logic Apps, Functions, Blob, Cosmos DB | Intermediate | [Guide](practice-projects/13-logic-app-function-event-driven.md) | `[Confirm]` |
-| 14 | AKS observability | Azure Monitor, Log Analytics, KQL | Intermediate | [Guide](practice-projects/14-aks-observability-azure-monitor.md) | `[Confirm]` |
-| 15 | Full microservices CI/CD platform | Terraform, Helm, GitHub Actions, AKS | Advanced | [Guide](practice-projects/15-full-microservices-platform-aks.md) | `[Confirm]` |
+| 1 | Dockerized Node.js app to an Azure VM | GitHub Actions, Docker Hub, Azure VM | Beginner | [Guide](../practice-projects/01-nodejs-docker-azure-vm-github-actions.md) | `[Confirm]` |
+| 2 | Web app and infrastructure with Azure DevOps | Azure Repos, YAML pipelines, Bicep | Intermediate | [Guide](../practice-projects/02-azure-devops-bicep-web-app-and-infra.md) | `[Confirm]` |
+| 3 | 3-tier architecture with Terraform | Terraform, Azure CLI, remote state | Intermediate | [Guide](../practice-projects/03-terraform-3-tier-architecture.md) | `[Confirm]` |
+| 3.1 | Modular Terraform with remote state | Terraform modules, Azure Storage backend | Intermediate | [Guide](../practice-projects/03-1-terraform-modules-remote-state.md) | `[Confirm]` |
+| 3.2 | Terraform CI/CD | GitHub Actions or Azure DevOps | Intermediate | [Guide](../practice-projects/03-2-terraform-cicd-pipelines.md) | `[Confirm]` |
+| 4 | Jenkins CI/CD to AKS | Jenkins, Docker, ACR, AKS | Intermediate | [Guide](../practice-projects/04-jenkins-docker-aks-cicd.md) | `[Confirm]` |
+| 5 | Container to Azure Web App for Containers | App Service, GitHub Actions | Beginner | [Guide](../practice-projects/05-container-azure-web-app-for-containers.md) | `[Confirm]` |
+| 6 | Microservices with Helm on AKS | Helm, AKS, Ingress, GitHub Actions | Advanced | [Guide](../practice-projects/06-helm-microservices-aks.md) | `[Confirm]` |
+| 7 | Azure VM configuration with Ansible | Ansible, `azure.azcollection` | Intermediate | [Guide](../practice-projects/07-ansible-azure-vm-automation.md) | `[Confirm]` |
+| 8 | Key Vault with managed identity | Key Vault, managed identity, Azure SDK | Intermediate | [Guide](../practice-projects/08-key-vault-managed-identity.md) | `[Confirm]` |
+| 9 | Containerize a Flask app | Docker, Docker Hub, Docker Compose | Beginner | [Guide](../practice-projects/09-flask-app-docker.md) | `[Confirm]` |
+| 10 | Flask app on Azure Container Instances | ACI, GitHub Actions | Beginner | [Guide](../practice-projects/10-flask-app-azure-container-instances.md) | `[Confirm]` |
+| 11 | Flask app on AKS provisioned by Terraform | Terraform, AKS, ACR, kubectl | Intermediate | [Guide](../practice-projects/11-flask-app-aks-terraform.md) | `[Confirm]` |
+| 12 | Azure Function App with GitHub Actions | Azure Functions, GitHub Actions | Beginner | [Guide](../practice-projects/12-azure-function-app-github-actions.md) | `[Confirm]` |
+| 13 | Logic App + Function event-driven flow | Logic Apps, Functions, Blob, Cosmos DB | Intermediate | [Guide](../practice-projects/13-logic-app-function-event-driven.md) | `[Confirm]` |
+| 14 | AKS observability | Azure Monitor, Log Analytics, KQL | Intermediate | [Guide](../practice-projects/14-aks-observability-azure-monitor.md) | `[Confirm]` |
+| 15 | Full microservices CI/CD platform | Terraform, Helm, GitHub Actions, AKS | Advanced | [Guide](../practice-projects/15-full-microservices-platform-aks.md) | `[Confirm]` |
 
 ### Project 1: Dockerized Node.js app to an Azure VM with GitHub Actions
 
-**Full step-by-step guide:** [practice-projects/01-nodejs-docker-azure-vm-github-actions.md](practice-projects/01-nodejs-docker-azure-vm-github-actions.md)
+**Full step-by-step guide:** [practice-projects/01-nodejs-docker-azure-vm-github-actions.md](../practice-projects/01-nodejs-docker-azure-vm-github-actions.md)
 
 **Goal:** every push builds a Docker image, pushes it to Docker Hub, and runs the new version on an Azure VM.
 
@@ -52,7 +52,7 @@ git push -> GitHub Actions: docker build -> docker push (Docker Hub)
 
 ### Project 2: Azure DevOps with Repos, YAML pipelines, variable groups, and Bicep
 
-**Full step-by-step guide:** [practice-projects/02-azure-devops-bicep-web-app-and-infra.md](practice-projects/02-azure-devops-bicep-web-app-and-infra.md)
+**Full step-by-step guide:** [practice-projects/02-azure-devops-bicep-web-app-and-infra.md](../practice-projects/02-azure-devops-bicep-web-app-and-infra.md)
 
 **Goal:** deploy a web app **and** its infrastructure (VNet, Storage account, AKS) from Azure DevOps.
 
@@ -68,7 +68,7 @@ git push -> GitHub Actions: docker build -> docker push (Docker Hub)
 
 ### Project 3: 3-tier architecture with Terraform
 
-**Full step-by-step guide:** [practice-projects/03-terraform-3-tier-architecture.md](practice-projects/03-terraform-3-tier-architecture.md)
+**Full step-by-step guide:** [practice-projects/03-terraform-3-tier-architecture.md](../practice-projects/03-terraform-3-tier-architecture.md)
 
 **Goal:** provision web, app, and database tiers with Terraform.
 
@@ -86,15 +86,15 @@ terraform plan -out tfplan
 terraform apply tfplan
 ```
 
-**Project 3.1** ([guide](practice-projects/03-1-terraform-modules-remote-state.md)): split the code into **modules** (`modules/network`, `modules/vm`) and call them from each environment.
+**Project 3.1** ([guide](../practice-projects/03-1-terraform-modules-remote-state.md)): split the code into **modules** (`modules/network`, `modules/vm`) and call them from each environment.
 
-**Project 3.2** ([guide](practice-projects/03-2-terraform-cicd-pipelines.md)): run Terraform from a pipeline: `fmt` and `validate` > `plan` on pull requests (post the plan as a comment) > `apply` on merge to `main`, after approval.
+**Project 3.2** ([guide](../practice-projects/03-2-terraform-cicd-pipelines.md)): run Terraform from a pipeline: `fmt` and `validate` > `plan` on pull requests (post the plan as a comment) > `apply` on merge to `main`, after approval.
 
 **What it teaches:** IaC, state management, modules, and safe Terraform workflows.
 
 ### Project 4: Jenkins CI/CD to AKS
 
-**Full step-by-step guide:** [practice-projects/04-jenkins-docker-aks-cicd.md](practice-projects/04-jenkins-docker-aks-cicd.md)
+**Full step-by-step guide:** [practice-projects/04-jenkins-docker-aks-cicd.md](../practice-projects/04-jenkins-docker-aks-cicd.md)
 
 **Goal:** a Jenkins pipeline that builds, tests, pushes to ACR, and deploys to AKS.
 
@@ -109,7 +109,7 @@ terraform apply tfplan
 
 ### Project 5: Container to Azure Web App for Containers
 
-**Full step-by-step guide:** [practice-projects/05-container-azure-web-app-for-containers.md](practice-projects/05-container-azure-web-app-for-containers.md)
+**Full step-by-step guide:** [practice-projects/05-container-azure-web-app-for-containers.md](../practice-projects/05-container-azure-web-app-for-containers.md)
 
 **Goal:** run a container on App Service (PaaS) without managing servers or clusters.
 
@@ -124,7 +124,7 @@ terraform apply tfplan
 
 ### Project 6: Microservices with Helm on AKS
 
-**Full step-by-step guide:** [practice-projects/06-helm-microservices-aks.md](practice-projects/06-helm-microservices-aks.md)
+**Full step-by-step guide:** [practice-projects/06-helm-microservices-aks.md](../practice-projects/06-helm-microservices-aks.md)
 
 **Goal:** deploy two services (for example `orders` and `payments`, in Flask or Node.js) with Helm charts.
 
@@ -140,7 +140,7 @@ terraform apply tfplan
 
 ### Project 7: Azure VM configuration with Ansible
 
-**Full step-by-step guide:** [practice-projects/07-ansible-azure-vm-automation.md](practice-projects/07-ansible-azure-vm-automation.md)
+**Full step-by-step guide:** [practice-projects/07-ansible-azure-vm-automation.md](../practice-projects/07-ansible-azure-vm-automation.md)
 
 **Goal:** provision and configure an Azure VM with Ansible.
 
@@ -154,7 +154,7 @@ terraform apply tfplan
 
 ### Project 8: Key Vault with managed identity
 
-**Full step-by-step guide:** [practice-projects/08-key-vault-managed-identity.md](practice-projects/08-key-vault-managed-identity.md)
+**Full step-by-step guide:** [practice-projects/08-key-vault-managed-identity.md](../practice-projects/08-key-vault-managed-identity.md)
 
 **Goal:** the application reads secrets from Key Vault with **no credentials anywhere**.
 
@@ -169,7 +169,7 @@ terraform apply tfplan
 
 ### Project 9: Containerize a Python Flask app
 
-**Full step-by-step guide:** [practice-projects/09-flask-app-docker.md](practice-projects/09-flask-app-docker.md)
+**Full step-by-step guide:** [practice-projects/09-flask-app-docker.md](../practice-projects/09-flask-app-docker.md)
 
 **Goal:** build, run, and publish a container locally.
 
@@ -185,7 +185,7 @@ terraform apply tfplan
 
 ### Project 10: Flask app on Azure Container Instances (ACI)
 
-**Full step-by-step guide:** [practice-projects/10-flask-app-azure-container-instances.md](practice-projects/10-flask-app-azure-container-instances.md)
+**Full step-by-step guide:** [practice-projects/10-flask-app-azure-container-instances.md](../practice-projects/10-flask-app-azure-container-instances.md)
 
 **Goal:** run the container serverlessly, with no VM or cluster.
 
@@ -199,7 +199,7 @@ terraform apply tfplan
 
 ### Project 11: Flask app on AKS provisioned by Terraform
 
-**Full step-by-step guide:** [practice-projects/11-flask-app-aks-terraform.md](practice-projects/11-flask-app-aks-terraform.md)
+**Full step-by-step guide:** [practice-projects/11-flask-app-aks-terraform.md](../practice-projects/11-flask-app-aks-terraform.md)
 
 **Goal:** Terraform creates the platform; kubectl deploys the app.
 
@@ -214,7 +214,7 @@ terraform apply tfplan
 
 ### Project 12: Azure Function App with GitHub Actions
 
-**Full step-by-step guide:** [practice-projects/12-azure-function-app-github-actions.md](practice-projects/12-azure-function-app-github-actions.md)
+**Full step-by-step guide:** [practice-projects/12-azure-function-app-github-actions.md](../practice-projects/12-azure-function-app-github-actions.md)
 
 **Goal:** deploy a serverless function automatically.
 
@@ -229,7 +229,7 @@ terraform apply tfplan
 
 ### Project 13: Logic App and Function event-driven flow
 
-**Full step-by-step guide:** [practice-projects/13-logic-app-function-event-driven.md](practice-projects/13-logic-app-function-event-driven.md)
+**Full step-by-step guide:** [practice-projects/13-logic-app-function-event-driven.md](../practice-projects/13-logic-app-function-event-driven.md)
 
 **Goal:** process uploaded files automatically.
 
@@ -248,7 +248,7 @@ File uploaded to Blob Storage
 
 ### Project 14: AKS observability with Azure Monitor
 
-**Full step-by-step guide:** [practice-projects/14-aks-observability-azure-monitor.md](practice-projects/14-aks-observability-azure-monitor.md)
+**Full step-by-step guide:** [practice-projects/14-aks-observability-azure-monitor.md](../practice-projects/14-aks-observability-azure-monitor.md)
 
 **Goal:** see AKS health and logs in one place.
 
@@ -271,7 +271,7 @@ KubePodInventory
 
 ### Project 15: Full microservices CI/CD platform on AKS
 
-**Full step-by-step guide:** [practice-projects/15-full-microservices-platform-aks.md](practice-projects/15-full-microservices-platform-aks.md)
+**Full step-by-step guide:** [practice-projects/15-full-microservices-platform-aks.md](../practice-projects/15-full-microservices-platform-aks.md)
 
 **Goal:** combine everything into one enterprise-style setup.
 

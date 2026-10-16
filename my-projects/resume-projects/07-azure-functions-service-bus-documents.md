@@ -210,4 +210,4 @@ I would also look at Flex Consumption instead of Premium, because it now gives V
 
 </details>
 
-See also: [Azure integration and messaging](../azure/03-integration-and-messaging.md) and [Azure compute and app hosting](../azure/02-compute-and-app-hosting.md).
+See also: [Azure integration and messaging](../../azure/03-integration-and-messaging.md) and [Azure compute and app hosting](../../azure/02-compute-and-app-hosting.md).

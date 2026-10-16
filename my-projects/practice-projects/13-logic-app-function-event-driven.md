@@ -691,7 +691,7 @@ AzureDiagnostics
 | Problem | Likely cause | Fix |
 | --- | --- | --- |
 | Logic App trigger never fires | Wrong folder, or file older than the trigger's last check | Check container path `/incoming`; upload a new file |
-| Trigger or Get blob returns 403 | Logic App identity missing the data role, or storage firewall | Assign Storage Blob Data Reader; for locked-down storage see [the secured storage scenario](../08-logic-app-secured-storage-access.md) |
+| Trigger or Get blob returns 403 | Logic App identity missing the data role, or storage firewall | Assign Storage Blob Data Reader; for locked-down storage see [the secured storage scenario](../resume-projects/08-logic-app-secured-storage-access.md) |
 | Function returns 401 | Missing key or Easy Auth audience mismatch | Use the Azure Functions action, or fix the `audience` value |
 | Function returns 400 | Body format wrong, or `$content` missing | Set Infer content type to No; check the body in run history |
 | Function logs `Forbidden ... RBAC` for Cosmos | Data-plane role missing (Azure RBAC Contributor is not enough) | `az cosmosdb sql role assignment create` with the Data Contributor role |
@@ -838,7 +838,7 @@ A Consumption Logic App runs in shared infrastructure without VNet integration, 
 - Keep the managed identity connection and add a **resource instance rule** on the storage firewall for this Logic App (`Microsoft.Logic/workflows`), with the Storage Blob Data Reader role.
 - Or move to **Logic Apps Standard** with VNet integration and private endpoints.
 
-The full walkthrough is in [the secured storage scenario](../08-logic-app-secured-storage-access.md).
+The full walkthrough is in [the secured storage scenario](../resume-projects/08-logic-app-secured-storage-access.md).
 
 </details>
 

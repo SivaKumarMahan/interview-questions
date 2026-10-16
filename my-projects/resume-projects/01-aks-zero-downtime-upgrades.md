@@ -198,4 +198,4 @@ What I learned is that most upgrade failures are workload problems, not AKS prob
 
 </details>
 
-See also: [Kubernetes upgrades and deployments](../kubernetes/07-deployments-upgrades-cicd.md), [Scheduling and autoscaling](../kubernetes/05-scheduling-resources-autoscaling.md), and [Bicep fundamentals](../bicep/01-fundamentals-and-structure.md).
+See also: [Kubernetes upgrades and deployments](../../kubernetes/07-deployments-upgrades-cicd.md), [Scheduling and autoscaling](../../kubernetes/05-scheduling-resources-autoscaling.md), and [Bicep fundamentals](../../bicep/01-fundamentals-and-structure.md).

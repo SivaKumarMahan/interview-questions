@@ -173,4 +173,4 @@ The main thing is that the tool is push-based. It only fixes drift when the pipe
 
 </details>
 
-See also: [Helm security and CI/CD](../helm/04-security-cicd-and-troubleshooting.md), [Kubernetes RBAC and secrets](../kubernetes/06-security-rbac-secrets.md), and [Docker security and CI/CD](../docker/05-security-ci-cd-and-deployments.md).
+See also: [Helm security and CI/CD](../../helm/04-security-cicd-and-troubleshooting.md), [Kubernetes RBAC and secrets](../../kubernetes/06-security-rbac-secrets.md), and [Docker security and CI/CD](../../docker/05-security-ci-cd-and-deployments.md).

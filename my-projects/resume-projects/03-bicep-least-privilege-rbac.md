@@ -249,4 +249,4 @@ I would also publish the modules to a Bicep registry in ACR instead of sharing t
 
 </details>
 
-See also: [Bicep scopes and environments](../bicep/02-deployment-scopes-environments-and-secrets.md), [Azure identity and governance](../azure/05-identity-security-and-governance.md), and [Azure DevOps security and secrets](../azure-devops/05-security-and-secrets.md).
+See also: [Bicep scopes and environments](../../bicep/02-deployment-scopes-environments-and-secrets.md), [Azure identity and governance](../../azure/05-identity-security-and-governance.md), and [Azure DevOps security and secrets](../../azure-devops/05-security-and-secrets.md).

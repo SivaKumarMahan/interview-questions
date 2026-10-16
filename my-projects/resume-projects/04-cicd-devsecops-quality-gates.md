@@ -232,4 +232,4 @@ What I learned is that warning mode first, plus a clear exception process, is wh
 
 </details>
 
-See also: [CI/CD security and compliance](../ci-cd/05-security-and-compliance.md), [Azure Repos branching and code review](../azure-devops/02-azure-repos-branching-and-code-review.md), and [Azure DevOps security and secrets](../azure-devops/05-security-and-secrets.md).
+See also: [CI/CD security and compliance](../../ci-cd/05-security-and-compliance.md), [Azure Repos branching and code review](../../azure-devops/02-azure-repos-branching-and-code-review.md), and [Azure DevOps security and secrets](../../azure-devops/05-security-and-secrets.md).
