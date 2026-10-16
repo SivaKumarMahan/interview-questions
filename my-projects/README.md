@@ -74,4 +74,4 @@ These come from personal notes and labs, not from resume bullets. Use them only 
 
 ## Real Project Write-Ups
 
-Detailed notes from real project work: a Warehouse Management System on AKS, with Bicep deployment stacks and Azure DevOps. They cover architecture, IaC, identity and custom roles, AKS upgrades, RBAC, Helm, production incidents, deployment slots, and Cloudflare. Use them as source material for the STAR answers above. Start at the [real-projects README](real-projects/README.md).
+Detailed notes from real project work: a Warehouse Management System on AKS, with Bicep deployment stacks and Azure DevOps. They cover architecture, IaC, identity and custom roles, AKS upgrades, RBAC, Helm, production incidents, deployment slots, and Cloudflare. Use them as source material for the STAR answers above. Start at the [project1 README](real-projects/project1/README.md) (Azure, AKS, Bicep, Azure DevOps) or the [project2 README](real-projects/project2/README.md) (AWS, OpenTofu, GitHub Actions, ECS, Ansible, Databricks).
