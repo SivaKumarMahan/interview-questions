@@ -192,3 +192,92 @@ kubectl get secret test-sa-token -n test -o json
 ```
 
 Each type was validated with a release stage running a **kubectl** task (`get pods -n default`). Creating these connections does not create extra Azure resources; pipeline and cross-project access is controlled from the connection's security page.
+
+## Final implementation in the IaC repo
+
+### A. Fully declarative: one Bicep stack
+
+**Files:** `azure/bicep/stacks/wms/serviceConnection/main.bicep`, `azure/bicep/modules/serviceConnection/serviceConnection.bicep`, `azure/bicep/modules/serviceConnection/serviceConnection.sh`, `azure/bicep/modules/iam/identity/federatedCredential.bicep`, `azure/bicep/parameters/wms/sandbox/serviceConnection/params.bicepparam`
+
+One `az stack group create` does all of this:
+
+1. Creates a **user-assigned managed identity**.
+2. Creates a **custom role** scoped to the resource group and **assigns** it to the identity.
+3. Runs an **Azure Deployment Script** (`Microsoft.Resources/deploymentScripts`, AzureCLI kind) as that identity, which:
+   - logs into Azure DevOps with a PAT (`az devops login`),
+   - builds the payload (`scheme: WorkloadIdentityFederation`, `type: AzureRM`),
+   - calls `az devops service-endpoint create`,
+   - reads back the new service connection ID,
+   - computes the federation **issuer** (`https://login.microsoftonline.com/<tenant>/v2.0`) and **subject** (`/eid1/c/pub/t/<orgHash>/a/<projectHash>/sc/<orgId>/<scId>`),
+   - writes them to `$AZ_SCRIPTS_OUTPUT_PATH`.
+4. The **federated identity credential** module takes `deploymentScripts.outputs.issuer` and `.subject` and binds Azure DevOps to the identity.
+
+```bicep
+// params.bicepparam — the PAT never goes into git
+param azdoPat = readEnvironmentVariable('AZDO_PAT', '')
+
+// main.bicep — chaining script outputs into the next module
+module fedCred '../../../modules/iam/identity/federatedCredential.bicep' = {
+  name: 'fed-cred'
+  params: {
+    identityName: uami.outputs.name
+    issuer: serviceConnection.outputs.issuer
+    subject: serviceConnection.outputs.subject
+    audiences: ['api://AzureADTokenExchange']
+  }
+}
+```
+
+**Talking points**
+
+- **No client secrets.** Azure DevOps gets a short-lived OIDC token and exchanges it for an Entra ID token. Nothing expires or needs rotating.
+- **PAT only at deploy time,** read from an environment variable in the `.bicepparam` file.
+- **Output chaining** removes the manual "copy issuer/subject from the portal" step.
+- **Repeatable per environment** — only the param file changes (`commonParams.tags.environment`).
+
+### B. Bulk creation through the REST API (shell)
+
+**Files:** `azureDevOps/serviceConnection/serviceConnection.sh`, `serviceConnection.json`, `serviceConnectionNames.txt`, `README.md`
+
+- Reads names from `serviceConnectionNames.txt`.
+- For each name, **checks whether it already exists** (GET `_apis/serviceendpoint/endpoints` + `jq`) and skips it if so — idempotent.
+- Looks up the identity `principalId` (`az identity show`), fills the JSON template with `envsubst`, and POSTs it to the REST API.
+- Documented limitation: the REST API could not authenticate with federated credentials created outside the API. That is why approach A creates the connection first and the federated credential second.
+
+### C. Multi-connection federated credentials
+
+`azure/bicep/modules/federatedCredentials/federatedCredentials.bicep` loops `for i in range(0, length(serviceConnectionId))` and creates one federated credential per (identity, service connection) pair — a bulk version of step 4.
+
+### Interview Q&A
+
+**Service principal + secret vs managed identity + WIF?**
+Secrets expire, leak and need rotation. WIF stores no secret and its tokens are short-lived.
+
+**What are issuer, subject and audience?**
+Issuer — who mints the token (Entra, for Azure DevOps). Subject — which service connection. Audience — `api://AzureADTokenExchange`.
+
+**Why a Deployment Script?**
+Bicep can't call the Azure DevOps API natively. A Deployment Script runs CLI code inside the ARM deployment and returns outputs.
+
+## Custom roles and identities in Bicep
+
+**Files:** `modules/iam/roles/definition.bicep`, `modules/iam/roles/assignment.bicep`, `modules/iam/identity/userAssigned.bicep`, stacks under `stacks/wms/iam/` and `stacks/wms/resourceGroup/`
+
+- **Deterministic GUIDs** — `guid(subscriptionId, roleDefinitionName)` for definitions and `guid(rg, roleDefId, principalId)` for assignments, so redeploys are idempotent with no duplicate-assignment errors.
+- **One assignment module, many scopes** — `resourceScope.resourceType` picks RG, ACR, Key Vault, Storage Account or Function App. Supports built-in role IDs and custom roles (`is_custom_role_definition`).
+- **`iac-managed-identity` stack** — the identity behind the pipeline service connection, with a custom role limited to the providers IaC needs (AKS, ACR, VNet, PostgreSQL, Key Vault…) and `notActions` for subscription cancel/enable.
+- **Sandbox access stacks** — a subscription-scope stack (`targetScope = 'subscription'`) creates a sandbox RG and a custom role assigned to individual engineers through a `for assignment in items(roleAssignments)` loop. Granting access becomes a pull request, not a portal click.
+- **Separate identities** for cluster operations (`aks-managed-identity`) and RBAC automation (`aks-rbac-managed-identity`).
+
+```bicep
+resource assignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, roleDefinitionId, principalId)
+  properties: {
+    roleDefinitionId: roleDefinitionId
+    principalId: principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+```
+
+**Talking point:** "We replaced broad Owner/Contributor grants with custom roles assigned in code. Every grant is reviewable, repeatable and auditable in git."

@@ -177,3 +177,47 @@ az ad group member remove --group "$GROUP_NAME" --member-id "$USER_OBJECT_ID"
 - They **activate** for a limited time (e.g. max 8 hours) with justification and MFA.
 - Full audit history of who activated what, when and why.
 - Workflow: onboard the group to PIM → set member role policy (duration, MFA, justification) → make users eligible instead of direct members.
+
+## RBAC Helm chart internals
+
+**Files:** `helm/RBAC/values.yaml`, `helm/RBAC/values/rbac/aks/values.yaml`, `helm/RBAC/templates/resources/`, `helm/RBAC/templates/tpl/`, `helm/RBAC/README.md`
+
+- **Layered values** — `values.yaml` (base roles and rules) → `values/env/<env>/values.yaml` (environment and kube context) → `values/rbac/aks/values.yaml` (bindings and subjects, highest precedence).
+- **`enabled` toggle on every role and binding**, so access is switched on or off per environment without deleting code.
+- **Reusable partials** — `_rbac.tpl` renders rules; `_role.tpl`, `_roleBinding.tpl`, `_clusterRole*.tpl` render objects.
+- Templates `range` over maps and lists (skipping the `enabled` key), so adding a role is just a new values entry.
+- **Subjects are Entra ID group object IDs** (`kind: Group`), tying Kubernetes RBAC to Entra groups.
+- **Release-name guard** — templates render only when `Release.Name == "rbac-aks"`, preventing accidental installs under another name.
+- Pattern: **view** (get/list/watch) and **edit** (CRUD) roles per namespace, plus cluster-scoped **view** for nodes and namespaces.
+- `values.schema.json` rejects invalid verbs and environments (see [15](15-pre-commit-hooks-and-shift-left-validation.md)).
+
+```yaml
+# values/rbac/aks/values.yaml
+roleBindings:
+  enabled: true
+  dev-edit:
+    enabled: true
+    namespace: dev
+    roleRef: { kind: Role, name: edit-role }
+    subjects:
+      - kind: Group
+        name: <entra-group-object-id>
+```
+
+```yaml
+{{- if eq .Release.Name "rbac-aks" }}
+{{- range $name, $rb := .Values.roleBindings }}
+{{- if and (ne $name "enabled") $rb.enabled }}
+{{ include "rbac.roleBinding" (dict "name" $name "rb" $rb) }}
+{{- end }}
+{{- end }}
+{{- end }}
+```
+
+### More interview Q&A
+
+**Azure RBAC for Kubernetes vs Kubernetes RBAC?**
+With `enableAzureRBAC`, Azure role assignments decide authorization. Without it, Entra handles authentication and native Kubernetes RBAC (this chart) handles authorization.
+
+**How do you audit who has access?**
+Everything is in git and reviewed in pull requests; `helm template` shows the exact Roles and Bindings that will be applied.

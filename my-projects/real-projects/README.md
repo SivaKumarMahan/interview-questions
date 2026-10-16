@@ -35,3 +35,8 @@ Write-ups from a real DevOps engagement: a cloud-native, containerized Warehouse
 | 12 | [12-rabbitmq-database-and-global-load-balancing.md](12-rabbitmq-database-and-global-load-balancing.md) | RabbitMQ to AKS, DB into AKS network, global load balancer |
 | 13 | [13-webapp-deployment-slots.md](13-webapp-deployment-slots.md) | App Service slots, slot swap, sticky vs non-sticky settings |
 | 14 | [14-cloudflare-cache-purge.md](14-cloudflare-cache-purge.md) | Cache purge task group and cache behaviour testing |
+| 15 | [15-pre-commit-hooks-and-shift-left-validation.md](15-pre-commit-hooks-and-shift-left-validation.md) | Pre-commit hooks: Bicep lint, Helm render + kubeconform + Checkov, developer tooling |
+| 16 | [16-keyvault-cross-region-secret-sync.md](16-keyvault-cross-region-secret-sync.md) | Event-driven Key Vault sync with Event Grid + Azure Function, KQL alerting as code |
+| 17 | [17-networking-and-postgresql-iac.md](17-networking-and-postgresql-iac.md) | VNet/subnets, cross-RG peering, private DNS, PostgreSQL replica and virtual endpoints |
+| 18 | [18-bicep-engineering-practices.md](18-bicep-engineering-practices.md) | Deployment Script module, typed params, param inheritance, linter, helpers |
+| 19 | [19-interview-quick-reference.md](19-interview-quick-reference.md) | Resume claim → evidence map, gap check, quick-fire Q&A |

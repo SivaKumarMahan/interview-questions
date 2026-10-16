@@ -143,3 +143,25 @@ Rollback: keep old pools until sign-off; uncordon old nodes if new pools misbeha
 ## Cluster tracking sheet columns
 
 S.No · Cluster · Resource group · Location · Current version · Target version · Environment · System pools · User pools · Upgrade done (Y/N) · Upgraded via automation (Y/N) · Variable group · Service connection
+
+## AKS cluster as code
+
+**Files:** `azure/bicep/stacks/wms/aks/main.bicep`, `modules/aks/controlPlane.bicep`, `modules/aks/agentPool.bicep`, `modules/aks/bootstrap.bicep`, `parameters/wms/production/aks/params.bicepparam`
+
+- **Sequential node pool deployment** — each pool depends on the previous one, so user pools are created or updated **one at a time**, never all at once. This is what makes node pool changes controlled and zero-downtime.
+
+```bicep
+module pools 'agentPool.bicep' = [for (pool, i) in aksParams.agentPools: {
+  name: 'pool-${pool.name}'
+  params: { pool: pool, clusterName: controlPlane.outputs.name }
+  dependsOn: i == 0 ? [controlPlane] : [pools[i - 1]]
+}]
+```
+
+- **System vs user pools** (`mode: System/User`), node labels, **zones 1/2/3**, autoscaling (`minCount/maxCount`), optional per-pool subnet.
+- **`autoUpgradeProfile`** — `upgradeChannel: none` (Kubernetes version changes only through code) and `nodeOSUpgradeChannel: NodeImage` (OS patches automatic).
+- **Add-ons** — Key Vault Secrets Store CSI driver, Container Insights (to Log Analytics), Defender for Containers (`securityProfile.defender`), Web App Routing (managed NGINX ingress), Blob/Disk/File CSI and snapshot controller.
+- **Identity and access** — system-assigned cluster identity, optional managed AAD integration (`adminGroupObjectIDs`, `enableAzureRBAC`), `disableLocalAccounts` toggle, OIDC issuer toggle.
+- **Kubelet identity role assignments created automatically** — **AcrPull** on ACR (only when `attach_acr`, checked by the helper `can_acr_be_attached`) and a Key Vault role so pods can read secrets.
+- **Optional bootstrap** — a UAMI with a narrow custom role (`listClusterUserCredential` only) plus a Deployment Script that applies a `SecretProviderClass`, mounting Key Vault secrets (DB credentials, SMTP…) into pods.
+- **Pinned `aks_version`** in params — an upgrade is a one-line change → what-if → stack update.

@@ -182,3 +182,43 @@ Evaluated and **not adopted**: the tasks only build/decompile; the stack-based f
 
 **Choose Terraform** for multi-cloud, stronger state/drift detection, heavy module reuse, or an existing Terraform team.
 **Choose Bicep** when fully on Azure, wanting new features immediately, simpler syntax and no state file — **this project chose Bicep**, combined with Deployment Stacks to get lifecycle tracking and drift protection.
+
+## Generic release script for all stacks
+
+**Files:** `azure/bicep/releases/scripts/wms/global/script.sh`, `azure/bicep/stacks/wms/stackCommmands.txt`
+
+One script serves every stack and environment. Inputs come from Azure DevOps variable groups: `ENVIRONMENT`, `RESOURCE_GROUP`, `STACK_NAME`, `DENY_SETTINGS_MODE`, `ACTION_ON_UNMANAGED`.
+
+- **Convention-based paths:** `stacks/wms/$STACK_NAME/main.bicep` and `parameters/wms/$ENVIRONMENT/$STACK_NAME/params.bicepparam`.
+- **Flags:**
+
+| Flag | Action |
+|---|---|
+| `-bw` | `az deployment group what-if` (plan) |
+| `-bc` | `az stack group create` (apply) |
+| `-de` | `az stack group delete` |
+
+- `bicep_fix()` reinstalls the Bicep CLI on hosted agents (`az config set bicep.use_binary_from_path=false`) to work around version mismatches between the agent image and the templates.
+
+```bash
+case "$1" in
+  -bw) az deployment group what-if -g "$RESOURCE_GROUP" -n "$ENVIRONMENT-$STACK_NAME" \
+         -f "stacks/wms/$STACK_NAME/main.bicep" -p "parameters/wms/$ENVIRONMENT/$STACK_NAME/params.bicepparam" ;;
+  -bc) az stack group create -g "$RESOURCE_GROUP" -n "$ENVIRONMENT-$STACK_NAME" \
+         -f "stacks/wms/$STACK_NAME/main.bicep" -p "parameters/wms/$ENVIRONMENT/$STACK_NAME/params.bicepparam" \
+         --deny-settings-mode "$DENY_SETTINGS_MODE" --action-on-unmanage "$ACTION_ON_UNMANAGED" --yes ;;
+  -de) az stack group delete -g "$RESOURCE_GROUP" -n "$ENVIRONMENT-$STACK_NAME" \
+         --action-on-unmanage "$ACTION_ON_UNMANAGED" --yes ;;
+esac
+```
+
+### Why Deployment Stacks instead of `az deployment group create`
+
+- A stack **tracks the resources it manages**. With `--action-on-unmanage deleteAll`, a resource removed from code is **deleted from Azure** — drift cleanup similar to Terraform state.
+- `--deny-settings-mode denyDelete` **blocks portal and manual deletion** of stack-managed resources — a guardrail.
+- `what-if` gives a Terraform-plan-like preview for PR reviews and approval gates.
+
+| Option | Values |
+|---|---|
+| `--deny-settings-mode` | `none`, `denyDelete`, `denyWriteAndDelete` |
+| `--action-on-unmanage` | `detachAll`, `deleteResources`, `deleteAll` |

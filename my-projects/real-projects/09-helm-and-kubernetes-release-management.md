@@ -117,3 +117,36 @@ Templated placeholders replaced at release time: `__SERVICE_NAME__`, `__SERVICE_
 
 **Use manifests** for simple, static or one-off deployments, when you need precise control, or with GitOps tools (Argo CD / Flux) applying plain YAML.
 **Use Helm** for many resources, frequent releases, the same app in several environments, reusing community charts (NGINX, PostgreSQL, Redis), and modular declarative management — the WMS case.
+
+## Helm release automation script
+
+**File:** `helm/releases/scripts/wms/global/script.sh`
+
+| Flag | Action |
+|---|---|
+| `-tw` | `helm template` the **wms** app chart |
+| `-uw` | `helm upgrade --install` the **wms** app chart |
+| `-tr` | `helm template` the **RBAC** chart |
+| `-ur` | `helm upgrade --install` the **RBAC** chart |
+
+The release pipeline runs `helm template` first (rendered manifests appear in the logs as a dry run), then `helm upgrade --install` (idempotent). Values use the same three layers: base → environment → microservice / resource.
+
+## Current wms chart settings
+
+- One generic chart (Deployment, Service, Ingress through `tpl` partials) shared by multiple services (`rabbitmq`, `wms-ui`…) through per-service values files.
+- **Zero-downtime rollout** — `RollingUpdate` with `maxSurge: 1`, `maxUnavailable: 0`.
+- Liveness and readiness probes; CPU and memory requests and limits.
+- **Graceful shutdown** — `preStop: sleep 15`, so the pod leaves the load balancer before it stops.
+- Secrets through `secretKeyRef`, never in values; ACR image with `imagePullSecrets`.
+- **Ingress** on AKS Web App Routing (`webapprouting.kubernetes.azure.com` ingress class) with a TLS secret and NGINX annotations for timeouts, body size and regex rewrites.
+
+```yaml
+strategy:
+  type: RollingUpdate
+  rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+lifecycle:
+  preStop:
+    exec: { command: ["sh", "-c", "sleep 15"] }
+```
+
+Charts are validated before commit with `values.schema.json`, `helm template`, kubeconform and Checkov — see [15](15-pre-commit-hooks-and-shift-left-validation.md).
