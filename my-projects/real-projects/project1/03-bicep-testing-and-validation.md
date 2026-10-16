@@ -71,3 +71,7 @@ Before moving production infrastructure to Bicep, the templates were tested in a
 ### Conclusion
 
 Redeploying unchanged templates (single or split) produced **no configuration changes** in Azure — the templates are idempotent. A control-plane-only upgrade leaves nodes in place and only cycles system pods; a node pool upgrade recreates nodes and all pods. Downgrades are blocked at both levels.
+
+## Lab walkthrough
+
+The full lab — templates, parameter files, deployment commands, resources Azure created, monitoring commands, functional tests and clean-up — is in [20-bicep-testcases-lab-walkthrough.md](20-bicep-testcases-lab-walkthrough.md).
