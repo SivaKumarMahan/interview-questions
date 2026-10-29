@@ -25,6 +25,7 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 
 | Company | File |
 | --- | --- |
+| Accenture | [Accenture.md](Accenture.md) |
 | ATC | [ATC.md](ATC.md) |
 | BASF | [BASF.md](BASF.md) |
 | Cognizant | [Cognizant.md](Cognizant.md) |
@@ -33,6 +34,7 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 | EPAM | [Epam.md](Epam.md) |
 | EPAM (part 2) | [Epam2.md](Epam2.md) |
 | EPAM (part 3) | [Epam3.md](Epam3.md) |
+| Globant | [Globant.md](Globant.md) |
 | Inmar | [Inmar.md](Inmar.md) |
 | Innovar Tech | [InnovarTech.md](InnovarTech.md) |
 | SimCorp | [Simcorp.md](Simcorp.md) |
