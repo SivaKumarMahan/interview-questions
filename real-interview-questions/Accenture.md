@@ -680,3 +680,394 @@ Remember to track **SAML certificate expiry** (default 3 years) and rotate befor
 > "Yes, I have configured SSO with Microsoft Entra ID, for example for SonarQube using SAML. In Entra ID, I created an enterprise application, chose SAML, and set the Identifier and the Reply URL, which is the app's ACS endpoint. I added a group claim, downloaded the Base64 certificate, and assigned only the required groups. On the SonarQube side, I entered the Entra login URL, the Entra identifier as provider ID, the certificate, and the attribute mappings for login, email, and groups, so Entra groups map to SonarQube permissions. The flow is: the app redirects to Entra ID, the user logs in with MFA, Entra posts a signed assertion to the ACS URL, and the app validates it. For modern apps like Grafana, I use OIDC with an app registration instead. I also monitor the SAML signing certificate expiry."
 
 </details>
+
+---
+
+<details><summary>Q7. If you have EC2 and S3, how do you establish a connection between them?</summary>
+
+Secure access has two parts, the same as VM to Storage Account in Azure:
+
+| Part | AWS way | Why |
+| --- | --- | --- |
+| **Identity** (who is allowed) | **IAM role** attached to EC2 through an **instance profile** | No access keys stored on the server; temporary credentials rotate automatically |
+| **Network** (how traffic travels) | **VPC gateway endpoint for S3** | Traffic stays on the AWS network, works from private subnets without a NAT gateway or internet |
+
+```text
+EC2 (private subnet, IAM role) --route table--> S3 Gateway Endpoint (vpce-xxxx) --> S3 bucket
+                                                                           bucket policy: allow only via vpce-xxxx
+```
+
+**Never** run `aws configure` with access keys on an EC2 instance. Use a role.
+
+### Step 1: IAM role for EC2
+
+Trust policy (`trust.json`), which allows EC2 to use the role:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "Service": "ec2.amazonaws.com" },
+    "Action": "sts:AssumeRole"
+  }]
+}
+```
+
+Permission policy (`s3-access.json`), least privilege on one bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::siva-app-bucket"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::siva-app-bucket/*"
+    }
+  ]
+}
+```
+
+```bash
+aws iam create-role --role-name ec2-siva-s3-role --assume-role-policy-document file://trust.json
+aws iam put-role-policy --role-name ec2-siva-s3-role --policy-name s3-access --policy-document file://s3-access.json
+
+# EC2 uses roles through an instance profile
+aws iam create-instance-profile --instance-profile-name ec2-siva-s3-profile
+aws iam add-role-to-instance-profile --instance-profile-name ec2-siva-s3-profile --role-name ec2-siva-s3-role
+
+# Attach to a running instance
+aws ec2 associate-iam-instance-profile --instance-id i-0abc123 \
+  --iam-instance-profile Name=ec2-siva-s3-profile
+```
+
+### Step 2: VPC gateway endpoint for S3 (private network path)
+
+```bash
+aws ec2 create-vpc-endpoint --vpc-id vpc-0abc123 \
+  --vpc-endpoint-type Gateway \
+  --service-name com.amazonaws.us-east-1.s3 \
+  --route-table-ids rtb-0private123
+```
+
+A gateway endpoint for S3 is **free** and adds a route to S3 in the selected route tables. Use an **interface endpoint (PrivateLink)** instead if you need access from on-premises or peered networks.
+
+### Step 3: Lock down the bucket
+
+```bash
+# Block all public access
+aws s3api put-public-access-block --bucket siva-app-bucket \
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+```
+
+Bucket policy that denies access unless it comes through the VPC endpoint:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "DenyNotFromVpce",
+    "Effect": "Deny",
+    "Principal": "*",
+    "Action": "s3:*",
+    "Resource": ["arn:aws:s3:::siva-app-bucket", "arn:aws:s3:::siva-app-bucket/*"],
+    "Condition": { "StringNotEquals": { "aws:SourceVpce": "vpce-0abc123" } }
+  }]
+}
+```
+
+Be careful: this also blocks console and pipeline access from outside the VPC. Add exceptions for admin roles if needed.
+
+Also enable default encryption (SSE-S3 or SSE-KMS) and require TLS (`aws:SecureTransport`).
+
+### Step 4: Test from EC2
+
+```bash
+aws sts get-caller-identity                 # should show the assumed role ec2-siva-s3-role
+aws s3 ls s3://siva-app-bucket
+aws s3 cp /tmp/test.txt s3://siva-app-bucket/test.txt
+```
+
+Use **IMDSv2** (token-based metadata) on the instance so the role credentials are better protected.
+
+### Terraform (short version)
+
+```hcl
+resource "aws_iam_role" "ec2_s3" {
+  name               = "ec2-siva-s3-role"
+  assume_role_policy = file("trust.json")
+}
+
+resource "aws_iam_role_policy" "s3_access" {
+  role   = aws_iam_role.ec2_s3.id
+  policy = file("s3-access.json")
+}
+
+resource "aws_iam_instance_profile" "ec2_s3" {
+  name = "ec2-siva-s3-profile"
+  role = aws_iam_role.ec2_s3.name
+}
+
+resource "aws_instance" "app" {
+  ami                  = var.ami_id
+  instance_type        = "t3.micro"
+  subnet_id            = var.private_subnet_id
+  iam_instance_profile = aws_iam_instance_profile.ec2_s3.name
+
+  metadata_options {
+    http_tokens = "required"        # IMDSv2
+  }
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = var.vpc_id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [var.private_route_table_id]
+}
+```
+
+### AWS vs Azure
+
+| | AWS | Azure |
+| --- | --- | --- |
+| Identity | IAM role + instance profile | Managed identity + RBAC role |
+| Private network path | VPC gateway / interface endpoint | Service endpoint / private endpoint |
+| Resource-side restriction | Bucket policy (`aws:SourceVpce`) | Storage firewall, disable public access |
+
+### Interview answer
+
+> "I connect them with an IAM role, not access keys. I create a role that EC2 can assume, attach a least-privilege policy for only that bucket, and attach the role to the instance through an instance profile, so the instance gets temporary credentials that rotate automatically. For the network, I create a VPC gateway endpoint for S3 on the private subnet's route table, so traffic stays inside AWS and no NAT or internet access is needed. On the bucket, I block public access, enable encryption, and add a bucket policy that only allows requests through that VPC endpoint. I test with `aws sts get-caller-identity` and `aws s3 ls` from the instance. It is the same idea as a managed identity plus a private endpoint in Azure."
+
+</details>
+
+---
+
+<details><summary>Q8. The CPU of a VM / AKS is more than 100%. How do you troubleshoot or fix it using observability?</summary>
+
+First, understand what "more than 100%" means:
+
+| Where you see it | Meaning |
+| --- | --- |
+| `top` on Linux, per process | 100% = one full core. A process at 350% is using 3.5 cores (normal on multi-core) |
+| Azure Monitor "Percentage CPU" (VM) | Whole VM, max 100% = all cores busy |
+| `kubectl top pod` vs the pod's CPU limit | A pod cannot go above its limit; it gets **throttled** (slow), not killed |
+| `kubectl top node` 100% | All cores of the node are busy; pods compete for CPU |
+
+My approach: **Detect -> find the scope -> find the culprit -> mitigate -> fix the root cause.**
+
+### Step 1: Detect (alert)
+
+An Azure Monitor alert (CPU > 85% for 5 minutes) or a Grafana alert fires to Teams/email. Check **when** it started and whether it lines up with a deployment, a traffic spike, or a scheduled job.
+
+### Step 2: Find the scope with dashboards
+
+| Question | Where to look |
+| --- | --- |
+| One VM/node or all? | Azure Monitor metrics, VM insights, Container Insights > Nodes |
+| One pod / deployment? | Container Insights > Containers, Grafana Kubernetes dashboards |
+| Did traffic increase? | Application Insights request rate, ingress metrics |
+| Is the app slow because of it? | App Insights response time and failures |
+
+KQL: VMs with highest CPU (VM insights):
+
+```kusto
+InsightsMetrics
+| where TimeGenerated > ago(1h)
+| where Namespace == "Processor" and Name == "UtilizationPercentage"
+| summarize avgCPU = avg(Val) by Computer, bin(TimeGenerated, 5m)
+| order by avgCPU desc
+```
+
+PromQL: top pods by CPU, and throttling:
+
+```promql
+# CPU cores used per pod
+topk(10, sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) by (namespace, pod))
+
+# % of time the container was throttled (hitting its CPU limit)
+sum(rate(container_cpu_cfs_throttled_periods_total[5m])) by (pod)
+  / sum(rate(container_cpu_cfs_periods_total[5m])) by (pod) * 100
+```
+
+### Step 3a: Find the culprit on a VM
+
+```bash
+top                                   # press P to sort by CPU, 1 to see each core
+ps aux --sort=-%cpu | head -10        # top CPU processes
+top -H -p <PID>                       # threads inside that process
+pidstat -u 5 3                        # CPU per process over time (sysstat)
+uptime                                # load average vs number of cores (nproc)
+```
+
+For a Java app, find the hot thread:
+
+```bash
+top -H -p 4521                        # hot thread id, e.g. 4602
+printf '%x\n' 4602                    # -> 11fa (hex)
+jstack 4521 | grep -A 20 'nid=0x11fa' # what that thread is doing
+```
+
+### Step 3b: Find the culprit on AKS
+
+```bash
+kubectl top nodes
+kubectl top pods -A --sort-by=cpu | head -15
+kubectl top pod <pod> -n siva-prod --containers
+kubectl describe node <node>                       # "Allocated resources": requests vs capacity
+kubectl get pod <pod> -n siva-prod -o jsonpath='{.spec.containers[*].resources}'
+kubectl get hpa -n siva-prod                       # is HPA at maxReplicas already?
+```
+
+Then use **Application Insights** for that service: which requests or dependencies are slow, exceptions in loops, and the **profiler** to see which code methods use CPU.
+
+### Step 4: Mitigate quickly
+
+| Situation | Quick action |
+| --- | --- |
+| Real traffic increase on AKS | Scale out: `kubectl scale deploy/siva-api --replicas=6`, or raise HPA `maxReplicas` |
+| All nodes full | Cluster autoscaler / `az aks nodepool scale` |
+| Single VM overloaded | Resize: `az vm resize -g rg-siva -n vm-siva --size Standard_D4s_v5`, or scale out the VMSS |
+| Bad release (CPU jumped right after deploy) | Roll back: `kubectl rollout undo deploy/siva-api` |
+| Runaway process / stuck job | Restart it after collecting a thread dump |
+
+### Step 5: Fix the root cause
+
+| Root cause | Permanent fix |
+| --- | --- |
+| Code issue (infinite loop, heavy regex, N+1 queries) | Fix code, add a load test in the pipeline |
+| Java high GC (memory pressure shows as CPU) | Tune heap / memory limits, fix memory leak |
+| Wrong requests/limits, constant throttling | Right-size from metrics (VPA in recommendation mode) |
+| No autoscaling | HPA on CPU, VMSS autoscale, cluster autoscaler |
+| Noisy neighbour pods | Separate node pools, proper requests, ResourceQuota per namespace |
+| Batch job at peak hours | Reschedule the job, or run it on its own node pool |
+
+Then write an RCA and tune the alert thresholds.
+
+### Interview answer
+
+> "First, I clarify the metric: in `top`, over 100% just means more than one core, while VM-level 100% means all cores are busy, and in Kubernetes a pod hitting its CPU limit gets throttled. I start from the alert and dashboards: Azure Monitor and VM insights for VMs, Container Insights and Grafana for AKS, to see whether it is one node, one pod, or everything, and whether it lines up with a deployment or a traffic spike. Then I find the culprit: `top`, `ps --sort=-%cpu`, and `top -H` with `jstack` for Java threads on a VM, and `kubectl top nodes` and `kubectl top pods --sort-by=cpu` plus throttling metrics in Prometheus on AKS. Application Insights and its profiler show which requests or code paths use the CPU. To mitigate, I scale out, resize, or roll back a bad release. Then I fix the root cause, for example code issues, GC tuning, right-sizing requests and limits, or adding HPA and autoscaling, and I write an RCA."
+
+</details>
+
+---
+
+<details><summary>Q9. You ran terraform plan and see one resource being destroyed. What will you do?</summary>
+
+**Stop. Do not apply.** A destroy in a plan is a red flag until you know exactly why it is there, especially for stateful resources like databases, storage accounts, or Key Vaults.
+
+### Step 1: Read the plan carefully
+
+```text
+- destroy                     -> resource will be deleted completely
+-/+ destroy and then create   -> replacement (look for "# forces replacement")
++/- create then destroy       -> replacement with create_before_destroy
+```
+
+```text
+  # azurerm_storage_account.sa will be destroyed
+  # (because azurerm_storage_account.sa is not in configuration)
+  - resource "azurerm_storage_account" "sa" {
+```
+
+Terraform usually tells you the reason in brackets, for example "not in configuration", "index [2] is out of range", or the attribute marked `# forces replacement`.
+
+```bash
+terraform plan -out=tfplan
+terraform show tfplan | grep -B2 -A10 "will be destroyed"
+```
+
+### Step 2: Find the reason
+
+| Reason | How to check | Fix |
+| --- | --- | --- |
+| **Wrong environment**: wrong workspace, backend, or `.tfvars` | `terraform workspace show`, check `-var-file` and backend config | Run with the correct workspace / var file |
+| **Resource renamed** or moved into a module | Old address destroyed, new address created | `moved` block or `terraform state mv` |
+| **`count` index shifted** (item removed from the middle of a list) | `[2]` destroyed, others changed | Switch to `for_each` with stable keys + `moved` blocks |
+| **ForceNew attribute changed** (name, location, SKU tier) | `# forces replacement` | Revert the change, or `lifecycle { ignore_changes = [...] }` |
+| **Resource removed from code** (by mistake or in a merge) | `git log -p`, `git diff main` | Restore the code |
+| **Drift**: someone changed it in the portal | `terraform plan -refresh-only` | Align code with reality or revert the manual change |
+| **Provider upgrade** changed behaviour | Lock file `.terraform.lock.hcl` changed | Pin the provider version, read the upgrade guide |
+| **Intended**: you really want it gone | Confirmed with the team | Back up data, get approval, then apply |
+
+### Step 3: Fix without destroying (examples)
+
+**Renamed resource:**
+
+```hcl
+moved {
+  from = azurerm_storage_account.sa
+  to   = azurerm_storage_account.logs
+}
+```
+
+**Stop managing it in Terraform, but keep it in Azure** (Terraform 1.7+):
+
+```hcl
+removed {
+  from = azurerm_storage_account.old
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+(Older versions: `terraform state rm azurerm_storage_account.old`.)
+
+**Ignore a change that forces replacement:**
+
+```hcl
+lifecycle {
+  ignore_changes = [tags["CreatedOn"]]
+}
+```
+
+**Protect critical resources permanently:**
+
+```hcl
+lifecycle {
+  prevent_destroy = true      # plan fails instead of destroying it
+}
+```
+
+Also add an Azure **resource lock** (`CanNotDelete`) on production data resources:
+
+```bash
+az lock create -g rg-siva-prod -n lock-no-delete --lock-type CanNotDelete
+```
+
+### Step 4: Re-run the plan
+
+```bash
+terraform plan -out=tfplan        # expect: 0 to destroy
+```
+
+### Step 5: Guard it in the pipeline
+
+Fail (or require extra approval) automatically when a plan contains a delete:
+
+```bash
+terraform plan -out=tfplan
+DESTROYS=$(terraform show -json tfplan | jq '[.resource_changes[] | select(.change.actions | index("delete"))] | length')
+
+if [ "$DESTROYS" -gt 0 ]; then
+  echo "##vso[task.logissue type=error]Plan wants to destroy $DESTROYS resource(s). Review required."
+  terraform show -json tfplan | jq -r '.resource_changes[] | select(.change.actions | index("delete")) | .address'
+  exit 1
+fi
+```
+
+Always `apply` the **saved plan file** (`terraform apply tfplan`) so what gets applied is exactly what was reviewed.
+
+### Interview answer
+
+> "I stop and do not apply. First, I read the plan to see whether it is a pure destroy or a replacement and what reason Terraform gives, such as 'not in configuration' or an attribute marked 'forces replacement'. Then I find the cause: wrong workspace or tfvars, a renamed resource or one moved into a module, a shifted `count` index, a ForceNew attribute change, code removed in a merge, drift, or a provider upgrade. Depending on the cause, I fix it with a `moved` block, `ignore_changes`, a `removed` block with `destroy = false` to keep the resource, or by restoring the code, and I re-run the plan until it shows zero destroys. If the destroy is really intended, I back up the data and get approval first. To prevent accidents, I use `prevent_destroy` and resource locks on critical resources, and the pipeline checks the plan JSON and blocks any plan with deletes until someone reviews it."
+
+</details>
