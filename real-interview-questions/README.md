@@ -35,6 +35,7 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 | EPAM (part 2) | [Epam2.md](Epam2.md) |
 | EPAM (part 3) | [Epam3.md](Epam3.md) |
 | Globant | [Globant.md](Globant.md) |
+| Globant (part 2) | [Globant2.md](Globant2.md) |
 | Inmar | [Inmar.md](Inmar.md) |
 | Innovar Tech | [InnovarTech.md](InnovarTech.md) |
 | SimCorp | [Simcorp.md](Simcorp.md) |
