@@ -1173,3 +1173,81 @@ stages:
 > "A stage is a major phase of the pipeline, like Build or Deploy to Prod, and a job is a group of steps that runs on one agent. A stage contains one or more jobs. By default stages run in order and jobs in the same stage run in parallel. Each job gets a fresh agent, so jobs share files through artifacts. Approvals and checks are applied at the stage level through environments, which is why I put each environment in its own stage."
 
 </details>
+
+<details><summary>Q24. Give a particular use case where you would use VPA.</summary>
+
+The **Vertical Pod Autoscaler (VPA)** changes the **CPU and memory requests (and limits) of a pod**, not the number of pods. HPA scales **out** (more pods); VPA scales **up** (bigger pods).
+
+### Use case (real-world example)
+
+> We had a **nightly report/ETL worker** on AKS that ran as a **single replica**. It could not run as several copies because it processed one batch at a time. The team had guessed the requests: `cpu: 250m, memory: 512Mi`. As data grew, the pod got **OOMKilled** and was CPU-throttled, so the job ran for hours. Other services had the opposite problem: they requested `2 CPU / 4Gi` but used about 10% of it, so nodes looked "full" and we paid for capacity we did not use.
+>
+> We first deployed VPA in **`Off` (recommendation) mode** for a week to see real usage. Then we switched the worker to **`Auto`** with a `minAllowed` and `maxAllowed` range. VPA raised its memory to about 1.5Gi and the OOMKills stopped. For the over-sized services we used the recommendations to **right-size requests**, which let more pods fit per node and reduced the node count.
+
+### Example manifest
+
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: report-worker-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: report-worker
+  updatePolicy:
+    updateMode: "Auto"        # Off = recommend only, Initial = only on pod creation, Recreate/Auto = evict and resize
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: 250m
+          memory: 512Mi
+        maxAllowed:
+          cpu: "2"
+          memory: 4Gi
+        controlledResources: ["cpu", "memory"]
+```
+
+```bash
+# On AKS, VPA is a managed add-on
+az aks update -g rg-aks -n aks-prod --enable-vpa
+
+kubectl get vpa
+kubectl describe vpa report-worker-vpa   # shows Target, Lower Bound, Upper Bound recommendations
+```
+
+### Update modes
+
+| Mode | What VPA does |
+| --- | --- |
+| `Off` | Only gives **recommendations**; changes nothing. Good for right-sizing. |
+| `Initial` | Sets requests **only when a pod is created**; never evicts running pods. |
+| `Recreate` / `Auto` | **Evicts** pods whose requests are far from the recommendation, and they restart with new values. (Newer Kubernetes versions can resize in place.) |
+
+### When I would use VPA
+
+- **Single-replica or stateful workloads** that cannot scale out: batch jobs, workers, some databases, legacy apps.
+- **Right-sizing**: you do not know the correct requests, so you use `Off` mode to get recommendations.
+- Workloads that keep getting **OOMKilled** or **CPU-throttled** because requests were guessed too low.
+- **Cost saving**: over-requested pods waste node capacity.
+
+### Things to be careful about
+
+- **Do not use VPA and HPA on the same metric** (CPU or memory) for the same workload; they fight each other. You can combine them if HPA uses a custom or external metric (for example requests per second or queue length).
+- In `Auto`/`Recreate` mode, pods are **restarted** to apply new values, so set a **PodDisruptionBudget** and run more than one replica where you can.
+- Always set **`maxAllowed`**, or one memory leak can make VPA request a huge pod that no node can fit.
+- VPA needs the **metrics server** and some days of history to give good recommendations.
+
+| | HPA | VPA |
+| --- | --- | --- |
+| Changes | Number of pods | CPU/memory per pod |
+| Best for | Stateless apps with changing traffic | Single-replica, stateful or unknown sizing |
+| Restarts pods | No | Yes, in `Auto`/`Recreate` mode |
+
+### Interview-ready answer
+
+> "VPA adjusts the CPU and memory requests of pods instead of the number of pods. I use it for workloads that cannot scale out, like a single-replica batch worker. In one case our nightly report worker kept getting OOMKilled because its memory request was a guess. I ran VPA in Off mode for a week to get recommendations, then switched it to Auto with min and max limits, and the OOMKills stopped. I also use Off mode to right-size over-requested services and save node cost. I don't run VPA and HPA on the same CPU or memory metric, because they conflict."
+
+</details>
