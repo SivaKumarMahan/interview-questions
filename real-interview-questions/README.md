@@ -28,6 +28,7 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 | Accenture | [Accenture.md](Accenture.md) |
 | ATC | [ATC.md](ATC.md) |
 | BASF | [BASF.md](BASF.md) |
+| CGI | [CGI.md](CGI.md) |
 | Cognizant | [Cognizant.md](Cognizant.md) |
 | Deloitte LLP | [DelloiteLLP.md](DelloiteLLP.md) |
 | Deloitte LLP (part 2) | [DelloiteLLP2.md](DelloiteLLP2.md) |
@@ -36,6 +37,7 @@ TODO (Siva): add a row for each round you have already attended, and delete the 
 | EPAM (part 3) | [Epam3.md](Epam3.md) |
 | Globant | [Globant.md](Globant.md) |
 | Globant (part 2) | [Globant2.md](Globant2.md) |
+| Globant (part 3) | [Globant3.md](Globant3.md) |
 | Inmar | [Inmar.md](Inmar.md) |
 | Innovar Tech | [InnovarTech.md](InnovarTech.md) |
 | SimCorp | [Simcorp.md](Simcorp.md) |
